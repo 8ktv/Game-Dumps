@@ -1,0 +1,12 @@
+namespace Mirror.BouncyCastle.Crypto.Engines;
+
+public class VmpcKsa3Engine : VmpcEngine
+{
+	public override string AlgorithmName => "VMPC-KSA3";
+
+	protected override void InitKey(byte[] keyBytes, byte[] ivBytes)
+	{
+		base.InitKey(keyBytes, ivBytes);
+		VmpcEngine.KsaRound(P, ref s, keyBytes);
+	}
+}

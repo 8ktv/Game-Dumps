@@ -1,0 +1,61 @@
+using System;
+using Mirror.BouncyCastle.Crypto;
+using Mirror.BouncyCastle.Utilities;
+
+namespace Mirror.BouncyCastle.Pqc.Crypto.Utilities;
+
+public class SecretWithEncapsulationImpl : ISecretWithEncapsulation, IDisposable
+{
+	private volatile bool hasBeenDestroyed;
+
+	private byte[] sessionKey;
+
+	private byte[] cipher_text;
+
+	public SecretWithEncapsulationImpl(byte[] sessionKey, byte[] cipher_text)
+	{
+		this.sessionKey = sessionKey;
+		this.cipher_text = cipher_text;
+	}
+
+	public byte[] GetSecret()
+	{
+		CheckDestroyed();
+		return Arrays.Clone(sessionKey);
+	}
+
+	public byte[] GetEncapsulation()
+	{
+		CheckDestroyed();
+		return Arrays.Clone(cipher_text);
+	}
+
+	public void Dispose()
+	{
+		Dispose(disposing: true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void Dispose(bool disposing)
+	{
+		if (disposing && !hasBeenDestroyed)
+		{
+			Arrays.Clear(sessionKey);
+			Arrays.Clear(cipher_text);
+			hasBeenDestroyed = true;
+		}
+	}
+
+	public bool IsDestroyed()
+	{
+		return hasBeenDestroyed;
+	}
+
+	private void CheckDestroyed()
+	{
+		if (IsDestroyed())
+		{
+			throw new Exception("data has been destroyed");
+		}
+	}
+}

@@ -1,0 +1,12 @@
+using System;
+
+namespace Steamworks.ServerList;
+
+public class Friends : Base
+{
+	internal override void LaunchQuery()
+	{
+		using ServerFilterMarshaler serverFilterMarshaler = new ServerFilterMarshaler(GetFilters());
+		request = Base.Internal.RequestFriendsServerList(base.AppId.Value, serverFilterMarshaler.Pointer, (uint)serverFilterMarshaler.Count, IntPtr.Zero);
+	}
+}

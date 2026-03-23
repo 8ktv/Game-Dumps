@@ -1,0 +1,40 @@
+namespace UnityEngine.UIElements;
+
+public static class PointerType
+{
+	public static readonly string mouse = "mouse";
+
+	public static readonly string touch = "touch";
+
+	public static readonly string pen = "pen";
+
+	public static readonly string tracked = "tracked";
+
+	public static readonly string unknown = "";
+
+	internal static string GetPointerType(int pointerId)
+	{
+		if (pointerId == PointerId.mousePointerId)
+		{
+			return mouse;
+		}
+		if (pointerId >= PointerId.trackedPointerIdBase)
+		{
+			return tracked;
+		}
+		if (pointerId >= PointerId.penPointerIdBase)
+		{
+			return pen;
+		}
+		if (pointerId >= PointerId.touchPointerIdBase)
+		{
+			return touch;
+		}
+		return unknown;
+	}
+
+	internal static bool IsDirectManipulationDevice(string pointerType)
+	{
+		return (object)pointerType == touch || (object)pointerType == pen;
+	}
+}

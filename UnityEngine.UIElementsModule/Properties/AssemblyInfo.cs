@@ -1,0 +1,41 @@
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Security;
+using System.Security.Permissions;
+using Unity.Properties;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+[assembly: InternalsVisibleTo("UnityEngine.UIElements.Tests.Base")]
+[assembly: InternalsVisibleTo("Unity.UI.TestFramework.Runtime.InternalAccessTests")]
+[assembly: InternalsVisibleTo("Unity.UI.TestFramework.Runtime")]
+[assembly: InternalsVisibleTo("Assembly-CSharp-testable")]
+[assembly: InternalsVisibleTo("Unity.UIElements.TestComponents")]
+[assembly: InternalsVisibleTo("Unity.UIElements.RuntimeTests.Controls")]
+[assembly: InternalsVisibleTo("UnityEngine.UIElements.Tests.Bindings")]
+[assembly: InternalsVisibleTo("Unity.UIElements.RuntimeTests")]
+[assembly: InternalsVisibleTo("Unity.UIElements.Tests")]
+[assembly: UnityEngineModuleAssembly]
+[assembly: InternalsVisibleTo("UnityEngine")]
+[assembly: InternalsVisibleTo("Unity.UIElements.PlayModeTests")]
+[assembly: InternalsVisibleTo("UnityEngine.UIElements.Tests.Controls")]
+[assembly: InternalsVisibleTo("UnityEngine.UIElements.Tests.StyleSheets")]
+[assembly: InternalsVisibleTo("UnityEngine.UIElements.Tests.Utils")]
+[assembly: GeneratePropertyBagsForTypesQualifiedWith(typeof(IDataSourceViewHashProvider), TypeGenerationOptions.Default)]
+[assembly: InternalsVisibleTo("Unity.GraphToolsAuthoringFramework.InternalBridge")]
+[assembly: InternalsVisibleTo("Unity.InternalAPIEngineBridge.015")]
+[assembly: InternalsVisibleTo("Unity.InternalAPIEngineBridge.017")]
+[assembly: InternalsVisibleTo("Unity.InternalAPIEngineBridge.003")]
+[assembly: InternalsVisibleTo("Unity.InternalAPIEngineBridge.002")]
+[assembly: InternalsVisibleTo("Unity.InternalAPIEngineBridge.001")]
+[assembly: InternalsVisibleTo("Unity.XR.Interaction.Toolkit.Samples.UIToolkit")]
+[assembly: InternalsVisibleTo("Unity.XR.Interaction.Toolkit.Samples.StarterAssets.Editor")]
+[assembly: InternalsVisibleTo("Unity.XR.Interaction.Toolkit.Samples.StarterAssets")]
+[assembly: InternalsVisibleTo("Unity.XR.Interaction.Toolkit.Editor")]
+[assembly: InternalsVisibleTo("Unity.XR.Interaction.Toolkit")]
+[assembly: InternalsVisibleTo("UnityEngine.UI")]
+[assembly: InternalsVisibleTo("Unity.Modules.Licensing.Tests.Editor")]
+[assembly: InternalsVisibleTo("UnityEngine.UIElements.Tests.UXML")]
+[assembly: GeneratePropertyBagsForTypesQualifiedWith(typeof(INotifyBindablePropertyChanged), TypeGenerationOptions.Default)]
+[assembly: AssemblyVersion("0.0.0.0")]

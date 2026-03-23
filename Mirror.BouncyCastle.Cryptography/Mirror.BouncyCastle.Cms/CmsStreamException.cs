@@ -1,0 +1,28 @@
+using System;
+using System.IO;
+using System.Runtime.Serialization;
+
+namespace Mirror.BouncyCastle.Cms;
+
+[Serializable]
+public class CmsStreamException : IOException
+{
+	public CmsStreamException()
+	{
+	}
+
+	public CmsStreamException(string message)
+		: base(message)
+	{
+	}
+
+	public CmsStreamException(string message, Exception innerException)
+		: base(message, innerException)
+	{
+	}
+
+	protected CmsStreamException(SerializationInfo info, StreamingContext context)
+		: base(info, context)
+	{
+	}
+}

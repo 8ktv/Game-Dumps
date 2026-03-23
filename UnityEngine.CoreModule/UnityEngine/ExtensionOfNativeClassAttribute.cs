@@ -1,0 +1,12 @@
+using System;
+using UnityEngine.Bindings;
+using UnityEngine.Scripting;
+
+namespace UnityEngine;
+
+[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, Inherited = true)]
+[RequiredByNativeCode]
+internal sealed class ExtensionOfNativeClassAttribute : Attribute
+{
+}

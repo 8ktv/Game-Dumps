@@ -1,0 +1,26 @@
+public enum EliminationReason
+{
+	None = 0,
+	Swing = 1,
+	SwingProjectile = 2,
+	Fall = 4,
+	OutOfBounds = 5,
+	FellIntoWater = 6,
+	TimedOut = 7,
+	ReturnedBall = 8,
+	DuelingPistol = 9,
+	Dive = 10,
+	ElephantGun = 11,
+	GolfCart = 12,
+	Rocket = 13,
+	RocketBackBlast = 14,
+	Landmine = 18,
+	ReflectedSwingProjectile = 19,
+	ReflectedRocket = 20,
+	DeflectedDuelingPistolShot = 21,
+	DeflectedElephantGunShot = 22,
+	FellIntoFog = 23,
+	OrbitalLaserCenter = 24,
+	OrbitalLaserPeriphery = 25,
+	FellIntoHole = 26
+}

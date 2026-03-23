@@ -1,0 +1,57 @@
+using Mirror.BouncyCastle.Math;
+
+namespace Mirror.BouncyCastle.Asn1.Cmp;
+
+public class PkiStatusEncodable : Asn1Encodable
+{
+	public static readonly PkiStatusEncodable granted = new PkiStatusEncodable(PkiStatus.Granted);
+
+	public static readonly PkiStatusEncodable grantedWithMods = new PkiStatusEncodable(PkiStatus.GrantedWithMods);
+
+	public static readonly PkiStatusEncodable rejection = new PkiStatusEncodable(PkiStatus.Rejection);
+
+	public static readonly PkiStatusEncodable waiting = new PkiStatusEncodable(PkiStatus.Waiting);
+
+	public static readonly PkiStatusEncodable revocationWarning = new PkiStatusEncodable(PkiStatus.RevocationWarning);
+
+	public static readonly PkiStatusEncodable revocationNotification = new PkiStatusEncodable(PkiStatus.RevocationNotification);
+
+	public static readonly PkiStatusEncodable keyUpdateWaiting = new PkiStatusEncodable(PkiStatus.KeyUpdateWarning);
+
+	private readonly DerInteger m_status;
+
+	public virtual BigInteger Value => m_status.Value;
+
+	public static PkiStatusEncodable GetInstance(object obj)
+	{
+		if (obj == null)
+		{
+			return null;
+		}
+		if (obj is PkiStatusEncodable result)
+		{
+			return result;
+		}
+		return new PkiStatusEncodable(DerInteger.GetInstance(obj));
+	}
+
+	public static PkiStatusEncodable GetInstance(Asn1TaggedObject taggedObject, bool declaredExplicit)
+	{
+		return GetInstance(DerInteger.GetInstance(taggedObject, declaredExplicit));
+	}
+
+	private PkiStatusEncodable(PkiStatus status)
+		: this(new DerInteger((int)status))
+	{
+	}
+
+	private PkiStatusEncodable(DerInteger status)
+	{
+		m_status = status;
+	}
+
+	public override Asn1Object ToAsn1Object()
+	{
+		return m_status;
+	}
+}

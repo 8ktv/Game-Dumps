@@ -1,0 +1,11 @@
+namespace Steamworks;
+
+public enum TimelineGameMode
+{
+	Invalid,
+	Playing,
+	Staging,
+	Menus,
+	LoadingScreen,
+	Max
+}

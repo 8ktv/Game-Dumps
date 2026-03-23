@@ -1,0 +1,21 @@
+using Mirror.BouncyCastle.Utilities;
+
+namespace Mirror.BouncyCastle.Pqc.Crypto.Hqc;
+
+public sealed class HqcPublicKeyParameters : HqcKeyParameters
+{
+	private byte[] pk;
+
+	public byte[] PublicKey => Arrays.Clone(pk);
+
+	public HqcPublicKeyParameters(HqcParameters param, byte[] pk)
+		: base(isPrivate: false, param)
+	{
+		this.pk = Arrays.Clone(pk);
+	}
+
+	public byte[] GetEncoded()
+	{
+		return PublicKey;
+	}
+}

@@ -1,0 +1,229 @@
+using System;
+using Mirror.BouncyCastle.Utilities;
+
+namespace Mirror.BouncyCastle.Math.EC;
+
+public class F2mFieldElement : AbstractF2mFieldElement
+{
+	public const int Gnb = 1;
+
+	public const int Tpb = 2;
+
+	public const int Ppb = 3;
+
+	private int representation;
+
+	private int m;
+
+	private int[] ks;
+
+	internal LongArray x;
+
+	public override int BitLength => x.Degree();
+
+	public override bool IsOne => x.IsOne();
+
+	public override bool IsZero => x.IsZero();
+
+	public override string FieldName => "F2m";
+
+	public override int FieldSize => m;
+
+	public int Representation => representation;
+
+	public int M => m;
+
+	public int K1 => ks[0];
+
+	public int K2
+	{
+		get
+		{
+			if (ks.Length < 2)
+			{
+				return 0;
+			}
+			return ks[1];
+		}
+	}
+
+	public int K3
+	{
+		get
+		{
+			if (ks.Length < 3)
+			{
+				return 0;
+			}
+			return ks[2];
+		}
+	}
+
+	internal F2mFieldElement(int m, int[] ks, LongArray x)
+	{
+		this.m = m;
+		representation = ((ks.Length == 1) ? 2 : 3);
+		this.ks = ks;
+		this.x = x;
+	}
+
+	public override bool TestBitZero()
+	{
+		return x.TestBitZero();
+	}
+
+	public override BigInteger ToBigInteger()
+	{
+		return x.ToBigInteger();
+	}
+
+	public static void CheckFieldElements(ECFieldElement a, ECFieldElement b)
+	{
+		if (!(a is F2mFieldElement) || !(b is F2mFieldElement))
+		{
+			throw new ArgumentException("Field elements are not both instances of F2mFieldElement");
+		}
+		F2mFieldElement f2mFieldElement = (F2mFieldElement)a;
+		F2mFieldElement f2mFieldElement2 = (F2mFieldElement)b;
+		if (f2mFieldElement.representation != f2mFieldElement2.representation)
+		{
+			throw new ArgumentException("One of the F2m field elements has incorrect representation");
+		}
+		if (f2mFieldElement.m != f2mFieldElement2.m || !Arrays.AreEqual(f2mFieldElement.ks, f2mFieldElement2.ks))
+		{
+			throw new ArgumentException("Field elements are not elements of the same field F2m");
+		}
+	}
+
+	public override ECFieldElement Add(ECFieldElement b)
+	{
+		LongArray longArray = x.Copy();
+		F2mFieldElement f2mFieldElement = (F2mFieldElement)b;
+		longArray.AddShiftedByWords(f2mFieldElement.x, 0);
+		return new F2mFieldElement(m, ks, longArray);
+	}
+
+	public override ECFieldElement AddOne()
+	{
+		return new F2mFieldElement(m, ks, x.AddOne());
+	}
+
+	public override ECFieldElement Subtract(ECFieldElement b)
+	{
+		return Add(b);
+	}
+
+	public override ECFieldElement Multiply(ECFieldElement b)
+	{
+		return new F2mFieldElement(m, ks, x.ModMultiply(((F2mFieldElement)b).x, m, ks));
+	}
+
+	public override ECFieldElement MultiplyMinusProduct(ECFieldElement b, ECFieldElement x, ECFieldElement y)
+	{
+		return MultiplyPlusProduct(b, x, y);
+	}
+
+	public override ECFieldElement MultiplyPlusProduct(ECFieldElement b, ECFieldElement x, ECFieldElement y)
+	{
+		LongArray b2 = this.x;
+		LongArray b3 = ((F2mFieldElement)b).x;
+		LongArray longArray = ((F2mFieldElement)x).x;
+		LongArray other = ((F2mFieldElement)y).x;
+		LongArray a = b2.Multiply(b3, m, ks);
+		LongArray other2 = longArray.Multiply(other, m, ks);
+		if (LongArray.AreAliased(ref a, ref b2) || LongArray.AreAliased(ref a, ref b3))
+		{
+			a = a.Copy();
+		}
+		a.AddShiftedByWords(other2, 0);
+		a.Reduce(m, ks);
+		return new F2mFieldElement(m, ks, a);
+	}
+
+	public override ECFieldElement Divide(ECFieldElement b)
+	{
+		ECFieldElement b2 = b.Invert();
+		return Multiply(b2);
+	}
+
+	public override ECFieldElement Negate()
+	{
+		return this;
+	}
+
+	public override ECFieldElement Square()
+	{
+		return new F2mFieldElement(m, ks, x.ModSquare(m, ks));
+	}
+
+	public override ECFieldElement SquareMinusProduct(ECFieldElement x, ECFieldElement y)
+	{
+		return SquarePlusProduct(x, y);
+	}
+
+	public override ECFieldElement SquarePlusProduct(ECFieldElement x, ECFieldElement y)
+	{
+		LongArray b = this.x;
+		LongArray longArray = ((F2mFieldElement)x).x;
+		LongArray other = ((F2mFieldElement)y).x;
+		LongArray a = b.Square(m, ks);
+		LongArray other2 = longArray.Multiply(other, m, ks);
+		if (LongArray.AreAliased(ref a, ref b))
+		{
+			a = a.Copy();
+		}
+		a.AddShiftedByWords(other2, 0);
+		a.Reduce(m, ks);
+		return new F2mFieldElement(m, ks, a);
+	}
+
+	public override ECFieldElement SquarePow(int pow)
+	{
+		if (pow >= 1)
+		{
+			return new F2mFieldElement(m, ks, x.ModSquareN(pow, m, ks));
+		}
+		return this;
+	}
+
+	public override ECFieldElement Invert()
+	{
+		return new F2mFieldElement(m, ks, x.ModInverse(m, ks));
+	}
+
+	public override ECFieldElement Sqrt()
+	{
+		if (!x.IsZero() && !x.IsOne())
+		{
+			return SquarePow(m - 1);
+		}
+		return this;
+	}
+
+	public override bool Equals(object obj)
+	{
+		if (obj is F2mFieldElement other)
+		{
+			return Equals(other);
+		}
+		return false;
+	}
+
+	public virtual bool Equals(F2mFieldElement other)
+	{
+		if (this == other)
+		{
+			return true;
+		}
+		if (m == other.m && representation == other.representation && Arrays.AreEqual(ks, other.ks))
+		{
+			return x.Equals(other.x);
+		}
+		return false;
+	}
+
+	public override int GetHashCode()
+	{
+		return x.GetHashCode() ^ m ^ Arrays.GetHashCode(ks);
+	}
+}

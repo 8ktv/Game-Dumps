@@ -1,0 +1,53 @@
+using Mirror.BouncyCastle.Asn1;
+using Mirror.BouncyCastle.Asn1.Pkcs;
+
+namespace Mirror.BouncyCastle.Pkcs;
+
+public class Pkcs12StoreBuilder
+{
+	private DerObjectIdentifier keyAlgorithm = PkcsObjectIdentifiers.PbeWithShaAnd3KeyTripleDesCbc;
+
+	private DerObjectIdentifier certAlgorithm = PkcsObjectIdentifiers.PbewithShaAnd40BitRC2Cbc;
+
+	private DerObjectIdentifier keyPrfAlgorithm;
+
+	private bool useDerEncoding;
+
+	private bool reverseCertificates;
+
+	public Pkcs12Store Build()
+	{
+		return new Pkcs12Store(keyAlgorithm, keyPrfAlgorithm, certAlgorithm, useDerEncoding, reverseCertificates);
+	}
+
+	public Pkcs12StoreBuilder SetReverseCertificates(bool reverseCertificates)
+	{
+		this.reverseCertificates = reverseCertificates;
+		return this;
+	}
+
+	public Pkcs12StoreBuilder SetCertAlgorithm(DerObjectIdentifier certAlgorithm)
+	{
+		this.certAlgorithm = certAlgorithm;
+		return this;
+	}
+
+	public Pkcs12StoreBuilder SetKeyAlgorithm(DerObjectIdentifier keyAlgorithm)
+	{
+		this.keyAlgorithm = keyAlgorithm;
+		return this;
+	}
+
+	public Pkcs12StoreBuilder SetKeyAlgorithm(DerObjectIdentifier keyAlgorithm, DerObjectIdentifier keyPrfAlgorithm)
+	{
+		this.keyAlgorithm = keyAlgorithm;
+		this.keyPrfAlgorithm = keyPrfAlgorithm;
+		return this;
+	}
+
+	public Pkcs12StoreBuilder SetUseDerEncoding(bool useDerEncoding)
+	{
+		this.useDerEncoding = useDerEncoding;
+		return this;
+	}
+}

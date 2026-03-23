@@ -1,0 +1,26 @@
+using System;
+using Mirror.BouncyCastle.Utilities;
+
+namespace Mirror.BouncyCastle.Pqc.Crypto.Sike;
+
+[Obsolete("Will be removed")]
+public sealed class SikePublicKeyParameters : SikeKeyParameters
+{
+	public readonly byte[] publicKey;
+
+	public SikePublicKeyParameters(SikeParameters param, byte[] publicKey)
+		: base(isPrivate: false, param)
+	{
+		this.publicKey = Arrays.Clone(publicKey);
+	}
+
+	public byte[] GetEncoded()
+	{
+		return Arrays.Clone(publicKey);
+	}
+
+	public byte[] GetPublicKey()
+	{
+		return Arrays.Clone(publicKey);
+	}
+}

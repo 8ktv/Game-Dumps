@@ -1,0 +1,10 @@
+namespace Steamworks;
+
+internal enum SteamInputConfigurationEnableType
+{
+	None = 0,
+	Playstation = 1,
+	Xbox = 2,
+	Generic = 4,
+	Switch = 8
+}

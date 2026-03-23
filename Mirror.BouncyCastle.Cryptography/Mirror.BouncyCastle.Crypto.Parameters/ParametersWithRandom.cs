@@ -1,0 +1,34 @@
+using System;
+using Mirror.BouncyCastle.Security;
+
+namespace Mirror.BouncyCastle.Crypto.Parameters;
+
+public class ParametersWithRandom : ICipherParameters
+{
+	private readonly ICipherParameters m_parameters;
+
+	private readonly SecureRandom m_random;
+
+	public ICipherParameters Parameters => m_parameters;
+
+	public SecureRandom Random => m_random;
+
+	public ParametersWithRandom(ICipherParameters parameters)
+		: this(parameters, CryptoServicesRegistrar.GetSecureRandom())
+	{
+	}
+
+	public ParametersWithRandom(ICipherParameters parameters, SecureRandom random)
+	{
+		if (parameters == null)
+		{
+			throw new ArgumentNullException("parameters");
+		}
+		if (random == null)
+		{
+			throw new ArgumentNullException("random");
+		}
+		m_parameters = parameters;
+		m_random = random;
+	}
+}

@@ -1,0 +1,42 @@
+using System;
+using System.IO;
+using Mirror.BouncyCastle.Utilities.IO;
+
+namespace Mirror.BouncyCastle.Cms;
+
+public class CmsProcessableInputStream : CmsProcessable, CmsReadable
+{
+	private readonly Stream input;
+
+	private bool used;
+
+	public CmsProcessableInputStream(Stream input)
+	{
+		this.input = input;
+	}
+
+	public virtual Stream GetInputStream()
+	{
+		CheckSingleUsage();
+		return input;
+	}
+
+	public virtual void Write(Stream output)
+	{
+		CheckSingleUsage();
+		Streams.PipeAll(input, output);
+		input.Dispose();
+	}
+
+	protected virtual void CheckSingleUsage()
+	{
+		lock (this)
+		{
+			if (used)
+			{
+				throw new InvalidOperationException("CmsProcessableInputStream can only be used once");
+			}
+			used = true;
+		}
+	}
+}

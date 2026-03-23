@@ -1,0 +1,40 @@
+namespace Mirror.BouncyCastle.Pqc.Crypto.Crystals.Dilithium;
+
+internal class PolyVecMatrix
+{
+	private int K;
+
+	private int L;
+
+	public PolyVecL[] Matrix;
+
+	public PolyVecMatrix(DilithiumEngine Engine)
+	{
+		K = Engine.K;
+		L = Engine.L;
+		Matrix = new PolyVecL[K];
+		for (int i = 0; i < K; i++)
+		{
+			Matrix[i] = new PolyVecL(Engine);
+		}
+	}
+
+	public void ExpandMatrix(byte[] rho)
+	{
+		for (int i = 0; i < K; i++)
+		{
+			for (int j = 0; j < L; j++)
+			{
+				Matrix[i].Vec[j].UniformBlocks(rho, (ushort)((ushort)(i << 8) + j));
+			}
+		}
+	}
+
+	public void PointwiseMontgomery(PolyVecK t, PolyVecL v)
+	{
+		for (int i = 0; i < K; i++)
+		{
+			t.Vec[i].PointwiseAccountMontgomery(Matrix[i], v);
+		}
+	}
+}

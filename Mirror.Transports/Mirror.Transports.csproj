@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Mirror.Transports</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>12.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup />
+  <ItemGroup />
+  <ItemGroup>
+    <Reference Include="Facepunch.Steamworks.Win64">
+      <HintPath>Facepunch.Steamworks.Win64.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Mirror">
+      <HintPath>Mirror.dll</HintPath>
+    </Reference>
+    <Reference Include="kcp2k">
+      <HintPath>kcp2k.dll</HintPath>
+    </Reference>
+    <Reference Include="Telepathy">
+      <HintPath>Telepathy.dll</HintPath>
+    </Reference>
+    <Reference Include="SimpleWebTransport">
+      <HintPath>SimpleWebTransport.dll</HintPath>
+    </Reference>
+    <Reference Include="Mirror.BouncyCastle.Cryptography">
+      <HintPath>Mirror.BouncyCastle.Cryptography.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+      <HintPath>UnityEngine.UnityWebRequestModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>UnityEngine.IMGUIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Steam">
+      <HintPath>Steam.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule">
+      <HintPath>UnityEngine.JSONSerializeModule.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

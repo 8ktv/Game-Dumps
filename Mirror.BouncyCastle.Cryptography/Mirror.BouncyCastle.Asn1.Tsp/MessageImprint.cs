@@ -1,0 +1,57 @@
+using System;
+using Mirror.BouncyCastle.Asn1.X509;
+
+namespace Mirror.BouncyCastle.Asn1.Tsp;
+
+public class MessageImprint : Asn1Encodable
+{
+	private readonly AlgorithmIdentifier m_hashAlgorithm;
+
+	private readonly byte[] m_hashedMessage;
+
+	public AlgorithmIdentifier HashAlgorithm => m_hashAlgorithm;
+
+	public static MessageImprint GetInstance(object obj)
+	{
+		if (obj == null)
+		{
+			return null;
+		}
+		if (obj is MessageImprint result)
+		{
+			return result;
+		}
+		return new MessageImprint(Asn1Sequence.GetInstance(obj));
+	}
+
+	public static MessageImprint GetInstance(Asn1TaggedObject taggedObject, bool declaredExplicit)
+	{
+		return new MessageImprint(Asn1Sequence.GetInstance(taggedObject, declaredExplicit));
+	}
+
+	private MessageImprint(Asn1Sequence seq)
+	{
+		if (seq.Count != 2)
+		{
+			throw new ArgumentException("Wrong number of elements in sequence", "seq");
+		}
+		m_hashAlgorithm = AlgorithmIdentifier.GetInstance(seq[0]);
+		m_hashedMessage = Asn1OctetString.GetInstance(seq[1]).GetOctets();
+	}
+
+	public MessageImprint(AlgorithmIdentifier hashAlgorithm, byte[] hashedMessage)
+	{
+		m_hashAlgorithm = hashAlgorithm;
+		m_hashedMessage = hashedMessage;
+	}
+
+	public byte[] GetHashedMessage()
+	{
+		return m_hashedMessage;
+	}
+
+	public override Asn1Object ToAsn1Object()
+	{
+		return new DerSequence(m_hashAlgorithm, new DerOctetString(m_hashedMessage));
+	}
+}

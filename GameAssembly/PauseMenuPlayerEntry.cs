@@ -1,0 +1,347 @@
+using DG.Tweening;
+using DG.Tweening.Core;
+using DG.Tweening.Plugins.Options;
+using Mirror;
+using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventSystemHandler, IPointerExitHandler
+{
+	private const float maxPlayerVolume = 3f;
+
+	public Sprite defaultIcon;
+
+	public Image playerIcon;
+
+	public TMP_Text playerName;
+
+	public Image background;
+
+	public Color localPlayerBackgroundColor;
+
+	public GameObject leaderIcon;
+
+	public SliderOption volumeSlider;
+
+	public ControllerSelectable volumeSelectable;
+
+	public Toggle muteToggle;
+
+	public ControllerSelectable muteSelectable;
+
+	public Button kickButton;
+
+	public ControllerSelectable kickSelectable;
+
+	public Sprite mutedSprite;
+
+	public Sprite unmutedSprite;
+
+	public RectTransform slideOut1;
+
+	public RectTransform slideOut2;
+
+	private bool isAnySelectableSelected;
+
+	private bool isHoveredOverByPointer;
+
+	private bool areSlideoutsExtended;
+
+	private Color defaultBackgroundColor;
+
+	private float maxSlideout1SlideAmount;
+
+	private float maxSlideout2SlideAmount;
+
+	private bool wasAssignedLocalPlayer;
+
+	public ulong CurrentPlayerGuid { get; private set; }
+
+	private bool IsLocalPlayer => CurrentPlayerGuid == BNetworkManager.LocalPlayerGuidOnServer;
+
+	private void Awake()
+	{
+		defaultBackgroundColor = background.color;
+		maxSlideout1SlideAmount = GetSlideAmount(slideOut1);
+		maxSlideout2SlideAmount = GetSlideAmount(slideOut2);
+		SetSlideAmount(slideOut1, 0f);
+		SetSlideAmount(slideOut2, 0f);
+		Navigation navigation = volumeSlider.navigation;
+		navigation.selectOnLeft = PauseMenu.ResumeButton;
+		volumeSlider.navigation = navigation;
+		volumeSelectable.IsSelectedChanged += OnAnySelectableIsSelectedChanged;
+		muteSelectable.IsSelectedChanged += OnAnySelectableIsSelectedChanged;
+		kickSelectable.IsSelectedChanged += OnAnySelectableIsSelectedChanged;
+		InputManager.SwitchedInputDeviceType += OnSwitchedInputDeviceType;
+	}
+
+	private void OnDisable()
+	{
+		DOTween.Kill(this);
+		SetSlideAmount(slideOut1, 0f);
+		SetSlideAmount(slideOut2, 0f);
+	}
+
+	private void OnDestroy()
+	{
+		volumeSelectable.IsSelectedChanged -= OnAnySelectableIsSelectedChanged;
+		muteSelectable.IsSelectedChanged -= OnAnySelectableIsSelectedChanged;
+		kickSelectable.IsSelectedChanged -= OnAnySelectableIsSelectedChanged;
+		if (wasAssignedLocalPlayer)
+		{
+			GameSettings.AudioSettings.MicInputVolumeChanged -= OnMicInputVolumeChanged;
+		}
+		InputManager.SwitchedInputDeviceType -= OnSwitchedInputDeviceType;
+	}
+
+	private void UpdateMutedToggle(bool isOn)
+	{
+		UpdateMutedToggleSprite();
+		PlayerVoiceChat.SetIsPlayerMuted(CurrentPlayerGuid, isOn);
+	}
+
+	private void UpdateMutedToggleSprite()
+	{
+		muteToggle.GetComponent<Image>().sprite = (muteToggle.isOn ? mutedSprite : unmutedSprite);
+	}
+
+	public void AssignPlayer(CourseManager.PlayerState playerState)
+	{
+		if (CurrentPlayerGuid == playerState.playerGuid)
+		{
+			RefreshMutedToggle();
+			return;
+		}
+		if (wasAssignedLocalPlayer)
+		{
+			GameSettings.AudioSettings.MicInputVolumeChanged -= OnMicInputVolumeChanged;
+		}
+		CurrentPlayerGuid = playerState.playerGuid;
+		playerName.text = GameManager.RichTextNoParse(playerState.name);
+		playerIcon.sprite = PlayerIconManager.GetPlayerIcon(playerState.playerGuid, PlayerIconManager.IconSize.Medium);
+		wasAssignedLocalPlayer = IsLocalPlayer;
+		if (IsLocalPlayer)
+		{
+			background.color = localPlayerBackgroundColor;
+			volumeSlider.Initialize(delegate
+			{
+				OnSetOwnVolume();
+			}, GameSettings.All.Audio.MicInputVolume);
+			GameSettings.AudioSettings.MicInputVolumeChanged += OnMicInputVolumeChanged;
+		}
+		else
+		{
+			background.color = defaultBackgroundColor;
+			volumeSlider.Initialize(delegate
+			{
+				PlayerVoiceChat.SetPlayerVolume(CurrentPlayerGuid, volumeSlider.SetPercentageValue(3f, force1ToMiddle: true));
+			}, SliderOption.RemapValueSliderValueMiddleLinear(PlayerVoiceChat.GetPlayerStatus(CurrentPlayerGuid).volume, 0f, 3f, 1f));
+		}
+		RefreshMutedToggle();
+		if (NetworkServer.active)
+		{
+			kickButton.onClick.RemoveAllListeners();
+			kickButton.onClick.AddListener(KickPlayer);
+			kickButton.gameObject.SetActive(!IsLocalPlayer);
+		}
+		else
+		{
+			kickButton.gameObject.SetActive(value: false);
+		}
+		leaderIcon.SetActive(playerState.isHost);
+		void OnSetOwnVolume()
+		{
+			if (volumeSlider.SetPercentageValue() != GameSettings.All.Audio.MicInputVolume)
+			{
+				GameSettings.All.Audio.MicInputVolume = volumeSlider.SetPercentageValue();
+				PauseMenu.InformGameSettingsChanged();
+			}
+		}
+		void RefreshMutedToggle()
+		{
+			muteToggle.onValueChanged.RemoveAllListeners();
+			if (GameManager.TryFindPlayerByGuid(playerState.playerGuid, out var playerInfo) && playerInfo.IsBlockedOnSteam())
+			{
+				muteToggle.isOn = true;
+				muteToggle.interactable = false;
+			}
+			else
+			{
+				muteToggle.isOn = GameSettings.All.General.MuteChat || PlayerVoiceChat.IsMuted(playerState.playerGuid);
+				muteToggle.interactable = !GameSettings.All.General.MuteChat;
+			}
+			UpdateMutedToggleSprite();
+			muteToggle.onValueChanged.AddListener(UpdateMutedToggle);
+		}
+	}
+
+	public void SetVerticalNavigationTarget(PauseMenuPlayerEntry targetEntry, bool isUp)
+	{
+		Navigation navigation = volumeSlider.navigation;
+		Selectable slider = targetEntry.volumeSlider.Slider;
+		if (isUp)
+		{
+			navigation.selectOnUp = slider;
+		}
+		else
+		{
+			navigation.selectOnDown = slider;
+		}
+		volumeSlider.navigation = navigation;
+		navigation = muteToggle.navigation;
+		slider = targetEntry.muteToggle;
+		if (isUp)
+		{
+			navigation.selectOnUp = slider;
+		}
+		else
+		{
+			navigation.selectOnDown = slider;
+		}
+		muteToggle.navigation = navigation;
+		navigation = kickButton.navigation;
+		slider = (targetEntry.kickButton.gameObject.activeSelf ? ((Selectable)targetEntry.kickButton) : ((Selectable)targetEntry.muteToggle));
+		if (isUp)
+		{
+			navigation.selectOnUp = slider;
+		}
+		else
+		{
+			navigation.selectOnDown = slider;
+		}
+		kickButton.navigation = navigation;
+	}
+
+	public void SetVerticalNavigationTarget(Selectable target, bool isUp)
+	{
+		Navigation navigation = volumeSlider.navigation;
+		if (isUp)
+		{
+			navigation.selectOnUp = target;
+		}
+		else
+		{
+			navigation.selectOnDown = target;
+		}
+		volumeSlider.navigation = navigation;
+		navigation = muteToggle.navigation;
+		if (isUp)
+		{
+			navigation.selectOnUp = target;
+		}
+		else
+		{
+			navigation.selectOnDown = target;
+		}
+		muteToggle.navigation = navigation;
+		navigation = kickButton.navigation;
+		if (isUp)
+		{
+			navigation.selectOnUp = target;
+		}
+		else
+		{
+			navigation.selectOnDown = target;
+		}
+		kickButton.navigation = navigation;
+	}
+
+	private void KickPlayer()
+	{
+		if (!NetworkServer.active || IsLocalPlayer)
+		{
+			return;
+		}
+		if (!GameManager.TryFindPlayerByGuid(CurrentPlayerGuid, out var playerInfo))
+		{
+			Debug.LogError("Invalid player guid on pause menu player entry");
+			return;
+		}
+		FullScreenMessage.Show(string.Format(Localization.UI.MATCHSETUP_KickPlayer, playerInfo.PlayerId.PlayerNameNoRichText), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Yes, delegate
+		{
+			BNetworkManager.singleton.ServerKickConnection(playerInfo.connectionToClient);
+			FullScreenMessage.Hide();
+		}), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Cancel, FullScreenMessage.Hide));
+	}
+
+	private void UpdateAreSlideoutsExtended()
+	{
+		bool flag = areSlideoutsExtended;
+		areSlideoutsExtended = (InputManager.UsingKeyboard ? isHoveredOverByPointer : isAnySelectableSelected);
+		if (areSlideoutsExtended != flag)
+		{
+			float endValue;
+			float endValue2;
+			if (areSlideoutsExtended)
+			{
+				endValue = maxSlideout1SlideAmount;
+				endValue2 = maxSlideout2SlideAmount;
+			}
+			else
+			{
+				endValue = 0f;
+				endValue2 = 0f;
+			}
+			DOTween.Kill(this);
+			TweenerCore<float, float, FloatOptions> t = DOTween.To(() => GetSlideAmount(slideOut1), delegate(float amount)
+			{
+				SetSlideAmount(slideOut1, amount);
+			}, endValue, 0.2f).SetEase(Ease.OutCubic).SetTarget(this);
+			TweenerCore<float, float, FloatOptions> t2 = DOTween.To(() => GetSlideAmount(slideOut2), delegate(float amount)
+			{
+				SetSlideAmount(slideOut2, amount);
+			}, endValue2, 0.2f).SetEase(Ease.OutCubic).SetTarget(this);
+			if (areSlideoutsExtended)
+			{
+				t2.SetDelay(0.05f);
+			}
+			else
+			{
+				t.SetDelay(0.075f);
+			}
+		}
+	}
+
+	public void OnPointerEnter(PointerEventData eventData)
+	{
+		isHoveredOverByPointer = true;
+		UpdateAreSlideoutsExtended();
+	}
+
+	public void OnPointerExit(PointerEventData eventData)
+	{
+		isHoveredOverByPointer = false;
+		UpdateAreSlideoutsExtended();
+	}
+
+	private void OnAnySelectableIsSelectedChanged()
+	{
+		isAnySelectableSelected = volumeSelectable.IsSelected || muteSelectable.IsSelected || kickSelectable.IsSelected;
+		UpdateAreSlideoutsExtended();
+	}
+
+	private void OnMicInputVolumeChanged()
+	{
+		float micInputVolume = GameSettings.All.Audio.MicInputVolume;
+		volumeSlider.valueWithoutNotify = micInputVolume;
+		volumeSlider.SetPercentageValue(1f, force1ToMiddle: false, snapOnKeyboard: false);
+	}
+
+	private void OnSwitchedInputDeviceType()
+	{
+		UpdateAreSlideoutsExtended();
+	}
+
+	private float GetSlideAmount(RectTransform slideout)
+	{
+		return slideout.sizeDelta.x;
+	}
+
+	private void SetSlideAmount(RectTransform slideout, float amount)
+	{
+		slideout.anchoredPosition = new Vector2((0f - amount) / 2f, slideout.anchoredPosition.y);
+		slideout.sizeDelta = new Vector2(amount, 0f);
+	}
+}

@@ -1,0 +1,24 @@
+using Mirror.BouncyCastle.Utilities;
+
+namespace Mirror.BouncyCastle.Pqc.Crypto.NtruPrime;
+
+public sealed class NtruLPRimePublicKeyParameters : NtruLPRimeKeyParameters
+{
+	internal byte[] pubKey;
+
+	public NtruLPRimePublicKeyParameters(NtruLPRimeParameters primeParameters, byte[] pubKey)
+		: base(isPrivate: false, primeParameters)
+	{
+		this.pubKey = Arrays.Clone(pubKey);
+	}
+
+	public byte[] GetPublicKey()
+	{
+		return Arrays.Clone(pubKey);
+	}
+
+	public byte[] GetEncoded()
+	{
+		return GetPublicKey();
+	}
+}

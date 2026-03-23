@@ -1,0 +1,18 @@
+using System;
+
+namespace Steamworks;
+
+internal class SteamMatchmakingServers : SteamClientClass<SteamMatchmakingServers>
+{
+	internal static ISteamMatchmakingServers Internal => SteamClientClass<SteamMatchmakingServers>.Interface as ISteamMatchmakingServers;
+
+	internal override bool InitializeInterface(bool server)
+	{
+		SetInterface(server, new ISteamMatchmakingServers(server));
+		if (SteamClientClass<SteamMatchmakingServers>.Interface.Self == IntPtr.Zero)
+		{
+			return false;
+		}
+		return true;
+	}
+}

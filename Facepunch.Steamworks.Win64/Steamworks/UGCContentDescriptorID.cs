@@ -1,0 +1,10 @@
+namespace Steamworks;
+
+internal enum UGCContentDescriptorID
+{
+	NudityOrSexualContent = 1,
+	FrequentViolenceOrGore,
+	AdultOnlySexualContent,
+	GratuitousSexualContent,
+	AnyMatureContent
+}

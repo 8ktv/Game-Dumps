@@ -1,0 +1,10 @@
+namespace Steamworks;
+
+internal enum SteamInputGlyphStyle
+{
+	Knockout = 0,
+	Light = 1,
+	Dark = 2,
+	NeutralColorABXY = 0x10,
+	SolidABXY = 0x20
+}

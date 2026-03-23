@@ -1,0 +1,38 @@
+using System;
+using System.Runtime.CompilerServices;
+using UnityEngine.Bindings;
+
+namespace UnityEngine;
+
+[NativeHeader("Runtime/Camera/OcclusionPortal.h")]
+public sealed class OcclusionPortal : Component
+{
+	[NativeProperty("IsOpen")]
+	public bool open
+	{
+		get
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			return get_open_Injected(intPtr);
+		}
+		set
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			set_open_Injected(intPtr, value);
+		}
+	}
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool get_open_Injected(IntPtr _unity_self);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_open_Injected(IntPtr _unity_self, bool value);
+}

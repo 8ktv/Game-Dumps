@@ -1,0 +1,63 @@
+using System;
+using Mirror.BouncyCastle.Asn1.X509;
+
+namespace Mirror.BouncyCastle.Asn1.Cms;
+
+public class KekRecipientInfo : Asn1Encodable
+{
+	private DerInteger version;
+
+	private KekIdentifier kekID;
+
+	private AlgorithmIdentifier keyEncryptionAlgorithm;
+
+	private Asn1OctetString encryptedKey;
+
+	public DerInteger Version => version;
+
+	public KekIdentifier KekID => kekID;
+
+	public AlgorithmIdentifier KeyEncryptionAlgorithm => keyEncryptionAlgorithm;
+
+	public Asn1OctetString EncryptedKey => encryptedKey;
+
+	public static KekRecipientInfo GetInstance(object obj)
+	{
+		if (obj == null)
+		{
+			return null;
+		}
+		if (obj is KekRecipientInfo result)
+		{
+			return result;
+		}
+		return new KekRecipientInfo(Asn1Sequence.GetInstance(obj));
+	}
+
+	public static KekRecipientInfo GetInstance(Asn1TaggedObject obj, bool explicitly)
+	{
+		return new KekRecipientInfo(Asn1Sequence.GetInstance(obj, explicitly));
+	}
+
+	public KekRecipientInfo(KekIdentifier kekID, AlgorithmIdentifier keyEncryptionAlgorithm, Asn1OctetString encryptedKey)
+	{
+		version = new DerInteger(4);
+		this.kekID = kekID;
+		this.keyEncryptionAlgorithm = keyEncryptionAlgorithm;
+		this.encryptedKey = encryptedKey;
+	}
+
+	[Obsolete("Use 'GetInstance' instead")]
+	public KekRecipientInfo(Asn1Sequence seq)
+	{
+		version = (DerInteger)seq[0];
+		kekID = KekIdentifier.GetInstance(seq[1]);
+		keyEncryptionAlgorithm = AlgorithmIdentifier.GetInstance(seq[2]);
+		encryptedKey = (Asn1OctetString)seq[3];
+	}
+
+	public override Asn1Object ToAsn1Object()
+	{
+		return new DerSequence(version, kekID, keyEncryptionAlgorithm, encryptedKey);
+	}
+}

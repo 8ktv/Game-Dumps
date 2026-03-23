@@ -1,0 +1,9 @@
+namespace Steamworks.Data;
+
+public enum GameIdType : byte
+{
+	App,
+	GameMod,
+	Shortcut,
+	P2P
+}

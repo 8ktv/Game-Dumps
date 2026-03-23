@@ -1,0 +1,12 @@
+using System;
+
+namespace Steamworks.ServerList;
+
+public class History : Base
+{
+	internal override void LaunchQuery()
+	{
+		using ServerFilterMarshaler serverFilterMarshaler = new ServerFilterMarshaler(GetFilters());
+		request = Base.Internal.RequestHistoryServerList(base.AppId.Value, serverFilterMarshaler.Pointer, (uint)serverFilterMarshaler.Count, IntPtr.Zero);
+	}
+}

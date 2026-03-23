@@ -1,0 +1,10 @@
+namespace Steamworks;
+
+public enum NotificationPosition
+{
+	Invalid = -1,
+	TopLeft,
+	TopRight,
+	BottomLeft,
+	BottomRight
+}

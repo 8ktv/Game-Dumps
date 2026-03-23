@@ -1,0 +1,36 @@
+using System.IO;
+using Mirror.BouncyCastle.Asn1;
+using Mirror.BouncyCastle.Asn1.Cms;
+
+namespace Mirror.BouncyCastle.Cms;
+
+public class CmsProcessableByteArray : CmsProcessable, CmsReadable
+{
+	private readonly DerObjectIdentifier type;
+
+	private readonly byte[] bytes;
+
+	public DerObjectIdentifier Type => type;
+
+	public CmsProcessableByteArray(byte[] bytes)
+	{
+		type = CmsObjectIdentifiers.Data;
+		this.bytes = bytes;
+	}
+
+	public CmsProcessableByteArray(DerObjectIdentifier type, byte[] bytes)
+	{
+		this.bytes = bytes;
+		this.type = type;
+	}
+
+	public virtual Stream GetInputStream()
+	{
+		return new MemoryStream(bytes, writable: false);
+	}
+
+	public virtual void Write(Stream zOut)
+	{
+		zOut.Write(bytes, 0, bytes.Length);
+	}
+}

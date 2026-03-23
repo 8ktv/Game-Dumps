@@ -1,0 +1,26 @@
+using System;
+using System.Collections.Generic;
+using Mirror.BouncyCastle.Tls.Crypto;
+
+namespace Mirror.BouncyCastle.Tls;
+
+public sealed class CertificateEntry
+{
+	private readonly TlsCertificate m_certificate;
+
+	private readonly IDictionary<int, byte[]> m_extensions;
+
+	public TlsCertificate Certificate => m_certificate;
+
+	public IDictionary<int, byte[]> Extensions => m_extensions;
+
+	public CertificateEntry(TlsCertificate certificate, IDictionary<int, byte[]> extensions)
+	{
+		if (certificate == null)
+		{
+			throw new ArgumentNullException("certificate");
+		}
+		m_certificate = certificate;
+		m_extensions = extensions;
+	}
+}

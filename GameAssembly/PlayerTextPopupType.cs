@@ -1,0 +1,24 @@
+public enum PlayerTextPopupType
+{
+	None,
+	Finished1,
+	Finished2,
+	Finished3,
+	Finished4,
+	Finished5,
+	Finished6,
+	Finished7,
+	Finished8,
+	FinishedHigh,
+	ScoredOnDrivingRange,
+	Par,
+	Birdie,
+	Eagle,
+	Albatross,
+	Condor,
+	HoleInOne,
+	ChipIn,
+	Speedrun,
+	Knockout,
+	PenaltyStroke
+}

@@ -1,0 +1,10 @@
+namespace Steamworks;
+
+internal enum CommunityProfileItemType
+{
+	AnimatedAvatar,
+	AvatarFrame,
+	ProfileModifier,
+	ProfileBackground,
+	MiniProfileBackground
+}

@@ -1,0 +1,581 @@
+using System;
+using System.Collections.Generic;
+using Mirror.BouncyCastle.Asn1;
+using Mirror.BouncyCastle.Asn1.BC;
+using Mirror.BouncyCastle.Asn1.Nist;
+using Mirror.BouncyCastle.Asn1.Oiw;
+using Mirror.BouncyCastle.Asn1.Pkcs;
+using Mirror.BouncyCastle.Asn1.TeleTrust;
+using Mirror.BouncyCastle.Asn1.X509;
+using Mirror.BouncyCastle.Crypto;
+using Mirror.BouncyCastle.Crypto.Digests;
+using Mirror.BouncyCastle.Crypto.Generators;
+using Mirror.BouncyCastle.Crypto.Parameters;
+using Mirror.BouncyCastle.Utilities;
+using Mirror.BouncyCastle.Utilities.Collections;
+
+namespace Mirror.BouncyCastle.Security;
+
+public static class PbeUtilities
+{
+	private const string Pkcs5S1 = "Pkcs5S1";
+
+	private const string Pkcs5S2 = "Pkcs5S2";
+
+	private const string Pkcs12 = "Pkcs12";
+
+	private const string OpenSsl = "OpenSsl";
+
+	private static readonly IDictionary<string, string> Algorithms;
+
+	private static readonly IDictionary<string, string> AlgorithmType;
+
+	private static readonly IDictionary<string, DerObjectIdentifier> Oids;
+
+	static PbeUtilities()
+	{
+		Algorithms = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+		AlgorithmType = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+		Oids = new Dictionary<string, DerObjectIdentifier>(StringComparer.OrdinalIgnoreCase);
+		Algorithms["PKCS5SCHEME1"] = "Pkcs5scheme1";
+		Algorithms["PKCS5SCHEME2"] = "Pkcs5scheme2";
+		Algorithms["PBKDF2"] = "Pkcs5scheme2";
+		Algorithms[PkcsObjectIdentifiers.IdPbeS2.Id] = "Pkcs5scheme2";
+		Algorithms["PBEWITHMD2ANDDES-CBC"] = "PBEwithMD2andDES-CBC";
+		Algorithms[PkcsObjectIdentifiers.PbeWithMD2AndDesCbc.Id] = "PBEwithMD2andDES-CBC";
+		Algorithms["PBEWITHMD2ANDRC2-CBC"] = "PBEwithMD2andRC2-CBC";
+		Algorithms[PkcsObjectIdentifiers.PbeWithMD2AndRC2Cbc.Id] = "PBEwithMD2andRC2-CBC";
+		Algorithms["PBEWITHMD5ANDDES-CBC"] = "PBEwithMD5andDES-CBC";
+		Algorithms[PkcsObjectIdentifiers.PbeWithMD5AndDesCbc.Id] = "PBEwithMD5andDES-CBC";
+		Algorithms["PBEWITHMD5ANDRC2-CBC"] = "PBEwithMD5andRC2-CBC";
+		Algorithms[PkcsObjectIdentifiers.PbeWithMD5AndRC2Cbc.Id] = "PBEwithMD5andRC2-CBC";
+		Algorithms["PBEWITHSHA1ANDDES"] = "PBEwithSHA-1andDES-CBC";
+		Algorithms["PBEWITHSHA-1ANDDES"] = "PBEwithSHA-1andDES-CBC";
+		Algorithms["PBEWITHSHA1ANDDES-CBC"] = "PBEwithSHA-1andDES-CBC";
+		Algorithms["PBEWITHSHA-1ANDDES-CBC"] = "PBEwithSHA-1andDES-CBC";
+		Algorithms[PkcsObjectIdentifiers.PbeWithSha1AndDesCbc.Id] = "PBEwithSHA-1andDES-CBC";
+		Algorithms["PBEWITHSHA1ANDRC2"] = "PBEwithSHA-1andRC2-CBC";
+		Algorithms["PBEWITHSHA-1ANDRC2"] = "PBEwithSHA-1andRC2-CBC";
+		Algorithms["PBEWITHSHA1ANDRC2-CBC"] = "PBEwithSHA-1andRC2-CBC";
+		Algorithms["PBEWITHSHA-1ANDRC2-CBC"] = "PBEwithSHA-1andRC2-CBC";
+		Algorithms[PkcsObjectIdentifiers.PbeWithSha1AndRC2Cbc.Id] = "PBEwithSHA-1andRC2-CBC";
+		Algorithms["PKCS12"] = "Pkcs12";
+		Algorithms[BCObjectIdentifiers.bc_pbe_sha1_pkcs12_aes128_cbc.Id] = "PBEwithSHA-1and128bitAES-CBC-BC";
+		Algorithms[BCObjectIdentifiers.bc_pbe_sha1_pkcs12_aes192_cbc.Id] = "PBEwithSHA-1and192bitAES-CBC-BC";
+		Algorithms[BCObjectIdentifiers.bc_pbe_sha1_pkcs12_aes256_cbc.Id] = "PBEwithSHA-1and256bitAES-CBC-BC";
+		Algorithms[BCObjectIdentifiers.bc_pbe_sha256_pkcs12_aes128_cbc.Id] = "PBEwithSHA-256and128bitAES-CBC-BC";
+		Algorithms[BCObjectIdentifiers.bc_pbe_sha256_pkcs12_aes192_cbc.Id] = "PBEwithSHA-256and192bitAES-CBC-BC";
+		Algorithms[BCObjectIdentifiers.bc_pbe_sha256_pkcs12_aes256_cbc.Id] = "PBEwithSHA-256and256bitAES-CBC-BC";
+		Algorithms["PBEWITHSHAAND128BITRC4"] = "PBEwithSHA-1and128bitRC4";
+		Algorithms["PBEWITHSHA1AND128BITRC4"] = "PBEwithSHA-1and128bitRC4";
+		Algorithms["PBEWITHSHA-1AND128BITRC4"] = "PBEwithSHA-1and128bitRC4";
+		Algorithms[PkcsObjectIdentifiers.PbeWithShaAnd128BitRC4.Id] = "PBEwithSHA-1and128bitRC4";
+		Algorithms["PBEWITHSHAAND40BITRC4"] = "PBEwithSHA-1and40bitRC4";
+		Algorithms["PBEWITHSHA1AND40BITRC4"] = "PBEwithSHA-1and40bitRC4";
+		Algorithms["PBEWITHSHA-1AND40BITRC4"] = "PBEwithSHA-1and40bitRC4";
+		Algorithms[PkcsObjectIdentifiers.PbeWithShaAnd40BitRC4.Id] = "PBEwithSHA-1and40bitRC4";
+		Algorithms["PBEWITHSHAAND3-KEYDESEDE-CBC"] = "PBEwithSHA-1and3-keyDESEDE-CBC";
+		Algorithms["PBEWITHSHAAND3-KEYTRIPLEDES-CBC"] = "PBEwithSHA-1and3-keyDESEDE-CBC";
+		Algorithms["PBEWITHSHA1AND3-KEYDESEDE-CBC"] = "PBEwithSHA-1and3-keyDESEDE-CBC";
+		Algorithms["PBEWITHSHA1AND3-KEYTRIPLEDES-CBC"] = "PBEwithSHA-1and3-keyDESEDE-CBC";
+		Algorithms["PBEWITHSHA-1AND3-KEYDESEDE-CBC"] = "PBEwithSHA-1and3-keyDESEDE-CBC";
+		Algorithms["PBEWITHSHA-1AND3-KEYTRIPLEDES-CBC"] = "PBEwithSHA-1and3-keyDESEDE-CBC";
+		Algorithms[PkcsObjectIdentifiers.PbeWithShaAnd3KeyTripleDesCbc.Id] = "PBEwithSHA-1and3-keyDESEDE-CBC";
+		Algorithms["PBEWITHSHAAND2-KEYDESEDE-CBC"] = "PBEwithSHA-1and2-keyDESEDE-CBC";
+		Algorithms["PBEWITHSHAAND2-KEYTRIPLEDES-CBC"] = "PBEwithSHA-1and2-keyDESEDE-CBC";
+		Algorithms["PBEWITHSHA1AND2-KEYDESEDE-CBC"] = "PBEwithSHA-1and2-keyDESEDE-CBC";
+		Algorithms["PBEWITHSHA1AND2-KEYTRIPLEDES-CBC"] = "PBEwithSHA-1and2-keyDESEDE-CBC";
+		Algorithms["PBEWITHSHA-1AND2-KEYDESEDE-CBC"] = "PBEwithSHA-1and2-keyDESEDE-CBC";
+		Algorithms["PBEWITHSHA-1AND2-KEYTRIPLEDES-CBC"] = "PBEwithSHA-1and2-keyDESEDE-CBC";
+		Algorithms[PkcsObjectIdentifiers.PbeWithShaAnd2KeyTripleDesCbc.Id] = "PBEwithSHA-1and2-keyDESEDE-CBC";
+		Algorithms["PBEWITHSHAAND128BITRC2-CBC"] = "PBEwithSHA-1and128bitRC2-CBC";
+		Algorithms["PBEWITHSHA1AND128BITRC2-CBC"] = "PBEwithSHA-1and128bitRC2-CBC";
+		Algorithms["PBEWITHSHA-1AND128BITRC2-CBC"] = "PBEwithSHA-1and128bitRC2-CBC";
+		Algorithms[PkcsObjectIdentifiers.PbeWithShaAnd128BitRC2Cbc.Id] = "PBEwithSHA-1and128bitRC2-CBC";
+		Algorithms["PBEWITHSHAAND40BITRC2-CBC"] = "PBEwithSHA-1and40bitRC2-CBC";
+		Algorithms["PBEWITHSHA1AND40BITRC2-CBC"] = "PBEwithSHA-1and40bitRC2-CBC";
+		Algorithms["PBEWITHSHA-1AND40BITRC2-CBC"] = "PBEwithSHA-1and40bitRC2-CBC";
+		Algorithms[PkcsObjectIdentifiers.PbewithShaAnd40BitRC2Cbc.Id] = "PBEwithSHA-1and40bitRC2-CBC";
+		Algorithms["PBEWITHSHAAND128BITAES-CBC-BC"] = "PBEwithSHA-1and128bitAES-CBC-BC";
+		Algorithms["PBEWITHSHA1AND128BITAES-CBC-BC"] = "PBEwithSHA-1and128bitAES-CBC-BC";
+		Algorithms["PBEWITHSHA-1AND128BITAES-CBC-BC"] = "PBEwithSHA-1and128bitAES-CBC-BC";
+		Algorithms["PBEWITHSHAAND192BITAES-CBC-BC"] = "PBEwithSHA-1and192bitAES-CBC-BC";
+		Algorithms["PBEWITHSHA1AND192BITAES-CBC-BC"] = "PBEwithSHA-1and192bitAES-CBC-BC";
+		Algorithms["PBEWITHSHA-1AND192BITAES-CBC-BC"] = "PBEwithSHA-1and192bitAES-CBC-BC";
+		Algorithms["PBEWITHSHAAND256BITAES-CBC-BC"] = "PBEwithSHA-1and256bitAES-CBC-BC";
+		Algorithms["PBEWITHSHA1AND256BITAES-CBC-BC"] = "PBEwithSHA-1and256bitAES-CBC-BC";
+		Algorithms["PBEWITHSHA-1AND256BITAES-CBC-BC"] = "PBEwithSHA-1and256bitAES-CBC-BC";
+		Algorithms["PBEWITHSHA256AND128BITAES-CBC-BC"] = "PBEwithSHA-256and128bitAES-CBC-BC";
+		Algorithms["PBEWITHSHA-256AND128BITAES-CBC-BC"] = "PBEwithSHA-256and128bitAES-CBC-BC";
+		Algorithms["PBEWITHSHA256AND192BITAES-CBC-BC"] = "PBEwithSHA-256and192bitAES-CBC-BC";
+		Algorithms["PBEWITHSHA-256AND192BITAES-CBC-BC"] = "PBEwithSHA-256and192bitAES-CBC-BC";
+		Algorithms["PBEWITHSHA256AND256BITAES-CBC-BC"] = "PBEwithSHA-256and256bitAES-CBC-BC";
+		Algorithms["PBEWITHSHA-256AND256BITAES-CBC-BC"] = "PBEwithSHA-256and256bitAES-CBC-BC";
+		Algorithms["PBEWITHSHAANDIDEA"] = "PBEwithSHA-1andIDEA-CBC";
+		Algorithms["PBEWITHSHAANDIDEA-CBC"] = "PBEwithSHA-1andIDEA-CBC";
+		Algorithms["PBEWITHSHAANDTWOFISH"] = "PBEwithSHA-1andTWOFISH-CBC";
+		Algorithms["PBEWITHSHAANDTWOFISH-CBC"] = "PBEwithSHA-1andTWOFISH-CBC";
+		Algorithms["PBEWITHHMACSHA1"] = "PBEwithHmacSHA-1";
+		Algorithms["PBEWITHHMACSHA-1"] = "PBEwithHmacSHA-1";
+		Algorithms[OiwObjectIdentifiers.IdSha1.Id] = "PBEwithHmacSHA-1";
+		Algorithms["PBEWITHHMACSHA224"] = "PBEwithHmacSHA-224";
+		Algorithms["PBEWITHHMACSHA-224"] = "PBEwithHmacSHA-224";
+		Algorithms[NistObjectIdentifiers.IdSha224.Id] = "PBEwithHmacSHA-224";
+		Algorithms["PBEWITHHMACSHA256"] = "PBEwithHmacSHA-256";
+		Algorithms["PBEWITHHMACSHA-256"] = "PBEwithHmacSHA-256";
+		Algorithms[NistObjectIdentifiers.IdSha256.Id] = "PBEwithHmacSHA-256";
+		Algorithms["PBEWITHHMACSHA384"] = "PBEwithHmacSHA-384";
+		Algorithms["PBEWITHHMACSHA-384"] = "PBEwithHmacSHA-384";
+		Algorithms[NistObjectIdentifiers.IdSha384.Id] = "PBEwithHmacSHA-384";
+		Algorithms["PBEWITHHMACSHA512"] = "PBEwithHmacSHA-512";
+		Algorithms["PBEWITHHMACSHA-512"] = "PBEwithHmacSHA-512";
+		Algorithms[NistObjectIdentifiers.IdSha512.Id] = "PBEwithHmacSHA-512";
+		Algorithms["PBEWITHHMACRIPEMD128"] = "PBEwithHmacRipeMD128";
+		Algorithms[TeleTrusTObjectIdentifiers.RipeMD128.Id] = "PBEwithHmacRipeMD128";
+		Algorithms["PBEWITHHMACRIPEMD160"] = "PBEwithHmacRipeMD160";
+		Algorithms[TeleTrusTObjectIdentifiers.RipeMD160.Id] = "PBEwithHmacRipeMD160";
+		Algorithms["PBEWITHHMACRIPEMD256"] = "PBEwithHmacRipeMD256";
+		Algorithms[TeleTrusTObjectIdentifiers.RipeMD256.Id] = "PBEwithHmacRipeMD256";
+		Algorithms["PBEWITHHMACTIGER"] = "PBEwithHmacTiger";
+		Algorithms["PBEWITHMD5AND128BITAES-CBC-OPENSSL"] = "PBEwithMD5and128bitAES-CBC-OpenSSL";
+		Algorithms["PBEWITHMD5AND192BITAES-CBC-OPENSSL"] = "PBEwithMD5and192bitAES-CBC-OpenSSL";
+		Algorithms["PBEWITHMD5AND256BITAES-CBC-OPENSSL"] = "PBEwithMD5and256bitAES-CBC-OpenSSL";
+		AlgorithmType["Pkcs5scheme1"] = "Pkcs5S1";
+		AlgorithmType["Pkcs5scheme2"] = "Pkcs5S2";
+		AlgorithmType["PBEwithMD2andDES-CBC"] = "Pkcs5S1";
+		AlgorithmType["PBEwithMD2andRC2-CBC"] = "Pkcs5S1";
+		AlgorithmType["PBEwithMD5andDES-CBC"] = "Pkcs5S1";
+		AlgorithmType["PBEwithMD5andRC2-CBC"] = "Pkcs5S1";
+		AlgorithmType["PBEwithSHA-1andDES-CBC"] = "Pkcs5S1";
+		AlgorithmType["PBEwithSHA-1andRC2-CBC"] = "Pkcs5S1";
+		AlgorithmType["Pkcs12"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-1and128bitRC4"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-1and40bitRC4"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-1and3-keyDESEDE-CBC"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-1and2-keyDESEDE-CBC"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-1and128bitRC2-CBC"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-1and40bitRC2-CBC"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-1and128bitAES-CBC-BC"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-1and192bitAES-CBC-BC"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-1and256bitAES-CBC-BC"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-256and128bitAES-CBC-BC"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-256and192bitAES-CBC-BC"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-256and256bitAES-CBC-BC"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-1andIDEA-CBC"] = "Pkcs12";
+		AlgorithmType["PBEwithSHA-1andTWOFISH-CBC"] = "Pkcs12";
+		AlgorithmType["PBEwithHmacSHA-1"] = "Pkcs12";
+		AlgorithmType["PBEwithHmacSHA-224"] = "Pkcs12";
+		AlgorithmType["PBEwithHmacSHA-256"] = "Pkcs12";
+		AlgorithmType["PBEwithHmacSHA-384"] = "Pkcs12";
+		AlgorithmType["PBEwithHmacSHA-512"] = "Pkcs12";
+		AlgorithmType["PBEwithHmacRipeMD128"] = "Pkcs12";
+		AlgorithmType["PBEwithHmacRipeMD160"] = "Pkcs12";
+		AlgorithmType["PBEwithHmacRipeMD256"] = "Pkcs12";
+		AlgorithmType["PBEwithHmacTiger"] = "Pkcs12";
+		AlgorithmType["PBEwithMD5and128bitAES-CBC-OpenSSL"] = "OpenSsl";
+		AlgorithmType["PBEwithMD5and192bitAES-CBC-OpenSSL"] = "OpenSsl";
+		AlgorithmType["PBEwithMD5and256bitAES-CBC-OpenSSL"] = "OpenSsl";
+		Oids["PBEwithMD2andDES-CBC"] = PkcsObjectIdentifiers.PbeWithMD2AndDesCbc;
+		Oids["PBEwithMD2andRC2-CBC"] = PkcsObjectIdentifiers.PbeWithMD2AndRC2Cbc;
+		Oids["PBEwithMD5andDES-CBC"] = PkcsObjectIdentifiers.PbeWithMD5AndDesCbc;
+		Oids["PBEwithMD5andRC2-CBC"] = PkcsObjectIdentifiers.PbeWithMD5AndRC2Cbc;
+		Oids["PBEwithSHA-1andDES-CBC"] = PkcsObjectIdentifiers.PbeWithSha1AndDesCbc;
+		Oids["PBEwithSHA-1andRC2-CBC"] = PkcsObjectIdentifiers.PbeWithSha1AndRC2Cbc;
+		Oids["PBEwithSHA-1and128bitRC4"] = PkcsObjectIdentifiers.PbeWithShaAnd128BitRC4;
+		Oids["PBEwithSHA-1and40bitRC4"] = PkcsObjectIdentifiers.PbeWithShaAnd40BitRC4;
+		Oids["PBEwithSHA-1and3-keyDESEDE-CBC"] = PkcsObjectIdentifiers.PbeWithShaAnd3KeyTripleDesCbc;
+		Oids["PBEwithSHA-1and2-keyDESEDE-CBC"] = PkcsObjectIdentifiers.PbeWithShaAnd2KeyTripleDesCbc;
+		Oids["PBEwithSHA-1and128bitRC2-CBC"] = PkcsObjectIdentifiers.PbeWithShaAnd128BitRC2Cbc;
+		Oids["PBEwithSHA-1and40bitRC2-CBC"] = PkcsObjectIdentifiers.PbewithShaAnd40BitRC2Cbc;
+		Oids["PBEwithHmacSHA-1"] = OiwObjectIdentifiers.IdSha1;
+		Oids["PBEwithHmacSHA-224"] = NistObjectIdentifiers.IdSha224;
+		Oids["PBEwithHmacSHA-256"] = NistObjectIdentifiers.IdSha256;
+		Oids["PBEwithHmacSHA-384"] = NistObjectIdentifiers.IdSha384;
+		Oids["PBEwithHmacSHA-512"] = NistObjectIdentifiers.IdSha512;
+		Oids["PBEwithHmacRipeMD128"] = TeleTrusTObjectIdentifiers.RipeMD128;
+		Oids["PBEwithHmacRipeMD160"] = TeleTrusTObjectIdentifiers.RipeMD160;
+		Oids["PBEwithHmacRipeMD256"] = TeleTrusTObjectIdentifiers.RipeMD256;
+		Oids["Pkcs5scheme2"] = PkcsObjectIdentifiers.IdPbeS2;
+	}
+
+	private static PbeParametersGenerator MakePbeGenerator(string type, IDigest digest, byte[] key, byte[] salt, int iterationCount)
+	{
+		PbeParametersGenerator pbeParametersGenerator;
+		if (type.Equals("Pkcs5S1"))
+		{
+			pbeParametersGenerator = new Pkcs5S1ParametersGenerator(digest);
+		}
+		else if (type.Equals("Pkcs5S2"))
+		{
+			pbeParametersGenerator = new Pkcs5S2ParametersGenerator(digest);
+		}
+		else if (type.Equals("Pkcs12"))
+		{
+			pbeParametersGenerator = new Pkcs12ParametersGenerator(digest);
+		}
+		else
+		{
+			if (!type.Equals("OpenSsl"))
+			{
+				throw new ArgumentException("Unknown PBE type: " + type, "type");
+			}
+			pbeParametersGenerator = new OpenSslPbeParametersGenerator();
+		}
+		pbeParametersGenerator.Init(key, salt, iterationCount);
+		return pbeParametersGenerator;
+	}
+
+	public static DerObjectIdentifier GetObjectIdentifier(string mechanism)
+	{
+		if (!Algorithms.TryGetValue(mechanism, out var value))
+		{
+			return null;
+		}
+		return CollectionUtilities.GetValueOrNull(Oids, value);
+	}
+
+	public static bool IsPkcs12(string algorithm)
+	{
+		if (!Algorithms.TryGetValue(algorithm, out var value))
+		{
+			return false;
+		}
+		if (!AlgorithmType.TryGetValue(value, out var value2))
+		{
+			return false;
+		}
+		return "Pkcs12".Equals(value2);
+	}
+
+	public static bool IsPkcs5Scheme1(string algorithm)
+	{
+		if (!Algorithms.TryGetValue(algorithm, out var value))
+		{
+			return false;
+		}
+		if (!AlgorithmType.TryGetValue(value, out var value2))
+		{
+			return false;
+		}
+		return "Pkcs5S1".Equals(value2);
+	}
+
+	public static bool IsPkcs5Scheme2(string algorithm)
+	{
+		if (!Algorithms.TryGetValue(algorithm, out var value))
+		{
+			return false;
+		}
+		if (!AlgorithmType.TryGetValue(value, out var value2))
+		{
+			return false;
+		}
+		return "Pkcs5S2".Equals(value2);
+	}
+
+	public static bool IsOpenSsl(string algorithm)
+	{
+		if (!Algorithms.TryGetValue(algorithm, out var value))
+		{
+			return false;
+		}
+		if (!AlgorithmType.TryGetValue(value, out var value2))
+		{
+			return false;
+		}
+		return "OpenSsl".Equals(value2);
+	}
+
+	public static bool IsPbeAlgorithm(string algorithm)
+	{
+		if (!Algorithms.TryGetValue(algorithm, out var value))
+		{
+			return false;
+		}
+		return AlgorithmType.ContainsKey(value);
+	}
+
+	public static Asn1Encodable GenerateAlgorithmParameters(DerObjectIdentifier algorithmOid, byte[] salt, int iterationCount)
+	{
+		return GenerateAlgorithmParameters(algorithmOid.Id, salt, iterationCount);
+	}
+
+	public static Asn1Encodable GenerateAlgorithmParameters(string algorithm, byte[] salt, int iterationCount)
+	{
+		if (IsPkcs12(algorithm))
+		{
+			return new Pkcs12PbeParams(salt, iterationCount);
+		}
+		if (IsPkcs5Scheme2(algorithm))
+		{
+			return new Pbkdf2Params(salt, iterationCount);
+		}
+		return new PbeParameter(salt, iterationCount);
+	}
+
+	public static Asn1Encodable GenerateAlgorithmParameters(DerObjectIdentifier cipherAlgorithm, DerObjectIdentifier hashAlgorithm, byte[] salt, int iterationCount, SecureRandom secureRandom)
+	{
+		if (NistObjectIdentifiers.IdAes128Cbc.Equals(cipherAlgorithm) || NistObjectIdentifiers.IdAes192Cbc.Equals(cipherAlgorithm) || NistObjectIdentifiers.IdAes256Cbc.Equals(cipherAlgorithm) || NistObjectIdentifiers.IdAes128Cfb.Equals(cipherAlgorithm) || NistObjectIdentifiers.IdAes192Cfb.Equals(cipherAlgorithm) || NistObjectIdentifiers.IdAes256Cfb.Equals(cipherAlgorithm))
+		{
+			byte[] array = new byte[16];
+			secureRandom.NextBytes(array);
+			EncryptionScheme encScheme = new EncryptionScheme(cipherAlgorithm, new DerOctetString(array));
+			return new PbeS2Parameters(new KeyDerivationFunc(PkcsObjectIdentifiers.IdPbkdf2, new Pbkdf2Params(salt, iterationCount, new AlgorithmIdentifier(hashAlgorithm, DerNull.Instance))), encScheme);
+		}
+		throw new ArgumentException("unknown cipher: " + cipherAlgorithm);
+	}
+
+	public static ICipherParameters GenerateCipherParameters(DerObjectIdentifier algorithmOid, char[] password, Asn1Encodable pbeParameters)
+	{
+		return GenerateCipherParameters(algorithmOid.Id, password, wrongPkcs12Zero: false, pbeParameters);
+	}
+
+	public static ICipherParameters GenerateCipherParameters(DerObjectIdentifier algorithmOid, char[] password, bool wrongPkcs12Zero, Asn1Encodable pbeParameters)
+	{
+		return GenerateCipherParameters(algorithmOid.Id, password, wrongPkcs12Zero, pbeParameters);
+	}
+
+	public static ICipherParameters GenerateCipherParameters(AlgorithmIdentifier algID, char[] password)
+	{
+		return GenerateCipherParameters(algID.Algorithm.Id, password, wrongPkcs12Zero: false, algID.Parameters);
+	}
+
+	public static ICipherParameters GenerateCipherParameters(AlgorithmIdentifier algID, char[] password, bool wrongPkcs12Zero)
+	{
+		return GenerateCipherParameters(algID.Algorithm.Id, password, wrongPkcs12Zero, algID.Parameters);
+	}
+
+	public static ICipherParameters GenerateCipherParameters(string algorithm, char[] password, Asn1Encodable pbeParameters)
+	{
+		return GenerateCipherParameters(algorithm, password, wrongPkcs12Zero: false, pbeParameters);
+	}
+
+	public static ICipherParameters GenerateCipherParameters(string algorithm, char[] password, bool wrongPkcs12Zero, Asn1Encodable pbeParameters)
+	{
+		if (algorithm == null)
+		{
+			throw new ArgumentNullException("algorithm");
+		}
+		string valueOrNull = CollectionUtilities.GetValueOrNull(Algorithms, algorithm);
+		if (valueOrNull == null)
+		{
+			throw new SecurityUtilityException("Algorithm " + algorithm + " not recognised.");
+		}
+		byte[] array = null;
+		byte[] salt = null;
+		int iterationCount = 0;
+		if (IsPkcs12(valueOrNull))
+		{
+			Pkcs12PbeParams instance = Pkcs12PbeParams.GetInstance(pbeParameters);
+			salt = instance.GetIV();
+			iterationCount = instance.Iterations.IntValue;
+			array = PbeParametersGenerator.Pkcs12PasswordToBytes(password, wrongPkcs12Zero);
+		}
+		else if (!IsPkcs5Scheme2(valueOrNull))
+		{
+			PbeParameter instance2 = PbeParameter.GetInstance(pbeParameters);
+			salt = instance2.GetSalt();
+			iterationCount = instance2.IterationCount.IntValue;
+			array = PbeParametersGenerator.Pkcs5PasswordToBytes(password);
+		}
+		ICipherParameters parameters = null;
+		if (IsPkcs5Scheme2(valueOrNull))
+		{
+			PbeS2Parameters instance3 = PbeS2Parameters.GetInstance(pbeParameters.ToAsn1Object());
+			EncryptionScheme encryptionScheme = instance3.EncryptionScheme;
+			DerObjectIdentifier algorithm2 = encryptionScheme.Algorithm;
+			Asn1Object obj = encryptionScheme.Parameters.ToAsn1Object();
+			Pbkdf2Params instance4 = Pbkdf2Params.GetInstance(instance3.KeyDerivationFunc.Parameters.ToAsn1Object());
+			IDigest digest = DigestUtilities.GetDigest(instance4.Prf.Algorithm);
+			byte[] array2 = ((!algorithm2.Equals(PkcsObjectIdentifiers.RC2Cbc)) ? Asn1OctetString.GetInstance(obj).GetOctets() : RC2CbcParameter.GetInstance(obj).GetIV());
+			salt = instance4.GetSalt();
+			iterationCount = instance4.IterationCount.IntValue;
+			array = PbeParametersGenerator.Pkcs5PasswordToBytes(password);
+			int keySize = ((instance4.KeyLength != null) ? (instance4.KeyLength.IntValue * 8) : GeneratorUtilities.GetDefaultKeySize(algorithm2));
+			parameters = MakePbeGenerator(AlgorithmType[valueOrNull], digest, array, salt, iterationCount).GenerateDerivedParameters(algorithm2.Id, keySize);
+			if (array2 != null && !Arrays.AreEqual(array2, new byte[array2.Length]))
+			{
+				parameters = new ParametersWithIV(parameters, array2);
+			}
+		}
+		else if (Platform.StartsWith(valueOrNull, "PBEwithSHA-1"))
+		{
+			PbeParametersGenerator pbeParametersGenerator = MakePbeGenerator(AlgorithmType[valueOrNull], new Sha1Digest(), array, salt, iterationCount);
+			if (valueOrNull.Equals("PBEwithSHA-1and128bitAES-CBC-BC"))
+			{
+				parameters = pbeParametersGenerator.GenerateDerivedParameters("AES", 128, 128);
+			}
+			else if (valueOrNull.Equals("PBEwithSHA-1and192bitAES-CBC-BC"))
+			{
+				parameters = pbeParametersGenerator.GenerateDerivedParameters("AES", 192, 128);
+			}
+			else if (valueOrNull.Equals("PBEwithSHA-1and256bitAES-CBC-BC"))
+			{
+				parameters = pbeParametersGenerator.GenerateDerivedParameters("AES", 256, 128);
+			}
+			else if (valueOrNull.Equals("PBEwithSHA-1and128bitRC4"))
+			{
+				parameters = pbeParametersGenerator.GenerateDerivedParameters("RC4", 128);
+			}
+			else if (valueOrNull.Equals("PBEwithSHA-1and40bitRC4"))
+			{
+				parameters = pbeParametersGenerator.GenerateDerivedParameters("RC4", 40);
+			}
+			else if (valueOrNull.Equals("PBEwithSHA-1and3-keyDESEDE-CBC"))
+			{
+				parameters = pbeParametersGenerator.GenerateDerivedParameters("DESEDE", 192, 64);
+			}
+			else if (valueOrNull.Equals("PBEwithSHA-1and2-keyDESEDE-CBC"))
+			{
+				parameters = pbeParametersGenerator.GenerateDerivedParameters("DESEDE", 128, 64);
+			}
+			else if (valueOrNull.Equals("PBEwithSHA-1and128bitRC2-CBC"))
+			{
+				parameters = pbeParametersGenerator.GenerateDerivedParameters("RC2", 128, 64);
+			}
+			else if (valueOrNull.Equals("PBEwithSHA-1and40bitRC2-CBC"))
+			{
+				parameters = pbeParametersGenerator.GenerateDerivedParameters("RC2", 40, 64);
+			}
+			else if (valueOrNull.Equals("PBEwithSHA-1andDES-CBC"))
+			{
+				parameters = pbeParametersGenerator.GenerateDerivedParameters("DES", 64, 64);
+			}
+			else if (valueOrNull.Equals("PBEwithSHA-1andRC2-CBC"))
+			{
+				parameters = pbeParametersGenerator.GenerateDerivedParameters("RC2", 64, 64);
+			}
+		}
+		else if (Platform.StartsWith(valueOrNull, "PBEwithSHA-256"))
+		{
+			PbeParametersGenerator pbeParametersGenerator2 = MakePbeGenerator(AlgorithmType[valueOrNull], new Sha256Digest(), array, salt, iterationCount);
+			if (valueOrNull.Equals("PBEwithSHA-256and128bitAES-CBC-BC"))
+			{
+				parameters = pbeParametersGenerator2.GenerateDerivedParameters("AES", 128, 128);
+			}
+			else if (valueOrNull.Equals("PBEwithSHA-256and192bitAES-CBC-BC"))
+			{
+				parameters = pbeParametersGenerator2.GenerateDerivedParameters("AES", 192, 128);
+			}
+			else if (valueOrNull.Equals("PBEwithSHA-256and256bitAES-CBC-BC"))
+			{
+				parameters = pbeParametersGenerator2.GenerateDerivedParameters("AES", 256, 128);
+			}
+		}
+		else if (Platform.StartsWith(valueOrNull, "PBEwithMD5"))
+		{
+			PbeParametersGenerator pbeParametersGenerator3 = MakePbeGenerator(AlgorithmType[valueOrNull], new MD5Digest(), array, salt, iterationCount);
+			if (valueOrNull.Equals("PBEwithMD5andDES-CBC"))
+			{
+				parameters = pbeParametersGenerator3.GenerateDerivedParameters("DES", 64, 64);
+			}
+			else if (valueOrNull.Equals("PBEwithMD5andRC2-CBC"))
+			{
+				parameters = pbeParametersGenerator3.GenerateDerivedParameters("RC2", 64, 64);
+			}
+			else if (valueOrNull.Equals("PBEwithMD5and128bitAES-CBC-OpenSSL"))
+			{
+				parameters = pbeParametersGenerator3.GenerateDerivedParameters("AES", 128, 128);
+			}
+			else if (valueOrNull.Equals("PBEwithMD5and192bitAES-CBC-OpenSSL"))
+			{
+				parameters = pbeParametersGenerator3.GenerateDerivedParameters("AES", 192, 128);
+			}
+			else if (valueOrNull.Equals("PBEwithMD5and256bitAES-CBC-OpenSSL"))
+			{
+				parameters = pbeParametersGenerator3.GenerateDerivedParameters("AES", 256, 128);
+			}
+		}
+		else if (Platform.StartsWith(valueOrNull, "PBEwithMD2"))
+		{
+			PbeParametersGenerator pbeParametersGenerator4 = MakePbeGenerator(AlgorithmType[valueOrNull], new MD2Digest(), array, salt, iterationCount);
+			if (valueOrNull.Equals("PBEwithMD2andDES-CBC"))
+			{
+				parameters = pbeParametersGenerator4.GenerateDerivedParameters("DES", 64, 64);
+			}
+			else if (valueOrNull.Equals("PBEwithMD2andRC2-CBC"))
+			{
+				parameters = pbeParametersGenerator4.GenerateDerivedParameters("RC2", 64, 64);
+			}
+		}
+		else if (Platform.StartsWith(valueOrNull, "PBEwithHmac"))
+		{
+			IDigest digest2 = DigestUtilities.GetDigest(valueOrNull.Substring("PBEwithHmac".Length));
+			PbeParametersGenerator pbeParametersGenerator5 = MakePbeGenerator(AlgorithmType[valueOrNull], digest2, array, salt, iterationCount);
+			int keySize2 = digest2.GetDigestSize() * 8;
+			parameters = pbeParametersGenerator5.GenerateDerivedMacParameters(keySize2);
+		}
+		Array.Clear(array, 0, array.Length);
+		return FixDesParity(valueOrNull, parameters);
+	}
+
+	public static object CreateEngine(DerObjectIdentifier algorithmOid)
+	{
+		return CreateEngine(algorithmOid.Id);
+	}
+
+	public static object CreateEngine(AlgorithmIdentifier algID)
+	{
+		string id = algID.Algorithm.Id;
+		if (IsPkcs5Scheme2(id))
+		{
+			return CipherUtilities.GetCipher(PbeS2Parameters.GetInstance(algID.Parameters.ToAsn1Object()).EncryptionScheme.Algorithm);
+		}
+		return CreateEngine(id);
+	}
+
+	public static object CreateEngine(string algorithm)
+	{
+		string valueOrNull = CollectionUtilities.GetValueOrNull(Algorithms, algorithm);
+		if (Platform.StartsWith(valueOrNull, "PBEwithHmac"))
+		{
+			string text = valueOrNull.Substring("PBEwithHmac".Length);
+			return MacUtilities.GetMac("HMAC/" + text);
+		}
+		if (Platform.StartsWith(valueOrNull, "PBEwithMD2") || Platform.StartsWith(valueOrNull, "PBEwithMD5") || Platform.StartsWith(valueOrNull, "PBEwithSHA-1") || Platform.StartsWith(valueOrNull, "PBEwithSHA-256"))
+		{
+			if (Platform.EndsWith(valueOrNull, "AES-CBC-BC") || Platform.EndsWith(valueOrNull, "AES-CBC-OPENSSL"))
+			{
+				return CipherUtilities.GetCipher("AES/CBC");
+			}
+			if (Platform.EndsWith(valueOrNull, "DES-CBC"))
+			{
+				return CipherUtilities.GetCipher("DES/CBC");
+			}
+			if (Platform.EndsWith(valueOrNull, "DESEDE-CBC"))
+			{
+				return CipherUtilities.GetCipher("DESEDE/CBC");
+			}
+			if (Platform.EndsWith(valueOrNull, "RC2-CBC"))
+			{
+				return CipherUtilities.GetCipher("RC2/CBC");
+			}
+			if (Platform.EndsWith(valueOrNull, "RC4"))
+			{
+				return CipherUtilities.GetCipher("RC4");
+			}
+		}
+		return null;
+	}
+
+	public static string GetEncodingName(DerObjectIdentifier oid)
+	{
+		return CollectionUtilities.GetValueOrNull(Algorithms, oid.Id);
+	}
+
+	private static ICipherParameters FixDesParity(string mechanism, ICipherParameters parameters)
+	{
+		if (!Platform.EndsWith(mechanism, "DES-CBC") && !Platform.EndsWith(mechanism, "DESEDE-CBC"))
+		{
+			return parameters;
+		}
+		if (parameters is ParametersWithIV)
+		{
+			ParametersWithIV parametersWithIV = (ParametersWithIV)parameters;
+			return new ParametersWithIV(FixDesParity(mechanism, parametersWithIV.Parameters), parametersWithIV.GetIV());
+		}
+		byte[] key = ((KeyParameter)parameters).GetKey();
+		DesParameters.SetOddParity(key);
+		return new KeyParameter(key);
+	}
+}

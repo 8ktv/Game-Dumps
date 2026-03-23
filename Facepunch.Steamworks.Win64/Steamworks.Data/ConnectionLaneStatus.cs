@@ -1,0 +1,26 @@
+using System.Runtime.InteropServices;
+
+namespace Steamworks.Data;
+
+[StructLayout(LayoutKind.Sequential, Pack = 8)]
+public struct ConnectionLaneStatus
+{
+	internal int cbPendingUnreliable;
+
+	internal int cbPendingReliable;
+
+	internal int cbSentUnackedReliable;
+
+	internal int _reservePad1;
+
+	internal long ecQueueTime;
+
+	[MarshalAs(UnmanagedType.ByValArray, SizeConst = 10, ArraySubType = UnmanagedType.U4)]
+	internal uint[] reserved;
+
+	public int PendingUnreliable => cbPendingUnreliable;
+
+	public int PendingReliable => cbPendingReliable;
+
+	public int SentUnackedReliable => cbSentUnackedReliable;
+}

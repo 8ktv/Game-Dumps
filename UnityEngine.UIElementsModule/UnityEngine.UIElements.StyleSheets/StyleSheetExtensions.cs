@@ -1,0 +1,34 @@
+using System.Globalization;
+using UnityEngine.Bindings;
+
+namespace UnityEngine.UIElements.StyleSheets;
+
+[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+internal static class StyleSheetExtensions
+{
+	public static string ReadAsString(this StyleSheet sheet, StyleValueHandle handle)
+	{
+		string empty = string.Empty;
+		return handle.valueType switch
+		{
+			StyleValueType.Float => sheet.ReadFloat(handle).ToString(CultureInfo.InvariantCulture.NumberFormat), 
+			StyleValueType.Dimension => sheet.ReadDimension(handle).ToString(), 
+			StyleValueType.Color => sheet.ReadColor(handle).ToString(), 
+			StyleValueType.ResourcePath => sheet.ReadResourcePath(handle), 
+			StyleValueType.String => sheet.ReadString(handle), 
+			StyleValueType.Enum => sheet.ReadEnum(handle), 
+			StyleValueType.Variable => sheet.ReadVariable(handle), 
+			StyleValueType.Keyword => sheet.ReadKeyword(handle).ToUssString(), 
+			StyleValueType.AssetReference => sheet.ReadAssetReference(handle).ToString(), 
+			StyleValueType.Function => sheet.ReadFunctionName(handle), 
+			StyleValueType.CommaSeparator => ",", 
+			StyleValueType.ScalableImage => sheet.ReadScalableImage(handle).ToString(), 
+			_ => "Error reading value type (" + handle.valueType.ToString() + ") at index " + handle.valueIndex, 
+		};
+	}
+
+	public static bool IsVarFunction(this StyleValueHandle handle)
+	{
+		return handle.valueType == StyleValueType.Function && handle.valueIndex == 1;
+	}
+}

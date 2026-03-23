@@ -1,0 +1,12 @@
+using System;
+
+namespace Steamworks.ServerList;
+
+public class Internet : Base
+{
+	internal override void LaunchQuery()
+	{
+		using ServerFilterMarshaler serverFilterMarshaler = new ServerFilterMarshaler(GetFilters());
+		request = Base.Internal.RequestInternetServerList(base.AppId.Value, serverFilterMarshaler.Pointer, (uint)serverFilterMarshaler.Count, IntPtr.Zero);
+	}
+}

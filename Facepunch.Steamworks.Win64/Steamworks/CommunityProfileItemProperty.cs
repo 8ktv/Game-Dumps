@@ -1,0 +1,17 @@
+namespace Steamworks;
+
+internal enum CommunityProfileItemProperty
+{
+	ImageSmall,
+	ImageLarge,
+	InternalName,
+	Title,
+	Description,
+	AppID,
+	TypeID,
+	Class,
+	MovieWebM,
+	MovieMP4,
+	MovieWebMSmall,
+	MovieMP4Small
+}

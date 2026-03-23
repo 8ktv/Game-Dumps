@@ -1,0 +1,20 @@
+using Mirror.BouncyCastle.Crypto.Parameters;
+using Mirror.BouncyCastle.Security;
+
+namespace Mirror.BouncyCastle.Crypto.Generators;
+
+public class X448KeyPairGenerator : IAsymmetricCipherKeyPairGenerator
+{
+	private SecureRandom random;
+
+	public virtual void Init(KeyGenerationParameters parameters)
+	{
+		random = parameters.Random;
+	}
+
+	public virtual AsymmetricCipherKeyPair GenerateKeyPair()
+	{
+		X448PrivateKeyParameters x448PrivateKeyParameters = new X448PrivateKeyParameters(random);
+		return new AsymmetricCipherKeyPair(x448PrivateKeyParameters.GeneratePublicKey(), x448PrivateKeyParameters);
+	}
+}

@@ -1,0 +1,39 @@
+using System;
+using Mirror.BouncyCastle.Crypto;
+
+namespace Mirror.BouncyCastle.Tls.Crypto.Impl.BC;
+
+public abstract class BcTlsVerifier : TlsVerifier
+{
+	protected readonly BcTlsCrypto m_crypto;
+
+	protected readonly AsymmetricKeyParameter m_publicKey;
+
+	protected BcTlsVerifier(BcTlsCrypto crypto, AsymmetricKeyParameter publicKey)
+	{
+		if (crypto == null)
+		{
+			throw new ArgumentNullException("crypto");
+		}
+		if (publicKey == null)
+		{
+			throw new ArgumentNullException("publicKey");
+		}
+		if (publicKey.IsPrivate)
+		{
+			throw new ArgumentException("must be public", "publicKey");
+		}
+		m_crypto = crypto;
+		m_publicKey = publicKey;
+	}
+
+	public virtual TlsStreamVerifier GetStreamVerifier(DigitallySigned digitallySigned)
+	{
+		return null;
+	}
+
+	public virtual bool VerifyRawSignature(DigitallySigned digitallySigned, byte[] hash)
+	{
+		throw new NotSupportedException();
+	}
+}
