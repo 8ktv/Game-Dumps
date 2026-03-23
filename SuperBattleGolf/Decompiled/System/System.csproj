@@ -25,19 +25,19 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Mono.Security">
-      <HintPath>../../../../.local/share/Steam/steamapps/common/Super Battle Golf/Super Battle Golf_Data/Managed/Mono.Security.dll</HintPath>
+      <HintPath>../../../home/soap/.local/share/Steam/steamapps/common/Super Battle Golf/Super Battle Golf_Data/Managed/Mono.Security.dll</HintPath>
     </Reference>
     <Reference Include="System.Configuration">
-      <HintPath>../../../../.local/share/Steam/steamapps/common/Super Battle Golf/Super Battle Golf_Data/Managed/System.Configuration.dll</HintPath>
+      <HintPath>../../../home/soap/.local/share/Steam/steamapps/common/Super Battle Golf/Super Battle Golf_Data/Managed/System.Configuration.dll</HintPath>
     </Reference>
     <Reference Include="System.Xml">
-      <HintPath>../../../../.local/share/Steam/steamapps/common/Super Battle Golf/Super Battle Golf_Data/Managed/System.Xml.dll</HintPath>
+      <HintPath>../../../home/soap/.local/share/Steam/steamapps/common/Super Battle Golf/Super Battle Golf_Data/Managed/System.Xml.dll</HintPath>
     </Reference>
     <Reference Include="System.Numerics">
-      <HintPath>../../../../.local/share/Steam/steamapps/common/Super Battle Golf/Super Battle Golf_Data/Managed/System.Numerics.dll</HintPath>
+      <HintPath>../../../home/soap/.local/share/Steam/steamapps/common/Super Battle Golf/Super Battle Golf_Data/Managed/System.Numerics.dll</HintPath>
     </Reference>
     <Reference Include="System.Core">
-      <HintPath>../../../../.local/share/Steam/steamapps/common/Super Battle Golf/Super Battle Golf_Data/Managed/System.Core.dll</HintPath>
+      <HintPath>../../../home/soap/.local/share/Steam/steamapps/common/Super Battle Golf/Super Battle Golf_Data/Managed/System.Core.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>

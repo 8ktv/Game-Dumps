@@ -12,7 +12,7 @@
   <ItemGroup />
   <ItemGroup>
     <Reference Include="System.Configuration">
-      <HintPath>../../../../.local/share/Steam/steamapps/common/Super Battle Golf/Super Battle Golf_Data/Managed/System.Configuration.dll</HintPath>
+      <HintPath>../../../home/soap/.local/share/Steam/steamapps/common/Super Battle Golf/Super Battle Golf_Data/Managed/System.Configuration.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>
