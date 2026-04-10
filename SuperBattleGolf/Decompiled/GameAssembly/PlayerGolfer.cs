@@ -1316,7 +1316,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		while (BMath.GetTimeSince(swingTimestamp) < GameManager.GolfSettings.SwingHitStartTime)
 		{
 			TryPlaySwingVfx();
-			yield return null;
+			yield return new WaitForFixedUpdate();
 		}
 		if (isUsingRocketDriver)
 		{
@@ -1426,7 +1426,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 					CmdInformHitOwnBall();
 				}
 			}
-			yield return null;
+			yield return new WaitForFixedUpdate();
 		}
 		if (isUsingRocketDriver && !didHitAnything)
 		{

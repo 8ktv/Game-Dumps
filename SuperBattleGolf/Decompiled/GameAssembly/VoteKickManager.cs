@@ -47,11 +47,14 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 
 	private bool voteInputActive;
 
-	[CVar("voteDuration", "", "", false, true)]
+	[CVar("voteDuration", "", "", false, true, resetOnSceneChangeOrCheatsDisabled = false)]
 	private static float voteDuration;
 
-	[CVar("votekickCooldown", "", "", false, true)]
+	[CVar("votekickCooldown", "", "", false, true, resetOnSceneChangeOrCheatsDisabled = false)]
 	private static int votekickFailCooldown;
+
+	[CVar("votekickPlayerMinActiveTime", "", "", false, true, resetOnSceneChangeOrCheatsDisabled = false)]
+	private static int votekickPlayerMinActiveTime;
 
 	public static bool CanVotekick
 	{
@@ -391,6 +394,7 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 	{
 		voteDuration = 20f;
 		votekickFailCooldown = 120;
+		votekickPlayerMinActiveTime = 300;
 		RemoteProcedureCalls.RegisterCommand(typeof(VoteKickManager), "System.Void VoteKickManager::CmdRequestVoteKick(PlayerInfo,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdRequestVoteKick__PlayerInfo__NetworkConnectionToClient, requiresAuthority: false);
 		RemoteProcedureCalls.RegisterCommand(typeof(VoteKickManager), "System.Void VoteKickManager::CmdVote(VoteKickManager/Vote,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdVote__Vote__NetworkConnectionToClient, requiresAuthority: false);
 		RemoteProcedureCalls.RegisterRpc(typeof(VoteKickManager), "System.Void VoteKickManager::RpcBeginVotekick(System.UInt64,System.UInt64)", InvokeUserCode_RpcBeginVotekick__UInt64__UInt64);
@@ -406,6 +410,8 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 
 	protected void UserCode_CmdRequestVoteKick__PlayerInfo__NetworkConnectionToClient(PlayerInfo playerInfo, NetworkConnectionToClient sender)
 	{
+		ulong requesterGuid;
+		PlayerInfo requester;
 		if (voteActive)
 		{
 			if (sender == null)
@@ -419,32 +425,32 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		}
 		else
 		{
-			if (playerInfo == null || playerInfo.PlayerId.Guid == votekickTargetGuid || !ServerTryGetGuidFromConnection(sender, out var guid) || !GameManager.TryFindPlayerByGuid(guid, out var playerInfo2))
+			if (playerInfo == null || playerInfo.PlayerId.Guid == votekickTargetGuid || !ServerTryGetGuidFromConnection(sender, out requesterGuid) || !GameManager.TryFindPlayerByGuid(requesterGuid, out requester))
 			{
 				return;
 			}
-			if (voteInitCooldown.TryGetValue(guid, out var value) && BMath.GetTimeSince(value) < (float)votekickFailCooldown)
+			if (IsOnCooldown(out var remaining))
 			{
-				float timeRemaining = (float)votekickFailCooldown - BMath.GetTimeSince(value);
+				Debug.Log($"{requester.PlayerId.name} is on votekick cooldown! ({remaining}s)");
 				if (sender == null)
 				{
-					ShowCooldownMessage(timeRemaining);
+					ShowCooldownMessage(remaining);
 				}
 				else
 				{
-					RpcInformCooldown(sender, timeRemaining);
+					RpcInformCooldown(sender, remaining);
 				}
 				return;
 			}
 			votekickTargetGuid = playerInfo.PlayerId.Guid;
-			votekickRequesterGuid = playerInfo2.PlayerId.Guid;
+			votekickRequesterGuid = requester.PlayerId.Guid;
 			voters.Clear();
 			foreach (CourseManager.PlayerState playerState in CourseManager.PlayerStates)
 			{
 				if (playerState.isConnected)
 				{
-					Vote value2 = ((playerState.playerGuid == guid) ? Vote.Yes : ((playerState.playerGuid == playerInfo.PlayerId.Guid) ? Vote.No : Vote.NotVoted));
-					voters[playerState.playerGuid] = value2;
+					Vote value = ((playerState.playerGuid == requesterGuid) ? Vote.Yes : ((playerState.playerGuid == playerInfo.PlayerId.Guid) ? Vote.No : Vote.NotVoted));
+					voters[playerState.playerGuid] = value;
 				}
 			}
 			NetworkvoteResults = new VoteResults
@@ -454,12 +460,25 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 			};
 			voteStartTime = Time.timeAsDouble;
 			voteActive = true;
-			RpcBeginVotekick(votekickTargetGuid, playerInfo2.PlayerId.Guid);
+			RpcBeginVotekick(votekickTargetGuid, requester.PlayerId.Guid);
 			if (votekickRoutine != null)
 			{
 				StopCoroutine(votekickRoutine);
 			}
 			votekickRoutine = StartCoroutine(VotekickRoutine());
+		}
+		bool IsOnCooldown(out float reference)
+		{
+			reference = float.MinValue;
+			if (voteInitCooldown.TryGetValue(requesterGuid, out var value2) && BMath.GetTimeSince(value2) < (float)votekickFailCooldown)
+			{
+				reference = BMath.Max((float)votekickFailCooldown - BMath.GetTimeSince(value2), reference);
+			}
+			if (!requester.isLocalPlayer && CourseManager.TryGetPlayerState(requester, out var state) && NetworkTime.time - state.joinTimestamp < (double)votekickPlayerMinActiveTime)
+			{
+				reference = BMath.Max((float)votekickPlayerMinActiveTime - (float)(NetworkTime.time - state.joinTimestamp), reference);
+			}
+			return reference > 0f;
 		}
 		IEnumerator VotekickRoutine()
 		{

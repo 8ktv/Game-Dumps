@@ -1878,6 +1878,14 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 			{
 				return false;
 			}
+			if (AsEntity.IsItem && AsEntity.AsItem.ItemType == ItemType.Landmine && TryGetComponent<Landmine>(out var component) && component.IsPlanted)
+			{
+				return false;
+			}
+			if (TryGetComponent<TargetDummy>(out var _))
+			{
+				return false;
+			}
 			return true;
 		}
 	}

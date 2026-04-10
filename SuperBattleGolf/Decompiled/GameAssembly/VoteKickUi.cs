@@ -143,8 +143,8 @@ public class VoteKickUi : SingletonBehaviour<VoteKickUi>
 			kickLabel.text = "<pos=28px>" + string.Format(Localization.UI.VOTEKICK_Label, "<nobr>" + GameManager.UiSettings.ApplyColorTag(targetName, TextHighlight.Regular) + "</nobr>");
 			if (hasVoted)
 			{
-				yesLabel.text = "<allcaps>" + Localization.UI.MISC_Yes + "</allcaps>";
-				noLabel.text = "<allcaps>" + Localization.UI.MISC_No + "</allcaps>";
+				yesLabel.text = "<voffset=-9px><allcaps>" + Localization.UI.MISC_Yes + "</allcaps></voffset>";
+				noLabel.text = "<voffset=-9px><allcaps>" + Localization.UI.MISC_No + "</allcaps></voffset>";
 				return;
 			}
 			string text = ((!InputManager.UsingGamepad) ? keyboardIconSize.ToString() : gamepadIconSize.ToString());

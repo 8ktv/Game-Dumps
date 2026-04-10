@@ -718,6 +718,10 @@ public class PlayerMovement : NetworkBehaviour
 		rigidbody.useGravity = false;
 		ResetTargetYaw();
 		LocalPlayerUpdateVisibility();
+		if (PlayerInfo.AsEntity.LevelBoundsTracker.AuthoritativeBoundsState.HasState(BoundsState.OutOfBounds))
+		{
+			localPlayerExplorerAchievementLastOutOfBoundsTimestamp = Time.timeAsDouble;
+		}
 		PlayerInfo.LevelBoundsTracker.AuthoritativeBoundsStateChanged += OnLocalPlayerBoundsStateChanged;
 		PlayerInfo.AsGolfer.MatchResolutionChanged += OnLocalPlayerMatchResolutionChanged;
 		PlayerInfo.AsSpectator.IsSpectatingChanged += OnLocalPlayerIsSpectatingChanged;
@@ -3647,7 +3651,7 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		void UpdateExplorerAchievementProgress()
 		{
-			if (base.isLocalPlayer && isVisible && !SingletonBehaviour<DrivingRangeManager>.HasInstance && PlayerInfo.LevelBoundsTracker.AuthoritativeBoundsState.HasFlag(BoundsState.OutOfBounds))
+			if (base.isLocalPlayer && isVisible && !SingletonBehaviour<DrivingRangeManager>.HasInstance && PlayerInfo.AsGolfer.IsInitialized && !PlayerInfo.AsGolfer.IsMatchResolved && PlayerInfo.LevelBoundsTracker.AuthoritativeBoundsState.HasFlag(BoundsState.OutOfBounds) && (CourseManager.MatchState == MatchState.Ongoing || CourseManager.MatchState == MatchState.CountingDownToEnd))
 			{
 				BMath.Wrap(BMath.GetTimeSince(localPlayerExplorerAchievementLastOutOfBoundsTimestamp), GameManager.Achievements.ExplorerOutOfBoundsTimeStep, out var wrapCount);
 				if (wrapCount > 0 && CourseManager.CountActivePlayers() > 1)
@@ -4028,8 +4032,8 @@ public class PlayerMovement : NetworkBehaviour
 
 	private void OnLocalBoundsStateChanged(BoundsState previousState, BoundsState currentState)
 	{
-		bool flag = previousState.HasFlag(BoundsState.OutOfBounds);
-		bool flag2 = currentState.HasFlag(BoundsState.OutOfBounds);
+		bool flag = previousState.HasState(BoundsState.OutOfBounds);
+		bool flag2 = currentState.HasState(BoundsState.OutOfBounds);
 		bool flag3 = previousState.HasState(BoundsState.InMainOutOfBoundsHazard | BoundsState.InSecondaryOutOfBoundsHazard);
 		bool flag4 = currentState.HasState(BoundsState.InMainOutOfBoundsHazard | BoundsState.InSecondaryOutOfBoundsHazard);
 		if (flag2 != flag && flag2)

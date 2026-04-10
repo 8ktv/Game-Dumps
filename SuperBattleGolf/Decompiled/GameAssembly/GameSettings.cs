@@ -434,6 +434,9 @@ public static class GameSettings
 		[SerializeField]
 		private bool crtChromaticAberrationEnabled = true;
 
+		[CVar("fpsLimitOverride", "", "", false, true, resetOnSceneChangeOrCheatsDisabled = false, callback = "OnFpsLimitOverrideChanged")]
+		private static int fpsLimitOverride;
+
 		public int MSAA
 		{
 			get
@@ -598,6 +601,11 @@ public static class GameSettings
 
 		public static event Action CrtSettingsChanged;
 
+		private static void OnFpsLimitOverrideChanged()
+		{
+			All.Graphics.Apply();
+		}
+
 		public int GetCurrentResolutionIndex()
 		{
 			int num = supportedResolutions.IndexOf(new Vector2Int(screenWidth, screenHeight));
@@ -621,8 +629,16 @@ public static class GameSettings
 			{
 				Screen.SetResolution(screenWidth, screenHeight, fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed);
 			}
-			QualitySettings.vSyncCount = (vsync ? 1 : 0);
-			Application.targetFrameRate = ((vsync || fpsLimit > 300) ? (-1) : fpsLimit);
+			if (fpsLimitOverride > 0)
+			{
+				QualitySettings.vSyncCount = 0;
+				Application.targetFrameRate = fpsLimitOverride;
+			}
+			else
+			{
+				QualitySettings.vSyncCount = (vsync ? 1 : 0);
+				Application.targetFrameRate = ((vsync || fpsLimit > 300) ? (-1) : fpsLimit);
+			}
 			QualitySettings.antiAliasing = msaa;
 			QualitySettings.shadowResolution = shadowQuality;
 			QualitySettings.shadows = (shadowsEnabled ? UnityEngine.ShadowQuality.All : UnityEngine.ShadowQuality.Disable);

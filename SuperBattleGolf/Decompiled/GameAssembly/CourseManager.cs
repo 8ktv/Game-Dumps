@@ -3536,7 +3536,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 						if (playerState2.isConnected && num2 > 1 && playerState2.playerGuid == firstPlaceStateInternal.playerGuid)
 						{
 							playerState2.multiplayerFirstPlaceStreak++;
-							if (playerState2.multiplayerFirstPlaceStreak > GameManager.Achievements.OneTrueKingFirstPlaceStreak && PlayerInfo.playerInfoPerPlayerGuid.TryGetValue(playerState2.playerGuid, out var value2))
+							if (playerState2.multiplayerFirstPlaceStreak >= GameManager.Achievements.OneTrueKingFirstPlaceStreak && PlayerInfo.playerInfoPerPlayerGuid.TryGetValue(playerState2.playerGuid, out var value2))
 							{
 								value2.RpcInformQualifiedForOneTrueKingAchievement();
 							}

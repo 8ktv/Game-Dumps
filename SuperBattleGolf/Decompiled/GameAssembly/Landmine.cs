@@ -55,6 +55,8 @@ public class Landmine : NetworkBehaviour
 
 	public bool IsArmed => isArmed;
 
+	public bool IsPlanted => isPlanted;
+
 	public bool NetworkisArmed
 	{
 		get

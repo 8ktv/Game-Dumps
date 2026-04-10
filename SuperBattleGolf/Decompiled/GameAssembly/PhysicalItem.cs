@@ -17,6 +17,8 @@ public class PhysicalItem : NetworkBehaviour, IInteractable
 
 	public Entity AsEntity { get; private set; }
 
+	public ItemType ItemType => itemType;
+
 	public LocalizedString InteractString => LocalizationManager.GetLocalizedString(StringTable.Data, "ITEM_" + itemType);
 
 	public bool IsInteractionEnabled
