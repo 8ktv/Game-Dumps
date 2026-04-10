@@ -282,7 +282,7 @@ public class DynamicArray<T> where T : new()
 		}
 	}
 
-	[Obsolete("This is deprecated because it returns an incorrect value. It may returns an array with elements beyond the size. Please use Span/ReadOnly if you want safe raw access to the DynamicArray memory.", false)]
+	[Obsolete("This is deprecated because it returns an incorrect value. It may returns an array with elements beyond the size. Please use Span/ReadOnly if you want safe raw access to the DynamicArray memory. #from(2023.2)")]
 	public static implicit operator T[](DynamicArray<T> array)
 	{
 		return array.m_Array;

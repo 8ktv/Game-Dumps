@@ -12,29 +12,29 @@ public class Foldout : BindableElement, INotifyValueChanged<bool>
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : BindableElement.UxmlSerializedData
 	{
-		[SerializeField]
 		[MultilineTextField]
+		[SerializeField]
 		private string text;
 
 		[HideInInspector]
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags text_UxmlAttributeFlags;
 
 		[SerializeField]
 		private bool toggleOnLabelClick;
 
-		[HideInInspector]
 		[UxmlIgnore]
 		[SerializeField]
+		[HideInInspector]
 		private UxmlAttributeFlags toggleOnLabelClick_UxmlAttributeFlags;
 
 		[SerializeField]
 		private bool value;
 
+		[SerializeField]
 		[HideInInspector]
 		[UxmlIgnore]
-		[SerializeField]
 		private UxmlAttributeFlags value_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -108,7 +108,10 @@ public class Foldout : BindableElement, INotifyValueChanged<bool>
 
 	internal static readonly BindingId valueProperty = "value";
 
-	private readonly Toggle m_Toggle = new Toggle();
+	private readonly Toggle m_Toggle = new Toggle
+	{
+		acceptClicksIfDisabled = true
+	};
 
 	private VisualElement m_Container;
 
@@ -223,14 +226,7 @@ public class Foldout : BindableElement, INotifyValueChanged<bool>
 		m_Value = newValue;
 		m_Toggle.SetValueWithoutNotify(m_Value);
 		contentContainer.style.display = ((!newValue) ? DisplayStyle.None : DisplayStyle.Flex);
-		if (m_Value)
-		{
-			base.pseudoStates |= PseudoStates.Checked;
-		}
-		else
-		{
-			base.pseudoStates &= ~PseudoStates.Checked;
-		}
+		SetCheckedPseudoState(m_Value);
 	}
 
 	internal override void OnViewDataReady()

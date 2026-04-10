@@ -4,7 +4,7 @@ using UnityEngine.Events;
 
 namespace UnityEngine.UI;
 
-[AddComponentMenu("UI/Slider", 34)]
+[AddComponentMenu("UI (Canvas)/Slider", 34)]
 [ExecuteAlways]
 [RequireComponent(typeof(RectTransform))]
 public class Slider : Selectable, IDragHandler, IEventSystemHandler, IInitializePotentialDragHandler, ICanvasElement

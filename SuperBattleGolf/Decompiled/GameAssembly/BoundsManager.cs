@@ -32,6 +32,29 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 		}
 	}
 
+	public struct LevelHazardInstance
+	{
+		public LevelHazardType type;
+
+		public int instanceId;
+
+		public float2 worldHorizontalMin;
+
+		public float2 worldHorizontalMax;
+
+		public float worldHeight;
+
+		public LevelHazardInstance(LevelHazard hazard)
+		{
+			type = hazard.Type;
+			instanceId = hazard.GetInstanceID();
+			Vector2 size = hazard.GetSize();
+			worldHorizontalMin = hazard.transform.position.AsHorizontal2() - size / 2f;
+			worldHorizontalMax = hazard.transform.position.AsHorizontal2() + size / 2f;
+			worldHeight = hazard.transform.position.y;
+		}
+	}
+
 	public struct BoundsTrackerInstance
 	{
 		public float3 outOfBoundsHazardSubmersionLocalPosition;
@@ -90,6 +113,8 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 
 	private const int initializationSecondaryOutOfBoundsHazardCount = 8;
 
+	private const int initializationLevelHazardCount = 8;
+
 	private const int initializationLevelBoundsTrackersCount = 32;
 
 	private const int initializationLevelBoundsSplineCount = 8;
@@ -115,19 +140,15 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 
 	private readonly Dictionary<LevelBoundsTracker, int> levelBoundsTrackerIndices = new Dictionary<LevelBoundsTracker, int>();
 
-	private readonly HashSet<LevelBoundsTracker> levelBoundsTrackerRegistrationBuffer = new HashSet<LevelBoundsTracker>();
-
-	private readonly HashSet<LevelBoundsTracker> levelBoundsTrackerDeregistrationBuffer = new HashSet<LevelBoundsTracker>();
-
 	private readonly Dictionary<LevelBoundsTracker, int> greenBoundsTrackerIndexIndices = new Dictionary<LevelBoundsTracker, int>();
 
 	private readonly List<SecondaryOutOfBoundsHazard> secondaryOutOfBoundsHazards = new List<SecondaryOutOfBoundsHazard>();
 
 	private readonly Dictionary<SecondaryOutOfBoundsHazard, int> secondaryOutOfBoundsHazardsIndices = new Dictionary<SecondaryOutOfBoundsHazard, int>();
 
-	private readonly HashSet<SecondaryOutOfBoundsHazard> secondaryOutOfBoundsHazardRegistrationBuffer = new HashSet<SecondaryOutOfBoundsHazard>();
+	private readonly List<LevelHazard> levelHazards = new List<LevelHazard>();
 
-	private readonly HashSet<SecondaryOutOfBoundsHazard> secondaryOutOfBoundsHazardDeregistrationBuffer = new HashSet<SecondaryOutOfBoundsHazard>();
+	private readonly Dictionary<LevelHazard, int> levelHazardsIndices = new Dictionary<LevelHazard, int>();
 
 	private NativeArray<int> levelBoundsCurveStartIndices;
 
@@ -140,6 +161,8 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 	private NativeArray<BezierCurve> returnSplinesWorldCurves;
 
 	private NativeList<SecondaryOutOfBoundsHazardInstance> secondaryOutOfBoundsHazardInstances;
+
+	private NativeList<LevelHazardInstance> levelHazardInstances;
 
 	private TransformAccessArray levelBoundsTrackerAccessArray;
 
@@ -181,12 +204,25 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 		}
 	}
 
+	public static NativeList<LevelHazardInstance> LevelHazardInstances
+	{
+		get
+		{
+			if (!SingletonBehaviour<BoundsManager>.HasInstance)
+			{
+				return default(NativeList<LevelHazardInstance>);
+			}
+			return SingletonBehaviour<BoundsManager>.Instance.levelHazardInstances;
+		}
+	}
+
 	public static event Action UpdateFinished;
 
 	protected override void Awake()
 	{
 		base.Awake();
 		secondaryOutOfBoundsHazardInstances = new NativeList<SecondaryOutOfBoundsHazardInstance>(8, Allocator.Persistent);
+		levelHazardInstances = new NativeList<LevelHazardInstance>(8, Allocator.Persistent);
 		levelBoundsTrackerAccessArray = new TransformAccessArray(32);
 		levelBoundsTrackerInstances = new NativeList<BoundsTrackerInstance>(32, Allocator.Persistent);
 		if (!trackerOutOfBoundsHazardStates.IsCreated)
@@ -235,6 +271,10 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 		if (secondaryOutOfBoundsHazardInstances.IsCreated)
 		{
 			secondaryOutOfBoundsHazardInstances.Dispose();
+		}
+		if (levelHazardInstances.IsCreated)
+		{
+			levelHazardInstances.Dispose();
 		}
 		if (levelBoundsTrackerAccessArray.isCreated)
 		{
@@ -308,6 +348,22 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 		if (SingletonBehaviour<BoundsManager>.HasInstance)
 		{
 			SingletonBehaviour<BoundsManager>.Instance.DeregisterSecondaryOutOfBoundsHazardInternal(hazard);
+		}
+	}
+
+	public static void RegisterLevelHazard(LevelHazard hazard)
+	{
+		if (SingletonBehaviour<BoundsManager>.HasInstance)
+		{
+			SingletonBehaviour<BoundsManager>.Instance.RegisterLevelHazardInternal(hazard);
+		}
+	}
+
+	public static void DeregisterLevelHazard(LevelHazard hazard)
+	{
+		if (SingletonBehaviour<BoundsManager>.HasInstance)
+		{
+			SingletonBehaviour<BoundsManager>.Instance.DeregisterLevelHazardInternal(hazard);
 		}
 	}
 
@@ -497,10 +553,9 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 		{
 			if (isRunningJob)
 			{
-				secondaryOutOfBoundsHazardRegistrationBuffer.Add(hazard);
-				secondaryOutOfBoundsHazardDeregistrationBuffer.Remove(hazard);
+				currentJob.Complete();
 			}
-			else if (secondaryOutOfBoundsHazardsIndices.TryAdd(hazard, levelBoundsTrackers.Count))
+			if (secondaryOutOfBoundsHazardsIndices.TryAdd(hazard, levelBoundsTrackers.Count))
 			{
 				secondaryOutOfBoundsHazards.Add(hazard);
 				secondaryOutOfBoundsHazardInstances.Add(new SecondaryOutOfBoundsHazardInstance(hazard));
@@ -512,13 +567,11 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 	{
 		if (!BNetworkManager.IsChangingSceneOrShuttingDown)
 		{
-			int value;
 			if (isRunningJob)
 			{
-				secondaryOutOfBoundsHazardRegistrationBuffer.Remove(hazard);
-				secondaryOutOfBoundsHazardDeregistrationBuffer.Add(hazard);
+				currentJob.Complete();
 			}
-			else if (secondaryOutOfBoundsHazardsIndices.TryGetValue(hazard, out value))
+			if (secondaryOutOfBoundsHazardsIndices.TryGetValue(hazard, out var value))
 			{
 				Dictionary<SecondaryOutOfBoundsHazard, int> dictionary = secondaryOutOfBoundsHazardsIndices;
 				List<SecondaryOutOfBoundsHazard> list = secondaryOutOfBoundsHazards;
@@ -526,6 +579,42 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 				secondaryOutOfBoundsHazardsIndices.Remove(hazard);
 				secondaryOutOfBoundsHazards.RemoveAtSwapBack(value);
 				secondaryOutOfBoundsHazardInstances.RemoveAtSwapBack(value);
+			}
+		}
+	}
+
+	private void RegisterLevelHazardInternal(LevelHazard hazard)
+	{
+		if (!(hazard == null))
+		{
+			if (isRunningJob)
+			{
+				currentJob.Complete();
+			}
+			if (levelHazardsIndices.TryAdd(hazard, levelHazards.Count))
+			{
+				levelHazards.Add(hazard);
+				levelHazardInstances.Add(new LevelHazardInstance(hazard));
+			}
+		}
+	}
+
+	private void DeregisterLevelHazardInternal(LevelHazard hazard)
+	{
+		if (!BNetworkManager.IsChangingSceneOrShuttingDown)
+		{
+			if (isRunningJob)
+			{
+				currentJob.Complete();
+			}
+			if (levelHazardsIndices.TryGetValue(hazard, out var value))
+			{
+				Dictionary<LevelHazard, int> dictionary = levelHazardsIndices;
+				List<LevelHazard> list = levelHazards;
+				dictionary[list[list.Count - 1]] = value;
+				levelHazardsIndices.Remove(hazard);
+				levelHazards.RemoveAtSwapBack(value);
+				levelHazardInstances.RemoveAtSwapBack(value);
 			}
 		}
 	}
@@ -538,9 +627,7 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 		}
 		if (isRunningJob)
 		{
-			levelBoundsTrackerRegistrationBuffer.Add(tracker);
-			levelBoundsTrackerDeregistrationBuffer.Remove(tracker);
-			return;
+			currentJob.Complete();
 		}
 		int value = levelBoundsTrackers.Count;
 		if (!levelBoundsTrackerIndices.TryAdd(tracker, value))
@@ -598,13 +685,11 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 		{
 			return;
 		}
-		int value;
 		if (isRunningJob)
 		{
-			levelBoundsTrackerRegistrationBuffer.Remove(tracker);
-			levelBoundsTrackerDeregistrationBuffer.Add(tracker);
+			currentJob.Complete();
 		}
-		else if (levelBoundsTrackerIndices.TryGetValue(tracker, out value))
+		if (levelBoundsTrackerIndices.TryGetValue(tracker, out var value))
 		{
 			if (tracker.Settings.TrackingType.HasType(LevelBoundsTrackingType.Green) && greenBoundsTrackerIndexIndices.TryGetValue(tracker, out var value2))
 			{
@@ -785,7 +870,6 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 		{
 			isRunningJob = false;
 			ProcessJobResults();
-			FlushRegistrationBuffers();
 			try
 			{
 				BoundsManager.UpdateFinished?.Invoke();
@@ -906,28 +990,6 @@ public class BoundsManager : SingletonBehaviour<BoundsManager>
 		{
 			levelBoundsTrackers[greenBoundsTrackerWithChangedStateIndex].InformGreenBoundsStateChanged(levelBoundsTrackerInstances[greenBoundsTrackerWithChangedStateIndex].isOnGreen);
 		}
-	}
-
-	private void FlushRegistrationBuffers()
-	{
-		foreach (LevelBoundsTracker item in levelBoundsTrackerRegistrationBuffer)
-		{
-			RegisterLevelBoundsTrackerInternal(item);
-		}
-		foreach (LevelBoundsTracker item2 in levelBoundsTrackerDeregistrationBuffer)
-		{
-			DeregisterLevelBoundsTrackerInternal(item2);
-		}
-		foreach (SecondaryOutOfBoundsHazard item3 in secondaryOutOfBoundsHazardRegistrationBuffer)
-		{
-			RegisterSecondaryOutOfBoundsHazardInternal(item3);
-		}
-		foreach (SecondaryOutOfBoundsHazard item4 in secondaryOutOfBoundsHazardDeregistrationBuffer)
-		{
-			DeregisterSecondaryOutOfBoundsHazardInternal(item4);
-		}
-		levelBoundsTrackerRegistrationBuffer.Clear();
-		levelBoundsTrackerDeregistrationBuffer.Clear();
 	}
 
 	private void DisposeOfLevelBoundsData()

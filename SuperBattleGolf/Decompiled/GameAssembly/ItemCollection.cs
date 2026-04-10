@@ -10,6 +10,8 @@ public class ItemCollection : ScriptableObject
 
 	private readonly Dictionary<ItemType, ItemData> allItemData = new Dictionary<ItemType, ItemData>();
 
+	public int Count => items.Length;
+
 	private void OnValidate()
 	{
 		Initialize();
@@ -36,6 +38,11 @@ public class ItemCollection : ScriptableObject
 				Debug.LogError($"Attempted to add item of type {itemData.Type} more than once to an item collection");
 			}
 		}
+	}
+
+	public ItemData GetItemAtIndex(int index)
+	{
+		return items[index];
 	}
 
 	public bool TryGetItemData(ItemType itemType, out ItemData itemData)

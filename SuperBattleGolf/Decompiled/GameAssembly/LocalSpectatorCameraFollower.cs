@@ -1,30 +1,39 @@
 using System;
 using System.Runtime.InteropServices;
+using FMODUnity;
 using Mirror;
 using Mirror.RemoteCalls;
 using UnityEngine;
 
 public class LocalSpectatorCameraFollower : NetworkBehaviour
 {
-	public GameObject model;
+	[SerializeField]
+	private GameObject model;
 
-	[SyncVar(hook = "OnTargetChange")]
-	public Transform target;
+	[SerializeField]
+	private SpectatorCameraVfx vfx;
 
-	[SyncVar(hook = "OnOwnerChange")]
-	public PlayerInfo owner;
+	[SerializeField]
+	private float smoothing = 4f;
 
-	public float smoothing = 16f;
+	[SerializeField]
+	private float targetChangedSpeed = 4f;
 
-	public float targetChangedSpeed = 16f;
+	[SerializeField]
+	private float maxTargetChangeDuration = 2f;
 
-	public float maxTargetChangeDuration = 4f;
+	[SerializeField]
+	private AnimationCurve targetChangeCurve;
 
-	public AnimationCurve targetChangeCurve;
+	[SyncVar(hook = "OnTargetChanged")]
+	private Transform target;
+
+	[SyncVar(hook = "OnOwnerChanged")]
+	private PlayerInfo owner;
 
 	private bool wasOwned;
 
-	private bool visible;
+	private bool isVisible;
 
 	private Vector3 currentOffset;
 
@@ -91,7 +100,7 @@ public class LocalSpectatorCameraFollower : NetworkBehaviour
 	public override void OnStartClient()
 	{
 		model.SetActive(value: false);
-		visible = false;
+		isVisible = false;
 		if (base.isOwned && !(GameManager.LocalPlayerInfo == null))
 		{
 			PlayerSpectator.LocalPlayerSetSpectatingTarget += OnLocalPlayerSetSpectatingTarget;
@@ -119,6 +128,15 @@ public class LocalSpectatorCameraFollower : NetworkBehaviour
 		Networktarget = ((GameManager.LocalPlayerInfo != null) ? GameManager.LocalPlayerInfo.AsSpectator.Target : null);
 	}
 
+	public void PlayEmote(SpectatorEmote emote)
+	{
+		if (!(vfx == null) && !(Networkowner == null))
+		{
+			vfx.PlayEmote(emote, Networkowner.isLocalPlayer);
+			PlayEmoteSound(emote, Networkowner.isLocalPlayer);
+		}
+	}
+
 	[Command(channel = 1)]
 	public void CmdUpdateState(Vector3 offset, int frame, NetworkConnectionToClient sender = null)
 	{
@@ -135,13 +153,39 @@ public class LocalSpectatorCameraFollower : NetworkBehaviour
 	}
 
 	[ClientRpc(channel = 1)]
-	public void RpcUpdateState(Vector3 offset, int frame)
+	private void RpcUpdateState(Vector3 offset, int frame)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteVector3(offset);
 		writer.WriteVarInt(frame);
 		SendRPCInternal("System.Void LocalSpectatorCameraFollower::RpcUpdateState(UnityEngine.Vector3,System.Int32)", 1721101469, writer, 1, includeOwner: true);
 		NetworkWriterPool.Return(writer);
+	}
+
+	private void PlayEmoteSound(SpectatorEmote emote, bool isLocalPlayer)
+	{
+		if (!(Networkowner == null))
+		{
+			GameObject gameObject = (isLocalPlayer ? GameManager.Camera.gameObject : model.gameObject);
+			switch (emote)
+			{
+			case SpectatorEmote.Shocked:
+				RuntimeManager.PlayOneShotAttached(GameManager.AudioSettings.CameraEmoteShockedEvent, gameObject);
+				break;
+			case SpectatorEmote.Heart:
+				RuntimeManager.PlayOneShotAttached(GameManager.AudioSettings.CameraEmoteHeartEvent, gameObject);
+				break;
+			case SpectatorEmote.Worried:
+				RuntimeManager.PlayOneShotAttached(GameManager.AudioSettings.CameraEmoteWorriedEvent, gameObject);
+				break;
+			case SpectatorEmote.Confused:
+				RuntimeManager.PlayOneShotAttached(GameManager.AudioSettings.CameraEmoteConfusedEvent, gameObject);
+				break;
+			case SpectatorEmote.Cheer:
+				RuntimeManager.PlayOneShotAttached(GameManager.AudioSettings.CameraEmoteCheerEvent, gameObject);
+				break;
+			}
+		}
 	}
 
 	private void LateUpdate()
@@ -159,34 +203,69 @@ public class LocalSpectatorCameraFollower : NetworkBehaviour
 				CmdUpdateState(offset, Time.frameCount);
 				lastSend = Time.time;
 			}
-			return;
 		}
-		float num = Time.time - lastTargetChange;
-		Vector3 vector = ((!(num < targetChangeDuration)) ? position : Vector3.Lerp(lastTargetPosition, position, targetChangeCurve.Evaluate(num / targetChangeDuration)));
-		currentOffset = Vector3.Lerp(currentOffset, targetOffset, Time.deltaTime * smoothing);
-		base.transform.position = vector - currentOffset;
-		base.transform.LookAt(position);
-		bool flag = CameraModuleController.CurrentModuleType != CameraModuleType.Overview;
-		if (visible != flag)
+		else
 		{
-			visible = flag;
-			model.SetActive(visible);
+			float num = Time.time - lastTargetChange;
+			Vector3 vector = ((!(num < targetChangeDuration)) ? position : Vector3.Lerp(lastTargetPosition, position, targetChangeCurve.Evaluate(num / targetChangeDuration)));
+			currentOffset = Vector3.Lerp(currentOffset, targetOffset, Time.deltaTime * smoothing);
+			base.transform.position = vector - currentOffset;
+			base.transform.LookAt(position);
+			bool flag = CameraModuleController.CurrentModuleType != CameraModuleType.Overview;
+			if (isVisible != flag)
+			{
+				isVisible = flag;
+				model.SetActive(isVisible);
+			}
+		}
+		UpdateVoiceChatVfx();
+		bool ShouldPlayVoiceChatVfx()
+		{
+			if (Networkowner == null)
+			{
+				return false;
+			}
+			if (!Networkowner.VoiceChat.voiceNetworker.IsTalking)
+			{
+				return false;
+			}
+			return true;
+		}
+		void UpdateVoiceChatVfx()
+		{
+			if (!(vfx == null))
+			{
+				bool flag2 = ShouldPlayVoiceChatVfx();
+				vfx.SetTalking(flag2);
+				if (flag2)
+				{
+					vfx.SetTalkingIntensity(Networkowner.VoiceChat.voiceNetworker.FastSmoothedNormalizedVolume);
+				}
+			}
 		}
 	}
 
-	private void OnTargetChange(Transform prev, Transform curr)
+	private void OnTargetChanged(Transform previousTarget, Transform currentTarget)
 	{
-		if (!base.isOwned && !(curr == null))
+		if (!base.isOwned && !(currentTarget == null))
 		{
 			lastTargetChange = Time.time;
-			lastTargetPosition = ((prev == null) ? curr.position : (base.transform.position + currentOffset));
-			targetChangeDuration = BMath.Min(maxTargetChangeDuration, Vector3.Distance(lastTargetPosition, curr.position) / targetChangedSpeed);
+			lastTargetPosition = ((previousTarget == null) ? currentTarget.position : (base.transform.position + currentOffset));
+			targetChangeDuration = BMath.Min(maxTargetChangeDuration, Vector3.Distance(lastTargetPosition, currentTarget.position) / targetChangedSpeed);
 		}
 	}
 
-	private void OnOwnerChange(PlayerInfo prev, PlayerInfo owner)
+	private void OnOwnerChanged(PlayerInfo previousOwner, PlayerInfo currentOwner)
 	{
-		owner.VoiceChat.voiceNetworker.SetTargetTransform(base.transform);
+		if (previousOwner != null)
+		{
+			previousOwner.AsSpectator.ClearSpectatorCamera();
+		}
+		if (Networkowner != null)
+		{
+			Networkowner.AsSpectator.SetSpectatorCamera(this);
+		}
+		Networkowner.VoiceChat.voiceNetworker.SetTargetTransform(base.transform);
 		if (!base.isOwned)
 		{
 			if (nameTag != null)
@@ -194,14 +273,14 @@ public class LocalSpectatorCameraFollower : NetworkBehaviour
 				NameTagManager.ReturnNameTag(nameTag);
 			}
 			nameTag = NameTagManager.GetUnusedNameTag();
-			nameTag.Initialize(NameTagManager.SpectatorNameTagSettings, base.transform, GameManager.UiSettings.SpectatorNameTagLocalOffset, GameManager.UiSettings.SpectatorNameTagWorldOffset, owner.PlayerId.PlayerNameNoRichText, owner, nameTagIsPlayer: false);
+			nameTag.Initialize(NameTagManager.SpectatorNameTagSettings, base.transform, GameManager.UiSettings.SpectatorNameTagLocalOffset, GameManager.UiSettings.SpectatorNameTagWorldOffset, Networkowner.PlayerId.PlayerNameNoRichText, Networkowner, nameTagIsPlayer: false);
 		}
 	}
 
 	public LocalSpectatorCameraFollower()
 	{
-		_Mirror_SyncVarHookDelegate_target = OnTargetChange;
-		_Mirror_SyncVarHookDelegate_owner = OnOwnerChange;
+		_Mirror_SyncVarHookDelegate_target = OnTargetChanged;
+		_Mirror_SyncVarHookDelegate_owner = OnOwnerChanged;
 	}
 
 	public override bool Weaved()

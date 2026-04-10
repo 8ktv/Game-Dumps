@@ -5,15 +5,16 @@ namespace UnityEngine.Rendering;
 
 [Serializable]
 [SupportedOnRenderPipeline(new Type[] { })]
-[CategoryInfo(Name = "R: VRS - Runtime Resources", Order = 1000)]
-[HideInInspector]
+[CategoryInfo(Name = "VRS - Runtime Resources", Order = 1000)]
 public sealed class VrsRenderPipelineRuntimeResources : IRenderPipelineResources, IRenderPipelineGraphicsSettings
 {
 	[SerializeField]
+	[Tooltip("Compute shader used for converting textures to shading rate values")]
 	[ResourcePath("Runtime/Vrs/Shaders/VrsTexture.compute", SearchType.ProjectPath)]
 	private ComputeShader m_TextureComputeShader;
 
 	[SerializeField]
+	[Tooltip("Shader used when visualizing shading rate values as a color image")]
 	[ResourcePath("Runtime/Vrs/Shaders/VrsVisualization.shader", SearchType.ProjectPath)]
 	private Shader m_VisualizationShader;
 

@@ -10,8 +10,8 @@ internal class FastKeyboard : Keyboard
 
 	public FastKeyboard()
 	{
-		InputControlExtensions.DeviceBuilder deviceBuilder = this.Setup(127, 15, 7).WithName("Keyboard").WithDisplayName("Keyboard")
-			.WithChildren(0, 127)
+		InputControlExtensions.DeviceBuilder deviceBuilder = this.Setup(131, 15, 7).WithName("Keyboard").WithDisplayName("Keyboard")
+			.WithChildren(0, 131)
 			.WithLayout(new InternedString("Keyboard"))
 			.WithStateBlock(new InputStateBlock
 			{
@@ -148,7 +148,11 @@ internal class FastKeyboard : Keyboard
 		KeyControl keyControl120 = Initialize_ctrlKeyboardf22(kKeyLayout, this);
 		KeyControl keyControl121 = Initialize_ctrlKeyboardf23(kKeyLayout, this);
 		KeyControl keyControl122 = Initialize_ctrlKeyboardf24(kKeyLayout, this);
+		KeyControl keyControl123 = Initialize_ctrlKeyboardmediaPlayPause(kKeyLayout, this);
+		KeyControl keyControl124 = Initialize_ctrlKeyboardmediaRewind(kKeyLayout, this);
+		KeyControl keyControl125 = Initialize_ctrlKeyboardmediaForward(kKeyLayout, this);
 		ButtonControl buttonControl = Initialize_ctrlKeyboardIMESelected(kButtonLayout, this);
+		KeyControl keyControl126 = Initialize_ctrlKeyboardIMESelectedObsoleteKey(kKeyLayout, this);
 		deviceBuilder.WithControlUsage(0, new InternedString("Back"), keyControl);
 		deviceBuilder.WithControlUsage(1, new InternedString("Cancel"), keyControl);
 		deviceBuilder.WithControlUsage(2, new InternedString("Submit"), keyControl3);
@@ -171,7 +175,7 @@ internal class FastKeyboard : Keyboard
 		deviceBuilder.WithControlAlias(4, new InternedString("RightWindows"));
 		deviceBuilder.WithControlAlias(5, new InternedString("RightApple"));
 		deviceBuilder.WithControlAlias(6, new InternedString("RightCommand"));
-		base.keys = new KeyControl[123];
+		base.keys = new KeyControl[126];
 		base.keys[0] = keyControl2;
 		base.keys[1] = keyControl3;
 		base.keys[2] = keyControl4;
@@ -282,6 +286,7 @@ internal class FastKeyboard : Keyboard
 		base.keys[107] = keyControl108;
 		base.keys[108] = keyControl109;
 		base.keys[109] = keyControl110;
+		base.keys[110] = keyControl126;
 		base.keys[111] = keyControl111;
 		base.keys[112] = keyControl112;
 		base.keys[113] = keyControl113;
@@ -294,14 +299,17 @@ internal class FastKeyboard : Keyboard
 		base.keys[120] = keyControl120;
 		base.keys[121] = keyControl121;
 		base.keys[122] = keyControl122;
+		base.keys[123] = keyControl123;
+		base.keys[124] = keyControl124;
+		base.keys[125] = keyControl125;
 		base.anyKey = anyKeyControl;
 		base.shiftKey = control;
 		base.ctrlKey = control3;
 		base.altKey = control2;
 		base.imeSelected = buttonControl;
-		deviceBuilder.WithStateOffsetToControlIndexMap(new uint[127]
+		deviceBuilder.WithStateOffsetToControlIndexMap(new uint[131]
 		{
-			525314u, 650240u, 1049603u, 1573892u, 2098181u, 2622470u, 3146759u, 3671048u, 4195337u, 4719626u,
+			525314u, 653312u, 1049603u, 1573892u, 2098181u, 2622470u, 3146759u, 3671048u, 4195337u, 4719626u,
 			5243915u, 5768204u, 6292493u, 6816782u, 7341071u, 7865364u, 8389653u, 8913942u, 9438231u, 9962520u,
 			10486809u, 11011098u, 11535387u, 12059676u, 12583965u, 13108254u, 13632543u, 14156832u, 14681121u, 15205410u,
 			15729699u, 16253988u, 16778277u, 17302566u, 17826855u, 18351144u, 18875433u, 19399722u, 19924011u, 20448300u,
@@ -313,7 +321,8 @@ internal class FastKeyboard : Keyboard
 			45614169u, 46138458u, 46662747u, 47187036u, 47711325u, 48235614u, 48759903u, 49284193u, 49808482u, 50332771u,
 			50857060u, 51381349u, 51905638u, 52429927u, 52954216u, 53478505u, 54002794u, 54527083u, 55051372u, 55575661u,
 			56099950u, 56624239u, 57148528u, 57672817u, 58721394u, 59245683u, 59769972u, 60294261u, 60818550u, 61342839u,
-			61867128u, 62391417u, 62915706u, 63439995u, 63964284u, 64488573u, 66585726u
+			61867128u, 62391417u, 62915706u, 63439995u, 63964284u, 64488573u, 65012862u, 65537151u, 66061440u, 66585729u,
+			66585730u
 		});
 		deviceBuilder.WithControlTree(new byte[1799]
 		{
@@ -492,12 +501,12 @@ internal class FastKeyboard : Keyboard
 			0, 1, 123, 0, 255, 255, 128, 0, 1, 125,
 			0, 249, 0, 0, 0, 0, 127, 0, 251, 0,
 			0, 0, 0, 124, 0, 255, 255, 129, 0, 1,
-			125, 0, 255, 255, 0, 0, 0, 126, 0, 255,
-			255, 0, 0, 0, 127, 0, 253, 0, 0, 0,
-			0, 127, 0, 255, 255, 0, 0, 0, 127, 0,
-			255, 0, 0, 0, 0, 128, 0, 255, 255, 130,
-			0, 1, 127, 0, 255, 255, 0, 0, 0
-		}, new ushort[131]
+			125, 0, 255, 255, 130, 0, 1, 126, 0, 255,
+			255, 131, 0, 1, 127, 0, 253, 0, 132, 0,
+			1, 127, 0, 255, 255, 0, 0, 0, 127, 0,
+			255, 0, 0, 0, 0, 128, 0, 255, 255, 133,
+			0, 2, 127, 0, 255, 255, 0, 0, 0
+		}, new ushort[135]
 		{
 			0, 0, 1, 2, 3, 4, 5, 6, 7, 8,
 			9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
@@ -512,7 +521,7 @@ internal class FastKeyboard : Keyboard
 			96, 97, 98, 99, 100, 101, 102, 103, 104, 105,
 			106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
 			116, 117, 118, 119, 120, 121, 122, 123, 124, 125,
-			126
+			126, 127, 128, 129, 130
 		});
 		deviceBuilder.Finish();
 	}
@@ -531,7 +540,7 @@ internal class FastKeyboard : Keyboard
 				format = new FourCC(1112101920),
 				byteOffset = 0u,
 				bitOffset = 1u,
-				sizeInBits = 123u
+				sizeInBits = 126u
 			})
 			.WithMinAndMax(0, 1)
 			.Finish();
@@ -3195,10 +3204,73 @@ internal class FastKeyboard : Keyboard
 		return keyControl;
 	}
 
+	private KeyControl Initialize_ctrlKeyboardmediaPlayPause(InternedString kKeyLayout, InputControl parent)
+	{
+		KeyControl keyControl = new KeyControl();
+		keyControl.Setup().At(this, 126).WithParent(parent)
+			.WithName("mediaPlayPause")
+			.WithDisplayName("MediaPlayPause")
+			.WithLayout(kKeyLayout)
+			.IsButton(value: true)
+			.WithStateBlock(new InputStateBlock
+			{
+				format = new FourCC(1112101920),
+				byteOffset = 0u,
+				bitOffset = 124u,
+				sizeInBits = 1u
+			})
+			.WithMinAndMax(0, 1)
+			.Finish();
+		keyControl.keyCode = Key.MediaPlayPause;
+		return keyControl;
+	}
+
+	private KeyControl Initialize_ctrlKeyboardmediaRewind(InternedString kKeyLayout, InputControl parent)
+	{
+		KeyControl keyControl = new KeyControl();
+		keyControl.Setup().At(this, 127).WithParent(parent)
+			.WithName("mediaRewind")
+			.WithDisplayName("MediaRewind")
+			.WithLayout(kKeyLayout)
+			.IsButton(value: true)
+			.WithStateBlock(new InputStateBlock
+			{
+				format = new FourCC(1112101920),
+				byteOffset = 0u,
+				bitOffset = 125u,
+				sizeInBits = 1u
+			})
+			.WithMinAndMax(0, 1)
+			.Finish();
+		keyControl.keyCode = Key.MediaRewind;
+		return keyControl;
+	}
+
+	private KeyControl Initialize_ctrlKeyboardmediaForward(InternedString kKeyLayout, InputControl parent)
+	{
+		KeyControl keyControl = new KeyControl();
+		keyControl.Setup().At(this, 128).WithParent(parent)
+			.WithName("mediaForward")
+			.WithDisplayName("MediaForward")
+			.WithLayout(kKeyLayout)
+			.IsButton(value: true)
+			.WithStateBlock(new InputStateBlock
+			{
+				format = new FourCC(1112101920),
+				byteOffset = 0u,
+				bitOffset = 126u,
+				sizeInBits = 1u
+			})
+			.WithMinAndMax(0, 1)
+			.Finish();
+		keyControl.keyCode = Key.MediaForward;
+		return keyControl;
+	}
+
 	private ButtonControl Initialize_ctrlKeyboardIMESelected(InternedString kButtonLayout, InputControl parent)
 	{
 		ButtonControl buttonControl = new ButtonControl();
-		buttonControl.Setup().At(this, 126).WithParent(parent)
+		buttonControl.Setup().At(this, 129).WithParent(parent)
 			.WithName("IMESelected")
 			.WithDisplayName("IMESelected")
 			.WithLayout(kButtonLayout)
@@ -3214,5 +3286,27 @@ internal class FastKeyboard : Keyboard
 			.WithMinAndMax(0, 1)
 			.Finish();
 		return buttonControl;
+	}
+
+	private KeyControl Initialize_ctrlKeyboardIMESelectedObsoleteKey(InternedString kKeyLayout, InputControl parent)
+	{
+		KeyControl keyControl = new KeyControl();
+		keyControl.Setup().At(this, 130).WithParent(parent)
+			.WithName("IMESelectedObsoleteKey")
+			.WithDisplayName("IMESelectedObsoleteKey")
+			.WithLayout(kKeyLayout)
+			.IsSynthetic(value: true)
+			.IsButton(value: true)
+			.WithStateBlock(new InputStateBlock
+			{
+				format = new FourCC(1112101920),
+				byteOffset = 0u,
+				bitOffset = 127u,
+				sizeInBits = 1u
+			})
+			.WithMinAndMax(0, 1)
+			.Finish();
+		keyControl.keyCode = Key.IMESelected;
+		return keyControl;
 	}
 }

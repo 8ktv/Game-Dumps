@@ -7,8 +7,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeType("Runtime/Graphics/Mesh/SpriteRenderer.h")]
 [RequireComponent(typeof(Transform))]
+[NativeType("Runtime/Graphics/Mesh/SpriteRenderer.h")]
 public sealed class SpriteRenderer : Renderer
 {
 	private UnityEvent<SpriteRenderer> m_SpriteChangeEvent;

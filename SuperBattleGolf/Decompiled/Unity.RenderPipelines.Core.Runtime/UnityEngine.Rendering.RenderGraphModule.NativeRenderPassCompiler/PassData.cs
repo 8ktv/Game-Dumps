@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace UnityEngine.Rendering.RenderGraphModule.NativeRenderPassCompiler;
@@ -10,6 +11,8 @@ internal struct PassData
 	public RenderGraphPassType type;
 
 	public bool hasFoveatedRasterization;
+
+	public ExtendedFeatureFlags extendedFeatureFlags;
 
 	public int tag;
 
@@ -41,6 +44,10 @@ internal struct PassData
 
 	public int numFragmentInputs;
 
+	public int firstSampledOnlyRaster;
+
+	public int numSampledOnlyRaster;
+
 	public int firstRandomAccessResource;
 
 	public int numRandomAccessResources;
@@ -64,6 +71,8 @@ internal struct PassData
 	public int fragmentInfoSamples;
 
 	public int waitOnGraphicsFencePassId;
+
+	public int awaitingMyGraphicsFencePassId;
 
 	public bool asyncCompute;
 
@@ -96,6 +105,7 @@ internal struct PassData
 		asyncCompute = pass.enableAsyncCompute;
 		hasSideEffects = !pass.allowPassCulling;
 		hasFoveatedRasterization = pass.enableFoveatedRasterization;
+		extendedFeatureFlags = pass.extendedFeatureFlags;
 		mergeState = PassMergeState.None;
 		nativePassIndex = -1;
 		nativeSubPassIndex = -1;
@@ -108,6 +118,8 @@ internal struct PassData
 		numOutputs = 0;
 		firstFragment = 0;
 		numFragments = 0;
+		firstSampledOnlyRaster = 0;
+		numSampledOnlyRaster = 0;
 		firstRandomAccessResource = 0;
 		numRandomAccessResources = 0;
 		firstFragmentInput = 0;
@@ -124,6 +136,7 @@ internal struct PassData
 		fragmentInfoHasDepth = false;
 		insertGraphicsFence = false;
 		waitOnGraphicsFencePassId = -1;
+		awaitingMyGraphicsFencePassId = -1;
 		hasShadingRateStates = pass.hasShadingRateStates;
 		shadingRateFragmentSize = pass.shadingRateFragmentSize;
 		primitiveShadingRateCombiner = pass.primitiveShadingRateCombiner;
@@ -138,6 +151,7 @@ internal struct PassData
 		asyncCompute = pass.enableAsyncCompute;
 		hasSideEffects = !pass.allowPassCulling;
 		hasFoveatedRasterization = pass.enableFoveatedRasterization;
+		extendedFeatureFlags = pass.extendedFeatureFlags;
 		mergeState = PassMergeState.None;
 		nativePassIndex = -1;
 		nativeSubPassIndex = -1;
@@ -152,6 +166,8 @@ internal struct PassData
 		numFragments = 0;
 		firstFragmentInput = 0;
 		numFragmentInputs = 0;
+		firstSampledOnlyRaster = 0;
+		numSampledOnlyRaster = 0;
 		firstRandomAccessResource = 0;
 		numRandomAccessResources = 0;
 		firstCreate = 0;
@@ -166,6 +182,7 @@ internal struct PassData
 		fragmentInfoHasDepth = false;
 		insertGraphicsFence = false;
 		waitOnGraphicsFencePassId = -1;
+		awaitingMyGraphicsFencePassId = -1;
 		hasShadingRateStates = pass.hasShadingRateStates;
 		shadingRateFragmentSize = pass.shadingRateFragmentSize;
 		primitiveShadingRateCombiner = pass.primitiveShadingRateCombiner;
@@ -189,6 +206,12 @@ internal struct PassData
 	public readonly ReadOnlySpan<PassFragmentData> Fragments(CompilerContextData ctx)
 	{
 		return NativeListExtensions.MakeReadOnlySpan(ref ctx.fragmentData, firstFragment, numFragments);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public readonly ReadOnlySpan<ResourceHandle> SampledTexturesIfRaster(CompilerContextData ctx)
+	{
+		return NativeListExtensions.MakeReadOnlySpan(ref ctx.sampledData, firstSampledOnlyRaster, numSampledOnlyRaster);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -220,10 +243,11 @@ internal struct PassData
 		return NativeListExtensions.MakeReadOnlySpan(ref ctx.destroyData, firstDestroy, numDestroyed);
 	}
 
-	private void SetupAndValidateFragmentInfo(ResourceHandle h, CompilerContextData ctx)
+	private bool TrySetupAndValidateFragmentInfo(in ResourceHandle h, CompilerContextData ctx, out string errorMessage)
 	{
-		ref ResourceUnversionedData reference = ref ctx.UnversionedResourceData(h);
-		if (!fragmentInfoValid)
+		errorMessage = null;
+		ref ResourceUnversionedData reference = ref ctx.UnversionedResourceData(in h);
+		if (!RenderGraph.enableValidityChecks || !fragmentInfoValid)
 		{
 			fragmentInfoWidth = reference.width;
 			fragmentInfoHeight = reference.height;
@@ -231,20 +255,25 @@ internal struct PassData
 			fragmentInfoVolumeDepth = reference.volumeDepth;
 			fragmentInfoValid = true;
 		}
+		return true;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	internal void AddFragment(ResourceHandle h, CompilerContextData ctx)
+	internal void TryAddFragment(in ResourceHandle h, CompilerContextData ctx, out string errorMessage)
 	{
-		SetupAndValidateFragmentInfo(h, ctx);
-		numFragments++;
+		if (TrySetupAndValidateFragmentInfo(in h, ctx, out errorMessage))
+		{
+			numFragments++;
+		}
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	internal void AddFragmentInput(ResourceHandle h, CompilerContextData ctx)
+	internal void TryAddFragmentInput(in ResourceHandle h, CompilerContextData ctx, out string errorMessage)
 	{
-		SetupAndValidateFragmentInfo(h, ctx);
-		numFragmentInputs++;
+		if (TrySetupAndValidateFragmentInfo(in h, ctx, out errorMessage))
+		{
+			numFragmentInputs++;
+		}
 	}
 
 	internal void AddRandomAccessResource()
@@ -253,7 +282,7 @@ internal struct PassData
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	internal void AddFirstUse(ResourceHandle h, CompilerContextData ctx)
+	internal void AddFirstUse(in ResourceHandle h, CompilerContextData ctx)
 	{
 		ReadOnlySpan<ResourceHandle> readOnlySpan = FirstUsedResources(ctx);
 		for (int i = 0; i < readOnlySpan.Length; i++)
@@ -274,7 +303,7 @@ internal struct PassData
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	internal void AddLastUse(ResourceHandle h, CompilerContextData ctx)
+	internal void AddLastUse(in ResourceHandle h, CompilerContextData ctx)
 	{
 		ReadOnlySpan<ResourceHandle> readOnlySpan = LastUsedResources(ctx);
 		for (int i = 0; i < readOnlySpan.Length; i++)
@@ -295,7 +324,7 @@ internal struct PassData
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	internal readonly bool IsUsedAsFragment(ResourceHandle h, CompilerContextData ctx)
+	internal readonly bool IsUsedAsFragment(in ResourceHandle h, CompilerContextData ctx)
 	{
 		if (h.type != RenderGraphResourceType.Texture)
 		{
@@ -322,5 +351,29 @@ internal struct PassData
 			}
 		}
 		return false;
+	}
+
+	internal void DisconnectFromResources(CompilerContextData ctx, Stack<ResourceHandle> unusedVersionedResourceIdCullingStack = null, int type = 0)
+	{
+		ReadOnlySpan<PassOutputData> readOnlySpan = Outputs(ctx);
+		for (int i = 0; i < readOnlySpan.Length; i++)
+		{
+			ref readonly ResourceHandle resource = ref readOnlySpan[i].resource;
+			if (resource.version == ctx.UnversionedResourceData(in resource).latestVersionNumber)
+			{
+				ctx.UnversionedResourceData(in resource).latestVersionNumber--;
+			}
+		}
+		ReadOnlySpan<PassInputData> readOnlySpan2 = Inputs(ctx);
+		for (int i = 0; i < readOnlySpan2.Length; i++)
+		{
+			ref readonly ResourceHandle resource2 = ref readOnlySpan2[i].resource;
+			ref ResourceVersionedData reference = ref ctx.resources[resource2];
+			reference.RemoveReadingPass(ctx, in resource2, passId);
+			if (unusedVersionedResourceIdCullingStack != null && resource2.iType == type && reference.written && reference.numReaders == 0)
+			{
+				unusedVersionedResourceIdCullingStack.Push(resource2);
+			}
+		}
 	}
 }

@@ -13,6 +13,310 @@ namespace UnityEngine.Rendering.RenderGraphModule;
 [MovedFrom(true, "UnityEngine.Experimental.Rendering.RenderGraphModule", "UnityEngine.Rendering.RenderGraphModule", null)]
 public class RenderGraph
 {
+	internal class DebugExecutionItem
+	{
+		public EntityId id { get; }
+
+		public string name { get; }
+
+		public DebugExecutionItem(EntityId id, string name)
+		{
+			this.id = id;
+			this.name = name;
+		}
+	}
+
+	[Serializable]
+	internal class DebugData
+	{
+		[Serializable]
+		public class ResourceLists<T>
+		{
+			[SerializeField]
+			private List<T> m_Textures = new List<T>();
+
+			[SerializeField]
+			private List<T> m_Buffers = new List<T>();
+
+			[SerializeField]
+			private List<T> m_AccelerationStructures = new List<T>();
+
+			public List<T> this[int index]
+			{
+				get
+				{
+					return index switch
+					{
+						0 => m_Textures, 
+						1 => m_Buffers, 
+						2 => m_AccelerationStructures, 
+						_ => throw new ArgumentOutOfRangeException("index"), 
+					};
+				}
+				set
+				{
+					switch (index)
+					{
+					case 0:
+						m_Textures = value ?? new List<T>();
+						break;
+					case 1:
+						m_Buffers = value ?? new List<T>();
+						break;
+					case 2:
+						m_AccelerationStructures = value ?? new List<T>();
+						break;
+					default:
+						throw new ArgumentOutOfRangeException("index");
+					}
+				}
+			}
+
+			public void Clear()
+			{
+				for (int i = 0; i < 3; i++)
+				{
+					if (this[i] == null)
+					{
+						this[i] = new List<T>();
+					}
+					else
+					{
+						this[i].Clear();
+					}
+				}
+			}
+		}
+
+		[Serializable]
+		public class ResourceDataLists : ResourceLists<ResourceData>
+		{
+		}
+
+		[Serializable]
+		public class SerializableNativePassAttachment
+		{
+			public RenderBufferLoadAction loadAction;
+
+			public RenderBufferStoreAction storeAction;
+
+			public bool memoryless;
+
+			public int mipLevel;
+
+			public int depthSlice;
+
+			public SerializableNativePassAttachment(NativePassAttachment att)
+			{
+				loadAction = att.loadAction;
+				storeAction = att.storeAction;
+				memoryless = att.memoryless;
+				mipLevel = att.mipLevel;
+				depthSlice = att.depthSlice;
+			}
+		}
+
+		[Serializable]
+		[DebuggerDisplay("PassDebug: {name}")]
+		public struct PassData
+		{
+			[Serializable]
+			public class ResourceIdLists : ResourceLists<int>
+			{
+			}
+
+			[Serializable]
+			public class NRPInfo
+			{
+				[Serializable]
+				public class NativeRenderPassInfo
+				{
+					[Serializable]
+					public class AttachmentInfo
+					{
+						public string resourceName;
+
+						public string loadReason;
+
+						public string storeReason;
+
+						public string storeMsaaReason;
+
+						public int attachmentIndex;
+
+						public SerializableNativePassAttachment attachment;
+					}
+
+					[Serializable]
+					public struct PassCompatibilityInfo
+					{
+						public string message;
+
+						public bool isCompatible;
+					}
+
+					public string passBreakReasoning;
+
+					public List<AttachmentInfo> attachmentInfos;
+
+					public SerializedDictionary<int, PassCompatibilityInfo> passCompatibility;
+
+					public List<int> mergedPassIds;
+				}
+
+				[SerializeReference]
+				public NativeRenderPassInfo nativePassInfo;
+
+				public List<int> textureFBFetchList = new List<int>();
+
+				public List<int> setGlobals = new List<int>();
+
+				public int width;
+
+				public int height;
+
+				public int volumeDepth;
+
+				public int samples;
+
+				public bool hasDepth;
+			}
+
+			public string name;
+
+			public RenderGraphPassType type;
+
+			public ResourceIdLists resourceReadLists;
+
+			public ResourceIdLists resourceWriteLists;
+
+			public bool culled;
+
+			public bool async;
+
+			public int nativeSubPassIndex;
+
+			public int syncToPassIndex;
+
+			public int syncFromPassIndex;
+
+			public bool generateDebugData;
+
+			[SerializeReference]
+			public NRPInfo nrpInfo;
+
+			public PassScriptInfo scriptInfo;
+		}
+
+		[Serializable]
+		public class BufferResourceData
+		{
+			public int count;
+
+			public int stride;
+
+			public GraphicsBuffer.Target target;
+
+			public GraphicsBuffer.UsageFlags usage;
+		}
+
+		[Serializable]
+		public class TextureResourceData
+		{
+			public int width;
+
+			public int height;
+
+			public int depth;
+
+			public bool bindMS;
+
+			public int samples;
+
+			public GraphicsFormat format;
+
+			public bool clearBuffer;
+		}
+
+		[Serializable]
+		[DebuggerDisplay("ResourceDebug: {name} [{creationPassIndex}:{releasePassIndex}]")]
+		public struct ResourceData
+		{
+			public string name;
+
+			public bool imported;
+
+			public int creationPassIndex;
+
+			public int releasePassIndex;
+
+			public List<int> consumerList;
+
+			public List<int> producerList;
+
+			public bool memoryless;
+
+			[SerializeReference]
+			public TextureResourceData textureData;
+
+			[SerializeReference]
+			public BufferResourceData bufferData;
+		}
+
+		[Serializable]
+		public struct PassScriptInfo
+		{
+			public string filePath;
+
+			public int line;
+		}
+
+		public string executionName;
+
+		public bool valid;
+
+		public int graphHash;
+
+		public bool isNRPCompiler;
+
+		public List<PassData> passList = new List<PassData>();
+
+		public ResourceDataLists resourceLists = new ResourceDataLists();
+
+		public DebugData(string executionName)
+		{
+			this.executionName = executionName;
+		}
+
+		public void Clear()
+		{
+			passList.Clear();
+			resourceLists.Clear();
+			valid = false;
+		}
+	}
+
+	internal static class DebugDataSerialization
+	{
+		public static string ToJson(DebugData debugData)
+		{
+			if (debugData == null)
+			{
+				return string.Empty;
+			}
+			return JsonUtility.ToJson(debugData, prettyPrint: false);
+		}
+
+		public static DebugData FromJson(string json)
+		{
+			if (string.IsNullOrEmpty(json))
+			{
+				return null;
+			}
+			return JsonUtility.FromJson<DebugData>(json);
+		}
+	}
+
 	internal struct CompiledResourceInfo
 	{
 		public List<int> producers;
@@ -73,6 +377,8 @@ public class RenderGraph
 
 		public bool enableFoveatedRasterization;
 
+		public ExtendedFeatureFlags extendedFeatureFlags;
+
 		public bool hasShadingRateImage;
 
 		public bool hasShadingRateStates;
@@ -84,6 +390,7 @@ public class RenderGraph
 			enableAsyncCompute = pass.enableAsyncCompute;
 			allowPassCulling = pass.allowPassCulling;
 			enableFoveatedRasterization = pass.enableFoveatedRasterization;
+			extendedFeatureFlags = ExtendedFeatureFlags.None;
 			hasShadingRateImage = pass.hasShadingRateImage && !pass.enableFoveatedRasterization;
 			hasShadingRateStates = pass.hasShadingRateStates && !pass.enableFoveatedRasterization;
 			if (resourceCreateList == null)
@@ -168,174 +475,9 @@ public class RenderGraph
 		public ProfilingSampler sampler;
 	}
 
-	internal delegate void OnGraphRegisteredDelegate(RenderGraph graph);
+	internal delegate void OnGraphRegisteredDelegate(string graphName);
 
-	internal delegate void OnExecutionRegisteredDelegate(RenderGraph graph, string executionName);
-
-	internal class DebugData
-	{
-		[DebuggerDisplay("PassDebug: {name}")]
-		public struct PassData
-		{
-			public class NRPInfo
-			{
-				public class NativeRenderPassInfo
-				{
-					public class AttachmentInfo
-					{
-						public string resourceName;
-
-						public string loadReason;
-
-						public string storeReason;
-
-						public string storeMsaaReason;
-
-						public int attachmentIndex;
-
-						public NativePassAttachment attachment;
-					}
-
-					public struct PassCompatibilityInfo
-					{
-						public string message;
-
-						public bool isCompatible;
-					}
-
-					public string passBreakReasoning;
-
-					public List<AttachmentInfo> attachmentInfos;
-
-					public Dictionary<int, PassCompatibilityInfo> passCompatibility;
-
-					public List<int> mergedPassIds;
-				}
-
-				public NativeRenderPassInfo nativePassInfo;
-
-				public List<int> textureFBFetchList = new List<int>();
-
-				public List<int> setGlobals = new List<int>();
-
-				public int width;
-
-				public int height;
-
-				public int volumeDepth;
-
-				public int samples;
-
-				public bool hasDepth;
-			}
-
-			public string name;
-
-			public RenderGraphPassType type;
-
-			public List<int>[] resourceReadLists;
-
-			public List<int>[] resourceWriteLists;
-
-			public bool culled;
-
-			public bool async;
-
-			public int nativeSubPassIndex;
-
-			public int syncToPassIndex;
-
-			public int syncFromPassIndex;
-
-			public bool generateDebugData;
-
-			public NRPInfo nrpInfo;
-
-			public PassScriptInfo scriptInfo;
-		}
-
-		public class BufferResourceData
-		{
-			public int count;
-
-			public int stride;
-
-			public GraphicsBuffer.Target target;
-
-			public GraphicsBuffer.UsageFlags usage;
-		}
-
-		public class TextureResourceData
-		{
-			public int width;
-
-			public int height;
-
-			public int depth;
-
-			public bool bindMS;
-
-			public int samples;
-
-			public GraphicsFormat format;
-
-			public bool clearBuffer;
-		}
-
-		[DebuggerDisplay("ResourceDebug: {name} [{creationPassIndex}:{releasePassIndex}]")]
-		public struct ResourceData
-		{
-			public string name;
-
-			public bool imported;
-
-			public int creationPassIndex;
-
-			public int releasePassIndex;
-
-			public List<int> consumerList;
-
-			public List<int> producerList;
-
-			public bool memoryless;
-
-			public TextureResourceData textureData;
-
-			public BufferResourceData bufferData;
-		}
-
-		public class PassScriptInfo
-		{
-			public string filePath;
-
-			public int line;
-		}
-
-		public readonly List<PassData> passList = new List<PassData>();
-
-		public readonly List<ResourceData>[] resourceLists = new List<ResourceData>[3];
-
-		public bool isNRPCompiler;
-
-		internal static readonly Dictionary<object, PassScriptInfo> s_PassScriptMetadata = new Dictionary<object, PassScriptInfo>();
-
-		public DebugData()
-		{
-			for (int i = 0; i < 3; i++)
-			{
-				resourceLists[i] = new List<ResourceData>();
-			}
-		}
-
-		public void Clear()
-		{
-			passList.Clear();
-			for (int i = 0; i < 3; i++)
-			{
-				resourceLists[i].Clear();
-			}
-		}
-	}
+	internal delegate void OnExecutionRegisteredDelegate(string graphName, EntityId executionId, string executionName);
 
 	internal static class RenderGraphExceptionMessages
 	{
@@ -347,27 +489,146 @@ public class RenderGraph
 		{
 			{
 				RenderGraphState.RecordingPass,
-				"This API cannot be called when Render Graph records a pass, please call it within SetRenderFunc() or outside of AddUnsafePass()/AddComputePass()/AddRasterRenderPass()."
+				"This API cannot be called when Render Graph records a pass. Call the API within SetRenderFunc() or outside of AddUnsafePass()/AddComputePass()/AddRasterRenderPass()."
 			},
 			{
 				RenderGraphState.RecordingGraph,
-				"This API cannot be called during the Render Graph high-level recording step, please call it within AddUnsafePass()/AddComputePass()/AddRasterRenderPass() or outside of RecordRenderGraph()."
+				"This API cannot be called during the Render Graph high-level recording step. Call the API within AddUnsafePass()/AddComputePass()/AddRasterRenderPass() or outside of RecordRenderGraph()."
 			},
 			{
 				RenderGraphState.RecordingPass | RenderGraphState.Executing,
-				"This API cannot be called when Render Graph records a pass or executes it, please call it outside of AddUnsafePass()/AddComputePass()/AddRasterRenderPass()."
+				"This API cannot be called when Render Graph records a pass or executes it. Call the API outside of AddUnsafePass()/AddComputePass()/AddRasterRenderPass()."
 			},
 			{
 				RenderGraphState.Executing,
-				"This API cannot be called during the Render Graph execution, please call it outside of SetRenderFunc()."
+				"This API cannot be called during the Render Graph execution. Call the API outside of SetRenderFunc()."
 			},
 			{
 				RenderGraphState.Active,
-				"This API cannot be called when Render Graph is active, please call it outside of RecordRenderGraph()."
+				"This API cannot be called when Render Graph is active. Call the API outside of RecordRenderGraph()."
 			}
 		};
 
 		private const string k_ErrorDefaultMessage = "Invalid render graph state, impossible to log the exception.";
+
+		internal const string k_NonTextureAsAttachmentError = "Only textures can be used as a fragment attachment.";
+
+		internal const string k_OneResourceTwoVersionsError = "A pass is using SetAttachment or UseTexture on two versions of the same resource. Make sure you only access the latest version.";
+
+		internal const string k_UseTextureRandWriteTwoVersionsError = "A pass is using UseTextureRandomWrite on two versions of the same resource.  Make sure you only access the latest version.";
+
+		internal const string k_InvalidGetRenderTargetInfoResultsError = "GetRenderTargetInfo returned invalid results. Check that the width, height, and number of MSAA samples is not 0.";
+
+		internal const string k_CannotDetermineSubPassFlagNoDepth = "SubPassFlag for merging cannot be determined if native pass doesn't have a depth attachment. Make sure your pass has a depth attachment.";
+
+		internal const string k_AddingOlderAttachmentVersion = "The pass adds an older version while a higher version is already registered with the pass. Make sure you only access the latest version.";
+
+		internal const string k_NonIncrementalCreationCall = "Something went wrong when compiling the graph. The Creation lists must be set-up incrementally for all passes, but AddFirstUse is called in an arbitrary non-incremental way.";
+
+		internal const string k_NonIncrementalDestructionCall = "Something went wrong when compiling the graph. The Destruction lists must be set-up incrementally for all passes, AddLastUse is called in an arbitrary non-incremental way.";
+
+		internal const string k_UndisposedBuilderPreviousPass = "Finish building the previous pass first by disposing of the pass builder object before adding a new pass. You can manually dispose of the builder with 'builder.Dispose()'.";
+
+		internal const string k_WriteToVersionedResource = "The pass writes to a versioned resource handle. You can only write to unversioned resource handles to avoid branches in the resource history.";
+
+		internal const string k_WriteToResourceTwice = "The pass writes to a resource twice. You can only write the same resource once within a pass.";
+
+		internal const string k_TextureAlreadyBeingUsedThroughSetAttachment = "UseTexture is called on a texture that is already used through SetRenderAttachment. Check your code and make sure the texture is only used once.";
+
+		internal const string k_SetRenderAttachmentTextureAlreadyUsed = "SetRenderAttachment is called on a texture that is already used through UseTexture/SetRenderAttachment. Check your code and make sure the texture is only used once.";
+
+		internal const string k_SetRenderAttachmentOnDepthTexture = "SetRenderAttachment is called on a texture that has a depth format. Use a texture with a color format instead, or call SetRenderDepthAttachment.";
+
+		internal const string k_SetRenderAttachmentOnGlobalTexture = "SetRenderAttachment is called on a texture that is currently bound to a global texture slot. Shaders might be using the texture using samplers. Make sure textures are not set as globals when using them as fragment attachments.";
+
+		internal const string k_InvalidResource = "Using an invalid resource. Invalid resources can be resources leftover from a previous execution.";
+
+		internal const string k_ReadWriteTransient = "This pass is reading or writing a transient resource. Transient resources are always assumed to be both read and written using 'AccessFlags.ReadWrite'.";
+
+		internal const string k_MoreThanOneResourceForMRTIndex = "You can only bind a single texture to a single index in a multiple render texture (MRT). Verify your indexes are correct.";
+
+		internal const string k_MoreThanOneTextureForFragInputIndex = "You can only bind a single texture to a fragment input index. Verify your indexes are correct.";
+
+		internal const string k_MoreThanOneTextureRandomWriteInputIndex = "You can only bind a single texture to a random write input index. Verify your indexes are correct.";
+
+		internal const string k_MultipleDepthTextures = "You can only set a single depth texture per pass.";
+
+		internal const string k_LoadingMemorylessResource = "This pass is loading a resource marked as memoryless.";
+
+		internal const string k_ResolvignMemorylessResource = "This pass is storing or resolving a resource marked as memoryless";
+
+		internal const string k_RenderPassIsEmpty = "Empty render pass";
+
+		internal const string k_RenderPassHasInvalidProperties = "Invalid render pass properties. One or more properties are zero.";
+
+		internal const string k_ShadingRateImageAttachmentDoesNotMatch = "Low level rendergraph error: Shading rate image attachment in renderpass does not match.";
+
+		internal const string k_AttachmentsDoNotMatch = "Low level rendergraph error: Attachments in renderpass do not match.";
+
+		internal const string k_MultisampledShaderResolveInvalidAttachmentSetup = "Low level rendergraph error: last subpass with shader resolve must have one color attachment.";
+
+		internal const string k_MultisampledShaderResolveInputAttachmentNotMemoryless = "Low level rendergraph error: last subpass with shader resolve must have all input attachments as memoryless attachments.";
+
+		internal const string k_InvalidMRTSetup = "Multiple render texture (MRT) setup is invalid. Some indices are not used.";
+
+		internal const string k_NoDepthBufferMRT = "Setting multiple render textures (MRTs) without a depth buffer is not supported.";
+
+		internal const string k_InvalidDepthAndColorTargets = "Neither depth nor color render targets are correctly set up.";
+
+		internal const string k_InvalidResourceType = "Invalid resource type, expected texture or buffer";
+
+		internal const string k_NoRenderFunction = "RenderPass was not provided with an execute function.";
+
+		internal const string k_BeginNoActivePass = "Compiler error: Pass is marked as beginning a native sub pass but no pass is currently active.";
+
+		internal const string k_NoActivePassForSubpass = "Compiler error: Generated a subpass pass but no pass is currently active.";
+
+		internal static string MismatchInDimensions(string name, int fragWidth, int fragHeight, int fragVolumeDepth, ResourceUnversionedData resInfo)
+		{
+			return $"Mismatch in fragment dimensions when using resource '{name}'. Expected {fragWidth} x {fragHeight} x {fragVolumeDepth} " + $"but got {resInfo.width} x {resInfo.height} x {resInfo.volumeDepth} instead.";
+		}
+
+		internal static string MismatchInMSAASamlpes(string name, int expectedSamples, int actualSamples)
+		{
+			string text = ((expectedSamples == 1) ? "None" : expectedSamples.ToString());
+			string text2 = ((actualSamples == 1) ? "None" : actualSamples.ToString());
+			return "Mismatch in number of MSAA samples when using resource '" + name + "'. Expected " + text + " but got " + text2 + " instead.";
+		}
+
+		internal static string NoGlobalTextureAtPropertyID(int propertyId)
+		{
+			return $"This pass is trying to read the global texture property {propertyId} but no previous pass in the graph bound a value to this global.";
+		}
+
+		internal static string UseDepthWithColorFormat(GraphicsFormat colorFormat)
+		{
+			return $"SetRenderAttachmentDepth is called on a texture that has a color format {colorFormat}. Use a texture with a depth format instead, or call SetRenderAttachment.";
+		}
+
+		internal static string UseTransientTextureInWrongPass(int transientIndex)
+		{
+			return $"This pass is using a transient resource from a different pass (pass index {transientIndex}). A transient resource should only be used in a single pass.";
+		}
+
+		internal static string IncompatibleTextureUVOrigin(TextureUVOriginSelection origin, string attachmentType, string attachmentName, RenderGraphResourceType attachmentResourceType, int attachmentResourceIndex, TextureUVOriginSelection attachmentOrigin)
+		{
+			return $"TextureUVOrigin `{origin}` is not compatible with existing {attachmentType} attachment `{attachmentType}` of type `{attachmentResourceType}` at index `{attachmentResourceIndex}` with TextureUVOrigin `{attachmentOrigin}`";
+		}
+
+		internal static string IncompatibleTextureUVOriginUseTexture(TextureUVOriginSelection origin)
+		{
+			return $"UseTexture() of a resource with `{origin}` is not compatible with Unity's standard UV origin for texture reading {TextureUVOrigin.BottomLeft}. Are you trying to UseTexture() on a backbuffer?";
+		}
+
+		internal static string UsingLegacyRenderGraph(string passName)
+		{
+			return "Pass '" + passName + "' is using the legacy rendergraph API. You cannot use legacy passes with the Native Render Pass Compiler. The APIs that are compatible with the Native Render Pass Compiler are AddUnsafePass, AddComputePass and AddRasterRenderPass.";
+		}
+
+		internal static string IncompatibleTextureUVOriginStore(string firstAttachmentName, TextureUVOriginSelection firstAttachmentOrigin, string secondAttachmentName, TextureUVOriginSelection secondAttachmentOrigin)
+		{
+			return $"Texture attachment {firstAttachmentName} with uv origin {firstAttachmentOrigin} does not match with texture attachment {secondAttachmentName} with uv origin {secondAttachmentOrigin}. Storing both would result in contents being flipped.";
+		}
 
 		internal static string GetExceptionMessage(RenderGraphState state)
 		{
@@ -432,7 +693,9 @@ public class RenderGraph
 
 	private Stack<int> m_CullingStack = new Stack<int>();
 
-	private string m_CurrentExecutionName;
+	private EntityId m_CurrentExecutionId;
+
+	private bool m_CurrentExecutionCanGenerateDebugData;
 
 	private int m_ExecutionCount;
 
@@ -446,35 +709,36 @@ public class RenderGraph
 
 	private bool m_EnableCompilationCaching;
 
+	internal static bool? s_EnableCompilationCachingForTests;
+
 	private CompiledGraph m_DefaultCompiledGraph = new CompiledGraph();
 
 	private CompiledGraph m_CurrentCompiledGraph;
 
-	private string m_CaptureDebugDataForExecution;
-
 	private RenderGraphState m_RenderGraphState;
 
-	private Dictionary<string, DebugData> m_DebugData = new Dictionary<string, DebugData>();
+	private RenderTextureUVOriginStrategy m_renderTextureUVOriginStrategy;
 
-	private static List<RenderGraph> s_RegisteredGraphs = new List<RenderGraph>();
+	private static Dictionary<RenderGraph, List<DebugExecutionItem>> s_RegisteredExecutions = new Dictionary<RenderGraph, List<DebugExecutionItem>>();
 
 	private const string k_BeginProfilingSamplerPassName = "BeginProfile";
 
 	private const string k_EndProfilingSamplerPassName = "EndProfile";
 
+	private static bool s_DebugSessionWasActive;
+
 	private Dictionary<int, TextureHandle> registeredGlobals = new Dictionary<int, TextureHandle>();
 
-	private readonly string[] k_PassNameDebugIgnoreList = new string[2] { "BeginProfile", "EndProfile" };
-
-	public bool nativeRenderPassesEnabled { get; set; }
+	public bool nativeRenderPassesEnabled { get; set; } = true;
 
 	internal static bool hasAnyRenderGraphWithNativeRenderPassesEnabled
 	{
 		get
 		{
-			foreach (RenderGraph s_RegisteredGraph in s_RegisteredGraphs)
+			foreach (KeyValuePair<RenderGraph, List<DebugExecutionItem>> s_RegisteredExecution in s_RegisteredExecutions)
 			{
-				if (s_RegisteredGraph.nativeRenderPassesEnabled)
+				s_RegisteredExecution.Deconstruct(out var key, out var _);
+				if (key.nativeRenderPassesEnabled)
 				{
 					return true;
 				}
@@ -497,7 +761,19 @@ public class RenderGraph
 		}
 	}
 
-	public static bool isRenderGraphViewerActive { get; internal set; }
+	public RenderTextureUVOriginStrategy renderTextureUVOriginStrategy
+	{
+		get
+		{
+			return m_renderTextureUVOriginStrategy;
+		}
+		internal set
+		{
+			m_renderTextureUVOriginStrategy = value;
+		}
+	}
+
+	public static bool isRenderGraphViewerActive => RenderGraphDebugSession.hasActiveDebugSession;
 
 	internal static bool enableValidityChecks { get; private set; }
 
@@ -513,9 +789,11 @@ public class RenderGraph
 
 	internal static event OnExecutionRegisteredDelegate onExecutionRegistered;
 
-	internal static event OnExecutionRegisteredDelegate onExecutionUnregistered;
-
-	internal static event Action onDebugDataCaptured;
+	[Conditional("UNITY_EDITOR")]
+	[Conditional("DEVELOPMENT_BUILD")]
+	private void AddPassDebugMetadata(RenderGraphPass renderPass, string file, int line)
+	{
+	}
 
 	internal NativePassCompiler CompileNativeRenderGraph(int graphHash)
 	{
@@ -525,18 +803,17 @@ public class RenderGraph
 			{
 				nativeCompiler = new NativePassCompiler(m_CompilationCache);
 			}
-			if (!nativeCompiler.Initialize(m_Resources, m_RenderPasses, m_DebugParameters, name, m_EnableCompilationCaching, graphHash, m_ExecutionCount))
+			if (!nativeCompiler.Initialize(m_Resources, m_RenderPasses, m_DebugParameters, name, m_EnableCompilationCaching, graphHash, m_ExecutionCount, m_renderTextureUVOriginStrategy))
 			{
 				nativeCompiler.Compile(m_Resources);
 			}
-			NativeList<PassData> passData = nativeCompiler.contextData.passData;
+			ref NativeList<PassData> passData = ref nativeCompiler.contextData.passData;
 			int length = passData.Length;
 			for (int i = 0; i < length; i++)
 			{
 				if (!passData.ElementAt(i).culled)
 				{
-					RenderGraphPass renderGraphPass = m_RenderPasses[i];
-					m_RendererLists.AddRange(renderGraphPass.usedRendererListList);
+					m_RendererLists.AddRange(m_RenderPasses[i].usedRendererListList);
 				}
 			}
 			m_Resources.CreateRendererLists(m_RendererLists, m_RenderGraphContext.renderContext, m_RendererListCulling);
@@ -549,17 +826,7 @@ public class RenderGraph
 		using (new ProfilingScope(m_RenderGraphContext.cmd, ProfilingSampler.Get(RenderGraphProfileId.ExecuteRenderGraph)))
 		{
 			nativeCompiler.ExecuteGraph(m_RenderGraphContext, m_Resources, in m_RenderPasses);
-			if (!m_RenderGraphContext.contextlessTesting)
-			{
-				m_RenderGraphContext.renderContext.ExecuteCommandBuffer(m_RenderGraphContext.cmd);
-			}
-			m_RenderGraphContext.cmd.Clear();
 		}
-	}
-
-	internal void RequestCaptureDebugData(string executionName)
-	{
-		m_CaptureDebugDataForExecution = executionName;
 	}
 
 	public RenderGraph(string name = "RenderGraph")
@@ -568,15 +835,19 @@ public class RenderGraph
 		if (GraphicsSettings.TryGetRenderPipelineSettings<RenderGraphGlobalSettings>(out var settings))
 		{
 			m_EnableCompilationCaching = settings.enableCompilationCaching;
-			if (m_EnableCompilationCaching)
-			{
-				m_CompilationCache = new RenderGraphCompilationCache();
-			}
 			enableValidityChecks = settings.enableValidityChecks;
 		}
 		else
 		{
 			enableValidityChecks = true;
+		}
+		if (s_EnableCompilationCachingForTests.HasValue)
+		{
+			m_EnableCompilationCaching = s_EnableCompilationCachingForTests.Value;
+		}
+		if (m_EnableCompilationCaching)
+		{
+			m_CompilationCache = new RenderGraphCompilationCache();
 		}
 		m_TempMRTArrays = new RenderTargetIdentifier[kMaxMRTCount][];
 		for (int i = 0; i < kMaxMRTCount; i++)
@@ -584,28 +855,27 @@ public class RenderGraph
 			m_TempMRTArrays[i] = new RenderTargetIdentifier[i + 1];
 		}
 		m_Resources = new RenderGraphResourceRegistry(m_DebugParameters, m_FrameInformationLogger);
-		s_RegisteredGraphs.Add(this);
-		RenderGraph.onGraphRegistered?.Invoke(this);
+		RegisterGraph();
 		m_RenderGraphState = RenderGraphState.Idle;
 		RenderGraphExceptionMessages.enableCaller = true;
 	}
 
-	public void Cleanup()
-	{
-		ForceCleanup();
-	}
-
-	internal void ForceCleanup()
+	internal void CleanupResourcesAndGraph()
 	{
 		ClearCurrentCompiledGraph();
 		m_Resources.Cleanup();
 		m_DefaultResources.Cleanup();
 		m_RenderGraphPool.Cleanup();
-		s_RegisteredGraphs.Remove(this);
-		RenderGraph.onGraphUnregistered?.Invoke(this);
 		nativeCompiler?.Cleanup();
 		m_CompilationCache?.Clear();
 		DelegateHashCodeUtils.ClearCache();
+	}
+
+	public void Cleanup()
+	{
+		m_CompilationCache?.Cleanup();
+		CleanupResourcesAndGraph();
+		UnregisterGraph();
 	}
 
 	internal List<DebugUI.Widget> GetWidgetList()
@@ -625,16 +895,12 @@ public class RenderGraph
 
 	public static List<RenderGraph> GetRegisteredRenderGraphs()
 	{
-		return s_RegisteredGraphs;
+		return new List<RenderGraph>(s_RegisteredExecutions.Keys);
 	}
 
-	internal DebugData GetDebugData(string executionName)
+	internal static Dictionary<RenderGraph, List<DebugExecutionItem>> GetRegisteredExecutions()
 	{
-		if (m_DebugData.TryGetValue(executionName, out var value))
-		{
-			return value;
-		}
-		return null;
+		return s_RegisteredExecutions;
 	}
 
 	public void EndFrame()
@@ -698,16 +964,19 @@ public class RenderGraph
 		return m_Resources.CreateTexture(in desc);
 	}
 
+	[Obsolete("CreateSharedTexture() and shared texture workflow are deprecated, use ImportTexture() workflow instead.")]
 	public TextureHandle CreateSharedTexture(in TextureDesc desc, bool explicitRelease = false)
 	{
 		return m_Resources.CreateSharedTexture(in desc, explicitRelease);
 	}
 
+	[Obsolete("RefreshSharedTextureDesc() and shared texture workflow are deprecated, use ImportTexture() workflow instead.")]
 	public void RefreshSharedTextureDesc(TextureHandle handle, in TextureDesc desc)
 	{
 		m_Resources.RefreshSharedTextureDesc(in handle, in desc);
 	}
 
+	[Obsolete("ReleaseSharedTexture() and shared texture workflow are deprecated, use ImportTexture() workflow instead.")]
 	public void ReleaseSharedTexture(TextureHandle texture)
 	{
 		m_Resources.ReleaseSharedTexture(in texture);
@@ -715,7 +984,7 @@ public class RenderGraph
 
 	public TextureHandle CreateTexture(TextureHandle texture)
 	{
-		return m_Resources.CreateTexture(m_Resources.GetTextureResourceDesc(in texture.handle));
+		return m_Resources.CreateTexture(in m_Resources.GetTextureResourceDesc(in texture.handle));
 	}
 
 	public TextureHandle CreateTexture(TextureHandle texture, string name, bool clear = false)
@@ -795,9 +1064,15 @@ public class RenderGraph
 		return m_Resources.CreateSkyboxRendererList(m_RenderGraphContext.renderContext, in camera, projectionMatrixL, viewMatrixL, projectionMatrixR, viewMatrixR);
 	}
 
+	[Obsolete("ImportBuffer with forceRelease parameter is deprecated. Use ImportBuffer without it instead. #from(6000.3)")]
 	public BufferHandle ImportBuffer(GraphicsBuffer graphicsBuffer, bool forceRelease = false)
 	{
-		return m_Resources.ImportBuffer(graphicsBuffer, forceRelease);
+		return ImportBuffer(graphicsBuffer);
+	}
+
+	public BufferHandle ImportBuffer(GraphicsBuffer graphicsBuffer)
+	{
+		return m_Resources.ImportBuffer(graphicsBuffer);
 	}
 
 	public BufferHandle CreateBuffer(in BufferDesc desc)
@@ -807,7 +1082,7 @@ public class RenderGraph
 
 	public BufferHandle CreateBuffer(in BufferHandle graphicsBuffer)
 	{
-		return m_Resources.CreateBuffer(m_Resources.GetBufferResourceDesc(in graphicsBuffer.handle));
+		return m_Resources.CreateBuffer(in m_Resources.GetBufferResourceDesc(in graphicsBuffer.handle));
 	}
 
 	public BufferDesc GetBufferDesc(in BufferHandle graphicsBuffer)
@@ -872,9 +1147,29 @@ public class RenderGraph
 
 	[Conditional("DEVELOPMENT_BUILD")]
 	[Conditional("UNITY_EDITOR")]
+	private void CheckUsingNativeRenderPassCompiler()
+	{
+		if (enableValidityChecks && (!nativeRenderPassesEnabled || nativeCompiler == null))
+		{
+			throw new InvalidOperationException("Only compatible with the Native Render Pass Compiler.");
+		}
+	}
+
+	[Conditional("DEVELOPMENT_BUILD")]
+	[Conditional("UNITY_EDITOR")]
 	private void CheckNotUsedWhenActive()
 	{
 		if (enableValidityChecks && (m_RenderGraphState & RenderGraphState.Active) != RenderGraphState.Idle)
+		{
+			throw new InvalidOperationException(RenderGraphExceptionMessages.GetExceptionMessage(RenderGraphState.Active));
+		}
+	}
+
+	[Conditional("DEVELOPMENT_BUILD")]
+	[Conditional("UNITY_EDITOR")]
+	private void CheckNotUsedWhenIdle()
+	{
+		if (enableValidityChecks && m_RenderGraphState == RenderGraphState.Idle)
 		{
 			throw new InvalidOperationException(RenderGraphExceptionMessages.GetExceptionMessage(RenderGraphState.Active));
 		}
@@ -929,6 +1224,7 @@ public class RenderGraph
 		return m_builderInstance;
 	}
 
+	[Obsolete("AddRenderPass() is deprecated, use AddRasterRenderPass/AddComputePass/AddUnsafePass() instead.")]
 	public RenderGraphBuilder AddRenderPass<PassData>(string passName, out PassData passData, ProfilingSampler sampler, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0) where PassData : class, new()
 	{
 		m_RenderGraphState = RenderGraphState.RecordingPass;
@@ -940,6 +1236,7 @@ public class RenderGraph
 		return new RenderGraphBuilder(renderGraphPass, m_Resources, this);
 	}
 
+	[Obsolete("AddRenderPass() is deprecated, use AddRasterRenderPass/AddComputePass/AddUnsafePass() instead.")]
 	public RenderGraphBuilder AddRenderPass<PassData>(string passName, out PassData passData, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0) where PassData : class, new()
 	{
 		return AddRenderPass<PassData>(passName, out passData, GetDefaultProfilingSampler(passName), file, line);
@@ -950,12 +1247,14 @@ public class RenderGraph
 		m_ExecutionExceptionWasRaised = false;
 		m_RenderGraphState = RenderGraphState.RecordingGraph;
 		m_CurrentFrameIndex = parameters.currentFrameIndex;
-		m_CurrentExecutionName = ((parameters.executionName != null) ? parameters.executionName : "RenderGraphExecution");
+		m_CurrentExecutionId = parameters.executionId;
+		m_CurrentExecutionCanGenerateDebugData = parameters.generateDebugData && parameters.executionId != EntityId.None;
 		m_RendererListCulling = parameters.rendererListCulling && !m_EnableCompilationCaching;
+		m_renderTextureUVOriginStrategy = parameters.renderTextureUVOriginStrategy;
 		m_Resources.BeginRenderGraph(m_ExecutionCount++);
 		if (m_DebugParameters.enableLogging)
 		{
-			m_FrameInformationLogger.Initialize(m_CurrentExecutionName);
+			m_FrameInformationLogger.Initialize(GetExecutionNameAllocates(m_CurrentExecutionId));
 		}
 		m_DefaultResources.InitializeForRendering(this);
 		m_RenderGraphContext.cmd = parameters.commandBuffer;
@@ -963,6 +1262,7 @@ public class RenderGraph
 		m_RenderGraphContext.contextlessTesting = parameters.invalidContextForTesting;
 		m_RenderGraphContext.renderGraphPool = m_RenderGraphPool;
 		m_RenderGraphContext.defaultResources = m_DefaultResources;
+		m_RenderGraphContext.forceResourceCreation = false;
 		if (!m_DebugParameters.immediateMode)
 		{
 			return;
@@ -985,6 +1285,14 @@ public class RenderGraph
 	public void EndRecordingAndExecute()
 	{
 		Execute();
+		if (m_DebugParameters.immediateMode)
+		{
+			ReleaseImmediateModeResources();
+		}
+		ClearCompiledGraph(m_CurrentCompiledGraph, m_EnableCompilationCaching);
+		m_Resources.EndExecute();
+		InvalidateContext();
+		m_RenderGraphState = RenderGraphState.Idle;
 	}
 
 	public bool ResetGraphAndLogException(Exception e)
@@ -999,6 +1307,9 @@ public class RenderGraph
 			}
 			m_ExecutionExceptionWasRaised = true;
 		}
+		CommandBuffer.ThrowOnSetRenderTarget = false;
+		CleanupResourcesAndGraph();
+		m_RenderGraphContext.cmd.Clear();
 		return m_RenderGraphContext.contextlessTesting;
 	}
 
@@ -1006,53 +1317,33 @@ public class RenderGraph
 	{
 		m_ExecutionExceptionWasRaised = false;
 		m_RenderGraphState = RenderGraphState.Executing;
-		try
+		if (!m_DebugParameters.immediateMode)
 		{
-			if (!m_DebugParameters.immediateMode)
+			LogFrameInformation();
+			int graphHash = 0;
+			if (m_EnableCompilationCaching)
 			{
-				LogFrameInformation();
-				int graphHash = 0;
-				if (m_EnableCompilationCaching)
-				{
-					graphHash = ComputeGraphHash();
-				}
-				if (nativeRenderPassesEnabled)
-				{
-					CompileNativeRenderGraph(graphHash);
-				}
-				else
-				{
-					CompileRenderGraph(graphHash);
-				}
-				m_Resources.BeginExecute(m_CurrentFrameIndex);
-				if (nativeRenderPassesEnabled)
-				{
-					ExecuteNativeRenderGraph();
-				}
-				else
-				{
-					ExecuteRenderGraph();
-				}
-				ClearGlobalBindings();
+				graphHash = ComputeGraphHash();
 			}
-		}
-		catch (Exception e)
-		{
-			if (ResetGraphAndLogException(e))
+			if (nativeRenderPassesEnabled)
 			{
-				throw;
+				CompileNativeRenderGraph(graphHash);
 			}
-		}
-		finally
-		{
-			if (m_DebugParameters.immediateMode)
+			else
 			{
-				ReleaseImmediateModeResources();
+				CompileRenderGraph(graphHash);
 			}
-			ClearCompiledGraph(m_CurrentCompiledGraph, m_EnableCompilationCaching);
-			m_Resources.EndExecute();
-			InvalidateContext();
-			m_RenderGraphState = RenderGraphState.Idle;
+			m_RenderGraphContext.compilerContext = ((!nativeRenderPassesEnabled) ? null : nativeCompiler?.contextData);
+			m_Resources.BeginExecute(m_CurrentFrameIndex);
+			if (nativeRenderPassesEnabled)
+			{
+				ExecuteNativeRenderGraph();
+			}
+			else
+			{
+				ExecuteRenderGraph();
+			}
+			ClearGlobalBindings();
 		}
 	}
 
@@ -1063,13 +1354,13 @@ public class RenderGraph
 			return;
 		}
 		ProfilingScopePassData passData;
-		using RenderGraphBuilder renderGraphBuilder = AddRenderPass<ProfilingScopePassData>("BeginProfile", out passData, null, file, line);
+		using IUnsafeRenderGraphBuilder unsafeRenderGraphBuilder = AddUnsafePass<ProfilingScopePassData>("BeginProfile", out passData, null, file, line);
 		passData.sampler = sampler;
-		renderGraphBuilder.AllowPassCulling(value: false);
-		renderGraphBuilder.GenerateDebugData(value: false);
-		renderGraphBuilder.SetRenderFunc(delegate(ProfilingScopePassData data, RenderGraphContext ctx)
+		unsafeRenderGraphBuilder.AllowPassCulling(value: false);
+		unsafeRenderGraphBuilder.GenerateDebugData(value: false);
+		unsafeRenderGraphBuilder.SetRenderFunc(delegate(ProfilingScopePassData data, UnsafeGraphContext ctx)
 		{
-			data.sampler.Begin(ctx.cmd);
+			data.sampler.Begin(CommandBufferHelpers.GetNativeCommandBuffer(ctx.cmd));
 		});
 	}
 
@@ -1080,13 +1371,13 @@ public class RenderGraph
 			return;
 		}
 		ProfilingScopePassData passData;
-		using RenderGraphBuilder renderGraphBuilder = AddRenderPass<ProfilingScopePassData>("EndProfile", out passData, null, file, line);
+		using IUnsafeRenderGraphBuilder unsafeRenderGraphBuilder = AddUnsafePass<ProfilingScopePassData>("EndProfile", out passData, null, file, line);
 		passData.sampler = sampler;
-		renderGraphBuilder.AllowPassCulling(value: false);
-		renderGraphBuilder.GenerateDebugData(value: false);
-		renderGraphBuilder.SetRenderFunc(delegate(ProfilingScopePassData data, RenderGraphContext ctx)
+		unsafeRenderGraphBuilder.AllowPassCulling(value: false);
+		unsafeRenderGraphBuilder.GenerateDebugData(value: false);
+		unsafeRenderGraphBuilder.SetRenderFunc(delegate(ProfilingScopePassData data, UnsafeGraphContext ctx)
 		{
-			data.sampler.End(ctx.cmd);
+			data.sampler.End(CommandBufferHelpers.GetNativeCommandBuffer(ctx.cmd));
 		});
 	}
 
@@ -1117,6 +1408,7 @@ public class RenderGraph
 		m_RenderGraphContext.cmd = null;
 		m_RenderGraphContext.renderGraphPool = null;
 		m_RenderGraphContext.defaultResources = null;
+		m_RenderGraphContext.compilerContext = null;
 	}
 
 	internal void OnPassAdded(RenderGraphPass pass)
@@ -1496,8 +1788,7 @@ public class RenderGraph
 			{
 				CompiledResourceInfo info = dynamicArray2[l];
 				bool flag = m_Resources.IsRenderGraphResourceShared((RenderGraphResourceType)k, l);
-				bool flag2 = m_Resources.IsRenderGraphResourceForceReleased((RenderGraphResourceType)k, l);
-				if (info.imported && !flag && !flag2)
+				if (info.imported && !flag)
 				{
 					continue;
 				}
@@ -1850,12 +2141,12 @@ public class RenderGraph
 			rgContext.cmd = commandBuffer;
 			if (flag)
 			{
-				rgContext.cmd.WaitOnAsyncGraphicsFence(fence);
+				rgContext.cmd.WaitOnAsyncGraphicsFence(fence, SynchronisationStageFlags.PixelProcessing);
 			}
 		}
 		if (passInfo.syncToPassIndex != -1)
 		{
-			rgContext.cmd.WaitOnAsyncGraphicsFence(m_CurrentCompiledGraph.compiledPassInfos[passInfo.syncToPassIndex].fence);
+			rgContext.cmd.WaitOnAsyncGraphicsFence(m_CurrentCompiledGraph.compiledPassInfos[passInfo.syncToPassIndex].fence, SynchronisationStageFlags.PixelProcessing);
 		}
 	}
 
@@ -1917,7 +2208,7 @@ public class RenderGraph
 	{
 		if (m_DebugParameters.enableLogging)
 		{
-			m_FrameInformationLogger.LogLine("==== Render Graph Frame Information Log (" + m_CurrentExecutionName + ") ====");
+			m_FrameInformationLogger.LogLine("==== Render Graph Frame Information Log " + GetExecutionNameAllocates(m_CurrentExecutionId) + " ====");
 			if (!m_DebugParameters.immediateMode)
 			{
 				m_FrameInformationLogger.LogLine("Number of passes declared: {0}\n", m_RenderPasses.Count);
@@ -2000,36 +2291,96 @@ public class RenderGraph
 		}
 	}
 
-	private void GenerateDebugData()
+	private void RegisterGraph()
 	{
-		if (m_ExecutionExceptionWasRaised)
+		s_RegisteredExecutions.Add(this, new List<DebugExecutionItem>());
+		RenderGraph.onGraphRegistered?.Invoke(name);
+	}
+
+	private void UnregisterGraph()
+	{
+		s_RegisteredExecutions.Remove(this);
+		RenderGraph.onGraphUnregistered?.Invoke(name);
+	}
+
+	private static string GetExecutionNameAllocates(EntityId entityId)
+	{
+		Object obj = Resources.EntityIdToObject(entityId);
+		if (!(obj != null))
+		{
+			return $"RenderGraphExecution ({entityId})";
+		}
+		return obj.name;
+	}
+
+	private void ClearCacheIfNewActiveDebugSession()
+	{
+		if (RenderGraphDebugSession.hasActiveDebugSession && !s_DebugSessionWasActive)
+		{
+			m_CompilationCache?.Clear();
+		}
+		s_DebugSessionWasActive = RenderGraphDebugSession.hasActiveDebugSession;
+	}
+
+	private void GenerateDebugData(int graphHash)
+	{
+		if (!RenderGraphDebugSession.hasActiveDebugSession || !m_CurrentExecutionCanGenerateDebugData || m_ExecutionExceptionWasRaised)
 		{
 			return;
 		}
-		DebugData value;
-		if (!isRenderGraphViewerActive)
+		List<DebugExecutionItem> list = s_RegisteredExecutions[this];
+		bool flag = false;
+		List<EntityId> value;
+		using (ListPool<EntityId>.Get(out value))
 		{
-			CleanupDebugData();
-		}
-		else if (!m_DebugData.TryGetValue(m_CurrentExecutionName, out value))
-		{
-			RenderGraph.onExecutionRegistered?.Invoke(this, m_CurrentExecutionName);
-			value = new DebugData();
-			m_DebugData.Add(m_CurrentExecutionName, value);
-		}
-		else if (m_CaptureDebugDataForExecution != null && m_CaptureDebugDataForExecution.Equals(m_CurrentExecutionName))
-		{
-			value.Clear();
-			if (nativeRenderPassesEnabled)
+			for (int num = list.Count - 1; num >= 0; num--)
 			{
-				nativeCompiler.GenerateNativeCompilerDebugData(ref value);
+				DebugExecutionItem debugExecutionItem = list[num];
+				if (Resources.EntityIdToObject(debugExecutionItem.id) == null)
+				{
+					list.RemoveAt(num);
+					value.Add(debugExecutionItem.id);
+				}
+				else if (debugExecutionItem.id == m_CurrentExecutionId)
+				{
+					flag = true;
+				}
 			}
-			else
+			string executionNameAllocates = GetExecutionNameAllocates(m_CurrentExecutionId);
+			if (!flag)
 			{
-				GenerateCompilerDebugData(ref value);
+				list.Add(new DebugExecutionItem(m_CurrentExecutionId, executionNameAllocates));
 			}
-			RenderGraph.onDebugDataCaptured?.Invoke();
-			m_CaptureDebugDataForExecution = null;
+			if (value.Count > 0)
+			{
+				RenderGraphDebugSession.DeleteExecutionIds(name, value);
+			}
+			if (!flag)
+			{
+				RenderGraph.onExecutionRegistered?.Invoke(name, m_CurrentExecutionId, executionNameAllocates);
+			}
+			if (!m_EnableCompilationCaching)
+			{
+				graphHash = ComputeGraphHash();
+			}
+			DebugData debugData = RenderGraphDebugSession.GetDebugData(name, m_CurrentExecutionId);
+			bool flag2 = debugData.executionName != executionNameAllocates;
+			if (!debugData.valid || debugData.graphHash != graphHash || flag2)
+			{
+				debugData.Clear();
+				debugData.executionName = executionNameAllocates;
+				debugData.graphHash = graphHash;
+				if (nativeRenderPassesEnabled)
+				{
+					nativeCompiler.GenerateNativeCompilerDebugData(ref debugData);
+				}
+				else
+				{
+					GenerateCompilerDebugData(ref debugData);
+				}
+				debugData.valid = true;
+				RenderGraphDebugSession.SetDebugData(name, m_CurrentExecutionId, debugData);
+			}
 		}
 	}
 
@@ -2057,14 +2408,14 @@ public class RenderGraph
 				data.creationPassIndex = -1;
 				data.releasePassIndex = -1;
 				RenderGraphResourceType renderGraphResourceType = (RenderGraphResourceType)i;
-				ResourceHandle handle = new ResourceHandle(j, renderGraphResourceType, shared: false);
-				if (j != 0 && handle.IsValid())
+				ResourceHandle res = new ResourceHandle(j, renderGraphResourceType, shared: false);
+				if (j != 0 && res.IsValid())
 				{
 					switch (renderGraphResourceType)
 					{
 					case RenderGraphResourceType.Texture:
 					{
-						m_Resources.GetRenderTargetInfo(in handle, out var outInfo);
+						m_Resources.GetRenderTargetInfo(in res, out var outInfo);
 						DebugData.TextureResourceData textureResourceData = new DebugData.TextureResourceData();
 						textureResourceData.width = outInfo.width;
 						textureResourceData.height = outInfo.height;
@@ -2077,7 +2428,7 @@ public class RenderGraph
 					}
 					case RenderGraphResourceType.Buffer:
 					{
-						BufferDesc bufferResourceDesc = m_Resources.GetBufferResourceDesc(in handle, noThrowOnInvalidDesc: true);
+						ref readonly BufferDesc bufferResourceDesc = ref m_Resources.GetBufferResourceDesc(in res, noThrowOnInvalidDesc: true);
 						DebugData.BufferResourceData bufferResourceData = new DebugData.BufferResourceData();
 						bufferResourceData.count = bufferResourceDesc.count;
 						bufferResourceData.stride = bufferResourceDesc.stride;
@@ -2109,12 +2460,11 @@ public class RenderGraph
 				culled = reference2.culled,
 				async = reference2.enableAsyncCompute,
 				generateDebugData = renderGraphPass.generateDebugData,
-				resourceReadLists = new List<int>[3],
-				resourceWriteLists = new List<int>[3],
+				resourceReadLists = new DebugData.PassData.ResourceIdLists(),
+				resourceWriteLists = new DebugData.PassData.ResourceIdLists(),
 				syncFromPassIndex = reference2.syncFromPassIndex,
 				syncToPassIndex = reference2.syncToPassIndex
 			};
-			DebugData.s_PassScriptMetadata.TryGetValue(renderGraphPass, out item.scriptInfo);
 			for (int l = 0; l < 3; l++)
 			{
 				item.resourceReadLists[l] = new List<int>();
@@ -2150,16 +2500,7 @@ public class RenderGraph
 		}
 	}
 
-	private void CleanupDebugData()
-	{
-		foreach (KeyValuePair<string, DebugData> debugDatum in m_DebugData)
-		{
-			RenderGraph.onExecutionUnregistered?.Invoke(this, debugDatum.Key);
-		}
-		m_DebugData.Clear();
-	}
-
-	internal void SetGlobal(TextureHandle h, int globalPropertyId)
+	internal void SetGlobal(in TextureHandle h, int globalPropertyId)
 	{
 		if (!h.IsValid())
 		{
@@ -2190,32 +2531,5 @@ public class RenderGraph
 		{
 			m_RenderGraphContext.cmd.SetGlobalTexture(registeredGlobal.Key, defaultResources.blackTexture);
 		}
-	}
-
-	[Conditional("UNITY_EDITOR")]
-	private void AddPassDebugMetadata(RenderGraphPass renderPass, string file, int line)
-	{
-		if (m_CaptureDebugDataForExecution == null)
-		{
-			return;
-		}
-		for (int i = 0; i < k_PassNameDebugIgnoreList.Length; i++)
-		{
-			if (renderPass.name == k_PassNameDebugIgnoreList[i])
-			{
-				return;
-			}
-		}
-		DebugData.s_PassScriptMetadata.TryAdd(renderPass, new DebugData.PassScriptInfo
-		{
-			filePath = file,
-			line = line
-		});
-	}
-
-	[Conditional("UNITY_EDITOR")]
-	private void ClearPassDebugMetadata()
-	{
-		DebugData.s_PassScriptMetadata.Clear();
 	}
 }

@@ -19,21 +19,21 @@ public class TemplateContainer : BindableElement
 		[SerializeField]
 		private VisualTreeAsset template;
 
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		[HideInInspector]
 		private UxmlAttributeFlags template_UxmlAttributeFlags;
 
-		[SerializeField]
 		[FormerlySerializedAs("template")]
 		[UxmlAttribute("template")]
 		[UxmlAttributeBindingPath("templateId")]
 		[HideInInspector]
+		[SerializeField]
 		private string templateId;
 
-		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags templateId_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -130,6 +130,8 @@ public class TemplateContainer : BindableElement
 	internal static readonly BindingId templateIdProperty = "templateId";
 
 	internal static readonly BindingId templateSourceProperty = "templateSource";
+
+	internal const string k_ElementName = "Instance";
 
 	private VisualElement m_ContentContainer;
 

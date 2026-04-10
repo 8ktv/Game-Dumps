@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using UnityEngine.Bindings;
 
 namespace UnityEngine.SceneManagement;
@@ -17,11 +18,11 @@ public struct Scene
 		Unloading
 	}
 
-	[HideInInspector]
 	[SerializeField]
-	private int m_Handle;
+	[HideInInspector]
+	private SceneHandle m_Handle;
 
-	public int handle => m_Handle;
+	public SceneHandle handle => m_Handle;
 
 	internal LoadingState loadingState => GetLoadingStateInternal(handle);
 
@@ -63,18 +64,32 @@ public struct Scene
 		}
 	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
-	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static extern bool IsValidInternal(int sceneHandle);
+	internal EntityId defaultParent
+	{
+		get
+		{
+			return GetDefaultParent(handle);
+		}
+		set
+		{
+			SetDefaultParent(handle, value);
+		}
+	}
 
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static string GetPathInternal(int sceneHandle)
+	private static bool IsValidInternal(SceneHandle sceneHandle)
+	{
+		return IsValidInternal_Injected(ref sceneHandle);
+	}
+
+	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
+	private static string GetPathInternal(SceneHandle sceneHandle)
 	{
 		ManagedSpanWrapper ret = default(ManagedSpanWrapper);
 		string stringAndDispose;
 		try
 		{
-			GetPathInternal_Injected(sceneHandle, out ret);
+			GetPathInternal_Injected(ref sceneHandle, out ret);
 		}
 		finally
 		{
@@ -84,11 +99,11 @@ public struct Scene
 	}
 
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private unsafe static void SetPathAndGUIDInternal(int sceneHandle, string path, string guid)
+	private unsafe static void SetPathAndGUIDInternal(SceneHandle sceneHandle, string path, string guid)
 	{
-		//The blocks IL_002a, IL_0037, IL_0045, IL_0053, IL_0058 are reachable both inside and outside the pinned region starting at IL_0019. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
-		//The blocks IL_0058 are reachable both inside and outside the pinned region starting at IL_0045. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
-		//The blocks IL_0058 are reachable both inside and outside the pinned region starting at IL_0045. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
+		//The blocks IL_002b, IL_0038, IL_0046, IL_0054, IL_0059 are reachable both inside and outside the pinned region starting at IL_001a. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
+		//The blocks IL_0059 are reachable both inside and outside the pinned region starting at IL_0046. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
+		//The blocks IL_0059 are reachable both inside and outside the pinned region starting at IL_0046. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
 		try
 		{
 			ManagedSpanWrapper managedSpanWrapper = default(ManagedSpanWrapper);
@@ -108,11 +123,11 @@ public struct Scene
 						fixed (char* begin2 = readOnlySpan2)
 						{
 							managedSpanWrapper2 = new ManagedSpanWrapper(begin2, readOnlySpan2.Length);
-							SetPathAndGUIDInternal_Injected(sceneHandle, ref reference, ref managedSpanWrapper2);
+							SetPathAndGUIDInternal_Injected(ref sceneHandle, ref reference, ref managedSpanWrapper2);
 							return;
 						}
 					}
-					SetPathAndGUIDInternal_Injected(sceneHandle, ref reference, ref managedSpanWrapper2);
+					SetPathAndGUIDInternal_Injected(ref sceneHandle, ref reference, ref managedSpanWrapper2);
 					return;
 				}
 			}
@@ -123,11 +138,11 @@ public struct Scene
 				fixed (char* begin2 = readOnlySpan2)
 				{
 					managedSpanWrapper2 = new ManagedSpanWrapper(begin2, readOnlySpan2.Length);
-					SetPathAndGUIDInternal_Injected(sceneHandle, ref reference, ref managedSpanWrapper2);
+					SetPathAndGUIDInternal_Injected(ref sceneHandle, ref reference, ref managedSpanWrapper2);
 					return;
 				}
 			}
-			SetPathAndGUIDInternal_Injected(sceneHandle, ref reference, ref managedSpanWrapper2);
+			SetPathAndGUIDInternal_Injected(ref sceneHandle, ref reference, ref managedSpanWrapper2);
 		}
 		finally
 		{
@@ -135,13 +150,13 @@ public struct Scene
 	}
 
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static string GetNameInternal(int sceneHandle)
+	private static string GetNameInternal(SceneHandle sceneHandle)
 	{
 		ManagedSpanWrapper ret = default(ManagedSpanWrapper);
 		string stringAndDispose;
 		try
 		{
-			GetNameInternal_Injected(sceneHandle, out ret);
+			GetNameInternal_Injected(ref sceneHandle, out ret);
 		}
 		finally
 		{
@@ -150,11 +165,11 @@ public struct Scene
 		return stringAndDispose;
 	}
 
-	[NativeThrows]
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private unsafe static void SetNameInternal(int sceneHandle, string name)
+	[NativeThrows]
+	private unsafe static void SetNameInternal(SceneHandle sceneHandle, string name)
 	{
-		//The blocks IL_002a are reachable both inside and outside the pinned region starting at IL_0019. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
+		//The blocks IL_002b are reachable both inside and outside the pinned region starting at IL_001a. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
 		try
 		{
 			ManagedSpanWrapper managedSpanWrapper = default(ManagedSpanWrapper);
@@ -164,11 +179,11 @@ public struct Scene
 				fixed (char* begin = readOnlySpan)
 				{
 					managedSpanWrapper = new ManagedSpanWrapper(begin, readOnlySpan.Length);
-					SetNameInternal_Injected(sceneHandle, ref managedSpanWrapper);
+					SetNameInternal_Injected(ref sceneHandle, ref managedSpanWrapper);
 					return;
 				}
 			}
-			SetNameInternal_Injected(sceneHandle, ref managedSpanWrapper);
+			SetNameInternal_Injected(ref sceneHandle, ref managedSpanWrapper);
 		}
 		finally
 		{
@@ -176,13 +191,13 @@ public struct Scene
 	}
 
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static string GetGUIDInternal(int sceneHandle)
+	private static string GetGUIDInternal(SceneHandle sceneHandle)
 	{
 		ManagedSpanWrapper ret = default(ManagedSpanWrapper);
 		string stringAndDispose;
 		try
 		{
-			GetGUIDInternal_Injected(sceneHandle, out ret);
+			GetGUIDInternal_Injected(ref sceneHandle, out ret);
 		}
 		finally
 		{
@@ -191,43 +206,74 @@ public struct Scene
 		return stringAndDispose;
 	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static extern bool IsSubScene(int sceneHandle);
+	private static bool IsSubScene(SceneHandle sceneHandle)
+	{
+		return IsSubScene_Injected(ref sceneHandle);
+	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static extern void SetIsSubScene(int sceneHandle, bool value);
+	private static void SetIsSubScene(SceneHandle sceneHandle, bool value)
+	{
+		SetIsSubScene_Injected(ref sceneHandle, value);
+	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static extern bool GetIsLoadedInternal(int sceneHandle);
+	private static bool GetIsLoadedInternal(SceneHandle sceneHandle)
+	{
+		return GetIsLoadedInternal_Injected(ref sceneHandle);
+	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static extern LoadingState GetLoadingStateInternal(int sceneHandle);
+	private static LoadingState GetLoadingStateInternal(SceneHandle sceneHandle)
+	{
+		return GetLoadingStateInternal_Injected(ref sceneHandle);
+	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static extern bool GetIsDirtyInternal(int sceneHandle);
+	private static bool GetIsDirtyInternal(SceneHandle sceneHandle)
+	{
+		return GetIsDirtyInternal_Injected(ref sceneHandle);
+	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static extern int GetDirtyID(int sceneHandle);
+	private static int GetDirtyID(SceneHandle sceneHandle)
+	{
+		return GetDirtyID_Injected(ref sceneHandle);
+	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static extern int GetBuildIndexInternal(int sceneHandle);
+	private static int GetBuildIndexInternal(SceneHandle sceneHandle)
+	{
+		return GetBuildIndexInternal_Injected(ref sceneHandle);
+	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static extern int GetRootCountInternal(int sceneHandle);
+	private static int GetRootCountInternal(SceneHandle sceneHandle)
+	{
+		return GetRootCountInternal_Injected(ref sceneHandle);
+	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
 	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
-	private static extern void GetRootGameObjectsInternal(int sceneHandle, object resultRootList);
+	private static void GetRootGameObjectsInternal(SceneHandle sceneHandle, object resultRootList)
+	{
+		GetRootGameObjectsInternal_Injected(ref sceneHandle, resultRootList);
+	}
 
-	internal Scene(int handle)
+	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
+	private static EntityId GetDefaultParent(SceneHandle sceneHandle)
+	{
+		GetDefaultParent_Injected(ref sceneHandle, out var ret);
+		return ret;
+	}
+
+	[StaticAccessor("SceneBindings", StaticAccessorType.DoubleColon)]
+	private static void SetDefaultParent(SceneHandle sceneHandle, EntityId value)
+	{
+		SetDefaultParent_Injected(ref sceneHandle, ref value);
+	}
+
+	internal Scene(SceneHandle handle)
 	{
 		m_Handle = handle;
 	}
@@ -277,7 +323,7 @@ public struct Scene
 
 	public override int GetHashCode()
 	{
-		return m_Handle;
+		return m_Handle.GetHashCode();
 	}
 
 	public override bool Equals(object other)
@@ -295,17 +341,53 @@ public struct Scene
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void GetPathInternal_Injected(int sceneHandle, out ManagedSpanWrapper ret);
+	private static extern bool IsValidInternal_Injected([In] ref SceneHandle sceneHandle);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void SetPathAndGUIDInternal_Injected(int sceneHandle, ref ManagedSpanWrapper path, ref ManagedSpanWrapper guid);
+	private static extern void GetPathInternal_Injected([In] ref SceneHandle sceneHandle, out ManagedSpanWrapper ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void GetNameInternal_Injected(int sceneHandle, out ManagedSpanWrapper ret);
+	private static extern void SetPathAndGUIDInternal_Injected([In] ref SceneHandle sceneHandle, ref ManagedSpanWrapper path, ref ManagedSpanWrapper guid);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void SetNameInternal_Injected(int sceneHandle, ref ManagedSpanWrapper name);
+	private static extern void GetNameInternal_Injected([In] ref SceneHandle sceneHandle, out ManagedSpanWrapper ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void GetGUIDInternal_Injected(int sceneHandle, out ManagedSpanWrapper ret);
+	private static extern void SetNameInternal_Injected([In] ref SceneHandle sceneHandle, ref ManagedSpanWrapper name);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void GetGUIDInternal_Injected([In] ref SceneHandle sceneHandle, out ManagedSpanWrapper ret);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool IsSubScene_Injected([In] ref SceneHandle sceneHandle);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void SetIsSubScene_Injected([In] ref SceneHandle sceneHandle, bool value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool GetIsLoadedInternal_Injected([In] ref SceneHandle sceneHandle);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern LoadingState GetLoadingStateInternal_Injected([In] ref SceneHandle sceneHandle);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool GetIsDirtyInternal_Injected([In] ref SceneHandle sceneHandle);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern int GetDirtyID_Injected([In] ref SceneHandle sceneHandle);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern int GetBuildIndexInternal_Injected([In] ref SceneHandle sceneHandle);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern int GetRootCountInternal_Injected([In] ref SceneHandle sceneHandle);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void GetRootGameObjectsInternal_Injected([In] ref SceneHandle sceneHandle, object resultRootList);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void GetDefaultParent_Injected([In] ref SceneHandle sceneHandle, out EntityId ret);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void SetDefaultParent_Injected([In] ref SceneHandle sceneHandle, [In] ref EntityId value);
 }

@@ -57,7 +57,7 @@ public class HoleProgressBarUi : SingletonBehaviour<HoleProgressBarUi>, ILateBUp
 	private void Start()
 	{
 		BUpdate.RegisterCallback(this);
-		SetStrokes(0, suppressVisibility: true);
+		SetStrokes(0);
 		strokesLabel.alpha = 0f;
 		if (GameManager.LocalPlayerInfo != null)
 		{
@@ -105,7 +105,7 @@ public class HoleProgressBarUi : SingletonBehaviour<HoleProgressBarUi>, ILateBUp
 
 	private void UpdateStrokesInternal()
 	{
-		SetStrokes(GetStrokes(), suppressVisibility: false);
+		SetStrokes(GetStrokes());
 		static int GetStrokes()
 		{
 			if (!CourseManager.TryGetPlayerState(GameManager.GetViewedOrLocalPlayer(), out var state))
@@ -116,21 +116,20 @@ public class HoleProgressBarUi : SingletonBehaviour<HoleProgressBarUi>, ILateBUp
 		}
 	}
 
-	private void SetStrokes(int strokes, bool suppressVisibility)
+	private void SetStrokes(int strokes)
 	{
-		if (strokes == displayedStrokes)
+		if (strokes != displayedStrokes)
 		{
-			return;
-		}
-		displayedStrokes = strokes;
-		UpdateStrokesText();
-		if (!suppressVisibility)
-		{
+			displayedStrokes = strokes;
+			UpdateStrokesText();
 			if (strokesVisibilityRoutine != null)
 			{
 				StopCoroutine(strokesVisibilityRoutine);
 			}
-			strokesVisibilityRoutine = StartCoroutine(ShowStrokesRoutine());
+			if (strokesLabel.alpha < 1f && displayedStrokes > 0)
+			{
+				strokesVisibilityRoutine = StartCoroutine(ShowStrokesRoutine(1f));
+			}
 		}
 		IEnumerator FadeRoutine(float targetAlpha, float duration, Func<float, float> Easing)
 		{
@@ -153,17 +152,15 @@ public class HoleProgressBarUi : SingletonBehaviour<HoleProgressBarUi>, ILateBUp
 			strokesFadeRoutine = StartCoroutine(FadeRoutine(targetAlpha, duration, Easing));
 			return strokesFadeRoutine;
 		}
-		IEnumerator ShowStrokesRoutine()
+		IEnumerator ShowStrokesRoutine(float targetAlpha)
 		{
-			yield return FadeTo(1f, strokesFadeInDuration, BMath.EaseOut);
-			yield return new WaitForSeconds(strokesVisibilityDuration);
-			yield return FadeTo(0f, strokesFadeOutDuration, BMath.EaseIn);
+			yield return FadeTo(targetAlpha, strokesFadeInDuration, BMath.EaseOut);
 		}
 	}
 
 	private void IncrementStrokesInternal()
 	{
-		SetStrokes(displayedStrokes + 1, suppressVisibility: false);
+		SetStrokes(displayedStrokes + 1);
 	}
 
 	public void OnLateBUpdate()
@@ -260,7 +257,7 @@ public class HoleProgressBarUi : SingletonBehaviour<HoleProgressBarUi>, ILateBUp
 
 	private void UpdateStrokesText()
 	{
-		strokesLabel.text = string.Format(Localization.UI.HOLE_INFO_Strokes, displayedStrokes);
+		strokesLabel.text = string.Format(Localization.UI.HOLE_INFO_Strokes, $"<size=42>{displayedStrokes}</size>");
 	}
 
 	private void UpdatePlayerRegistration(PlayerInfo player)

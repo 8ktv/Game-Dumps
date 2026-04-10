@@ -19,7 +19,7 @@ public static class RuntimePanelUtils
 	{
 		worldSize.y = 0f - worldSize.y;
 		Vector2 vector = CameraTransformWorldToPanel(panel, worldPosition, camera);
-		Vector3 worldPosition2 = worldPosition + camera.worldToCameraMatrix.MultiplyVector(worldSize);
+		Vector3 worldPosition2 = worldPosition + camera.worldToCameraMatrix.MultiplyVector((Vector3)worldSize);
 		Vector2 vector2 = CameraTransformWorldToPanel(panel, worldPosition2, camera);
 		return new Rect(vector, vector2 - vector);
 	}

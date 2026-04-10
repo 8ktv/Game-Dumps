@@ -10,11 +10,11 @@ using UnityEngine.Scripting;
 namespace Unity.Collections.LowLevel.Unsafe;
 
 [NativeHeader("Runtime/Export/BurstLike/BurstLike.bindings.h")]
-[VisibleToOtherModules(new string[] { "UnityEngine.ParticleSystemModule" })]
 [StaticAccessor("BurstLike", StaticAccessorType.DoubleColon)]
+[VisibleToOtherModules(new string[] { "UnityEngine.ParticleSystemModule", "UnityEngine.AudioModule" })]
 internal static class BurstLike
 {
-	[VisibleToOtherModules(new string[] { "UnityEngine.ParticleSystemModule" })]
+	[VisibleToOtherModules(new string[] { "UnityEngine.ParticleSystemModule", "UnityEngine.AudioModule" })]
 	internal readonly struct SharedStatic<T> where T : unmanaged
 	{
 		private unsafe readonly void* _buffer;
@@ -68,7 +68,7 @@ internal static class BurstLike
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[BurstAuthorizedExternalMethod]
 	[ThreadSafe(ThrowsException = false)]
+	[BurstAuthorizedExternalMethod]
 	internal static extern int NativeFunctionCall_Int_IntPtr_IntPtr(IntPtr function, IntPtr p0, IntPtr p1, out int error);
 }

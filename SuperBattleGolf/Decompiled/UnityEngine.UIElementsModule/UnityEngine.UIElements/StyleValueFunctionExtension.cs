@@ -26,6 +26,12 @@ internal static class StyleValueFunctionExtension
 
 	public const string k_FilterBlur = "blur";
 
+	public const string k_FilterContrast = "contrast";
+
+	public const string k_FilterHueRotate = "hue-rotate";
+
+	public const string k_MaterialProperty = "prop";
+
 	public static StyleValueFunction FromUssString(string ussValue)
 	{
 		ussValue = ussValue.ToLowerInvariant();
@@ -41,6 +47,9 @@ internal static class StyleValueFunctionExtension
 			"grayscale" => StyleValueFunction.FilterGrayscale, 
 			"sepia" => StyleValueFunction.FilterSepia, 
 			"blur" => StyleValueFunction.FilterBlur, 
+			"contrast" => StyleValueFunction.FilterContrast, 
+			"hue-rotate" => StyleValueFunction.FilterHueRotate, 
+			"prop" => StyleValueFunction.MaterialProperty, 
 			_ => throw new ArgumentOutOfRangeException("ussValue", ussValue, "Unknown function name"), 
 		};
 	}
@@ -60,6 +69,9 @@ internal static class StyleValueFunctionExtension
 			StyleValueFunction.FilterGrayscale => "grayscale", 
 			StyleValueFunction.FilterSepia => "sepia", 
 			StyleValueFunction.FilterBlur => "blur", 
+			StyleValueFunction.FilterContrast => "contrast", 
+			StyleValueFunction.FilterHueRotate => "hue-rotate", 
+			StyleValueFunction.MaterialProperty => "prop", 
 			_ => throw new ArgumentOutOfRangeException("svf", svf, "Unknown StyleValueFunction"), 
 		};
 	}

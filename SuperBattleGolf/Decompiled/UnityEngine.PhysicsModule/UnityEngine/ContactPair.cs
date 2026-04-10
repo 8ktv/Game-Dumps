@@ -10,9 +10,9 @@ public readonly struct ContactPair
 {
 	private const uint c_InvalidFaceIndex = uint.MaxValue;
 
-	internal readonly int m_ColliderID;
+	internal readonly EntityId m_ColliderID;
 
-	internal readonly int m_OtherColliderID;
+	internal readonly EntityId m_OtherColliderID;
 
 	internal readonly IntPtr m_StartPtr;
 
@@ -24,9 +24,15 @@ public readonly struct ContactPair
 
 	internal readonly Vector3 m_ImpulseSum;
 
+	[Obsolete("colliderInstanceID is deprecated, use colliderEntityId instead.", false)]
 	public int colliderInstanceID => m_ColliderID;
 
+	[Obsolete("otherColliderInstanceID is deprecated, use otherColliderEntityId instead.", false)]
 	public int otherColliderInstanceID => m_OtherColliderID;
+
+	public EntityId colliderEntityId => m_ColliderID;
+
+	public EntityId otherColliderEntityId => m_OtherColliderID;
 
 	public Collider collider => (m_ColliderID == 0) ? null : Physics.GetColliderByInstanceID(m_ColliderID);
 
@@ -87,14 +93,14 @@ public readonly struct ContactPair
 			if (flipped)
 			{
 				item.m_Normal = -contactPoint.normal;
-				item.m_ThisColliderInstanceID = m_OtherColliderID;
-				item.m_OtherColliderInstanceID = m_ColliderID;
+				item.m_ThisColliderEntityId = m_OtherColliderID;
+				item.m_OtherColliderEntityId = m_ColliderID;
 			}
 			else
 			{
 				item.m_Normal = contactPoint.normal;
-				item.m_ThisColliderInstanceID = m_ColliderID;
-				item.m_OtherColliderInstanceID = m_OtherColliderID;
+				item.m_ThisColliderEntityId = m_ColliderID;
+				item.m_OtherColliderEntityId = m_OtherColliderID;
 			}
 			managedContainer.Add(item);
 		}
@@ -116,14 +122,14 @@ public readonly struct ContactPair
 			if (flipped)
 			{
 				contactPoint2.m_Normal = -contactPoint.normal;
-				contactPoint2.m_ThisColliderInstanceID = m_OtherColliderID;
-				contactPoint2.m_OtherColliderInstanceID = m_ColliderID;
+				contactPoint2.m_ThisColliderEntityId = m_OtherColliderID;
+				contactPoint2.m_OtherColliderEntityId = m_ColliderID;
 			}
 			else
 			{
 				contactPoint2.m_Normal = contactPoint.normal;
-				contactPoint2.m_ThisColliderInstanceID = m_ColliderID;
-				contactPoint2.m_OtherColliderInstanceID = m_OtherColliderID;
+				contactPoint2.m_ThisColliderEntityId = m_ColliderID;
+				contactPoint2.m_OtherColliderEntityId = m_OtherColliderID;
 			}
 			managedContainer[i] = contactPoint2;
 		}

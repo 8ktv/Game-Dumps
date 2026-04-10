@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "Emote settings", menuName = "Settings/Gameplay/Emotes")]
+[CreateAssetMenu(fileName = "Emote settings", menuName = "Settings/Gameplay/Emotes/Regular")]
 public class AllEmoteSettings : ScriptableObject
 {
 	public readonly Dictionary<Emote, EmoteSettings> emotesByType = new Dictionary<Emote, EmoteSettings>();

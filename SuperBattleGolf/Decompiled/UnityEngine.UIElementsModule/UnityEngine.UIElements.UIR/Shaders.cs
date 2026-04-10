@@ -5,11 +5,7 @@ internal static class Shaders
 {
 	public static readonly string k_AtlasBlit = "Hidden/Internal-UIRAtlasBlitCopy";
 
-	public static readonly string k_Editor = "Hidden/UIElements/EditorUIE";
-
-	public static readonly string k_Runtime = "Hidden/Internal-UIRDefault";
-
-	public static readonly string k_RuntimeWorld = "Hidden/Internal-UIRDefaultWorld";
+	public static readonly string k_Default = "Hidden/Internal-UIRDefault";
 
 	public static readonly string k_RuntimeGaussianBlur = "Hidden/UIR/GaussianBlur";
 
@@ -17,21 +13,27 @@ internal static class Shaders
 
 	public static readonly string k_ColorConversionBlit = "Hidden/Internal-UIE-ColorConversionBlit";
 
-	public static readonly string k_ForceGammaKeyword = "UIE_FORCE_GAMMA";
+	public static readonly string k_ForceGammaKeyword = "_UIE_FORCE_GAMMA";
 
-	private static Material s_RuntimeMaterial;
+	public static readonly string k_TextureSlotCount1 = "_UIE_TEXTURE_SLOT_COUNT_1";
 
-	private static Material s_RuntimeWorldMaterial;
+	public static readonly string k_TextureSlotCount2 = "_UIE_TEXTURE_SLOT_COUNT_2";
 
-	private static Material s_EditorMaterial;
+	public static readonly string k_TextureSlotCount4 = "_UIE_TEXTURE_SLOT_COUNT_4";
+
+	public static readonly string k_ForceRenderTypeSolid = "_UIE_RENDER_TYPE_SOLID";
+
+	public static readonly string k_ForceRenderTypeTextured = "_UIE_RENDER_TYPE_TEXTURE";
+
+	public static readonly string k_ForceRenderTypeText = "_UIE_RENDER_TYPE_TEXT";
+
+	public static readonly string k_ForceRenderTypeSvgGradient = "_UIE_RENDER_TYPE_GRADIENT";
+
+	private static Material s_DefaultMaterial;
 
 	private static int s_RefCount;
 
-	public static Material runtimeMaterial => GetOrCreateMaterial(ref s_RuntimeMaterial, k_Runtime);
-
-	public static Material runtimeWorldMaterial => GetOrCreateMaterial(ref s_RuntimeWorldMaterial, k_RuntimeWorld);
-
-	public static Material editorMaterial => GetOrCreateMaterial(ref s_EditorMaterial, k_Editor);
+	public static Material defaultMaterial => GetOrCreateMaterial(ref s_DefaultMaterial, k_Default);
 
 	private static Material GetOrCreateMaterial(ref Material material, string shaderName)
 	{
@@ -61,12 +63,8 @@ internal static class Shaders
 		if (s_RefCount < 1)
 		{
 			s_RefCount = 0;
-			UIRUtility.Destroy(s_RuntimeMaterial);
-			UIRUtility.Destroy(s_RuntimeWorldMaterial);
-			UIRUtility.Destroy(s_EditorMaterial);
-			s_RuntimeMaterial = null;
-			s_RuntimeWorldMaterial = null;
-			s_EditorMaterial = null;
+			UIRUtility.Destroy(s_DefaultMaterial);
+			s_DefaultMaterial = null;
 		}
 	}
 }

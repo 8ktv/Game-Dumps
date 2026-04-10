@@ -9,5 +9,7 @@ public enum UsageHints
 	DynamicTransform = 1,
 	GroupTransform = 2,
 	MaskContainer = 4,
-	DynamicColor = 8
+	DynamicColor = 8,
+	DynamicPostProcessing = 0x10,
+	LargePixelCoverage = 0x20
 }

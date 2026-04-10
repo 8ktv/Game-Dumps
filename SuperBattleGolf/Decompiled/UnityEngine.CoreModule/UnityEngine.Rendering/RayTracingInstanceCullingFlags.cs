@@ -3,8 +3,8 @@ using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine.Rendering;
 
-[Flags]
 [MovedFrom("UnityEngine.Experimental.Rendering")]
+[Flags]
 public enum RayTracingInstanceCullingFlags
 {
 	None = 0,

@@ -1,19 +1,25 @@
 using System;
+using Unity.Properties;
 
 namespace UnityEngine.UIElements;
 
 [Serializable]
-internal sealed class FilterFunctionDefinition : ScriptableObject
+[HelpURL("ui-systems/custom-filters")]
+public sealed class FilterFunctionDefinition : ScriptableObject
 {
 	[SerializeField]
+	[DontCreateProperty]
 	private string m_FilterName;
 
+	[DontCreateProperty]
 	[SerializeField]
 	private FilterParameterDeclaration[] m_Parameters;
 
 	[SerializeField]
+	[DontCreateProperty]
 	private PostProcessingPass[] m_Passes;
 
+	[CreateProperty]
 	public string filterName
 	{
 		get
@@ -26,6 +32,7 @@ internal sealed class FilterFunctionDefinition : ScriptableObject
 		}
 	}
 
+	[CreateProperty]
 	public FilterParameterDeclaration[] parameters
 	{
 		get
@@ -38,6 +45,7 @@ internal sealed class FilterFunctionDefinition : ScriptableObject
 		}
 	}
 
+	[CreateProperty]
 	public PostProcessingPass[] passes
 	{
 		get

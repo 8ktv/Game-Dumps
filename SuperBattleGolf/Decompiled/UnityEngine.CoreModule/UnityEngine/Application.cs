@@ -14,24 +14,24 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Misc/BuildSettings.h")]
-[NativeHeader("Runtime/PreloadManager/LoadSceneOperation.h")]
-[NativeHeader("Runtime/Application/AdsIdHandler.h")]
-[NativeHeader("Runtime/Utilities/Argv.h")]
-[NativeHeader("Runtime/Utilities/URLUtility.h")]
-[NativeHeader("Runtime/Logging/LogSystem.h")]
-[NativeHeader("Runtime/Input/InputManager.h")]
-[NativeHeader("Runtime/Network/NetworkUtility.h")]
-[NativeHeader("Runtime/Input/GetInput.h")]
-[NativeHeader("Runtime/Misc/Player.h")]
 [NativeHeader("Runtime/Misc/PlayerSettings.h")]
-[NativeHeader("Runtime/File/ApplicationSpecificPersistentDataPath.h")]
-[NativeHeader("Runtime/BaseClasses/IsPlaying.h")]
-[NativeHeader("Runtime/PreloadManager/PreloadManager.h")]
-[NativeHeader("Runtime/Input/TargetFrameRate.h")]
+[NativeHeader("Runtime/Input/GetInput.h")]
+[NativeHeader("Runtime/Utilities/Argv.h")]
 [NativeHeader("Runtime/Application/ApplicationInfo.h")]
-[NativeHeader("Runtime/Misc/SystemInfo.h")]
+[NativeHeader("Runtime/BaseClasses/IsPlaying.h")]
 [NativeHeader("Runtime/Export/Application/Application.bindings.h")]
+[NativeHeader("Runtime/File/ApplicationSpecificPersistentDataPath.h")]
+[NativeHeader("Runtime/PreloadManager/LoadSceneOperation.h")]
+[NativeHeader("Runtime/Input/InputManager.h")]
+[NativeHeader("Runtime/Misc/Player.h")]
+[NativeHeader("Runtime/Utilities/URLUtility.h")]
+[NativeHeader("Runtime/Misc/BuildSettings.h")]
+[NativeHeader("Runtime/Input/TargetFrameRate.h")]
+[NativeHeader("NativeKernel/Logging/LogSystem.h")]
+[NativeHeader("Runtime/Network/NetworkUtility.h")]
+[NativeHeader("Runtime/Application/AdsIdHandler.h")]
+[NativeHeader("Runtime/Misc/SystemInfo.h")]
+[NativeHeader("Runtime/PreloadManager/PreloadManager.h")]
 public class Application
 {
 	public delegate void AdvertisingIdentifierCallback(string advertisingId, bool trackingEnabled, string errorMsg);
@@ -63,8 +63,8 @@ public class Application
 	[Obsolete("Streaming was a Unity Web Player feature, and is removed. This property is deprecated and always returns 0.")]
 	public static int streamedBytes => 0;
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Application.webSecurityEnabled is no longer supported, since the Unity Web Player is no longer supported by Unity", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public static bool webSecurityEnabled => false;
 
 	public static extern bool isPlaying
@@ -263,8 +263,8 @@ public class Application
 	internal static extern int unityVersionMaj
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 		[FreeFunction("Application_Bindings::GetUnityVersionMaj", IsThreadSafe = true)]
+		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 		get;
 	}
 
@@ -509,7 +509,7 @@ public class Application
 		get
 		{
 			RuntimePlatform runtimePlatform = platform;
-			return runtimePlatform == RuntimePlatform.GameCoreXboxOne || runtimePlatform == RuntimePlatform.GameCoreXboxSeries || runtimePlatform == RuntimePlatform.PS4 || runtimePlatform == RuntimePlatform.PS5 || runtimePlatform == RuntimePlatform.Switch || runtimePlatform == RuntimePlatform.XboxOne;
+			return runtimePlatform == RuntimePlatform.GameCoreXboxOne || runtimePlatform == RuntimePlatform.GameCoreXboxSeries || runtimePlatform == RuntimePlatform.PS4 || runtimePlatform == RuntimePlatform.PS5 || runtimePlatform == RuntimePlatform.Switch || runtimePlatform == RuntimePlatform.Switch2 || runtimePlatform == RuntimePlatform.XboxOne;
 		}
 	}
 
@@ -605,8 +605,8 @@ public class Application
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[Obsolete("CancelQuit is deprecated. Use the wantsToQuit event instead.")]
 	[FreeFunction("GetInputManager().CancelQuitApplication")]
+	[Obsolete("CancelQuit is deprecated. Use the wantsToQuit event instead.")]
 	public static extern void CancelQuit();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -677,13 +677,13 @@ public class Application
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("GetBuildSettings().GetBuildTags")]
 	[Obsolete("Application.GetBuildTags is no longer supported and will be removed.", false)]
+	[FreeFunction("GetBuildSettings().GetBuildTags")]
 	public static extern string[] GetBuildTags();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[Obsolete("Application.SetBuildTags is no longer supported and will be removed.", false)]
 	[FreeFunction("GetBuildSettings().SetBuildTags")]
+	[Obsolete("Application.SetBuildTags is no longer supported and will be removed.", false)]
 	public static extern void SetBuildTags(string[] buildTags);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]

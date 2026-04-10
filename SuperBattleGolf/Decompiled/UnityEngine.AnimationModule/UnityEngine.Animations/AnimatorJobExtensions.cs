@@ -8,13 +8,13 @@ using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine.Animations;
 
-[NativeHeader("Modules/Animation/Director/AnimationStreamHandles.h")]
+[MovedFrom("UnityEngine.Experimental.Animations")]
+[NativeHeader("Modules/Animation/ScriptBindings/AnimatorJobExtensions.bindings.h")]
 [NativeHeader("Modules/Animation/Animator.h")]
+[NativeHeader("Modules/Animation/Director/AnimationStreamHandles.h")]
+[NativeHeader("Modules/Animation/Director/AnimationSceneHandles.h")]
 [NativeHeader("Modules/Animation/Director/AnimationStream.h")]
 [StaticAccessor("AnimatorJobExtensionsBindings", StaticAccessorType.DoubleColon)]
-[NativeHeader("Modules/Animation/ScriptBindings/AnimatorJobExtensions.bindings.h")]
-[NativeHeader("Modules/Animation/Director/AnimationSceneHandles.h")]
-[MovedFrom("UnityEngine.Experimental.Animations")]
 public static class AnimatorJobExtensions
 {
 	public static void AddJobDependency(this Animator animator, JobHandle jobHandle)

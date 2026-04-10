@@ -19,6 +19,8 @@ public interface IComputeCommandBuffer : IBaseCommandBuffer
 
 	void SetComputeMatrixArrayParam(ComputeShader computeShader, int nameID, Matrix4x4[] values);
 
+	void SetRayTracingShaderPass(RayTracingShader rayTracingShader, string passName);
+
 	void SetBufferData(ComputeBuffer buffer, Array data);
 
 	void SetBufferData<T>(ComputeBuffer buffer, List<T> data) where T : struct;
@@ -99,6 +101,8 @@ public interface IComputeCommandBuffer : IBaseCommandBuffer
 
 	void SetComputeConstantBufferParam(ComputeShader computeShader, string name, GraphicsBuffer buffer, int offset, int size);
 
+	void SetComputeParamsFromMaterial(ComputeShader computeShader, int kernelIndex, Material material);
+
 	void DispatchCompute(ComputeShader computeShader, int kernelIndex, int threadGroupsX, int threadGroupsY, int threadGroupsZ);
 
 	void DispatchCompute(ComputeShader computeShader, int kernelIndex, ComputeBuffer indirectBuffer, uint argsOffset);
@@ -108,6 +112,8 @@ public interface IComputeCommandBuffer : IBaseCommandBuffer
 	void BuildRayTracingAccelerationStructure(RayTracingAccelerationStructure accelerationStructure);
 
 	void BuildRayTracingAccelerationStructure(RayTracingAccelerationStructure accelerationStructure, Vector3 relativeOrigin);
+
+	void BuildRayTracingAccelerationStructure(RayTracingAccelerationStructure accelerationStructure, RayTracingAccelerationStructure.BuildSettings buildSettings);
 
 	void SetRayTracingAccelerationStructure(RayTracingShader rayTracingShader, string name, RayTracingAccelerationStructure rayTracingAccelerationStructure);
 

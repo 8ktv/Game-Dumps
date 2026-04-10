@@ -8,8 +8,8 @@ using UnityEngine.Internal;
 
 namespace Unity.Collections;
 
-[DebuggerTypeProxy(typeof(NativeSliceDebugView<>))]
 [NativeContainer]
+[DebuggerTypeProxy(typeof(NativeSliceDebugView<>))]
 [NativeContainerSupportsMinMaxWriteRestriction]
 [DebuggerDisplay("Length = {Length}")]
 public struct NativeSlice<T> : IEnumerable<T>, IEnumerable, IEquatable<NativeSlice<T>> where T : struct

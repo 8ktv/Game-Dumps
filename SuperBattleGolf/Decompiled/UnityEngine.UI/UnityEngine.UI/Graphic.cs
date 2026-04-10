@@ -585,57 +585,70 @@ public abstract class Graphic : UIBehaviour, ICanvasElement
 		List<Component> list = CollectionPool<List<Component>, Component>.Get();
 		bool flag = false;
 		bool flag2 = true;
+		bool flag3 = false;
 		while (transform != null)
 		{
+			bool flag4 = true;
+			bool flag5 = false;
+			bool flag6 = true;
 			transform.GetComponents(list);
 			for (int i = 0; i < list.Count; i++)
 			{
-				Canvas canvas = list[i] as Canvas;
+				Component component = list[i];
+				Canvas canvas = component as Canvas;
 				if (canvas != null && canvas.overrideSorting)
 				{
 					flag2 = false;
 				}
-				if (!(list[i] is ICanvasRaycastFilter canvasRaycastFilter))
+				if (!(component is ICanvasRaycastFilter canvasRaycastFilter) || (ignoreMasks && (component is Mask || component is RectMask2D)))
 				{
 					continue;
 				}
-				if (ignoreMasks)
+				if (component is CanvasGroup canvasGroup)
 				{
-					Component component = list[i];
-					if (component is Mask || component is RectMask2D)
+					if (canvasGroup.enabled && !flag)
 					{
-						continue;
-					}
-				}
-				bool flag3 = true;
-				CanvasGroup canvasGroup = list[i] as CanvasGroup;
-				if (canvasGroup != null)
-				{
-					if (!canvasGroup.enabled)
-					{
-						continue;
-					}
-					if (!flag && canvasGroup.ignoreParentGroups)
-					{
-						flag = true;
-						flag3 = canvasRaycastFilter.IsRaycastLocationValid(sp, eventCamera);
-					}
-					else if (!flag)
-					{
-						flag3 = canvasRaycastFilter.IsRaycastLocationValid(sp, eventCamera);
+						if (canvasGroup.ignoreParentGroups)
+						{
+							flag = true;
+						}
+						flag4 = canvasRaycastFilter.IsRaycastLocationValid(sp, eventCamera);
+						if (!flag4)
+						{
+							break;
+						}
 					}
 				}
 				else
 				{
-					flag3 = canvasRaycastFilter.IsRaycastLocationValid(sp, eventCamera);
-				}
-				if (!flag3)
-				{
-					CollectionPool<List<Component>, Component>.Release(list);
-					return false;
+					if (flag3 && component is Graphic { raycastTarget: false })
+					{
+						continue;
+					}
+					flag5 = flag5 || component is Mask;
+					flag4 = canvasRaycastFilter.IsRaycastLocationValid(sp, eventCamera);
+					if (!flag4)
+					{
+						if (!flag3 || !(component is MaskableGraphic))
+						{
+							break;
+						}
+						flag6 = flag4;
+						if (!ignoreMasks && flag5)
+						{
+							break;
+						}
+						flag4 = true;
+					}
 				}
 			}
+			if (!flag4 || (flag5 && !flag6))
+			{
+				CollectionPool<List<Component>, Component>.Release(list);
+				return false;
+			}
 			transform = (flag2 ? transform.parent : null);
+			flag3 = true;
 		}
 		CollectionPool<List<Component>, Component>.Release(list);
 		return true;

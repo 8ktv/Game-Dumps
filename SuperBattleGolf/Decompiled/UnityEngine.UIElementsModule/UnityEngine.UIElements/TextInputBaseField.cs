@@ -2,7 +2,6 @@ using System;
 using Unity.Properties;
 using UnityEngine.Bindings;
 using UnityEngine.Internal;
-using UnityEngine.TextCore.Text;
 
 namespace UnityEngine.UIElements;
 
@@ -50,8 +49,8 @@ public abstract class TextInputBaseField<TValueType> : BaseField<TValueType>, ID
 		[SerializeField]
 		private bool selectAllOnFocus;
 
-		[UxmlAttribute("select-word-by-double-click")]
 		[SerializeField]
+		[UxmlAttribute("select-word-by-double-click")]
 		private bool doubleClickSelectsWord;
 
 		[UxmlAttribute("select-line-by-triple-click")]
@@ -72,39 +71,39 @@ public abstract class TextInputBaseField<TValueType> : BaseField<TValueType>, ID
 		[HideInInspector]
 		private UxmlAttributeFlags maxLength_UxmlAttributeFlags;
 
-		[SerializeField]
 		[HideInInspector]
+		[SerializeField]
 		[UxmlIgnore]
 		private UxmlAttributeFlags isPasswordField_UxmlAttributeFlags;
 
-		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags maskChar_UxmlAttributeFlags;
 
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
 		[HideInInspector]
 		private UxmlAttributeFlags placeholderText_UxmlAttributeFlags;
 
-		[HideInInspector]
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
+		[HideInInspector]
 		private UxmlAttributeFlags hidePlaceholderOnFocus_UxmlAttributeFlags;
 
-		[HideInInspector]
 		[UxmlIgnore]
 		[SerializeField]
+		[HideInInspector]
 		private UxmlAttributeFlags isReadOnly_UxmlAttributeFlags;
 
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		[HideInInspector]
 		private UxmlAttributeFlags isDelayed_UxmlAttributeFlags;
 
-		[UxmlIgnore]
-		[SerializeField]
 		[HideInInspector]
+		[SerializeField]
+		[UxmlIgnore]
 		private protected UxmlAttributeFlags verticalScrollerVisibility_UxmlAttributeFlags;
 
 		[SerializeField]
@@ -113,38 +112,38 @@ public abstract class TextInputBaseField<TValueType> : BaseField<TValueType>, ID
 		private UxmlAttributeFlags selectAllOnMouseUp_UxmlAttributeFlags;
 
 		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
 		private UxmlAttributeFlags selectAllOnFocus_UxmlAttributeFlags;
 
+		[UxmlIgnore]
 		[SerializeField]
 		[HideInInspector]
-		[UxmlIgnore]
 		private UxmlAttributeFlags doubleClickSelectsWord_UxmlAttributeFlags;
 
+		[SerializeField]
 		[UxmlIgnore]
 		[HideInInspector]
-		[SerializeField]
 		private UxmlAttributeFlags tripleClickSelectsLine_UxmlAttributeFlags;
 
-		[SerializeField]
 		[UxmlIgnore]
 		[HideInInspector]
+		[SerializeField]
 		private UxmlAttributeFlags emojiFallbackSupport_UxmlAttributeFlags;
 
-		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags hideMobileInput_UxmlAttributeFlags;
 
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		[HideInInspector]
 		private UxmlAttributeFlags keyboardType_UxmlAttributeFlags;
 
-		[SerializeField]
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
+		[SerializeField]
 		private UxmlAttributeFlags autoCorrection_UxmlAttributeFlags;
 
 		public new static void Register()
@@ -1400,7 +1399,7 @@ public abstract class TextInputBaseField<TValueType> : BaseField<TValueType>, ID
 
 	public Vector2 MeasureTextSize(string textToMeasure, float width, MeasureMode widthMode, float height, MeasureMode heightMode)
 	{
-		return TextUtilities.MeasureVisualElementTextSize(m_TextInputBase.textElement, new RenderedText(textToMeasure), width, widthMode, height, heightMode);
+		return TextUtilities.MeasureVisualElementTextSize(m_TextInputBase.textElement, textToMeasure, width, widthMode, height, heightMode);
 	}
 
 	[EventInterest(new Type[]
@@ -1445,6 +1444,15 @@ public abstract class TextInputBaseField<TValueType> : BaseField<TValueType>, ID
 			}
 			UpdatePlaceholderClassList();
 			textInputBase.UpdateScrollOffset();
+		}
+	}
+
+	public override void SetValueWithoutNotify(TValueType newValue)
+	{
+		base.SetValueWithoutNotify(newValue);
+		if (textInputBase.textElement.needsPlaceholderIfTextIsEmpty && string.IsNullOrEmpty(ValueToString(newValue)))
+		{
+			base.visualInput.AddToClassList(placeholderUssClassName);
 		}
 	}
 

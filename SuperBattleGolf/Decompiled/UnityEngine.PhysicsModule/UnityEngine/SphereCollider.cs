@@ -5,8 +5,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[RequireComponent(typeof(Transform))]
 [NativeHeader("Modules/Physics/SphereCollider.h")]
+[RequireComponent(typeof(Transform))]
 public class SphereCollider : Collider
 {
 	public Vector3 center

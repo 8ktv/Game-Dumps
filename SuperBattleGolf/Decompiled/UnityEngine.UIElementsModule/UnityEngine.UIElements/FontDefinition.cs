@@ -5,6 +5,7 @@ using UnityEngine.TextCore.Text;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct FontDefinition : IEquatable<FontDefinition>
 {
 	internal class PropertyBag : ContainerPropertyBag<FontDefinition>
@@ -50,8 +51,10 @@ public struct FontDefinition : IEquatable<FontDefinition>
 		}
 	}
 
+	[SerializeField]
 	private Font m_Font;
 
+	[SerializeField]
 	private FontAsset m_FontAsset;
 
 	public Font font

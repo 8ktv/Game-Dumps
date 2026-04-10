@@ -62,25 +62,25 @@ public struct ModifiableContactPair
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("Physics::PhysxCompatibility::TranslateTriangleIndex", true)]
+	[FreeFunction("Physics::PhysXGeometryExtension::TranslateTriangleIndex", true)]
 	internal static extern uint TranslateTriangleIndex(IntPtr shapePtr, uint rawIndex);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("Physics::PhysxCompatibility::ResolveShapeToInstanceID", true)]
+	[FreeFunction("Physics::PhysXContactModificationExtension::ResolveShapeToInstanceID", true)]
 	internal static extern int ResolveShapeToInstanceID(IntPtr shapePtr);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("Physics::PhysxCompatibility::ResolveActorToInstanceID", true)]
+	[FreeFunction("Physics::PhysXContactModificationExtension::ResolveActorToInstanceID", true)]
 	internal static extern int ResolveActorToInstanceID(IntPtr actorPtr);
 
-	[FreeFunction("Physics::PhysxCompatibility::GetActorLinearVelocity", true)]
+	[FreeFunction("Physics::PhysXContactModificationExtension::GetActorLinearVelocity", true)]
 	internal static Vector3 GetActorLinearVelocity(IntPtr actorPtr)
 	{
 		GetActorLinearVelocity_Injected(actorPtr, out var ret);
 		return ret;
 	}
 
-	[FreeFunction("Physics::PhysxCompatibility::GetActorAngularVelocity", true)]
+	[FreeFunction("Physics::PhysXContactModificationExtension::GetActorAngularVelocity", true)]
 	internal static Vector3 GetActorAngularVelocity(IntPtr actorPtr)
 	{
 		GetActorAngularVelocity_Injected(actorPtr, out var ret);

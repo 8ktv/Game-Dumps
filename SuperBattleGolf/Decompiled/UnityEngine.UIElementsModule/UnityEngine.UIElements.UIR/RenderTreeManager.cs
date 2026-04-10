@@ -250,19 +250,20 @@ internal class RenderTreeManager : IDisposable
 
 	private VisualChangesProcessor m_VisualChangesProcessor;
 
-	private LinkedPool<RenderChainCommand> m_CommandPool = new LinkedPool<RenderChainCommand>(() => new RenderChainCommand(), null);
+	private LinkedPool<RenderChainCommand> m_CommandPool = new LinkedPool<RenderChainCommand>(() => new RenderChainCommand(), delegate(RenderChainCommand cmd)
+	{
+		cmd.Reset();
+	});
 
 	private LinkedPool<ExtraRenderData> m_ExtraDataPool = new LinkedPool<ExtraRenderData>(() => new ExtraRenderData(), null);
 
 	private BasicNodePool<MeshHandle> m_MeshHandleNodePool = new BasicNodePool<MeshHandle>();
 
-	private BasicNodePool<TextureEntry> m_TexturePool = new BasicNodePool<TextureEntry>();
+	private BasicNodePool<GraphicEntry> m_GraphicEntryPool = new BasicNodePool<GraphicEntry>();
 
 	private Dictionary<RenderData, ExtraRenderData> m_ExtraData = new Dictionary<RenderData, ExtraRenderData>();
 
 	internal List<ElementInsertionData> m_InsertionList = new List<ElementInsertionData>(1024);
-
-	private HashSet<UIRenderer> m_RenderersToReset = new HashSet<UIRenderer>();
 
 	private MeshGenerationDeferrer m_MeshGenerationDeferrer = new MeshGenerationDeferrer();
 
@@ -301,6 +302,8 @@ internal class RenderTreeManager : IDisposable
 	public OpacityIdAccelerator opacityIdAccelerator { get; private set; }
 
 	private bool blockDirtyRegistration { get; set; }
+
+	public TextureSlotCount textureSlotCount { get; set; } = TextureSlotCount.Eight;
 
 	protected bool disposed { get; private set; }
 
@@ -395,30 +398,19 @@ internal class RenderTreeManager : IDisposable
 		meshGenerationNodeManager = new MeshGenerationNodeManager(entryRecorder);
 		m_VisualChangesProcessor = new VisualChangesProcessor(this);
 		ColorSpace activeColorSpace = QualitySettings.activeColorSpace;
+		m_DefaultMat = Shaders.defaultMaterial;
 		if (panel.contextType == ContextType.Player)
 		{
 			BaseRuntimePanel baseRuntimePanel = (BaseRuntimePanel)panel;
 			drawInCameras = baseRuntimePanel.drawsInCameras;
-			if (drawInCameras)
+			if (!drawInCameras && activeColorSpace == ColorSpace.Linear)
 			{
-				m_DefaultMat = Shaders.runtimeWorldMaterial;
-			}
-			else
-			{
-				m_DefaultMat = Shaders.runtimeMaterial;
-				if (activeColorSpace == ColorSpace.Linear)
-				{
-					forceGammaRendering = panel.panelRenderer.forceGammaRendering;
-				}
+				forceGammaRendering = panel.panelRenderer.forceGammaRendering;
 			}
 		}
-		else
+		else if (activeColorSpace == ColorSpace.Linear)
 		{
-			if (activeColorSpace == ColorSpace.Linear)
-			{
-				forceGammaRendering = true;
-			}
-			m_DefaultMat = Shaders.editorMaterial;
+			forceGammaRendering = true;
 		}
 		isFlat = panel.isFlat;
 		device = new UIRenderDevice(panel.panelRenderer.vertexBudget, 0u, isFlat, forceGammaRendering);
@@ -532,47 +524,14 @@ internal class RenderTreeManager : IDisposable
 	private void SerializeRootTreeCommands()
 	{
 		Debug.Assert(drawInCameras);
-		if (m_RootRenderTree?.firstCommand == null)
+		if (m_RootRenderTree?.firstCommand != null)
 		{
-			return;
+			Exception immediateException = null;
+			m_BlockDirtyRegistration = true;
+			device.EvaluateChain(m_RootRenderTree.firstCommand, m_DefaultMat, vectorImageManager?.atlas, shaderInfoAllocator.atlas, null, panel.scaledPixelsPerPoint, isSerializing: true, textureSlotCount, isRenderingNestedTreeRT: false, ref immediateException);
+			m_BlockDirtyRegistration = false;
+			Debug.Assert(immediateException == null);
 		}
-		Exception immediateException = null;
-		m_BlockDirtyRegistration = true;
-		device.EvaluateChain(m_RootRenderTree.firstCommand, m_DefaultMat, m_DefaultMat, vectorImageManager?.atlas, shaderInfoAllocator.atlas, null, panel.scaledPixelsPerPoint, isSerializing: true, ref immediateException);
-		m_BlockDirtyRegistration = false;
-		List<CommandList> list = device?.currentFrameCommandLists;
-		if (drawInCameras && list != null)
-		{
-			for (int i = 0; i < device.currentFrameCommandListCount; i++)
-			{
-				CommandList commandList = list[i];
-				if (commandList.m_Owner.isWorldSpaceRootUIDocument)
-				{
-					UIDocumentRootElement uIDocumentRootElement = commandList.m_Owner as UIDocumentRootElement;
-					Debug.Assert(rootRenderTree != null);
-					UIRenderer uiRenderer = uIDocumentRootElement.uiRenderer;
-					if (!m_RenderersToReset.Contains(uiRenderer))
-					{
-						uiRenderer.ResetDrawCallData();
-						m_RenderersToReset.Add(uiRenderer);
-					}
-				}
-			}
-			for (int j = 0; j < device.currentFrameCommandListCount; j++)
-			{
-				CommandList commandList2 = list[j];
-				UIRenderer uiRenderer2 = (commandList2.m_Owner as UIDocumentRootElement).uiRenderer;
-				if (uiRenderer2 != null)
-				{
-					List<CommandList>[] array = (uiRenderer2.commandLists = device.commandLists);
-					int safeFrameIndex = (int)device.frameIndex % array.Length;
-					uiRenderer2.AddDrawCallData(safeFrameIndex, j, commandList2.m_Material);
-				}
-			}
-			m_RenderersToReset.Clear();
-		}
-		device.SynchronizeMaterials();
-		Debug.Assert(immediateException == null);
 	}
 
 	public void RenderRootTree()
@@ -585,7 +544,7 @@ internal class RenderTreeManager : IDisposable
 			color = color.RGBMultiplied(color.a);
 			GL.Clear(clearSettings.clearDepthStencil, clearSettings.clearColor, color, 0.99f);
 		}
-		RenderSingleTree(m_RootRenderTree, null, RectInt.zero);
+		RenderSingleTree(m_RootRenderTree, null, RectInt.zero, Rect.zero);
 		if (drawStats)
 		{
 			DrawStats();
@@ -597,7 +556,7 @@ internal class RenderTreeManager : IDisposable
 		m_Compositor.RenderNestedPasses();
 	}
 
-	public void RenderSingleTree(RenderTree renderTree, RenderTexture nestedTreeRT, RectInt nestedTreeViewport)
+	public void RenderSingleTree(RenderTree renderTree, RenderTexture nestedTreeRT, RectInt nestedTreeViewport, Rect bounds)
 	{
 		Debug.Assert(!drawInCameras || renderTree != m_RootRenderTree);
 		if (renderTree.firstCommand == null)
@@ -607,38 +566,33 @@ internal class RenderTreeManager : IDisposable
 		Exception immediateException = null;
 		bool flag = false;
 		RenderTexture active = null;
-		Rect rect;
+		float pixelsPerPoint = panel.scaledPixelsPerPoint;
+		Rect value;
 		if (renderTree == m_RootRenderTree)
 		{
 			Debug.Assert(nestedTreeRT == null);
-			rect = panel.visualTree.layout;
+			Rect layout = panel.visualTree.layout;
+			value = new Rect(0f, 0f, layout.width, layout.height);
+			bounds = layout;
 		}
 		else
 		{
 			Debug.Assert(nestedTreeRT != null);
-			rect = UIRUtility.CastToRect(nestedTreeViewport);
 			active = RenderTexture.active;
 			Camera.SetupCurrent(null);
 			RenderTexture.active = nestedTreeRT;
 			flag = true;
-			GL.Viewport(new Rect(0f, 0f, rect.width, rect.height));
-			GL.Clear(clearDepth: true, clearColor: true, Color.clear, 0.99f);
+			pixelsPerPoint = 1f;
+			Rect rect = UIRUtility.CastToRect(nestedTreeViewport);
+			value = rect;
+			value.y = value.height - value.yMax;
+			GL.Viewport(rect);
 		}
-		if (forceGammaRendering)
-		{
-			m_DefaultMat.EnableKeyword(Shaders.k_ForceGammaKeyword);
-		}
-		else
-		{
-			m_DefaultMat.DisableKeyword(Shaders.k_ForceGammaKeyword);
-		}
-		m_DefaultMat.SetPass(0);
-		Matrix4x4 mat = ProjectionUtils.Ortho(rect.xMin, rect.xMax, rect.yMax, rect.yMin, -0.001f, 1.001f);
+		Matrix4x4 mat = ProjectionUtils.Ortho(bounds.xMin, bounds.xMax, bounds.yMax, bounds.yMin, -0.001f, 1.001f);
 		GL.LoadProjectionMatrix(mat);
 		GL.modelview = Matrix4x4.identity;
-		Rect value = new Rect(0f, 0f, rect.width, rect.height);
 		m_BlockDirtyRegistration = drawInCameras;
-		device.EvaluateChain(renderTree.firstCommand, m_DefaultMat, m_DefaultMat, vectorImageManager?.atlas, shaderInfoAllocator.atlas, value, panel.scaledPixelsPerPoint, isSerializing: false, ref immediateException);
+		device.EvaluateChain(renderTree.firstCommand, m_DefaultMat, vectorImageManager?.atlas, shaderInfoAllocator.atlas, value, pixelsPerPoint, isSerializing: false, textureSlotCount, nestedTreeRT != null, ref immediateException);
 		m_BlockDirtyRegistration = false;
 		Utility.DisableScissor();
 		if (flag)
@@ -845,7 +799,7 @@ internal class RenderTreeManager : IDisposable
 
 	private void DepthFirstRepaintTextured(RenderData renderData)
 	{
-		if (renderData.textures != null)
+		if (renderData.graphicEntries != null)
 		{
 			UIEOnVisualsChanged(renderData.owner, hierarchical: false);
 		}
@@ -906,32 +860,48 @@ internal class RenderTreeManager : IDisposable
 
 	public void InsertTexture(RenderData renderData, Texture src, TextureId id, bool isAtlas)
 	{
-		BasicNode<TextureEntry> basicNode = m_TexturePool.Get();
+		BasicNode<GraphicEntry> basicNode = m_GraphicEntryPool.Get();
 		basicNode.data.source = src;
 		basicNode.data.actual = id;
 		basicNode.data.replaced = isAtlas;
-		basicNode.InsertFirst(ref renderData.textures);
+		basicNode.InsertFirst(ref renderData.graphicEntries);
 	}
 
-	public void ResetTextures(RenderData renderData)
+	public void InsertVectorImage(RenderData renderData, VectorImage vi)
+	{
+		BasicNode<GraphicEntry> basicNode = m_GraphicEntryPool.Get();
+		basicNode.data.vectorImage = vi;
+		basicNode.InsertFirst(ref renderData.graphicEntries);
+	}
+
+	public void ResetGraphicEntries(RenderData renderData)
 	{
 		AtlasBase atlasBase = atlas;
 		TextureRegistry textureRegistry = m_TextureRegistry;
-		BasicNodePool<TextureEntry> texturePool = m_TexturePool;
-		BasicNode<TextureEntry> basicNode = renderData.textures;
-		renderData.textures = null;
+		BasicNodePool<GraphicEntry> graphicEntryPool = m_GraphicEntryPool;
+		BasicNode<GraphicEntry> basicNode = renderData.graphicEntries;
+		renderData.graphicEntries = null;
 		while (basicNode != null)
 		{
-			BasicNode<TextureEntry> next = basicNode.next;
-			if (basicNode.data.replaced)
+			BasicNode<GraphicEntry> next = basicNode.next;
+			if (basicNode.data.vectorImage != null)
 			{
-				atlasBase.ReturnAtlas(renderData.owner, basicNode.data.source as Texture2D, basicNode.data.actual);
+				vectorImageManager.RemoveUser(basicNode.data.vectorImage);
+				basicNode.data.vectorImage = null;
 			}
 			else
 			{
-				textureRegistry.Release(basicNode.data.actual);
+				if (basicNode.data.replaced)
+				{
+					atlasBase.ReturnAtlas(renderData.owner, basicNode.data.source as Texture2D, basicNode.data.actual);
+				}
+				else
+				{
+					textureRegistry.Release(basicNode.data.actual);
+				}
+				basicNode.data.source = null;
 			}
-			texturePool.Return(basicNode);
+			graphicEntryPool.Return(basicNode);
 			basicNode = next;
 		}
 	}

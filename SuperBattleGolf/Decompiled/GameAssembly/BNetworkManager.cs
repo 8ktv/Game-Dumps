@@ -38,6 +38,8 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 
 	public const string steamLobbyCourseKey = "currentCourse";
 
+	public const string steamLobbyRulesKey = "currentRules";
+
 	public const string steamLobbyCourseProgressKey = "currentCourseProgress";
 
 	public const string steamLobbyCourseLengthKey = "currentCourseLength";
@@ -45,6 +47,8 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 	public const string steamLobbyPasswordRequired = "sbg_passwordRequired";
 
 	public const string steamLobbyModeKey = "sbg_lobbyMode";
+
+	public const string steamLobbyGameVersionKey = "sbg_version";
 
 	public const int defaultMaxPlayers = 16;
 
@@ -806,6 +810,10 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 		{
 			LoadingScreen.Show();
 		}
+		else
+		{
+			LoadingScreen.Hide();
+		}
 		if (base.mode == NetworkManagerMode.ServerOnly)
 		{
 			StopServer();
@@ -839,6 +847,29 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 					return;
 				}
 			}
+			if (TryGetSteamLobby(out var lobby) && ulong.TryParse(lobbyId, out var result) && lobby.Id.Value == result)
+			{
+				FullScreenMessage.Show(Localization.UI.MESSAGE_AlreadyInLobby, new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Ok, FullScreenMessage.Hide));
+				return;
+			}
+			LobbyLeft += OnLeftLobbyFromElsewhere;
+			FullScreenMessage.Show(NetworkServer.active ? Localization.UI.MESSAGE_ConfirmChangeLobbyHost : Localization.UI.MESSAGE_ConfirmChangeLobbyClient, new FullScreenMessage.ButtonEntry(Localization.UI.MESSAGE_ConfirmChangeLobbyButton, ConnectFromMainMenu), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Cancel, CancelConnectFromMainMenu, cancel: true));
+		}
+		else
+		{
+			SteamLobbyIdToConnectToFromMainMenu = null;
+			singleton.SetTransport(TransportType.Steam);
+			ConnectToServer(lobbyId);
+		}
+		static void CancelConnectFromMainMenu()
+		{
+			LobbyLeft -= OnLeftLobbyFromElsewhere;
+			FullScreenMessage.Hide();
+		}
+		void ConnectFromMainMenu()
+		{
+			LobbyLeft -= OnLeftLobbyFromElsewhere;
+			FullScreenMessage.Hide();
 			SteamLobbyIdToConnectToFromMainMenu = lobbyId;
 			if (NetworkServer.activeHost)
 			{
@@ -853,11 +884,10 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 				singleton.StopClient();
 			}
 		}
-		else
+		static void OnLeftLobbyFromElsewhere()
 		{
-			SteamLobbyIdToConnectToFromMainMenu = null;
-			singleton.SetTransport(TransportType.Steam);
-			ConnectToServer(lobbyId);
+			LobbyLeft -= OnLeftLobbyFromElsewhere;
+			FullScreenMessage.Hide();
 		}
 	}
 
@@ -983,8 +1013,10 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 			ServerUpdateCurrentPlayerCount();
 			ServerUpdatePasswordRequired();
 			ServerUpdateCourseProgress();
+			ServerUpdateRules();
 			steamLobby.Value.SetData("lobbyName", LobbyName);
 			steamLobby.Value.SetData("maxPlayers", MaxPlayers.ToString());
+			steamLobby.Value.SetData("sbg_version", Application.version);
 			if (setLobbyPingLocationCancellationTokenSource != null)
 			{
 				setLobbyPingLocationCancellationTokenSource.Cancel();
@@ -1097,6 +1129,16 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 	public static bool TryGetSteamLobby(out Lobby lobby)
 	{
 		lobby = default(Lobby);
+		if (!IsSteamLobbyValid())
+		{
+			return false;
+		}
+		lobby = steamLobby.Value;
+		return true;
+	}
+
+	public static bool IsSteamLobbyValid()
+	{
 		if (!steamLobby.HasValue)
 		{
 			return false;
@@ -1105,7 +1147,6 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 		{
 			return false;
 		}
-		lobby = steamLobby.Value;
 		return true;
 	}
 
@@ -1237,23 +1278,19 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 		}
 	}
 
+	public void ServerUpdateRules()
+	{
+		if (CanSetLobbyValue())
+		{
+			steamLobby.Value.SetData("currentRules", SingletonNetworkBehaviour<MatchSetupRules>.Instance.CurrentPreset.ToString());
+		}
+	}
+
 	public void ServerUpdateCourseProgress()
 	{
 		if (CanSetLobbyValue())
 		{
-			string text;
-			if (SingletonBehaviour<DrivingRangeManager>.HasInstance)
-			{
-				text = "DrivingRange";
-			}
-			else
-			{
-				Locale locale = LocalizationSettings.AvailableLocales.GetLocale("keys");
-				LocalizedString currentCourseLocalizedName = CourseManager.GetCurrentCourseLocalizedName();
-				currentCourseLocalizedName = new LocalizedString(currentCourseLocalizedName.TableReference, currentCourseLocalizedName.TableEntryReference);
-				currentCourseLocalizedName.LocaleOverride = locale;
-				text = currentCourseLocalizedName.GetLocalizedString();
-			}
+			string text = (SingletonBehaviour<DrivingRangeManager>.HasInstance ? "DrivingRange" : ((!SingletonNetworkBehaviour<MatchSetupMenu>.Instance.randomEnabled) ? GetLocalizedKey(CourseManager.GetCurrentCourseLocalizedName()) : GetLocalizedKey(Localization.UI.MATCHSETUP_Courses_Random_Ref)));
 			steamLobby.Value.SetData("currentCourse", text);
 			if (SingletonBehaviour<DrivingRangeManager>.HasInstance)
 			{
@@ -1267,6 +1304,14 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 			}
 			Debug.Log("UPDATE COURSE " + text);
 		}
+	}
+
+	private string GetLocalizedKey(LocalizedString locName)
+	{
+		Locale locale = LocalizationSettings.AvailableLocales.GetLocale("keys");
+		locName = new LocalizedString(locName.TableReference, locName.TableEntryReference);
+		locName.LocaleOverride = locale;
+		return locName.GetLocalizedString();
 	}
 
 	private bool CanSetLobbyValue()
@@ -1290,11 +1335,19 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 
 	public void ServerKickConnection(NetworkConnectionToClient connection)
 	{
-		if (authenticator is BClientAuthenticator bClientAuthenticator && ServerTryGetPlayerGuidFromConnection(connection, out var playerGuid))
+		if (ServerTryGetPlayerGuidFromConnection(connection, out var playerGuid))
+		{
+			BanPlayerGuidThisSession(playerGuid);
+		}
+		ServerDisconnectClientWithMessage(connection, DisconnectReason.KickedFromLobby);
+	}
+
+	public void BanPlayerGuidThisSession(ulong playerGuid)
+	{
+		if (authenticator is BClientAuthenticator bClientAuthenticator)
 		{
 			bClientAuthenticator.playersKickedThisSession.Add(playerGuid);
 		}
-		ServerDisconnectClientWithMessage(connection, DisconnectReason.KickedFromLobby);
 	}
 
 	private void ClientDisconnectWithMessage(DisconnectReason reason)
@@ -1340,9 +1393,9 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 			}
 			address = steamLobby.Value.Owner.Id.ToString();
 		}
-		FullScreenMessage.Hide();
 		if (connectionCanceledByPlayer)
 		{
+			FullScreenMessage.Hide();
 			return;
 		}
 		try
@@ -1359,6 +1412,12 @@ public class BNetworkManager : NetworkManager, IBUpdateCallback, IAnyBUpdateCall
 		finally
 		{
 			InputManager.DisableMode(InputMode.ForceDisabled);
+		}
+		if (connectionCanceledByPlayer)
+		{
+			singleton.LeaveSteamLobby();
+			LoadingScreen.Hide();
+			return;
 		}
 		singleton.networkAddress = address;
 		singleton.StartClient();

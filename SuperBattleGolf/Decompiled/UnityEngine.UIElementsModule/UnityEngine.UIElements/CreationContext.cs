@@ -48,6 +48,8 @@ public struct CreationContext : IEquatable<CreationContext>
 		get;
 		private set; }
 
+	internal TemplateAsset templateAsset { get; private set; }
+
 	public VisualTreeAsset visualTreeAsset { get; private set; }
 
 	public Dictionary<string, VisualElement> slotInsertionPoints { get; private set; }
@@ -88,6 +90,7 @@ public struct CreationContext : IEquatable<CreationContext>
 	{
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal CreationContext(Dictionary<string, VisualElement> slotInsertionPoints, List<AttributeOverrideRange> attributeOverrides)
 		: this(slotInsertionPoints, attributeOverrides, null, null)
 	{
@@ -100,12 +103,12 @@ public struct CreationContext : IEquatable<CreationContext>
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal CreationContext(Dictionary<string, VisualElement> slotInsertionPoints, List<AttributeOverrideRange> attributeOverrides, VisualTreeAsset vta, VisualElement target)
-		: this(slotInsertionPoints, attributeOverrides, null, vta, target, null, null)
+		: this(slotInsertionPoints, attributeOverrides, null, vta, target, null, null, null)
 	{
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
-	internal CreationContext(Dictionary<string, VisualElement> slotInsertionPoints, List<AttributeOverrideRange> attributeOverrides, List<SerializedDataOverrideRange> serializedDataOverrides, VisualTreeAsset vta, VisualElement target, List<int> veaIdsPath, List<string> namesPath)
+	internal CreationContext(Dictionary<string, VisualElement> slotInsertionPoints, List<AttributeOverrideRange> attributeOverrides, List<SerializedDataOverrideRange> serializedDataOverrides, VisualTreeAsset vta, VisualElement target, List<int> veaIdsPath, List<string> namesPath, TemplateAsset ta)
 	{
 		this.target = target;
 		this.slotInsertionPoints = slotInsertionPoints;
@@ -114,6 +117,7 @@ public struct CreationContext : IEquatable<CreationContext>
 		visualTreeAsset = vta;
 		this.namesPath = namesPath;
 		this.veaIdsPath = veaIdsPath;
+		templateAsset = ta;
 	}
 
 	public override bool Equals(object obj)

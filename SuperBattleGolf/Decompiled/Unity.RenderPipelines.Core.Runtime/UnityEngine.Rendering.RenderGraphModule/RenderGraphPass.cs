@@ -45,6 +45,8 @@ internal abstract class RenderGraphPass
 
 	public bool enableFoveatedRasterization { get; protected set; }
 
+	public ExtendedFeatureFlags extendedFeatureFlags { get; protected set; }
+
 	public TextureAccess depthAccess { get; protected set; }
 
 	public TextureAccess[] colorBufferAccess { get; protected set; } = new TextureAccess[RenderGraph.kMaxMRTCount];
@@ -259,7 +261,7 @@ internal abstract class RenderGraphPass
 	public void SetColorBuffer(in TextureHandle resource, int index)
 	{
 		colorBufferMaxIndex = Math.Max(colorBufferMaxIndex, index);
-		colorBufferAccess[index] = new TextureAccess(colorBufferAccess[index], resource);
+		colorBufferAccess[index] = new TextureAccess(in colorBufferAccess[index], in resource);
 		AddResourceWrite(in resource.handle);
 	}
 
@@ -269,7 +271,7 @@ internal abstract class RenderGraphPass
 		if (colorBufferAccess[index].textureHandle.handle.Equals(resource.handle) || !colorBufferAccess[index].textureHandle.IsValid())
 		{
 			colorBufferMaxIndex = Math.Max(colorBufferMaxIndex, index);
-			colorBufferAccess[index] = new TextureAccess(resource, accessFlags, mipLevel, depthSlice);
+			colorBufferAccess[index] = new TextureAccess(in resource, accessFlags, mipLevel, depthSlice);
 		}
 	}
 
@@ -279,7 +281,7 @@ internal abstract class RenderGraphPass
 		if (fragmentInputAccess[index].textureHandle.handle.Equals(resource.handle) || !fragmentInputAccess[index].textureHandle.IsValid())
 		{
 			fragmentInputMaxIndex = Math.Max(fragmentInputMaxIndex, index);
-			fragmentInputAccess[index] = new TextureAccess(resource, accessFlags, mipLevel, depthSlice);
+			fragmentInputAccess[index] = new TextureAccess(in resource, accessFlags, mipLevel, depthSlice);
 		}
 	}
 
@@ -294,13 +296,13 @@ internal abstract class RenderGraphPass
 			reference.preserveCounterValue = preserveCounterValue;
 			return;
 		}
-		throw new InvalidOperationException("You can only bind a single texture to an random write input index. Verify your indexes are correct.");
+		throw new InvalidOperationException($"In pass '{name}' when trying to call SetRandomAccessAttachment/UseBufferRandomAccess with resource of type {resource.type} at index {index} - " + "You can only bind a single texture to a random write input index. Verify your indexes are correct.");
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void SetDepthBuffer(in TextureHandle resource, DepthAccess flags)
 	{
-		depthAccess = new TextureAccess(resource, (AccessFlags)flags, 0, 0);
+		depthAccess = new TextureAccess(in resource, (AccessFlags)flags, 0, 0);
 		if ((flags & DepthAccess.Read) != 0)
 		{
 			AddResourceRead(in resource.handle);
@@ -316,7 +318,7 @@ internal abstract class RenderGraphPass
 	{
 		if (depthAccess.textureHandle.handle.Equals(resource.handle) || !depthAccess.textureHandle.IsValid())
 		{
-			depthAccess = new TextureAccess(resource, accessFlags, mipLevel, depthSlice);
+			depthAccess = new TextureAccess(in resource, accessFlags, mipLevel, depthSlice);
 		}
 	}
 
@@ -383,7 +385,7 @@ internal abstract class RenderGraphPass
 		}
 		else
 		{
-			TextureDesc textureResourceDesc = resources.GetTextureResourceDesc(in handle);
+			ref readonly TextureDesc textureResourceDesc = ref resources.GetTextureResourceDesc(in handle);
 			int input = (int)textureResourceDesc.format;
 			generator.Append(in input);
 			input = (int)textureResourceDesc.dimension;
@@ -524,12 +526,21 @@ internal abstract class RenderGraphPass
 		generator.Append(GetRenderFuncHash());
 	}
 
+	public void SetShadingRateImageRaw(in TextureHandle shadingRateImage)
+	{
+		if (ShadingRateInfo.supportsPerImageTile)
+		{
+			hasShadingRateImage = true;
+			shadingRateAccess = new TextureAccess(in shadingRateImage, AccessFlags.Read, 0, 0);
+		}
+	}
+
 	public void SetShadingRateImage(in TextureHandle shadingRateImage, AccessFlags accessFlags, int mipLevel, int depthSlice)
 	{
 		if (ShadingRateInfo.supportsPerImageTile)
 		{
 			hasShadingRateImage = true;
-			shadingRateAccess = new TextureAccess(shadingRateImage, accessFlags, mipLevel, depthSlice);
+			shadingRateAccess = new TextureAccess(in shadingRateImage, accessFlags, mipLevel, depthSlice);
 			TextureAccess textureAccess = shadingRateAccess;
 			AddResourceRead(in textureAccess.textureHandle.handle);
 		}
@@ -561,8 +572,14 @@ internal abstract class RenderGraphPass
 			}
 		}
 	}
+
+	public void SetExtendedFeatureFlags(ExtendedFeatureFlags value)
+	{
+		extendedFeatureFlags |= value;
+	}
 }
 [DebuggerDisplay("RenderPass: {name} (Index:{index} Async:{enableAsyncCompute})")]
+[Obsolete("RenderGraphPass is deprecated, use RasterRenderGraphPass/ComputeRenderGraphPass/UnsafeRenderGraphPass instead.")]
 internal sealed class RenderGraphPass<PassData> : BaseRenderGraphPass<PassData, RenderGraphContext> where PassData : class, new()
 {
 	internal static RenderGraphContext c;

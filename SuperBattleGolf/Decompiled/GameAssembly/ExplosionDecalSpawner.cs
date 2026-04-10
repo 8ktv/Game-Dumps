@@ -3,6 +3,9 @@ using UnityEngine;
 public class ExplosionDecalSpawner : MonoBehaviour
 {
 	[SerializeField]
+	private VfxType vfxType = VfxType.ExplosionDecal;
+
+	[SerializeField]
 	private ItemSettings itemSettings;
 
 	[SerializeField]
@@ -49,12 +52,13 @@ public class ExplosionDecalSpawner : MonoBehaviour
 			ItemType.RocketLauncher => itemSettings.RocketExplosionRange, 
 			ItemType.Landmine => itemSettings.LandmineExplosionRange, 
 			ItemType.OrbitalLaser => itemSettings.OrbitalLaserExplosionMaxRange, 
+			ItemType.FreezeBomb => itemSettings.FreezeBombExplosionRange, 
 			_ => 0f, 
 		};
 	}
 
 	private void SpawnDecal(float terrainWorldHeight, float explosionRange)
 	{
-		VfxManager.PlayPooledVfxLocalOnly(VfxType.ExplosionDecal, new Vector3(base.transform.position.x, terrainWorldHeight, base.transform.position.z), Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), Vector3.one * explosionRange);
+		VfxManager.PlayPooledVfxLocalOnly(vfxType, new Vector3(base.transform.position.x, terrainWorldHeight, base.transform.position.z), Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), Vector3.one * explosionRange);
 	}
 }

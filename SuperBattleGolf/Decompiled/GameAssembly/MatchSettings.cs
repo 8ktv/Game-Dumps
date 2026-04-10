@@ -21,18 +21,17 @@ public class MatchSettings : ScriptableObject
 		}
 	}
 
-	[SerializeField]
-	[ElementName("Elimination")]
-	public EliminationSettings[] eliminations;
+	[Serializable]
+	public struct ComebackBonus
+	{
+		public int MinPointsGap;
 
-	[SerializeField]
-	public EliminationSettings defaultEliminationSettings;
+		public float BonusMultiplier;
+	}
 
 	[SerializeField]
 	[ElementName("Time")]
 	private List<ParSpeedrunTime> speedrunTimes;
-
-	private readonly Dictionary<EliminationReason, EliminationSettings> eliminationSettings = new Dictionary<EliminationReason, EliminationSettings>();
 
 	[field: SerializeField]
 	public float HoleOverviewInitialBlankDuration { get; private set; }
@@ -119,6 +118,12 @@ public class MatchSettings : ScriptableObject
 	[field: SerializeField]
 	public int KnockoutScore { get; private set; }
 
+	[field: SerializeField]
+	public ComebackBonus LowerComebackBonus { get; private set; }
+
+	[field: SerializeField]
+	public ComebackBonus UpperComebackBonus { get; private set; }
+
 	public float HoleOverviewFlyOverToTeeDuration { get; private set; }
 
 	private void OnValidate()
@@ -133,12 +138,6 @@ public class MatchSettings : ScriptableObject
 
 	private void Initialize()
 	{
-		this.eliminationSettings.Clear();
-		EliminationSettings[] array = eliminations;
-		foreach (EliminationSettings eliminationSettings in array)
-		{
-			this.eliminationSettings.Add(eliminationSettings.Reason, eliminationSettings);
-		}
 		speedrunTimes.Sort();
 		HoleOverviewFlyOverToTeeDuration = HoleOverviewFlyOverToTeeCurve.keys[^1].time;
 	}
@@ -158,14 +157,5 @@ public class MatchSettings : ScriptableObject
 		}
 		List<ParSpeedrunTime> list = speedrunTimes;
 		return list[list.Count - 1].speedrunTime;
-	}
-
-	public EliminationSettings GetEliminationSettings(EliminationReason reason)
-	{
-		if (eliminationSettings.TryGetValue(reason, out var value))
-		{
-			return value;
-		}
-		return defaultEliminationSettings;
 	}
 }

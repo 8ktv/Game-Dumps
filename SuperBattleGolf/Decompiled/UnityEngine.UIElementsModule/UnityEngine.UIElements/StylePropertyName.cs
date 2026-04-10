@@ -48,7 +48,11 @@ public struct StylePropertyName : IEquatable<StylePropertyName>
 		}
 	}
 
-	internal StylePropertyId id { get; }
+	internal StylePropertyId id
+	{
+		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+		get;
+	}
 
 	private string name { get; }
 
@@ -62,6 +66,7 @@ public struct StylePropertyName : IEquatable<StylePropertyName>
 		return StylePropertyId.Unknown;
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal StylePropertyName(StylePropertyId stylePropertyId)
 	{
 		id = stylePropertyId;

@@ -20,7 +20,7 @@ public class LobbyEntryUi : MonoBehaviour
 	private TextMeshProUGUI pingLabel;
 
 	[SerializeField]
-	private TextMeshProUGUI modeLabel;
+	private TextMeshProUGUI rulesLabel;
 
 	[SerializeField]
 	private TextMeshProUGUI courseLabel;
@@ -68,7 +68,7 @@ public class LobbyEntryUi : MonoBehaviour
 	{
 		lobbyNameLabel.text = GameManager.RichTextNoParse(lobby.GetName(filterProfanity: true));
 		playerCountLabel.text = lobby.GetCurrentPlayerCount() + "/" + lobby.GetMaxPlayers();
-		modeLabel.text = Localization.UI.MATCHSETUP_Option_Mode_FFA;
+		rulesLabel.text = lobby.GetRuleString();
 		lobby.GetCourseInfo(out var info, out var isOnDrivingRange);
 		inProgressIcon.SetActive(!isOnDrivingRange);
 		passwordIcon.SetActive(lobby.RequiresPassword());

@@ -106,7 +106,7 @@ internal class RenderersBatchersContext : IDisposable
 
 	public void Dispose()
 	{
-		NativeArray<int>.ReadOnly source = m_InstanceDataSystem.sharedInstanceData.rendererGroupIDs;
+		NativeArray<EntityId>.ReadOnly source = m_InstanceDataSystem.sharedInstanceData.rendererGroupIDs;
 		if (source.Length > 0)
 		{
 			m_GPUDrivenProcessor.DisableGPUDrivenRendering(source);
@@ -185,7 +185,7 @@ internal class RenderersBatchersContext : IDisposable
 		m_LODGroupDataPool.UpdateLODGroupTransformData(in lodGroupData);
 	}
 
-	public void DestroyLODGroups(NativeArray<int> destroyed)
+	public void DestroyLODGroups(NativeArray<EntityId> destroyed)
 	{
 		if (destroyed.Length != 0)
 		{
@@ -193,7 +193,7 @@ internal class RenderersBatchersContext : IDisposable
 		}
 	}
 
-	public void UpdateLODGroups(NativeArray<int> changedID)
+	public void UpdateLODGroups(NativeArray<EntityId> changedID)
 	{
 		if (changedID.Length != 0)
 		{
@@ -212,7 +212,7 @@ internal class RenderersBatchersContext : IDisposable
 		return m_InstanceDataSystem.ScheduleUpdateInstanceDataJob(instances, in rendererData, m_LODGroupDataPool.lodGroupDataHash);
 	}
 
-	public void FreeRendererGroupInstances(NativeArray<int> rendererGroupsID)
+	public void FreeRendererGroupInstances(NativeArray<EntityId> rendererGroupsID)
 	{
 		m_InstanceDataSystem.FreeRendererGroupInstances(rendererGroupsID);
 	}
@@ -222,22 +222,22 @@ internal class RenderersBatchersContext : IDisposable
 		m_InstanceDataSystem.FreeInstances(instances);
 	}
 
-	public JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<int> rendererGroupIDs, NativeArray<InstanceHandle> instances)
+	public JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<EntityId> rendererGroupIDs, NativeArray<InstanceHandle> instances)
 	{
 		return m_InstanceDataSystem.ScheduleQueryRendererGroupInstancesJob(rendererGroupIDs, instances);
 	}
 
-	public JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<int> rendererGroupIDs, NativeList<InstanceHandle> instances)
+	public JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<EntityId> rendererGroupIDs, NativeList<InstanceHandle> instances)
 	{
 		return m_InstanceDataSystem.ScheduleQueryRendererGroupInstancesJob(rendererGroupIDs, instances);
 	}
 
-	public JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<int> rendererGroupIDs, NativeArray<int> instancesOffset, NativeArray<int> instancesCount, NativeList<InstanceHandle> instances)
+	public JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<EntityId> rendererGroupIDs, NativeArray<int> instancesOffset, NativeArray<int> instancesCount, NativeList<InstanceHandle> instances)
 	{
 		return m_InstanceDataSystem.ScheduleQueryRendererGroupInstancesJob(rendererGroupIDs, instancesOffset, instancesCount, instances);
 	}
 
-	public JobHandle ScheduleQueryMeshInstancesJob(NativeArray<int> sortedMeshIDs, NativeList<InstanceHandle> instances)
+	public JobHandle ScheduleQueryMeshInstancesJob(NativeArray<EntityId> sortedMeshIDs, NativeList<InstanceHandle> instances)
 	{
 		return m_InstanceDataSystem.ScheduleQuerySortedMeshInstancesJob(sortedMeshIDs, instances);
 	}
@@ -305,7 +305,7 @@ internal class RenderersBatchersContext : IDisposable
 		ChangeInstanceBufferVersion();
 	}
 
-	public void TransformLODGroups(NativeArray<int> lodGroupsID)
+	public void TransformLODGroups(NativeArray<EntityId> lodGroupsID)
 	{
 		if (lodGroupsID.Length != 0)
 		{
@@ -323,9 +323,9 @@ internal class RenderersBatchersContext : IDisposable
 		return m_InstanceDataSystem.ScheduleCollectInstancesLODGroupAndMasksJob(instances, lodGroupAndMasks);
 	}
 
-	public InstanceHandle GetRendererInstanceHandle(int rendererID)
+	public InstanceHandle GetRendererInstanceHandle(EntityId rendererID)
 	{
-		NativeArray<int> rendererGroupIDs = new NativeArray<int>(1, Allocator.TempJob);
+		NativeArray<EntityId> rendererGroupIDs = new NativeArray<EntityId>(1, Allocator.TempJob);
 		NativeArray<InstanceHandle> instances = new NativeArray<InstanceHandle>(1, Allocator.TempJob);
 		rendererGroupIDs[0] = rendererID;
 		m_InstanceDataSystem.ScheduleQueryRendererGroupInstancesJob(rendererGroupIDs, instances).Complete();
@@ -354,12 +354,12 @@ internal class RenderersBatchersContext : IDisposable
 		}
 	}
 
-	public void FreePerCameraInstanceData(NativeArray<int> cameraIDs)
+	public void FreePerCameraInstanceData(NativeArray<EntityId> cameraIDs)
 	{
 		m_InstanceDataSystem.DeallocatePerCameraInstanceData(cameraIDs);
 	}
 
-	public void UpdateCameras(NativeArray<int> cameraIDs)
+	public void UpdateCameras(NativeArray<EntityId> cameraIDs)
 	{
 		m_InstanceDataSystem.AllocatePerCameraInstanceData(cameraIDs);
 	}

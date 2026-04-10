@@ -84,14 +84,14 @@ public sealed class DynamicGI
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	public static extern void UpdateEnvironment();
 
-	[Obsolete("DynamicGI.UpdateMaterials(Renderer) is deprecated; instead, use extension method from RendererExtensions: 'renderer.UpdateGIMaterials()' (UnityUpgradable).", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("DynamicGI.UpdateMaterials(Renderer) is deprecated; instead, use extension method from RendererExtensions: 'renderer.UpdateGIMaterials()' (UnityUpgradable).", true)]
 	public static void UpdateMaterials(Renderer renderer)
 	{
 	}
 
-	[Obsolete("DynamicGI.UpdateMaterials(Terrain) is deprecated; instead, use extension method from TerrainExtensions: 'terrain.UpdateGIMaterials()' (UnityUpgradable).", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("DynamicGI.UpdateMaterials(Terrain) is deprecated; instead, use extension method from TerrainExtensions: 'terrain.UpdateGIMaterials()' (UnityUpgradable).", true)]
 	public static void UpdateMaterials(Object renderer)
 	{
 	}

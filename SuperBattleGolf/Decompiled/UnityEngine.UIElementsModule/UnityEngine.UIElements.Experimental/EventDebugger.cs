@@ -269,6 +269,7 @@ internal class EventDebugger
 
 	private IEnumerator DoReplayEvents(IEnumerable<EventDebuggerEventRecord> eventBases, Action<int, int> refreshList)
 	{
+		BaseVisualElementPanel p = panel as BaseVisualElementPanel;
 		List<EventDebuggerEventRecord> sortedEvents = eventBases.OrderBy((EventDebuggerEventRecord e) => e.timestamp).ToList();
 		int sortedEventsCount = sortedEvents.Count;
 		for (int i = 0; i < sortedEventsCount && isReplaying; i++)
@@ -400,13 +401,17 @@ internal class EventDebugger
 					}
 					else
 					{
-						long time = Panel.TimeSinceStartupMs();
+						long time = CurrentTimeMs(p);
 						yield return null;
-						long delta = Panel.TimeSinceStartupMs() - time;
+						long delta = CurrentTimeMs(p) - time;
 						timeMs += (float)delta * playbackSpeed;
 					}
 				}
 			}
+		}
+		static long CurrentTimeMs(BaseVisualElementPanel baseVisualElementPanel)
+		{
+			return baseVisualElementPanel?.TimeSinceStartupMs() ?? 0;
 		}
 		void SendEvent(EventBase evt)
 		{

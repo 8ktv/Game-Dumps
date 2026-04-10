@@ -2,10 +2,13 @@ using System;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleBackgroundPosition : IStyleValue<BackgroundPosition>, IEquatable<StyleBackgroundPosition>
 {
+	[SerializeField]
 	private BackgroundPosition m_Value;
 
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
 	public BackgroundPosition value

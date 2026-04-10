@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Unity.Collections;
 using Unity.Properties;
 using UnityEngine.Bindings;
 using UnityEngine.Pool;
@@ -52,6 +53,8 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 
 	private StylePropertyData<StyleEnum<Align>, Align> m_AlignSelf;
 
+	private StylePropertyData<StyleRatio, Ratio> m_AspectRatio;
+
 	private StylePropertyData<StyleColor, Color> m_BackgroundColor;
 
 	private StylePropertyData<StyleBackground, Background> m_BackgroundImage;
@@ -95,6 +98,8 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 	private StylePropertyData<StyleCursor, Cursor> m_Cursor;
 
 	private StylePropertyData<StyleEnum<DisplayStyle>, DisplayStyle> m_Display;
+
+	private StylePropertyData<StyleList<FilterFunction>, List<FilterFunction>> m_Filter;
 
 	private StylePropertyData<StyleLength, Length> m_FlexBasis;
 
@@ -180,6 +185,8 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 
 	private StylePropertyData<StyleEnum<FontStyle>, FontStyle> m_UnityFontStyleAndWeight;
 
+	private StylePropertyData<StyleMaterialDefinition, MaterialDefinition> m_UnityMaterial;
+
 	private StylePropertyData<StyleEnum<OverflowClipBox>, OverflowClipBox> m_UnityOverflowClipBox;
 
 	private StylePropertyData<StyleLength, Length> m_UnityParagraphSpacing;
@@ -215,6 +222,8 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 	private StylePropertyData<StyleLength, Length> m_Width;
 
 	private StylePropertyData<StyleLength, Length> m_WordSpacing;
+
+	internal static readonly MemoryLabel k_MemoryLabel = new MemoryLabel("UIElements", "Style.StyleDiff");
 
 	private long m_Version;
 
@@ -283,6 +292,27 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 			m_AlignSelf.Dispose();
 			m_AlignSelf = value;
 			Notify("alignSelf");
+		}
+	}
+
+	[CreateProperty]
+	public StylePropertyData<StyleRatio, Ratio> aspectRatio
+	{
+		get
+		{
+			return m_AspectRatio;
+		}
+		private set
+		{
+			m_AspectRatio.target = value.target;
+			if (m_AspectRatio == value)
+			{
+				value.Dispose();
+				return;
+			}
+			m_AspectRatio.Dispose();
+			m_AspectRatio = value;
+			Notify("aspectRatio");
 		}
 	}
 
@@ -745,6 +775,27 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 			m_Display.Dispose();
 			m_Display = value;
 			Notify("display");
+		}
+	}
+
+	[CreateProperty]
+	public StylePropertyData<StyleList<FilterFunction>, List<FilterFunction>> filter
+	{
+		get
+		{
+			return m_Filter;
+		}
+		private set
+		{
+			m_Filter.target = value.target;
+			if (m_Filter == value)
+			{
+				value.Dispose();
+				return;
+			}
+			m_Filter.Dispose();
+			m_Filter = value;
+			Notify("filter");
 		}
 	}
 
@@ -1631,6 +1682,27 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 	}
 
 	[CreateProperty]
+	public StylePropertyData<StyleMaterialDefinition, MaterialDefinition> unityMaterial
+	{
+		get
+		{
+			return m_UnityMaterial;
+		}
+		private set
+		{
+			m_UnityMaterial.target = value.target;
+			if (m_UnityMaterial == value)
+			{
+				value.Dispose();
+				return;
+			}
+			m_UnityMaterial.Dispose();
+			m_UnityMaterial = value;
+			Notify("unityMaterial");
+		}
+	}
+
+	[CreateProperty]
 	public StylePropertyData<StyleEnum<OverflowClipBox>, OverflowClipBox> unityOverflowClipBox
 	{
 		get
@@ -2015,6 +2087,7 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 		alignContent = ComputeStyleProperty<StyleEnum<Align>, Align>(element, "alignContent", element.style.alignContent, element.computedStyle.alignContent, in context);
 		alignItems = ComputeStyleProperty<StyleEnum<Align>, Align>(element, "alignItems", element.style.alignItems, element.computedStyle.alignItems, in context);
 		alignSelf = ComputeStyleProperty<StyleEnum<Align>, Align>(element, "alignSelf", element.style.alignSelf, element.computedStyle.alignSelf, in context);
+		aspectRatio = ComputeStyleProperty<StyleRatio, Ratio>(element, "aspectRatio", element.style.aspectRatio, element.computedStyle.aspectRatio, in context);
 		backgroundColor = ComputeStyleProperty<StyleColor, Color>(element, "backgroundColor", element.style.backgroundColor, element.computedStyle.backgroundColor, in context);
 		backgroundImage = ComputeStyleProperty<StyleBackground, Background>(element, "backgroundImage", element.style.backgroundImage, element.computedStyle.backgroundImage, in context);
 		backgroundPositionX = ComputeStyleProperty<StyleBackgroundPosition, BackgroundPosition>(element, "backgroundPositionX", element.style.backgroundPositionX, element.computedStyle.backgroundPositionX, in context);
@@ -2037,6 +2110,7 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 		color = ComputeStyleProperty<StyleColor, Color>(element, "color", element.style.color, element.computedStyle.color, in context);
 		cursor = ComputeStyleProperty<StyleCursor, Cursor>(element, "cursor", element.style.cursor, element.computedStyle.cursor, in context);
 		display = ComputeStyleProperty<StyleEnum<DisplayStyle>, DisplayStyle>(element, "display", element.style.display, element.computedStyle.display, in context);
+		filter = ComputeStyleProperty<StyleList<FilterFunction>, List<FilterFunction>>(element, "filter", element.style.filter, element.computedStyle.filter, in context);
 		flexBasis = ComputeStyleProperty<StyleLength, Length>(element, "flexBasis", element.style.flexBasis, element.computedStyle.flexBasis, in context);
 		flexDirection = ComputeStyleProperty<StyleEnum<FlexDirection>, FlexDirection>(element, "flexDirection", element.style.flexDirection, element.computedStyle.flexDirection, in context);
 		flexGrow = ComputeStyleProperty<StyleFloat, float>(element, "flexGrow", element.style.flexGrow, element.computedStyle.flexGrow, in context);
@@ -2079,6 +2153,7 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 		unityFont = ComputeStyleProperty<StyleFont, Font>(element, "unityFont", element.style.unityFont, element.computedStyle.unityFont, in context);
 		unityFontDefinition = ComputeStyleProperty<StyleFontDefinition, FontDefinition>(element, "unityFontDefinition", element.style.unityFontDefinition, element.computedStyle.unityFontDefinition, in context);
 		unityFontStyleAndWeight = ComputeStyleProperty<StyleEnum<FontStyle>, FontStyle>(element, "unityFontStyleAndWeight", element.style.unityFontStyleAndWeight, element.computedStyle.unityFontStyleAndWeight, in context);
+		unityMaterial = ComputeStyleProperty<StyleMaterialDefinition, MaterialDefinition>(element, "unityMaterial", element.style.unityMaterial, element.computedStyle.unityMaterial, in context);
 		unityOverflowClipBox = ComputeStyleProperty<StyleEnum<OverflowClipBox>, OverflowClipBox>(element, "unityOverflowClipBox", element.style.unityOverflowClipBox, element.computedStyle.unityOverflowClipBox, in context);
 		unityParagraphSpacing = ComputeStyleProperty<StyleLength, Length>(element, "unityParagraphSpacing", element.style.unityParagraphSpacing, element.computedStyle.unityParagraphSpacing, in context);
 		unitySliceBottom = ComputeStyleProperty<StyleInt, int>(element, "unitySliceBottom", element.style.unitySliceBottom, element.computedStyle.unitySliceBottom, in context);
@@ -2248,6 +2323,7 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 		m_AlignContent.Dispose();
 		m_AlignItems.Dispose();
 		m_AlignSelf.Dispose();
+		m_AspectRatio.Dispose();
 		m_BackgroundColor.Dispose();
 		m_BackgroundImage.Dispose();
 		m_BackgroundPositionX.Dispose();
@@ -2270,6 +2346,7 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 		m_Color.Dispose();
 		m_Cursor.Dispose();
 		m_Display.Dispose();
+		m_Filter.Dispose();
 		m_FlexBasis.Dispose();
 		m_FlexDirection.Dispose();
 		m_FlexGrow.Dispose();
@@ -2312,6 +2389,7 @@ internal sealed class StyleDiff : INotifyBindablePropertyChanged, IDataSourceVie
 		m_UnityFont.Dispose();
 		m_UnityFontDefinition.Dispose();
 		m_UnityFontStyleAndWeight.Dispose();
+		m_UnityMaterial.Dispose();
 		m_UnityOverflowClipBox.Dispose();
 		m_UnityParagraphSpacing.Dispose();
 		m_UnitySliceBottom.Dispose();

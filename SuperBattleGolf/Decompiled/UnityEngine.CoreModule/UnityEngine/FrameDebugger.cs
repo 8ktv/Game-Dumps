@@ -3,8 +3,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[StaticAccessor("FrameDebugger", StaticAccessorType.DoubleColon)]
 [NativeHeader("Runtime/Profiler/PerformanceTools/FrameDebugger.h")]
+[StaticAccessor("FrameDebugger", StaticAccessorType.DoubleColon)]
 public static class FrameDebugger
 {
 	public static bool enabled => IsLocalEnabled() || IsRemoteEnabled();

@@ -6,7 +6,7 @@ using UnityEngine.UIElements.Layout;
 
 namespace UnityEngine.UIElements;
 
-[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEditor.UIToolkitAuthoringModule", "UnityEngine.VectorGraphicsModule" })]
 internal abstract class BaseVisualElementPanel : IPanel, IDisposable, IGroupBox
 {
 	private UIElementsBridge m_UIElementsBridge;
@@ -19,11 +19,19 @@ internal abstract class BaseVisualElementPanel : IPanel, IDisposable, IGroupBox
 
 	internal IPanelRenderer panelRenderer;
 
+	private TimerEventScheduler m_Scheduler;
+
+	private TimeFunction m_TimeSinceStartupFunc;
+
 	internal ElementUnderPointer m_TopElementUnderPointers = new ElementUnderPointer();
 
 	private bool m_IsFlat = true;
 
 	internal static readonly Vector2 s_OutsidePanelCoordinates = new Vector2(-2.1474836E+09f, -2.1474836E+09f);
+
+	public readonly Lazy<HashSet<TextElement>> textElementRegistry = new Lazy<HashSet<TextElement>>(isThreadSafe: false);
+
+	internal Func<AbstractGenericMenu> CreateMenuFunctor = () => new GenericDropdownMenu();
 
 	public abstract EventInterests IMGUIEventInterests { get; set; }
 
@@ -124,7 +132,7 @@ internal abstract class BaseVisualElementPanel : IPanel, IDisposable, IGroupBox
 
 	public abstract EventDispatcher dispatcher { get; set; }
 
-	internal abstract IScheduler scheduler { get; }
+	internal TimerEventScheduler scheduler => m_Scheduler ?? (m_Scheduler = new TimerEventScheduler(this));
 
 	internal abstract IStylePropertyAnimationSystem styleAnimationSystem
 	{
@@ -133,6 +141,24 @@ internal abstract class BaseVisualElementPanel : IPanel, IDisposable, IGroupBox
 	}
 
 	public abstract ContextType contextType { get; }
+
+	internal TimeFunction TimeSinceStartupFunc
+	{
+		get
+		{
+			return m_TimeSinceStartupFunc;
+		}
+		set
+		{
+			if (m_TimeSinceStartupFunc != value)
+			{
+				double currentTimeBefore = TimeSinceStartupSeconds();
+				m_TimeSinceStartupFunc = value;
+				double currentTimeAfter = TimeSinceStartupSeconds();
+				ApplyTimeAdjustment(currentTimeBefore, currentTimeAfter);
+			}
+		}
+	}
 
 	internal bool disposed { get; private set; }
 
@@ -212,6 +238,8 @@ internal abstract class BaseVisualElementPanel : IPanel, IDisposable, IGroupBox
 
 	public abstract void UpdateDataBinding();
 
+	public abstract void UpdateAuthoring();
+
 	public abstract void ApplyStyles();
 
 	internal abstract void OnVersionChanged(VisualElement ele, VersionChangeType changeTypeFlag);
@@ -223,8 +251,33 @@ internal abstract class BaseVisualElementPanel : IPanel, IDisposable, IGroupBox
 		using (new IMGUIContainer.UITKScope())
 		{
 			Debug.Assert(dispatcher != null, "dispatcher != null");
+			e.AssignTimeStamp(TimeSinceStartupMs());
 			dispatcher?.Dispatch(e, this, dispatchMode);
 		}
+	}
+
+	public long TimeSinceStartupMs()
+	{
+		return (long)(TimeSinceStartupSeconds() * 1000.0);
+	}
+
+	public double TimeSinceStartupSeconds()
+	{
+		if (Panel.TimeSinceStartup != null)
+		{
+			return (double)Panel.TimeSinceStartup() / 1000.0;
+		}
+		return TimeSinceStartupFunc?.Invoke() ?? DefaultTimeSinceStartup();
+	}
+
+	internal static double DefaultTimeSinceStartup()
+	{
+		return Time.realtimeSinceStartupAsDouble;
+	}
+
+	internal virtual void ApplyTimeAdjustment(double currentTimeBefore, double currentTimeAfter)
+	{
+		scheduler.AdjustCurrentTime(currentTimeBefore, currentTimeAfter);
 	}
 
 	public VisualElement Pick(Vector2 point)
@@ -346,13 +399,29 @@ internal abstract class BaseVisualElementPanel : IPanel, IDisposable, IGroupBox
 	{
 	}
 
+	public void RegisterChangeProcessor(IVisualElementChangeProcessor processor)
+	{
+		if (GetUpdater(VisualTreeUpdatePhase.Authoring) is VisualTreeAuthoringUpdater visualTreeAuthoringUpdater)
+		{
+			visualTreeAuthoringUpdater.RegisterProcessor(processor);
+		}
+	}
+
+	public void UnregisterChangeProcessor(IVisualElementChangeProcessor processor)
+	{
+		if (GetUpdater(VisualTreeUpdatePhase.Authoring) is VisualTreeAuthoringUpdater visualTreeAuthoringUpdater)
+		{
+			visualTreeAuthoringUpdater.UnregisterProcessor(processor);
+		}
+	}
+
 	public virtual void Render()
 	{
 		panelRenderer.Render();
 	}
 
-	internal virtual IGenericMenu CreateMenu()
+	internal AbstractGenericMenu CreateMenu()
 	{
-		return new GenericDropdownMenu();
+		return CreateMenuFunctor();
 	}
 }

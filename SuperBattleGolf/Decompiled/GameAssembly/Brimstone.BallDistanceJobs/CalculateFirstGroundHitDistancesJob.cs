@@ -27,6 +27,9 @@ public struct CalculateFirstGroundHitDistancesJob : IJobParallelFor
 	[ReadOnly]
 	public NativeList<BoundsManager.SecondaryOutOfBoundsHazardInstance> secondaryOutOfBoundsHazards;
 
+	[ReadOnly]
+	public NativeList<BoundsManager.LevelHazardInstance> levelHazards;
+
 	[WriteOnly]
 	public NativeArray<PlayerGolfer.SwingDistanceEstimation> estimatedDistances;
 
@@ -40,6 +43,8 @@ public struct CalculateFirstGroundHitDistancesJob : IJobParallelFor
 
 	public float yawRad;
 
+	public float baseInitialSpeed;
+
 	public float fullInitialSpeed;
 
 	public float verticalGravity;
@@ -52,7 +57,7 @@ public struct CalculateFirstGroundHitDistancesJob : IJobParallelFor
 
 	public void Execute(int initialSpeedIndex)
 	{
-		float num = normalizedInitialSpeeds[initialSpeedIndex] * fullInitialSpeed;
+		float num = baseInitialSpeed + normalizedInitialSpeeds[initialSpeedIndex] * (fullInitialSpeed - baseInitialSpeed);
 		float2 @float = new float2(0f, verticalGravity);
 		float2 float2 = Vector2.zero;
 		float2 zero = float2.zero;
@@ -70,28 +75,37 @@ public struct CalculateFirstGroundHitDistancesJob : IJobParallelFor
 		float2 worldPoint2d = initialWorldPosition2d + zero.x * new float2(s, c);
 		int2 spatialHash = TerrainManager.GetSpatialHash(worldPoint2d, terrainSize);
 		TerrainLayer layer = (TerrainLayer)(-1);
+		LevelHazardType levelHazard = (LevelHazardType)(-1);
 		OutOfBoundsHazard outOfBoundsHazard = (OutOfBoundsHazard)(-1);
 		if (spatiallyHashedTerrains.TryGetValue(spatialHash, out var item))
 		{
 			float heightAt = item.GetHeightAt(worldPoint2d, allTerrainHeights);
-			BoundsJobHelper.IsInOutOfBoundsHazard(new float3(worldPoint2d.x, heightAt, worldPoint2d.y), secondaryOutOfBoundsHazards, mainOutOfBoundsHazardHeight, mainOutOfBoundsHazardType, out var _, out var hazardType, out var _);
-			if (hazardType >= OutOfBoundsHazard.Water)
+			float3 point = new float3(worldPoint2d.x, heightAt, worldPoint2d.y);
+			if (BoundsJobHelper.IsInOrOverLevelHazard(point, levelHazards, out var isOverHazard, out var hazardHeight, out var hazardType, out var levelHazardInstanceId) && !isOverHazard)
 			{
-				outOfBoundsHazard = hazardType;
+				levelHazard = hazardType;
 			}
 			else
 			{
-				int dominantLayerIndexAt = item.GetDominantLayerIndexAt(worldPoint2d, allTerrainLayerWeights);
-				if (globalTerrainLayerIndicesPerLevelTerrainLayer.TryGetValue(dominantLayerIndexAt, out var item2))
+				BoundsJobHelper.IsInOutOfBoundsHazard(point, secondaryOutOfBoundsHazards, mainOutOfBoundsHazardHeight, mainOutOfBoundsHazardType, out hazardHeight, out var hazardType2, out levelHazardInstanceId);
+				if (hazardType2 >= OutOfBoundsHazard.Water)
 				{
-					layer = (TerrainLayer)item2;
+					outOfBoundsHazard = hazardType2;
 				}
 				else
 				{
-					Debug.LogError($"Level terrain layer {dominantLayerIndexAt} cannot be mapped to a global terrain layer");
+					int dominantLayerIndexAt = item.GetDominantLayerIndexAt(worldPoint2d, allTerrainLayerWeights);
+					if (globalTerrainLayerIndicesPerLevelTerrainLayer.TryGetValue(dominantLayerIndexAt, out var item2))
+					{
+						layer = (TerrainLayer)item2;
+					}
+					else
+					{
+						Debug.LogError($"Level terrain layer {dominantLayerIndexAt} cannot be mapped to a global terrain layer");
+					}
 				}
 			}
 		}
-		estimatedDistances[initialSpeedIndex] = new PlayerGolfer.SwingDistanceEstimation(distance, layer, outOfBoundsHazard);
+		estimatedDistances[initialSpeedIndex] = new PlayerGolfer.SwingDistanceEstimation(distance, layer, levelHazard, outOfBoundsHazard);
 	}
 }

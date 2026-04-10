@@ -191,13 +191,13 @@ public static class STP
 		}
 	}
 
-	[GenerateHLSL(PackingRules.Exact, true, false, false, 1, false, false, false, -1, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\STP\\STP.cs")]
+	[GenerateHLSL(PackingRules.Exact, true, false, false, 1, false, false, false, -1, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\STP\\STP.cs")]
 	private enum StpSetupPerViewConstants
 	{
 		Count = 8
 	}
 
-	[GenerateHLSL(PackingRules.Exact, true, false, false, 1, false, false, false, -1, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\STP\\STP.cs", needAccessors = false, generateCBuffer = true)]
+	[GenerateHLSL(PackingRules.Exact, true, false, false, 1, false, false, false, -1, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\STP\\STP.cs", needAccessors = false, generateCBuffer = true)]
 	private struct StpConstantBufferData
 	{
 		public Vector4 _StpCommonConstant;
@@ -605,7 +605,7 @@ public static class STP
 			vector7.y = perViewConfig.currentProj[2, 3];
 			vector7.z = perViewConfig.currentProj[3, 2];
 			vector7.w = perViewConfig.currentProj[3, 3];
-			Matrix4x4 matrix4x = ExtractRotation(perViewConfig.currentView) * Matrix4x4.Translate(-perViewConfig.currentView.GetColumn(3)) * Matrix4x4.Translate(perViewConfig.lastView.GetColumn(3)) * ExtractRotation(perViewConfig.lastView).transpose;
+			Matrix4x4 matrix4x = ExtractRotation(perViewConfig.currentView) * Matrix4x4.Translate((Vector3)(-perViewConfig.currentView.GetColumn(3))) * Matrix4x4.Translate((Vector3)perViewConfig.lastView.GetColumn(3)) * ExtractRotation(perViewConfig.lastView).transpose;
 			Vector4 row = matrix4x.GetRow(0);
 			Vector4 row2 = matrix4x.GetRow(1);
 			Vector4 row3 = matrix4x.GetRow(2);
@@ -617,7 +617,7 @@ public static class STP
 			vector9.y = perViewConfig.lastLastProj[2, 3];
 			vector9.z = perViewConfig.lastLastProj[3, 2];
 			vector9.w = perViewConfig.lastLastProj[3, 3];
-			Matrix4x4 matrix4x2 = ExtractRotation(perViewConfig.lastLastView) * Matrix4x4.Translate(-perViewConfig.lastLastView.GetColumn(3)) * Matrix4x4.Translate(perViewConfig.lastView.GetColumn(3)) * ExtractRotation(perViewConfig.lastView).transpose;
+			Matrix4x4 matrix4x2 = ExtractRotation(perViewConfig.lastLastView) * Matrix4x4.Translate((Vector3)(-perViewConfig.lastLastView.GetColumn(3))) * Matrix4x4.Translate((Vector3)perViewConfig.lastView.GetColumn(3)) * ExtractRotation(perViewConfig.lastView).transpose;
 			Vector4 row4 = matrix4x2.GetRow(0);
 			Vector4 row5 = matrix4x2.GetRow(1);
 			Vector4 row6 = matrix4x2.GetRow(2);
@@ -676,7 +676,7 @@ public static class STP
 		constants._StpTaaConstants3.w = config.outputImageSize.y;
 	}
 
-	private static TextureHandle UseTexture(IBaseRenderGraphBuilder builder, TextureHandle texture, AccessFlags flags = AccessFlags.Read)
+	private static TextureHandle UseTexture(IBaseRenderGraphBuilder builder, in TextureHandle texture, AccessFlags flags = AccessFlags.Read)
 	{
 		builder.UseTexture(in texture, flags);
 		return texture;
@@ -715,7 +715,7 @@ public static class STP
 		Vector2Int vector2Int = new Vector2Int(8, flag ? 16 : 8);
 		SetupData passData;
 		SetupData setupData;
-		using (IComputeRenderGraphBuilder computeRenderGraphBuilder = renderGraph.AddComputePass<SetupData>("STP Setup", out passData, ProfilingSampler.Get(ProfileId.StpSetup), ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\STP\\STP.cs", 1109))
+		using (IComputeRenderGraphBuilder computeRenderGraphBuilder = renderGraph.AddComputePass<SetupData>("STP Setup", out passData, ProfilingSampler.Get(ProfileId.StpSetup), ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\STP\\STP.cs", 1109))
 		{
 			passData.cs = renderPipelineSettings.setupCS;
 			passData.cs.shaderKeywords = null;
@@ -728,22 +728,22 @@ public static class STP
 				passData.cs.EnableKeyword(ShaderKeywords.DisableTexture2DXArray);
 			}
 			PopulateConstantData(ref config, ref passData.constantBufferData);
-			passData.noiseTexture = UseTexture(computeRenderGraphBuilder, texture);
+			passData.noiseTexture = UseTexture(computeRenderGraphBuilder, in texture);
 			if (config.debugView.IsValid())
 			{
 				passData.cs.EnableKeyword(ShaderKeywords.EnableDebugMode);
-				passData.debugView = UseTexture(computeRenderGraphBuilder, config.debugView, AccessFlags.WriteAll);
+				passData.debugView = UseTexture(computeRenderGraphBuilder, in config.debugView, AccessFlags.WriteAll);
 			}
 			passData.kernelIndex = passData.cs.FindKernel("StpSetup");
 			passData.viewCount = config.numActiveViews;
 			passData.dispatchSize = new Vector2Int(CoreUtils.DivRoundUp(config.currentImageSize.x, vector2Int.x), CoreUtils.DivRoundUp(config.currentImageSize.y, vector2Int.y));
-			passData.inputColor = UseTexture(computeRenderGraphBuilder, config.inputColor);
-			passData.inputDepth = UseTexture(computeRenderGraphBuilder, config.inputDepth);
-			passData.inputMotion = UseTexture(computeRenderGraphBuilder, config.inputMotion);
+			passData.inputColor = UseTexture(computeRenderGraphBuilder, in config.inputColor);
+			passData.inputDepth = UseTexture(computeRenderGraphBuilder, in config.inputDepth);
+			passData.inputMotion = UseTexture(computeRenderGraphBuilder, in config.inputMotion);
 			if (config.inputStencil.IsValid())
 			{
 				passData.cs.EnableKeyword(ShaderKeywords.EnableStencilResponsive);
-				passData.inputStencil = UseTexture(computeRenderGraphBuilder, config.inputStencil);
+				passData.inputStencil = UseTexture(computeRenderGraphBuilder, in config.inputStencil);
 			}
 			passData.intermediateColor = UseTexture(computeRenderGraphBuilder, renderGraph.CreateTexture(new TextureDesc(historyTextureSize.x, historyTextureSize.y, config.enableHwDrs, config.enableTexArray)
 			{
@@ -794,7 +794,7 @@ public static class STP
 		}
 		PreTaaData passData2;
 		PreTaaData preTaaData;
-		using (IComputeRenderGraphBuilder computeRenderGraphBuilder2 = renderGraph.AddComputePass<PreTaaData>("STP Pre-TAA", out passData2, ProfilingSampler.Get(ProfileId.StpPreTaa), ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\STP\\STP.cs", 1212))
+		using (IComputeRenderGraphBuilder computeRenderGraphBuilder2 = renderGraph.AddComputePass<PreTaaData>("STP Pre-TAA", out passData2, ProfilingSampler.Get(ProfileId.StpPreTaa), ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\STP\\STP.cs", 1212))
 		{
 			passData2.cs = renderPipelineSettings.preTaaCS;
 			passData2.cs.shaderKeywords = null;
@@ -806,16 +806,16 @@ public static class STP
 			{
 				passData2.cs.EnableKeyword(ShaderKeywords.DisableTexture2DXArray);
 			}
-			passData2.noiseTexture = UseTexture(computeRenderGraphBuilder2, texture);
+			passData2.noiseTexture = UseTexture(computeRenderGraphBuilder2, in texture);
 			if (config.debugView.IsValid())
 			{
 				passData2.cs.EnableKeyword(ShaderKeywords.EnableDebugMode);
-				passData2.debugView = UseTexture(computeRenderGraphBuilder2, config.debugView, AccessFlags.ReadWrite);
+				passData2.debugView = UseTexture(computeRenderGraphBuilder2, in config.debugView, AccessFlags.ReadWrite);
 			}
 			passData2.kernelIndex = passData2.cs.FindKernel("StpPreTaa");
 			passData2.viewCount = config.numActiveViews;
 			passData2.dispatchSize = new Vector2Int(CoreUtils.DivRoundUp(config.currentImageSize.x, vector2Int.x), CoreUtils.DivRoundUp(config.currentImageSize.y, vector2Int.y));
-			passData2.intermediateConvergence = UseTexture(computeRenderGraphBuilder2, setupData.intermediateConvergence);
+			passData2.intermediateConvergence = UseTexture(computeRenderGraphBuilder2, in setupData.intermediateConvergence);
 			passData2.intermediateWeights = UseTexture(computeRenderGraphBuilder2, renderGraph.CreateTexture(new TextureDesc(historyTextureSize.x, historyTextureSize.y, config.enableHwDrs, config.enableTexArray)
 			{
 				name = "STP Intermediate Weights",
@@ -842,7 +842,7 @@ public static class STP
 		}
 		TaaData passData3;
 		TaaData taaData;
-		using (IComputeRenderGraphBuilder computeRenderGraphBuilder3 = renderGraph.AddComputePass<TaaData>("STP TAA", out passData3, ProfilingSampler.Get(ProfileId.StpTaa), ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\STP\\STP.cs", 1275))
+		using (IComputeRenderGraphBuilder computeRenderGraphBuilder3 = renderGraph.AddComputePass<TaaData>("STP TAA", out passData3, ProfilingSampler.Get(ProfileId.StpTaa), ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\STP\\STP.cs", 1275))
 		{
 			passData3.cs = renderPipelineSettings.taaCS;
 			passData3.cs.shaderKeywords = null;
@@ -854,22 +854,22 @@ public static class STP
 			{
 				passData3.cs.EnableKeyword(ShaderKeywords.DisableTexture2DXArray);
 			}
-			passData3.noiseTexture = UseTexture(computeRenderGraphBuilder3, texture);
+			passData3.noiseTexture = UseTexture(computeRenderGraphBuilder3, in texture);
 			if (config.debugView.IsValid())
 			{
 				passData3.cs.EnableKeyword(ShaderKeywords.EnableDebugMode);
-				passData3.debugView = UseTexture(computeRenderGraphBuilder3, config.debugView, AccessFlags.ReadWrite);
+				passData3.debugView = UseTexture(computeRenderGraphBuilder3, in config.debugView, AccessFlags.ReadWrite);
 			}
 			passData3.kernelIndex = passData3.cs.FindKernel("StpTaa");
 			passData3.viewCount = config.numActiveViews;
 			passData3.dispatchSize = new Vector2Int(CoreUtils.DivRoundUp(config.outputImageSize.x, vector2Int.x), CoreUtils.DivRoundUp(config.outputImageSize.y, vector2Int.y));
-			passData3.intermediateColor = UseTexture(computeRenderGraphBuilder3, setupData.intermediateColor);
-			passData3.intermediateWeights = UseTexture(computeRenderGraphBuilder3, preTaaData.intermediateWeights);
+			passData3.intermediateColor = UseTexture(computeRenderGraphBuilder3, in setupData.intermediateColor);
+			passData3.intermediateWeights = UseTexture(computeRenderGraphBuilder3, in preTaaData.intermediateWeights);
 			passData3.priorFeedback = UseTexture(computeRenderGraphBuilder3, renderGraph.ImportTexture(previousHistoryTexture4));
 			passData3.depthMotion = UseTexture(computeRenderGraphBuilder3, renderGraph.ImportTexture(currentHistoryTexture));
 			passData3.convergence = UseTexture(computeRenderGraphBuilder3, renderGraph.ImportTexture(currentHistoryTexture3));
 			passData3.feedback = UseTexture(computeRenderGraphBuilder3, renderGraph.ImportTexture(currentHistoryTexture4), AccessFlags.WriteAll);
-			passData3.output = UseTexture(computeRenderGraphBuilder3, config.destination, AccessFlags.WriteAll);
+			passData3.output = UseTexture(computeRenderGraphBuilder3, in config.destination, AccessFlags.WriteAll);
 			computeRenderGraphBuilder3.SetRenderFunc(delegate(TaaData data, ComputeGraphContext ctx)
 			{
 				ConstantBuffer.Set<StpConstantBufferData>(data.cs, ShaderResources._StpConstantBufferData);

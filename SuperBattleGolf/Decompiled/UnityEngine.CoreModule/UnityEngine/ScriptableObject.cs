@@ -8,10 +8,10 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
+[RequiredByNativeCode]
 [NativeClass(null)]
 [NativeHeader("Runtime/Mono/MonoBehaviour.h")]
 [ExtensionOfNativeClass]
-[RequiredByNativeCode]
 public class ScriptableObject : Object
 {
 	public ScriptableObject()
@@ -19,8 +19,8 @@ public class ScriptableObject : Object
 		CreateScriptableObject(this);
 	}
 
-	[Obsolete("Use EditorUtility.SetDirty instead")]
 	[NativeConditional("ENABLE_MONO")]
+	[Obsolete("Use EditorUtility.SetDirty instead")]
 	public void SetDirty()
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);

@@ -6,10 +6,10 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Playables;
 
-[NativeHeader("Runtime/Director/Core/HPlayable.h")]
-[UsedByNativeCode]
 [NativeHeader("Runtime/Export/Director/PlayableHandle.bindings.h")]
+[NativeHeader("Runtime/Director/Core/HPlayable.h")]
 [NativeHeader("Runtime/Director/Core/HPlayableGraph.h")]
+[UsedByNativeCode]
 public struct PlayableHandle : IEquatable<PlayableHandle>
 {
 	internal IntPtr m_Handle;
@@ -169,8 +169,8 @@ public struct PlayableHandle : IEquatable<PlayableHandle>
 	internal extern bool IsValid();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("PlayableHandleBindings::GetPlayableType", HasExplicitThis = true, ThrowsException = true)]
 	[VisibleToOtherModules]
+	[FreeFunction("PlayableHandleBindings::GetPlayableType", HasExplicitThis = true, ThrowsException = true)]
 	internal extern Type GetPlayableType();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -189,8 +189,8 @@ public struct PlayableHandle : IEquatable<PlayableHandle>
 	internal extern bool CanChangeInputs();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[VisibleToOtherModules]
 	[FreeFunction("PlayableHandleBindings::CanSetWeights", HasExplicitThis = true, ThrowsException = true)]
+	[VisibleToOtherModules]
 	internal extern bool CanSetWeights();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -199,23 +199,23 @@ public struct PlayableHandle : IEquatable<PlayableHandle>
 	internal extern bool CanDestroy();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("PlayableHandleBindings::GetPlayState", HasExplicitThis = true, ThrowsException = true)]
 	[VisibleToOtherModules]
+	[FreeFunction("PlayableHandleBindings::GetPlayState", HasExplicitThis = true, ThrowsException = true)]
 	internal extern PlayState GetPlayState();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[VisibleToOtherModules]
 	[FreeFunction("PlayableHandleBindings::Play", HasExplicitThis = true, ThrowsException = true)]
+	[VisibleToOtherModules]
 	internal extern void Play();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[VisibleToOtherModules]
 	[FreeFunction("PlayableHandleBindings::Pause", HasExplicitThis = true, ThrowsException = true)]
+	[VisibleToOtherModules]
 	internal extern void Pause();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[VisibleToOtherModules]
 	[FreeFunction("PlayableHandleBindings::GetSpeed", HasExplicitThis = true, ThrowsException = true)]
+	[VisibleToOtherModules]
 	internal extern double GetSpeed();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -234,8 +234,8 @@ public struct PlayableHandle : IEquatable<PlayableHandle>
 	internal extern void SetTime(double value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[VisibleToOtherModules]
 	[FreeFunction("PlayableHandleBindings::IsDone", HasExplicitThis = true, ThrowsException = true)]
+	[VisibleToOtherModules]
 	internal extern bool IsDone();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -254,8 +254,8 @@ public struct PlayableHandle : IEquatable<PlayableHandle>
 	internal extern void SetDuration(double value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[VisibleToOtherModules]
 	[FreeFunction("PlayableHandleBindings::GetPropagateSetTime", HasExplicitThis = true, ThrowsException = true)]
+	[VisibleToOtherModules]
 	internal extern bool GetPropagateSetTime();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -282,8 +282,8 @@ public struct PlayableHandle : IEquatable<PlayableHandle>
 	internal extern int GetOutputPortFromInputIndex(int index);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("PlayableHandleBindings::GetInputPortFromOutputIndex", HasExplicitThis = true, ThrowsException = true)]
 	[VisibleToOtherModules]
+	[FreeFunction("PlayableHandleBindings::GetInputPortFromOutputIndex", HasExplicitThis = true, ThrowsException = true)]
 	internal extern int GetInputPortFromOutputIndex(int index);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -292,8 +292,8 @@ public struct PlayableHandle : IEquatable<PlayableHandle>
 	internal extern void SetInputCount(int value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[VisibleToOtherModules]
 	[FreeFunction("PlayableHandleBindings::GetOutputCount", HasExplicitThis = true, ThrowsException = true)]
+	[VisibleToOtherModules]
 	internal extern int GetOutputCount();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -314,8 +314,8 @@ public struct PlayableHandle : IEquatable<PlayableHandle>
 	internal extern void SetDelay(double delay);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("PlayableHandleBindings::GetDelay", HasExplicitThis = true, ThrowsException = true)]
 	[VisibleToOtherModules]
+	[FreeFunction("PlayableHandleBindings::GetDelay", HasExplicitThis = true, ThrowsException = true)]
 	internal extern double GetDelay();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -329,8 +329,8 @@ public struct PlayableHandle : IEquatable<PlayableHandle>
 	internal extern double GetPreviousTime();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("PlayableHandleBindings::SetLeadTime", HasExplicitThis = true, ThrowsException = true)]
 	[VisibleToOtherModules]
+	[FreeFunction("PlayableHandleBindings::SetLeadTime", HasExplicitThis = true, ThrowsException = true)]
 	internal extern void SetLeadTime(float value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -344,8 +344,8 @@ public struct PlayableHandle : IEquatable<PlayableHandle>
 	internal extern PlayableTraversalMode GetTraversalMode();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("PlayableHandleBindings::SetTraversalMode", HasExplicitThis = true, ThrowsException = true)]
 	[VisibleToOtherModules]
+	[FreeFunction("PlayableHandleBindings::SetTraversalMode", HasExplicitThis = true, ThrowsException = true)]
 	internal extern void SetTraversalMode(PlayableTraversalMode mode);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -354,8 +354,8 @@ public struct PlayableHandle : IEquatable<PlayableHandle>
 	internal extern IntPtr GetJobData();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[VisibleToOtherModules]
 	[FreeFunction("PlayableHandleBindings::GetTimeWrapMode", HasExplicitThis = true, ThrowsException = true)]
+	[VisibleToOtherModules]
 	internal extern DirectorWrapMode GetTimeWrapMode();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]

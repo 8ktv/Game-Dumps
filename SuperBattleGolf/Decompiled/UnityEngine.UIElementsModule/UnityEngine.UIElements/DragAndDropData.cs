@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace UnityEngine.UIElements;
@@ -12,7 +13,10 @@ public abstract class DragAndDropData : IDragAndDropData
 
 	public abstract DragVisualMode visualMode { get; }
 
+	[Obsolete("Use entityIDs instead, and call Object.FindObjectFromInstanceID(entityId) if you need to get a Unity object from an EntityId.")]
 	public abstract IEnumerable<Object> unityObjectReferences { get; }
+
+	public abstract IReadOnlyList<EntityId> entityIds { get; }
 
 	public virtual string[] paths { get; set; }
 

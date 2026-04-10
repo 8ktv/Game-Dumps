@@ -19,7 +19,17 @@ public class PhysicalItem : NetworkBehaviour, IInteractable
 
 	public LocalizedString InteractString => LocalizationManager.GetLocalizedString(StringTable.Data, "ITEM_" + itemType);
 
-	public bool IsInteractionEnabled => !isPickupSuppressed;
+	public bool IsInteractionEnabled
+	{
+		get
+		{
+			if (!isPickupSuppressed)
+			{
+				return !AsEntity.AsHittable.IsFrozen;
+			}
+			return false;
+		}
+	}
 
 	private void Awake()
 	{
@@ -109,7 +119,7 @@ public class PhysicalItem : NetworkBehaviour, IInteractable
 
 	protected void UserCode_CmdGiveToPlayer__PlayerInventory__NetworkConnectionToClient(PlayerInventory player, NetworkConnectionToClient sender)
 	{
-		if (!serverGiveToPlayerCommandRateLimiter.RegisterHit(sender) || isPickupSuppressed || !player.HasSpaceForItem(out var _) || !player.ServerTryAddItem(itemType, RemainingUses))
+		if (!serverGiveToPlayerCommandRateLimiter.RegisterHit(sender) || isPickupSuppressed || !GameManager.AllItems.TryGetItemData(itemType, out var _) || !player.HasSpaceForItem(out var _) || !player.ServerTryAddItem(itemType, RemainingUses))
 		{
 			return;
 		}

@@ -4,7 +4,7 @@ namespace UnityEngine.Rendering;
 
 internal struct GPUDrivenLODGroupData
 {
-	public NativeArray<int> lodGroupID;
+	public NativeArray<EntityId> lodGroupID;
 
 	public NativeArray<int> lodOffset;
 
@@ -22,7 +22,7 @@ internal struct GPUDrivenLODGroupData
 
 	public NativeArray<byte> forceLODMask;
 
-	public NativeArray<int> invalidLODGroupID;
+	public NativeArray<EntityId> invalidLODGroupID;
 
 	public NativeArray<short> lodRenderersCount;
 

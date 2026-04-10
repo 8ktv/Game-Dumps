@@ -75,6 +75,10 @@ public struct DeltaStateEvent : IInputEventTypeInfo
 		{
 			throw new ArgumentException($"Device for control '{control}' has not been added to system", "control");
 		}
+		if (control.currentStatePtr == null)
+		{
+			throw new ArgumentNullException($"Control '{control}' does not have an associated state");
+		}
 		ref InputStateBlock stateBlock = ref device.m_StateBlock;
 		ref InputStateBlock stateBlock2 = ref control.m_StateBlock;
 		FourCC format = stateBlock.format;

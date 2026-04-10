@@ -13,7 +13,15 @@ public class AheadOfBallMessage : SingletonBehaviour<AheadOfBallMessage>
 	[SerializeField]
 	private float fadeOutDuration;
 
+	[SerializeField]
+	private float blinkDelay;
+
+	[SerializeField]
+	private float blinkInterval;
+
 	private bool isVisible;
+
+	private float startTime;
 
 	private Coroutine fadeRoutine;
 
@@ -44,6 +52,7 @@ public class AheadOfBallMessage : SingletonBehaviour<AheadOfBallMessage>
 		if (!isVisible)
 		{
 			isVisible = true;
+			startTime = Time.time;
 			FadeTo(1f, fadeInDuration, BMath.EaseOut);
 		}
 	}
@@ -54,6 +63,20 @@ public class AheadOfBallMessage : SingletonBehaviour<AheadOfBallMessage>
 		{
 			isVisible = false;
 			FadeTo(0f, fadeInDuration, BMath.EaseIn);
+		}
+	}
+
+	private void Update()
+	{
+		if (isVisible)
+		{
+			float num = Time.time - startTime - blinkDelay;
+			if (!(num < 0f))
+			{
+				float num2 = num % blinkInterval / blinkInterval;
+				num2 = (num2 - 0.5f) * 2f;
+				visibilityController.SetDesiredAlpha(BMath.Abs(num2));
+			}
 		}
 	}
 

@@ -9,9 +9,9 @@ namespace UnityEngine.Playables;
 
 [NativeHeader("Runtime/Director/Core/HPlayableOutput.h")]
 [NativeHeader("Runtime/Export/Director/PlayableGraph.bindings.h")]
+[NativeHeader("Runtime/Director/Core/HPlayable.h")]
 [UsedByNativeCode]
 [NativeHeader("Runtime/Director/Core/HPlayableGraph.h")]
-[NativeHeader("Runtime/Director/Core/HPlayable.h")]
 public struct PlayableGraph
 {
 	internal IntPtr m_Handle;

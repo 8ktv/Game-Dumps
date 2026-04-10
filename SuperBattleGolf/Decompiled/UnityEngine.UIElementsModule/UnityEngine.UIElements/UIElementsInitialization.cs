@@ -6,7 +6,8 @@ namespace UnityEngine.UIElements;
 
 internal static class UIElementsInitialization
 {
-	[RequiredByNativeCode(false)]
+	[RequiredMember]
+	[RequiredByNativeCode(true)]
 	public static void InitializeUIElementsManaged()
 	{
 		RegisterBuiltInPropertyBags();
@@ -66,6 +67,8 @@ internal static class UIElementsInitialization
 		PropertyBag.RegisterList<StyleList<TimeValue>, TimeValue>();
 		PropertyBag.Register(new StyleValuePropertyBag<StyleRotate, Rotate>());
 		PropertyBag.Register(new Rotate.PropertyBag());
+		PropertyBag.Register(new StyleValuePropertyBag<StyleRatio, Ratio>());
+		PropertyBag.Register(new Ratio.PropertyBag());
 		PropertyBag.Register(new Angle.PropertyBag());
 		PropertyBag.Register(new StyleValuePropertyBag<StyleScale, Scale>());
 		PropertyBag.Register(new Scale.PropertyBag());
@@ -77,5 +80,8 @@ internal static class UIElementsInitialization
 		PropertyBag.Register(new TextShadow.PropertyBag());
 		PropertyBag.Register(new StyleValuePropertyBag<StyleTextAutoSize, TextAutoSize>());
 		PropertyBag.Register(new TextAutoSize.PropertyBag());
+		PropertyBag.Register(new StyleValuePropertyBag<StyleList<FilterFunction>, List<FilterFunction>>());
+		PropertyBag.Register(new MaterialDefinition.PropertyBag());
+		PropertyBag.Register(new StyleValuePropertyBag<StyleMaterialDefinition, MaterialDefinition>());
 	}
 }

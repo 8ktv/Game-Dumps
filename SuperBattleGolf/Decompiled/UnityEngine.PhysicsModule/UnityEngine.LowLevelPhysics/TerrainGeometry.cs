@@ -4,6 +4,8 @@ namespace UnityEngine.LowLevelPhysics;
 
 public struct TerrainGeometry : IGeometry
 {
+	private int m_UnusedReserved;
+
 	private IntPtr m_TerrainData;
 
 	private float m_HeightScale;
@@ -14,11 +16,7 @@ public struct TerrainGeometry : IGeometry
 
 	private byte m_TerrainFlags;
 
-	private byte pad1;
-
-	private short pad2;
-
-	private uint pad3;
+	private unsafe fixed byte m_TerrainFlagsPadding[3];
 
 	public GeometryType GeometryType => GeometryType.Terrain;
 }

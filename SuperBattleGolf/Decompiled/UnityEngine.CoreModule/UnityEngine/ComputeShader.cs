@@ -8,8 +8,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Graphics/RayTracing/RayTracingAccelerationStructure.h")]
 [NativeHeader("Runtime/Graphics/ShaderScriptBindings.h")]
+[NativeHeader("Runtime/Graphics/RayTracing/RayTracingAccelerationStructure.h")]
 [UsedByNativeCode]
 [NativeHeader("Runtime/Shaders/ComputeShader.h")]
 public sealed class ComputeShader : Object

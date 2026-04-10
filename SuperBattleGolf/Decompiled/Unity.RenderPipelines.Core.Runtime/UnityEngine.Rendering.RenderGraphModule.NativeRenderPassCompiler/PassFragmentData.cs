@@ -14,7 +14,7 @@ internal readonly struct PassFragmentData
 
 	public readonly int depthSlice;
 
-	public PassFragmentData(ResourceHandle handle, AccessFlags flags, int mipLevel, int depthSlice)
+	public PassFragmentData(in ResourceHandle handle, AccessFlags flags, int mipLevel, int depthSlice)
 	{
 		resource = handle;
 		accessFlags = flags;

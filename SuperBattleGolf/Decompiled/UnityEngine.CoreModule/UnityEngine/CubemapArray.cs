@@ -78,7 +78,7 @@ public sealed class CubemapArray : Texture
 	}
 
 	[FreeFunction(Name = "CubemapArrayScripting::GetPixels", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public Color[] GetPixels(CubemapFace face, int arrayElement, int miplevel)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -95,7 +95,7 @@ public sealed class CubemapArray : Texture
 	}
 
 	[FreeFunction(Name = "CubemapArrayScripting::GetPixels32", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public Color32[] GetPixels32(CubemapFace face, int arrayElement, int miplevel)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);

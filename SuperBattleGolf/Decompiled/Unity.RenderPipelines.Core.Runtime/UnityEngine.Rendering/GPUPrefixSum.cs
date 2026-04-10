@@ -6,7 +6,7 @@ namespace UnityEngine.Rendering;
 
 public struct GPUPrefixSum
 {
-	[GenerateHLSL(PackingRules.Exact, true, false, false, 1, false, false, false, -1, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\Utilities\\GPUPrefixSum\\GPUPrefixSum.Data.cs")]
+	[GenerateHLSL(PackingRules.Exact, true, false, false, 1, false, false, false, -1, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\Utilities\\GPUPrefixSum\\GPUPrefixSum.Data.cs")]
 	internal static class ShaderDefs
 	{
 		public const int GroupSize = 128;
@@ -40,7 +40,7 @@ public struct GPUPrefixSum
 		}
 	}
 
-	[GenerateHLSL(PackingRules.Exact, true, false, false, 1, false, false, false, -1, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\Utilities\\GPUPrefixSum\\GPUPrefixSum.Data.cs")]
+	[GenerateHLSL(PackingRules.Exact, true, false, false, 1, false, false, false, -1, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\Utilities\\GPUPrefixSum\\GPUPrefixSum.Data.cs")]
 	public struct LevelOffsets
 	{
 		public uint count;
@@ -70,6 +70,7 @@ public struct GPUPrefixSum
 
 		public BufferHandle output => prefixBuffer0;
 
+		[Obsolete("This Create signature is deprecated and will be removed in the future. Please use Create(IBaseRenderGraphBuilder) instead. #from(6000.3)")]
 		public static RenderGraphResources Create(int newMaxElementCount, RenderGraph renderGraph, RenderGraphBuilder builder, bool outputIsTemp = false)
 		{
 			RenderGraphResources result = default(RenderGraphResources);
@@ -85,6 +86,50 @@ public struct GPUPrefixSum
 			bufferDesc.name = "prefixBuffer0";
 			BufferDesc desc = bufferDesc;
 			prefixBuffer0 = (outputIsTemp ? builder.CreateTransientBuffer(in desc) : builder.WriteBuffer(renderGraph.CreateBuffer(in desc)));
+			prefixBuffer1 = builder.CreateTransientBuffer(new BufferDesc(newMaxElementCount, 4, GraphicsBuffer.Target.Raw)
+			{
+				name = "prefixBuffer1"
+			});
+			totalLevelCountBuffer = builder.CreateTransientBuffer(new BufferDesc(1, 4, GraphicsBuffer.Target.Raw)
+			{
+				name = "totalLevelCountBuffer"
+			});
+			levelOffsetBuffer = builder.CreateTransientBuffer(new BufferDesc(levelCounts, Marshal.SizeOf<LevelOffsets>(), GraphicsBuffer.Target.Structured)
+			{
+				name = "levelOffsetBuffer"
+			});
+			indirectDispatchArgsBuffer = builder.CreateTransientBuffer(new BufferDesc(16 * levelCounts, 4, GraphicsBuffer.Target.Structured | GraphicsBuffer.Target.IndirectArguments)
+			{
+				name = "indirectDispatchArgsBuffer"
+			});
+			alignedElementCount = ShaderDefs.AlignUpGroup(newMaxElementCount);
+			maxBufferCount = totalSize;
+			maxLevelCount = levelCounts;
+		}
+
+		public static RenderGraphResources Create(int newMaxElementCount, RenderGraph renderGraph, IBaseRenderGraphBuilder builder, bool outputIsTemp = false)
+		{
+			RenderGraphResources result = default(RenderGraphResources);
+			result.Initialize(newMaxElementCount, renderGraph, builder, outputIsTemp);
+			return result;
+		}
+
+		private void Initialize(int newMaxElementCount, RenderGraph renderGraph, IBaseRenderGraphBuilder builder, bool outputIsTemp = false)
+		{
+			newMaxElementCount = Math.Max(newMaxElementCount, 1);
+			ShaderDefs.CalculateTotalBufferSize(newMaxElementCount, out var totalSize, out var levelCounts);
+			BufferDesc bufferDesc = new BufferDesc(totalSize, 4, GraphicsBuffer.Target.Raw);
+			bufferDesc.name = "prefixBuffer0";
+			BufferDesc desc = bufferDesc;
+			if (outputIsTemp)
+			{
+				prefixBuffer0 = builder.CreateTransientBuffer(in desc);
+			}
+			else
+			{
+				prefixBuffer0 = renderGraph.CreateBuffer(in desc);
+				builder.UseBuffer(in prefixBuffer0, AccessFlags.Write);
+			}
 			prefixBuffer1 = builder.CreateTransientBuffer(new BufferDesc(newMaxElementCount, 4, GraphicsBuffer.Target.Raw)
 			{
 				name = "prefixBuffer1"
@@ -337,6 +382,14 @@ public struct GPUPrefixSum
 		}
 	}
 
+	public void DispatchDirect(IComputeCommandBuffer cmdBuffer, in DirectArgs arguments)
+	{
+		if (cmdBuffer is BaseCommandBuffer baseCommandBuffer)
+		{
+			DispatchDirect(baseCommandBuffer.m_WrappedCommandBuffer, in arguments);
+		}
+	}
+
 	public void DispatchDirect(CommandBuffer cmdBuffer, in DirectArgs arguments)
 	{
 		if (arguments.supportResources.prefixBuffer0 == null || arguments.supportResources.prefixBuffer1 == null)
@@ -358,6 +411,14 @@ public struct GPUPrefixSum
 		cmdBuffer.SetComputeBufferParam(resources.computeAsset, resources.kernelCalculateLevelDispatchArgsFromConst, ShaderIDs._OutputTotalLevelsBuffer, arguments.supportResources.totalLevelCountBuffer);
 		cmdBuffer.DispatchCompute(resources.computeAsset, resources.kernelCalculateLevelDispatchArgsFromConst, 1, 1, 1);
 		ExecuteCommonIndirect(cmdBuffer, arguments.input, in arguments.supportResources, arguments.exclusive);
+	}
+
+	public void DispatchIndirect(IComputeCommandBuffer cmdBuffer, in IndirectDirectArgs arguments)
+	{
+		if (cmdBuffer is BaseCommandBuffer baseCommandBuffer)
+		{
+			DispatchIndirect(baseCommandBuffer.m_WrappedCommandBuffer, in arguments);
+		}
 	}
 
 	public void DispatchIndirect(CommandBuffer cmdBuffer, in IndirectDirectArgs arguments)

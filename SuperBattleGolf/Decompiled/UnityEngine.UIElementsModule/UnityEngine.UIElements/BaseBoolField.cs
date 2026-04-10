@@ -16,8 +16,8 @@ public abstract class BaseBoolField : BaseField<bool>
 		private bool toggleOnLabelClick;
 
 		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
 		private UxmlAttributeFlags toggleOnLabelClick_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -62,6 +62,7 @@ public abstract class BaseBoolField : BaseField<bool>
 		}
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal bool acceptClicksIfDisabled
 	{
 		get
@@ -149,16 +150,8 @@ public abstract class BaseBoolField : BaseField<bool>
 
 	public override void SetValueWithoutNotify(bool newValue)
 	{
-		if (newValue)
-		{
-			base.visualInput.pseudoStates |= PseudoStates.Checked;
-			base.pseudoStates |= PseudoStates.Checked;
-		}
-		else
-		{
-			base.visualInput.pseudoStates &= ~PseudoStates.Checked;
-			base.pseudoStates &= ~PseudoStates.Checked;
-		}
+		base.visualInput.SetCheckedPseudoState(newValue);
+		SetCheckedPseudoState(newValue);
 		base.SetValueWithoutNotify(newValue);
 	}
 
@@ -208,8 +201,8 @@ public abstract class BaseBoolField : BaseField<bool>
 	{
 		if (base.showMixedValue)
 		{
-			base.visualInput.pseudoStates &= ~PseudoStates.Checked;
-			base.pseudoStates &= ~PseudoStates.Checked;
+			base.visualInput.SetCheckedPseudoState(value: false);
+			SetCheckedPseudoState(value: false);
 			m_CheckMark.RemoveFromHierarchy();
 			base.visualInput.Add(base.mixedValueLabel);
 			m_OriginalText = text;

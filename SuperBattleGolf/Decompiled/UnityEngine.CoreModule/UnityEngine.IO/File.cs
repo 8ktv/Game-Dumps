@@ -3,8 +3,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.IO;
 
-[NativeHeader("Runtime/VirtualFileSystem/VirtualFileSystem.h")]
 [StaticAccessor("FileAccessor", StaticAccessorType.DoubleColon)]
+[NativeHeader("Runtime/VirtualFileSystem/VirtualFileSystem.h")]
 [NativeConditional("ENABLE_PROFILER")]
 internal static class File
 {

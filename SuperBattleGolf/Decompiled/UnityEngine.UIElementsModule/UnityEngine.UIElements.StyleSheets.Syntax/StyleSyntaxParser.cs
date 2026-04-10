@@ -125,7 +125,7 @@ internal class StyleSyntaxParser
 				throw new Exception($"Unexpected token '{current.type}' in expression. Expected term token");
 			}
 			expression = new Expression(ExpressionType.Keyword);
-			expression.keyword = current.text.ToLower();
+			expression.keyword = current.text.ToLowerInvariant();
 			tokenizer.MoveNext();
 		}
 		ParseMultiplier(tokenizer, ref expression.multiplier);
@@ -233,7 +233,19 @@ internal class StyleSyntaxParser
 		default:
 			throw new Exception($"Unexpected token '{current.type}' in data type expression");
 		}
+		EatSpace(tokenizer);
 		current = tokenizer.current;
+		if (current.type == StyleSyntaxTokenType.OpenBracket)
+		{
+			tokenizer.MoveNext();
+			ParseLimits(tokenizer, out expression.min, out expression.max);
+			current = tokenizer.current;
+		}
+		else
+		{
+			expression.min = float.NegativeInfinity;
+			expression.max = float.PositiveInfinity;
+		}
 		if (current.type != StyleSyntaxTokenType.GreaterThan)
 		{
 			throw new Exception($"Unexpected token '{current.type}' in data type expression. Expected '>' token");
@@ -331,6 +343,33 @@ internal class StyleSyntaxParser
 		}
 	}
 
+	private void ParseLimits(StyleSyntaxTokenizer tokenizer, out float min, out float max)
+	{
+		StyleSyntaxToken current = tokenizer.current;
+		if (current.type != StyleSyntaxTokenType.Number)
+		{
+			throw new Exception($"Unexpected token '{current.type}' in expression. Expected number token");
+		}
+		min = current.number;
+		current = tokenizer.MoveNext();
+		if (current.type != StyleSyntaxTokenType.Comma)
+		{
+			throw new Exception($"Unexpected token '{current.type}' in expression. Expected coma");
+		}
+		current = tokenizer.MoveNext();
+		if (current.type != StyleSyntaxTokenType.Number)
+		{
+			throw new Exception($"Unexpected token '{current.type}' in expression. Expected number token");
+		}
+		max = current.number;
+		current = tokenizer.MoveNext();
+		if (current.type != StyleSyntaxTokenType.CloseBracket)
+		{
+			throw new Exception($"Unexpected token '{current.type}' in expression. Expected ']' ");
+		}
+		tokenizer.MoveNext();
+	}
+
 	private void ParseRanges(StyleSyntaxTokenizer tokenizer, out int min, out int max)
 	{
 		min = -1;
@@ -344,11 +383,11 @@ internal class StyleSyntaxParser
 			case StyleSyntaxTokenType.Number:
 				if (!flag)
 				{
-					min = styleSyntaxToken.number;
+					min = (int)styleSyntaxToken.number;
 				}
 				else
 				{
-					max = styleSyntaxToken.number;
+					max = (int)styleSyntaxToken.number;
 				}
 				break;
 			case StyleSyntaxTokenType.Comma:

@@ -1,8 +1,14 @@
 namespace UnityEngine.Rendering.RenderGraphModule.NativeRenderPassCompiler;
 
-internal struct ResourceReaderData
+internal readonly struct ResourceReaderData
 {
-	public int passId;
+	public readonly int passId;
 
-	public int inputSlot;
+	public readonly int inputSlot;
+
+	public ResourceReaderData(int _passId, int _inputSlot)
+	{
+		passId = _passId;
+		inputSlot = _inputSlot;
+	}
 }

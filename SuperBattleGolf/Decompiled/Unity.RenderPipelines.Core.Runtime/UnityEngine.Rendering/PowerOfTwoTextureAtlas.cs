@@ -192,14 +192,9 @@ public class PowerOfTwoTextureAtlas : Texture2DAtlas
 		list.Sort(((int instanceId, Vector2Int size) c1, (int instanceId, Vector2Int size) c2) => c2.size.magnitude.CompareTo(c1.size.magnitude));
 		bool flag = true;
 		Vector4 scaleOffset = Vector4.zero;
-		foreach (var item3 in list)
+		foreach (var item in list)
 		{
-			bool num = flag;
-			int item = item3.Item1;
-			Vector2Int item2 = item3.Item2;
-			int x = item2.x;
-			item2 = item3.Item2;
-			flag = num & AllocateTextureWithoutBlit(item, x, item2.y, ref scaleOffset);
+			flag &= AllocateTextureWithoutBlit(item.Item1, item.Item2.x, item.Item2.y, ref scaleOffset);
 		}
 		return flag;
 	}

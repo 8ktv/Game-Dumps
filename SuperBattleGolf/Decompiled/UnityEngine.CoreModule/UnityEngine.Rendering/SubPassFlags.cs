@@ -9,5 +9,7 @@ public enum SubPassFlags
 	ReadOnlyDepth = 2,
 	ReadOnlyStencil = 4,
 	ReadOnlyDepthStencil = 6,
-	UseShadingRateImage = 8
+	UseShadingRateImage = 8,
+	TileProperties = 0x10,
+	MultiviewRenderRegionsCompatible = 0x20
 }

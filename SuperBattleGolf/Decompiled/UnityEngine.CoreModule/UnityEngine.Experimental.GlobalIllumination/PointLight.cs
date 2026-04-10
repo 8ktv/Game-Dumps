@@ -1,8 +1,10 @@
+using System;
+
 namespace UnityEngine.Experimental.GlobalIllumination;
 
 public struct PointLight
 {
-	public int instanceID;
+	public EntityId entityId;
 
 	public bool shadow;
 
@@ -21,4 +23,17 @@ public struct PointLight
 	public float sphereRadius;
 
 	public FalloffType falloff;
+
+	[Obsolete("Please use entityId instead.", false)]
+	public int instanceID
+	{
+		get
+		{
+			return entityId;
+		}
+		set
+		{
+			entityId = value;
+		}
+	}
 }

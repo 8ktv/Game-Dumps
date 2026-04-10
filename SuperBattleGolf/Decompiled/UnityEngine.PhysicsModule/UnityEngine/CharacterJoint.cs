@@ -5,9 +5,9 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[RequireComponent(typeof(Rigidbody))]
-[NativeClass("Unity::CharacterJoint")]
 [NativeHeader("Modules/Physics/CharacterJoint.h")]
+[NativeClass("Unity::CharacterJoint")]
+[RequireComponent(typeof(Rigidbody))]
 public class CharacterJoint : Joint
 {
 	public Vector3 swingAxis

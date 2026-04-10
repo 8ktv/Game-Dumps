@@ -11,12 +11,12 @@ public class LongField : TextValueField<long>
 {
 	[Serializable]
 	[ExcludeFromDocs]
-	public new class UxmlSerializedData : TextInputBaseField<long>.UxmlSerializedData
+	public new class UxmlSerializedData : TextValueField<long>.UxmlSerializedData
 	{
 		[Conditional("UNITY_EDITOR")]
 		public new static void Register()
 		{
-			TextInputBaseField<long>.UxmlSerializedData.Register();
+			TextValueField<long>.UxmlSerializedData.Register();
 		}
 
 		public override object CreateInstance()
@@ -39,7 +39,7 @@ public class LongField : TextValueField<long>
 	{
 		private LongField parentLongField => (LongField)base.parent;
 
-		protected override string allowedCharacters => UINumericFieldsUtils.k_AllowedCharactersForInt;
+		protected override string allowedCharacters => parentLongField.supportExpressions ? UINumericFieldsUtils.k_AllowedCharactersForInt : UINumericFieldsUtils.k_AllowedCharactersForInt_NoExpressions;
 
 		internal LongInput()
 		{

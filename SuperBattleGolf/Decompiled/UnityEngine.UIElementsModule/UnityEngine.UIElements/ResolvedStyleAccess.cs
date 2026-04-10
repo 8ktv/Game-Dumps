@@ -11,6 +11,8 @@ internal class ResolvedStyleAccess : IResolvedStyle
 
 	public Align alignSelf => ve.computedStyle.alignSelf;
 
+	public Ratio aspectRatio => ve.computedStyle.aspectRatio;
+
 	public Color backgroundColor => ve.computedStyle.backgroundColor;
 
 	public Background backgroundImage => ve.computedStyle.backgroundImage;
@@ -52,6 +54,8 @@ internal class ResolvedStyleAccess : IResolvedStyle
 	public Color color => ve.computedStyle.color;
 
 	public DisplayStyle display => ve.computedStyle.display;
+
+	public IEnumerable<FilterFunction> filter => ve.computedStyle.filter;
 
 	public StyleFloat flexBasis => new StyleFloat(ve.layoutNode.ComputedFlexBasis);
 
@@ -132,6 +136,8 @@ internal class ResolvedStyleAccess : IResolvedStyle
 	public FontDefinition unityFontDefinition => ve.computedStyle.unityFontDefinition;
 
 	public FontStyle unityFontStyleAndWeight => ve.computedStyle.unityFontStyleAndWeight;
+
+	public MaterialDefinition unityMaterial => ve.computedStyle.unityMaterial;
 
 	public float unityParagraphSpacing => ve.computedStyle.unityParagraphSpacing.value;
 

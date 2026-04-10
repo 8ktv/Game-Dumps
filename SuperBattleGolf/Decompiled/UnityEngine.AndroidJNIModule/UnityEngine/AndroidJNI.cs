@@ -9,8 +9,8 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [NativeHeader("Modules/AndroidJNI/Public/AndroidJNIBindingsHelpers.h")]
-[StaticAccessor("AndroidJNIBindingsHelpers", StaticAccessorType.DoubleColon)]
 [NativeConditional("PLATFORM_ANDROID")]
+[StaticAccessor("AndroidJNIBindingsHelpers", StaticAccessorType.DoubleColon)]
 public static class AndroidJNI
 {
 	private struct JStringBinding : IDisposable
@@ -48,8 +48,8 @@ public static class AndroidJNI
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[StaticAccessor("jni", StaticAccessorType.DoubleColon)]
 	[ThreadSafe]
+	[StaticAccessor("jni", StaticAccessorType.DoubleColon)]
 	public static extern IntPtr GetJavaVM();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -207,6 +207,10 @@ public static class AndroidJNI
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe]
 	internal static extern uint GetQueueGlobalRefsCount();
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[ThreadSafe]
+	internal static extern void CleanQueueGlobalRefs();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe]
@@ -1404,37 +1408,37 @@ public static class AndroidJNI
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public static extern sbyte[] FromSByteArray(IntPtr array);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public static extern char[] FromCharArray(IntPtr array);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public static extern short[] FromShortArray(IntPtr array);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public static extern int[] FromIntArray(IntPtr array);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public static extern long[] FromLongArray(IntPtr array);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public static extern float[] FromFloatArray(IntPtr array);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public static extern double[] FromDoubleArray(IntPtr array);
 
 	[ThreadSafe]

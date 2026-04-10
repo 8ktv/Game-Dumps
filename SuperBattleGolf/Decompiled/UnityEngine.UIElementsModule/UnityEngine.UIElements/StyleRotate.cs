@@ -2,10 +2,13 @@ using System;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleRotate : IStyleValue<Rotate>, IEquatable<StyleRotate>
 {
+	[SerializeField]
 	private Rotate m_Value;
 
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
 	public Rotate value

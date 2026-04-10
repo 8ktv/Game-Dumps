@@ -6,8 +6,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[UsedByNativeCode]
 [NativeHeader("Runtime/GfxDevice/HDROutputSettings.h")]
+[UsedByNativeCode]
 public class HDROutputSettings
 {
 	private int m_DisplayIndex;

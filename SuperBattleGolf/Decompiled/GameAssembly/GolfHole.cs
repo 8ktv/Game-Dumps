@@ -9,6 +9,7 @@ using FMODUnity;
 using Mirror;
 using Mirror.RemoteCalls;
 using UnityEngine;
+using UnityEngine.Pool;
 
 public class GolfHole : NetworkBehaviour
 {
@@ -240,27 +241,38 @@ public class GolfHole : NetworkBehaviour
 		if (!NetworkServer.active)
 		{
 			UnityEngine.Debug.LogWarning("[Server] function 'System.Void GolfHole::ServerInformFellIn(Entity)' called when server was not active");
+			return;
 		}
-		else if (entity.IsGolfBall)
+		if (entity.IsGolfBall)
 		{
 			HandleBall(entity.AsGolfBall);
+			return;
 		}
-		else if (entity.IsPlayer)
+		if (entity.IsPlayer)
 		{
 			HandlePlayer(entity.PlayerInfo);
+			PlayFallingInHoleSoundInternal();
+			{
+				foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
+				{
+					if (value != NetworkServer.localConnection)
+					{
+						RpcPlayFallingInHoleSound(value);
+					}
+				}
+				return;
+			}
 		}
-		else
-		{
-			entity.DestroyEntity();
-		}
+		entity.DestroyEntity();
 		void HandleBall(GolfBall ball)
 		{
 			ball.ServerInformEnteredHole(this);
 			ServerOnBallScored(ball);
 		}
-		static void HandlePlayer(PlayerInfo player)
+		void HandlePlayer(PlayerInfo player)
 		{
 			player.AsGolfer.ServerEliminate(EliminationReason.FellIntoHole);
+			VfxManager.ServerPlayPooledVfxForAllClients(VfxType.HolePlayerDeath, base.transform.position, base.transform.rotation);
 		}
 	}
 
@@ -357,6 +369,19 @@ public class GolfHole : NetworkBehaviour
 	private void PlayBallInHoleSoundInternal()
 	{
 		RuntimeManager.PlayOneShot(GameManager.AudioSettings.BallInHoleEvent, base.transform.position);
+	}
+
+	[TargetRpc]
+	private void RpcPlayFallingInHoleSound(NetworkConnectionToClient connection)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendTargetRPCInternal(connection, "System.Void GolfHole::RpcPlayFallingInHoleSound(Mirror.NetworkConnectionToClient)", 64883942, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	private void PlayFallingInHoleSoundInternal()
+	{
+		RuntimeManager.PlayOneShot(GameManager.AudioSettings.FallingInHoleEvent, base.transform.position);
 	}
 
 	private void HideWorldspaceIcon()
@@ -494,12 +519,15 @@ public class GolfHole : NetworkBehaviour
 	private void _003CServerOnBallScored_003Eg__ApplyScoreKnockback_007C26_0()
 	{
 		int num = Physics.OverlapSphereNonAlloc(base.transform.position, settings.MaxRange, layerMask: GameManager.LayerSettings.ScoreKnockbackMask, results: PlayerGolfer.overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
-		PlayerGolfer.processedHittableBuffer.Clear();
-		for (int i = 0; i < num; i++)
+		HashSet<Hittable> value;
+		using (CollectionPool<HashSet<Hittable>, Hittable>.Get(out value))
 		{
-			if (PlayerGolfer.overlappingColliderBuffer[i].TryGetComponentInParent<Hittable>(out var foundComponent, includeInactive: true) && PlayerGolfer.processedHittableBuffer.Add(foundComponent))
+			for (int i = 0; i < num; i++)
 			{
-				foundComponent.ServerHitWithScoreKnockback(this);
+				if (PlayerGolfer.overlappingColliderBuffer[i].TryGetComponentInParent<Hittable>(out var foundComponent, includeInactive: true) && value.Add(foundComponent))
+				{
+					foundComponent.ServerHitWithScoreKnockback(this);
+				}
 			}
 		}
 	}
@@ -526,9 +554,27 @@ public class GolfHole : NetworkBehaviour
 		}
 	}
 
+	protected void UserCode_RpcPlayFallingInHoleSound__NetworkConnectionToClient(NetworkConnectionToClient connection)
+	{
+		PlayFallingInHoleSoundInternal();
+	}
+
+	protected static void InvokeUserCode_RpcPlayFallingInHoleSound__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			UnityEngine.Debug.LogError("TargetRPC RpcPlayFallingInHoleSound called on server.");
+		}
+		else
+		{
+			((GolfHole)obj).UserCode_RpcPlayFallingInHoleSound__NetworkConnectionToClient(null);
+		}
+	}
+
 	static GolfHole()
 	{
 		RemoteProcedureCalls.RegisterRpc(typeof(GolfHole), "System.Void GolfHole::RpcPlayBallInHoleSound(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayBallInHoleSound__NetworkConnectionToClient);
+		RemoteProcedureCalls.RegisterRpc(typeof(GolfHole), "System.Void GolfHole::RpcPlayFallingInHoleSound(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayFallingInHoleSound__NetworkConnectionToClient);
 	}
 
 	public override void SerializeSyncVars(NetworkWriter writer, bool forceAll)

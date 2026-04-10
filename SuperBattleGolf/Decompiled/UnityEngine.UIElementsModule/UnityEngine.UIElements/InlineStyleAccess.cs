@@ -17,9 +17,7 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 
 		public StyleRule rule;
 
-		public StylePropertyId[] propertyIds;
-
-		public StyleProperty[] properties => rule.properties;
+		public StyleProperty[] properties => rule?.properties;
 	}
 
 	private static StylePropertyReader s_StylePropertyReader = new StylePropertyReader();
@@ -57,6 +55,10 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 	private bool m_HasInlineBackgroundSize;
 
 	public StyleBackgroundSize m_InlineBackgroundSize;
+
+	private bool m_HasInlineFilter;
+
+	public StyleList<FilterFunction> m_InlineFilter;
 
 	private InlineRule m_InlineRule;
 
@@ -107,6 +109,22 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 			{
 				ve.IncrementVersion(VersionChangeType.Layout | VersionChangeType.Styles);
 				ve.layoutNode.AlignSelf = (LayoutAlign)ve.computedStyle.alignSelf;
+			}
+		}
+	}
+
+	StyleRatio IStyle.aspectRatio
+	{
+		get
+		{
+			return GetStyleRatio(StylePropertyId.AspectRatio);
+		}
+		set
+		{
+			if (SetStyleValue(StylePropertyId.AspectRatio, value))
+			{
+				ve.IncrementVersion(VersionChangeType.Layout | VersionChangeType.Styles);
+				ve.layoutNode.AspectRatio = ve.computedStyle.aspectRatio;
 			}
 		}
 	}
@@ -1006,6 +1024,21 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 		}
 	}
 
+	StyleMaterialDefinition IStyle.unityMaterial
+	{
+		get
+		{
+			return GetStyleMaterialDefinition(StylePropertyId.UnityMaterial);
+		}
+		set
+		{
+			if (SetStyleValue(StylePropertyId.UnityMaterial, value))
+			{
+				ve.IncrementVersion(VersionChangeType.StyleSheet | VersionChangeType.Styles | VersionChangeType.Repaint);
+			}
+		}
+	}
+
 	StyleEnum<OverflowClipBox> IStyle.unityOverflowClipBox
 	{
 		get
@@ -1353,6 +1386,26 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 		}
 	}
 
+	StyleList<FilterFunction> IStyle.filter
+	{
+		get
+		{
+			StyleList<FilterFunction> value = default(StyleList<FilterFunction>);
+			if (TryGetInlineFilter(ref value))
+			{
+				return value;
+			}
+			return StyleKeyword.Null;
+		}
+		set
+		{
+			if (SetInlineFilter(value))
+			{
+				ve.IncrementVersion(VersionChangeType.Styles | VersionChangeType.Repaint);
+			}
+		}
+	}
+
 	StyleTransformOrigin IStyle.transformOrigin
 	{
 		get
@@ -1471,7 +1524,6 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 	{
 		m_InlineRule.sheet = sheet;
 		m_InlineRule.rule = rule;
-		m_InlineRule.propertyIds = StyleSheetCache.GetPropertyIds(rule);
 		ApplyInlineStyles(ref ve.computedStyle);
 	}
 
@@ -1504,6 +1556,7 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 			StylePropertyId.Rotate => m_HasInlineRotate, 
 			StylePropertyId.Scale => m_HasInlineScale, 
 			StylePropertyId.BackgroundSize => m_HasInlineBackgroundSize, 
+			StylePropertyId.Filter => m_HasInlineFilter, 
 			_ => false, 
 		};
 	}
@@ -1524,7 +1577,7 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 		ref ComputedStyle parentStyle = ref reference;
 		if (m_InlineRule.sheet != null)
 		{
-			s_StylePropertyReader.SetInlineContext(m_InlineRule.sheet, m_InlineRule.rule.properties, m_InlineRule.propertyIds);
+			s_StylePropertyReader.SetInlineContext(m_InlineRule.sheet, m_InlineRule.rule.properties);
 			computedStyle.ApplyProperties(s_StylePropertyReader, ref parentStyle);
 		}
 		foreach (StyleValue value in m_Values)
@@ -1569,6 +1622,10 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 		if (m_HasInlineBackgroundSize)
 		{
 			computedStyle.ApplyStyleBackgroundSize(ve.style.backgroundSize.value);
+		}
+		if (m_HasInlineFilter)
+		{
+			computedStyle.ApplyStyleFilter(ve.style.filter.value);
 		}
 	}
 
@@ -1934,6 +1991,37 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 		return true;
 	}
 
+	private bool SetStyleValue(StylePropertyId id, StyleMaterialDefinition inlineValue)
+	{
+		StyleValue value = default(StyleValue);
+		if (TryGetStyleValue(id, ref value))
+		{
+			Material material = (value.resource.IsAllocated ? (value.resource.Target as Material) : null);
+			if (material == inlineValue.value && value.keyword == inlineValue.keyword)
+			{
+				return false;
+			}
+			if (value.resource.IsAllocated)
+			{
+				value.resource.Free();
+			}
+		}
+		else if (inlineValue.keyword == StyleKeyword.Null)
+		{
+			return false;
+		}
+		value.id = id;
+		value.keyword = inlineValue.keyword;
+		value.resource = ((inlineValue.value != null) ? GCHandle.Alloc(inlineValue.value) : default(GCHandle));
+		SetStyleValue(value);
+		if (inlineValue.keyword == StyleKeyword.Null)
+		{
+			return RemoveInlineStyle(id);
+		}
+		ApplyStyleValue(value);
+		return true;
+	}
+
 	private bool SetStyleValue<T>(StylePropertyId id, StyleList<T> inlineValue)
 	{
 		StyleValueManaged value = default(StyleValueManaged);
@@ -1975,6 +2063,32 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 			value.value = null;
 		}
 		SetStyleValueManaged(value);
+		if (inlineValue.keyword == StyleKeyword.Null)
+		{
+			return RemoveInlineStyle(id);
+		}
+		ApplyStyleValue(value);
+		return true;
+	}
+
+	private bool SetStyleValue(StylePropertyId id, StyleRatio inlineValue)
+	{
+		StyleValue value = default(StyleValue);
+		if (TryGetStyleValue(id, ref value))
+		{
+			if (value.number == inlineValue.value && value.keyword == inlineValue.keyword)
+			{
+				return false;
+			}
+		}
+		else if (inlineValue.keyword == StyleKeyword.Null)
+		{
+			return false;
+		}
+		value.id = id;
+		value.keyword = inlineValue.keyword;
+		value.number = inlineValue.value;
+		SetStyleValue(value);
 		if (inlineValue.keyword == StyleKeyword.Null)
 		{
 			return RemoveInlineStyle(id);
@@ -2323,6 +2437,49 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 		}
 	}
 
+	private bool SetInlineFilter(StyleList<FilterFunction> inlineValue)
+	{
+		StyleList<FilterFunction> value = default(StyleList<FilterFunction>);
+		if (TryGetInlineFilter(ref value))
+		{
+			if (value.value == inlineValue.value && value.keyword == inlineValue.keyword)
+			{
+				return false;
+			}
+		}
+		else if (inlineValue.keyword == StyleKeyword.Null)
+		{
+			return false;
+		}
+		if (inlineValue.keyword == StyleKeyword.Null)
+		{
+			m_HasInlineBackgroundSize = false;
+			return RemoveInlineStyle(StylePropertyId.Filter);
+		}
+		m_InlineFilter = inlineValue;
+		m_HasInlineFilter = true;
+		ApplyStyleFilter(inlineValue);
+		return true;
+	}
+
+	private void ApplyStyleFilter(StyleList<FilterFunction> filter)
+	{
+		ComputedTransitionUtils.UpdateComputedTransitions(ref ve.computedStyle);
+		bool flag = false;
+		if (ve.computedStyle.hasTransition && ve.styleInitialized && ve.computedStyle.GetTransitionProperty(StylePropertyId.BackgroundSize, out var result))
+		{
+			flag = ComputedStyle.StartAnimationInlineFilter(ve, ref ve.computedStyle, filter, result.durationMs, result.delayMs, result.easingCurve);
+		}
+		else
+		{
+			ve.styleAnimation.CancelAnimation(StylePropertyId.TransformOrigin);
+		}
+		if (!flag)
+		{
+			ve.computedStyle.ApplyStyleFilter(filter.value);
+		}
+	}
+
 	private void ApplyStyleValue(StyleValue value)
 	{
 		VisualElement parent = ve.hierarchy.parent;
@@ -2484,6 +2641,16 @@ internal class InlineStyleAccess : StyleValueCollection, IStyle
 		if (m_HasInlineBackgroundSize)
 		{
 			value = m_InlineBackgroundSize;
+			return true;
+		}
+		return false;
+	}
+
+	public bool TryGetInlineFilter(ref StyleList<FilterFunction> value)
+	{
+		if (m_HasInlineFilter)
+		{
+			value = m_InlineFilter;
 			return true;
 		}
 		return false;

@@ -6,10 +6,10 @@ using UnityEngine.Bindings;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
-[NativeAsStruct]
-[NativeHeader("Runtime/Utilities/DiagnosticSwitch.h")]
 [VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule", "UnityEngine.TextCoreTextEngineModule", "UnityEngine.IMGUIModule" })]
+[NativeAsStruct]
 [NativeClass("DiagnosticSwitch", "struct DiagnosticSwitch;")]
+[NativeHeader("Runtime/Utilities/DiagnosticSwitch.h")]
 internal class DiagnosticSwitch
 {
 	[Flags]

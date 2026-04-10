@@ -451,7 +451,7 @@ public struct float4x4 : IEquatable<float4x4>, IFormattable
 
 	public static implicit operator Matrix4x4(float4x4 m)
 	{
-		return new Matrix4x4(m.c0, m.c1, m.c2, m.c3);
+		return new Matrix4x4((Vector4)m.c0, (Vector4)m.c1, (Vector4)m.c2, (Vector4)m.c3);
 	}
 
 	public float4x4(float3x3 rotation, float3 translation)

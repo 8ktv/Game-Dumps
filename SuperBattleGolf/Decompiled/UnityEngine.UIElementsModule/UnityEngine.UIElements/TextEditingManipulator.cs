@@ -66,7 +66,7 @@ internal class TextEditingManipulator
 		}
 		if (evt is BlurEvent)
 		{
-			m_TextElement.uitkTextHandle.RemoveTextInfoFromPermanentCache();
+			m_TextElement.uitkTextHandle.RemoveFromPermanentCache();
 		}
 		else if ((!(evt is PointerMoveEvent) && !(evt is MouseMoveEvent)) || m_TextElement.selectingManipulator.isClicking)
 		{

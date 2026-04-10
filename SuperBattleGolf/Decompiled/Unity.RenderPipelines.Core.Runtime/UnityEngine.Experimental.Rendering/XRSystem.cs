@@ -146,7 +146,7 @@ public static class XRSystem
 
 	public static float GetRenderViewportScale()
 	{
-		return s_Display.scaleOfAllViewports;
+		return s_Display.appliedViewportScale;
 	}
 
 	public static float GetDynamicResolutionScale()
@@ -255,7 +255,7 @@ public static class XRSystem
 			int renderParameterCount = renderPass.GetRenderParameterCount();
 			if (CanUseSinglePass(camera, renderPass))
 			{
-				XRPassCreateInfo arg = BuildPass(renderPass, scriptableCullingParameters, layout);
+				XRPassCreateInfo arg = BuildPass(renderPass, scriptableCullingParameters, layout, i == s_Display.GetRenderPassCount() - 1);
 				XRPass xrPass = s_PassAllocator(arg);
 				for (int j = 0; j < renderParameterCount; j++)
 				{
@@ -267,7 +267,7 @@ public static class XRSystem
 			{
 				for (int k = 0; k < renderParameterCount; k++)
 				{
-					XRPassCreateInfo arg2 = BuildPass(renderPass, scriptableCullingParameters, layout);
+					XRPassCreateInfo arg2 = BuildPass(renderPass, scriptableCullingParameters, layout, i == s_Display.GetRenderPassCount() - 1);
 					XRPass xrPass2 = s_PassAllocator(arg2);
 					AddViewToPass(xrPass2, renderPass, k);
 					layout.AddPass(camera, xrPass2);
@@ -349,7 +349,7 @@ public static class XRSystem
 		return result;
 	}
 
-	private static XRPassCreateInfo BuildPass(XRDisplaySubsystem.XRRenderPass xrRenderPass, ScriptableCullingParameters cullingParameters, XRLayout layout)
+	private static XRPassCreateInfo BuildPass(XRDisplaySubsystem.XRRenderPass xrRenderPass, ScriptableCullingParameters cullingParameters, XRLayout layout, bool isLastPass)
 	{
 		return new XRPassCreateInfo
 		{
@@ -368,7 +368,8 @@ public static class XRSystem
 			cullingPassId = xrRenderPass.cullingPassIndex,
 			copyDepth = xrRenderPass.shouldFillOutDepth,
 			spaceWarpRightHandedNDC = xrRenderPass.spaceWarpRightHandedNDC,
-			xrSdkRenderPass = xrRenderPass
+			xrSdkRenderPass = xrRenderPass,
+			isLastCameraPass = isLastPass
 		};
 	}
 }

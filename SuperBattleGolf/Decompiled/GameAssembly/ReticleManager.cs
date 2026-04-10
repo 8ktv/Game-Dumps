@@ -11,6 +11,9 @@ public class ReticleManager : SingletonBehaviour<ReticleManager>
 	[SerializeField]
 	private GameObject rocketLauncherReticle;
 
+	[SerializeField]
+	private GameObject freezeBombReticle;
+
 	protected override void Awake()
 	{
 		base.Awake();
@@ -41,6 +44,14 @@ public class ReticleManager : SingletonBehaviour<ReticleManager>
 		}
 	}
 
+	public static void SetFreezeBomb()
+	{
+		if (SingletonBehaviour<ReticleManager>.HasInstance)
+		{
+			SingletonBehaviour<ReticleManager>.Instance.SetFreezeBombInternal();
+		}
+	}
+
 	public static void Clear()
 	{
 		if (SingletonBehaviour<ReticleManager>.HasInstance)
@@ -67,10 +78,17 @@ public class ReticleManager : SingletonBehaviour<ReticleManager>
 		rocketLauncherReticle.SetActive(value: true);
 	}
 
+	private void SetFreezeBombInternal()
+	{
+		ClearInternal();
+		freezeBombReticle.SetActive(value: true);
+	}
+
 	private void ClearInternal()
 	{
 		duelingPistolReticle.SetActive(value: false);
 		elephantGunReticle.SetActive(value: false);
 		rocketLauncherReticle.SetActive(value: false);
+		freezeBombReticle.SetActive(value: false);
 	}
 }

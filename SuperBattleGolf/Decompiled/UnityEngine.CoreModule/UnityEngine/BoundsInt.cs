@@ -18,7 +18,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 
 		private Vector3Int _current;
 
-		public Vector3Int Current
+		public readonly Vector3Int Current
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get
@@ -27,7 +27,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 			}
 		}
 
-		object IEnumerator.Current
+		readonly object IEnumerator.Current
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get
@@ -37,11 +37,12 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public PositionEnumerator(Vector3Int min, Vector3Int max)
+		public PositionEnumerator(in Vector3Int min, in Vector3Int max)
 		{
-			_min = (_current = min);
+			_min = min;
 			_max = max;
-			Reset();
+			_current = _min;
+			_current.x--;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -99,7 +100,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	public int x
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_Position.x;
 		}
@@ -113,7 +114,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	public int y
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_Position.y;
 		}
@@ -127,7 +128,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	public int z
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_Position.z;
 		}
@@ -138,19 +139,24 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 		}
 	}
 
-	public Vector3 center
+	public readonly Vector3 center
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
 		{
-			return new Vector3((float)x + (float)m_Size.x / 2f, (float)y + (float)m_Size.y / 2f, (float)z + (float)m_Size.z / 2f);
+			return new Vector3
+			{
+				x = (float)m_Position.x + (float)m_Size.x * 0.5f,
+				y = (float)m_Position.y + (float)m_Size.y * 0.5f,
+				z = (float)m_Position.z + (float)m_Size.z * 0.5f
+			};
 		}
 	}
 
 	public Vector3Int min
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return new Vector3Int(xMin, yMin, zMin);
 		}
@@ -166,7 +172,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	public Vector3Int max
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return new Vector3Int(xMax, yMax, zMax);
 		}
@@ -182,7 +188,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	public int xMin
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return Math.Min(m_Position.x, m_Position.x + m_Size.x);
 		}
@@ -198,7 +204,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	public int yMin
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return Math.Min(m_Position.y, m_Position.y + m_Size.y);
 		}
@@ -214,7 +220,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	public int zMin
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return Math.Min(m_Position.z, m_Position.z + m_Size.z);
 		}
@@ -230,7 +236,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	public int xMax
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return Math.Max(m_Position.x, m_Position.x + m_Size.x);
 		}
@@ -244,7 +250,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	public int yMax
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return Math.Max(m_Position.y, m_Position.y + m_Size.y);
 		}
@@ -258,7 +264,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	public int zMax
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return Math.Max(m_Position.z, m_Position.z + m_Size.z);
 		}
@@ -272,7 +278,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	public Vector3Int position
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_Position;
 		}
@@ -286,7 +292,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	public Vector3Int size
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_Size;
 		}
@@ -297,7 +303,7 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 		}
 	}
 
-	public PositionEnumerator allPositionsWithin
+	public readonly PositionEnumerator allPositionsWithin
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
@@ -321,17 +327,54 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public BoundsInt(in Vector3Int position, in Vector3Int size)
+	{
+		m_Position = position;
+		m_Size = size;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void SetMinMax(Vector3Int minPosition, Vector3Int maxPosition)
 	{
-		min = minPosition;
-		max = maxPosition;
+		xMin = minPosition.x;
+		yMin = minPosition.y;
+		zMin = minPosition.z;
+		xMax = maxPosition.x;
+		yMax = maxPosition.y;
+		zMax = maxPosition.z;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public void SetMinMax(in Vector3Int minPosition, in Vector3Int maxPosition)
+	{
+		xMin = minPosition.x;
+		yMin = minPosition.y;
+		zMin = minPosition.z;
+		xMax = maxPosition.x;
+		yMax = maxPosition.y;
+		zMax = maxPosition.z;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void ClampToBounds(BoundsInt bounds)
 	{
-		position = new Vector3Int(Math.Max(Math.Min(bounds.xMax, position.x), bounds.xMin), Math.Max(Math.Min(bounds.yMax, position.y), bounds.yMin), Math.Max(Math.Min(bounds.zMax, position.z), bounds.zMin));
-		size = new Vector3Int(Math.Min(bounds.xMax - position.x, size.x), Math.Min(bounds.yMax - position.y, size.y), Math.Min(bounds.zMax - position.z, size.z));
+		m_Position.x = Math.Max(Math.Min(bounds.xMax, m_Position.x), bounds.xMin);
+		m_Position.y = Math.Max(Math.Min(bounds.yMax, m_Position.y), bounds.yMin);
+		m_Position.z = Math.Max(Math.Min(bounds.zMax, m_Position.z), bounds.zMin);
+		m_Size.x = Math.Min(bounds.xMax - m_Position.x, m_Size.x);
+		m_Size.y = Math.Min(bounds.yMax - m_Position.y, m_Size.y);
+		m_Size.z = Math.Min(bounds.zMax - m_Position.z, m_Size.z);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public void ClampToBounds(in BoundsInt bounds)
+	{
+		m_Position.x = Math.Max(Math.Min(bounds.xMax, m_Position.x), bounds.xMin);
+		m_Position.y = Math.Max(Math.Min(bounds.yMax, m_Position.y), bounds.yMin);
+		m_Position.z = Math.Max(Math.Min(bounds.zMax, m_Position.z), bounds.zMin);
+		m_Size.x = Math.Min(bounds.xMax - m_Position.x, m_Size.x);
+		m_Size.y = Math.Min(bounds.yMax - m_Position.y, m_Size.y);
+		m_Size.z = Math.Min(bounds.zMax - m_Position.z, m_Size.z);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -341,19 +384,25 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override string ToString()
+	public bool Contains(in Vector3Int position)
+	{
+		return position.x >= xMin && position.y >= yMin && position.z >= zMin && position.x < xMax && position.y < yMax && position.z < zMax;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public override readonly string ToString()
 	{
 		return ToString(null, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format)
+	public readonly string ToString(string format)
 	{
 		return ToString(format, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format, IFormatProvider formatProvider)
+	public readonly string ToString(string format, IFormatProvider formatProvider)
 	{
 		if (formatProvider == null)
 		{
@@ -375,22 +424,29 @@ public struct BoundsInt : IEquatable<BoundsInt>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override bool Equals(object other)
+	public override readonly bool Equals(object other)
 	{
-		if (!(other is BoundsInt))
+		if (other is BoundsInt other2)
 		{
-			return false;
+			return Equals(in other2);
 		}
-		return Equals((BoundsInt)other);
+		return false;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public bool Equals(BoundsInt other)
+	public readonly bool Equals(BoundsInt other)
 	{
-		return m_Position.Equals(other.m_Position) && m_Size.Equals(other.m_Size);
+		return m_Position.Equals(in other.m_Position) && m_Size.Equals(in other.m_Size);
 	}
 
-	public override int GetHashCode()
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public readonly bool Equals(in BoundsInt other)
+	{
+		return m_Position.Equals(in other.m_Position) && m_Size.Equals(in other.m_Size);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public override readonly int GetHashCode()
 	{
 		return m_Position.GetHashCode() ^ (m_Size.GetHashCode() << 2);
 	}

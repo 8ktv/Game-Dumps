@@ -1,7 +1,6 @@
 using System;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Unity.IL2CPP.CompilerServices;
 using UnityEngine.Bindings;
 using UnityEngine.Internal;
@@ -10,10 +9,10 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [RequiredByNativeCode(Optional = true, GenerateProxy = true)]
-[NativeType(Header = "Runtime/Math/Vector3.h")]
-[NativeClass("Vector3f")]
-[Il2CppEagerStaticClassConstruction]
 [NativeHeader("Runtime/Math/Vector3.h")]
+[NativeType(Header = "Runtime/Math/Vector3.h")]
+[Il2CppEagerStaticClassConstruction]
+[NativeClass("Vector3f")]
 [NativeHeader("Runtime/Math/MathScripting.h")]
 public struct Vector3 : IEquatable<Vector3>, IFormattable
 {
@@ -50,7 +49,7 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 	public float this[int index]
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return index switch
 			{
@@ -80,16 +79,16 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 		}
 	}
 
-	public Vector3 normalized
+	public readonly Vector3 normalized
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
 		{
-			return Normalize(this);
+			return Normalize(in this);
 		}
 	}
 
-	public float magnitude
+	public readonly float magnitude
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
@@ -98,7 +97,7 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 		}
 	}
 
-	public float sqrMagnitude
+	public readonly float sqrMagnitude
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
@@ -201,17 +200,41 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 	public static Vector3 fwd => new Vector3(0f, 0f, 1f);
 
 	[FreeFunction("VectorScripting::Slerp", IsThreadSafe = true)]
-	public static Vector3 Slerp(Vector3 a, Vector3 b, float t)
+	private static Vector3 Internal_Slerp(in Vector3 a, in Vector3 b, float t)
 	{
-		Slerp_Injected(ref a, ref b, t, out var ret);
+		Internal_Slerp_Injected(in a, in b, t, out var ret);
 		return ret;
 	}
 
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 Slerp(Vector3 a, Vector3 b, float t)
+	{
+		return Internal_Slerp(in a, in b, t);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 Slerp(in Vector3 a, in Vector3 b, float t)
+	{
+		return Internal_Slerp(in a, in b, t);
+	}
+
 	[FreeFunction("VectorScripting::SlerpUnclamped", IsThreadSafe = true)]
+	private static Vector3 Internal_SlerpUnclamped(in Vector3 a, in Vector3 b, float t)
+	{
+		Internal_SlerpUnclamped_Injected(in a, in b, t, out var ret);
+		return ret;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 SlerpUnclamped(Vector3 a, Vector3 b, float t)
 	{
-		SlerpUnclamped_Injected(ref a, ref b, t, out var ret);
-		return ret;
+		return Internal_SlerpUnclamped(in a, in b, t);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 SlerpUnclamped(in Vector3 a, in Vector3 b, float t)
+	{
+		return Internal_SlerpUnclamped(in a, in b, t);
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -232,24 +255,67 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 		OrthoNormalize3(ref normal, ref tangent, ref binormal);
 	}
 
-	[FreeFunction(IsThreadSafe = true)]
+	[FreeFunction("VectorScripting::RotateTowards", IsThreadSafe = true)]
+	private static Vector3 Internal_RotateTowards(in Vector3 current, in Vector3 target, float maxRadiansDelta, float maxMagnitudeDelta)
+	{
+		Internal_RotateTowards_Injected(in current, in target, maxRadiansDelta, maxMagnitudeDelta, out var ret);
+		return ret;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 RotateTowards(Vector3 current, Vector3 target, float maxRadiansDelta, float maxMagnitudeDelta)
 	{
-		RotateTowards_Injected(ref current, ref target, maxRadiansDelta, maxMagnitudeDelta, out var ret);
-		return ret;
+		return Internal_RotateTowards(in current, in target, maxRadiansDelta, maxMagnitudeDelta);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 RotateTowards(in Vector3 current, in Vector3 target, float maxRadiansDelta, float maxMagnitudeDelta)
+	{
+		return Internal_RotateTowards(in current, in target, maxRadiansDelta, maxMagnitudeDelta);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 Lerp(Vector3 a, Vector3 b, float t)
 	{
 		t = Mathf.Clamp01(t);
-		return new Vector3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
+		Vector3 result = default(Vector3);
+		result.x = a.x + (b.x - a.x) * t;
+		result.y = a.y + (b.y - a.y) * t;
+		result.z = a.z + (b.z - a.z) * t;
+		return result;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 Lerp(in Vector3 a, in Vector3 b, float t)
+	{
+		t = Mathf.Clamp01(t);
+		Vector3 result = default(Vector3);
+		result.x = a.x + (b.x - a.x) * t;
+		result.y = a.y + (b.y - a.y) * t;
+		result.z = a.z + (b.z - a.z) * t;
+		return result;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 LerpUnclamped(Vector3 a, Vector3 b, float t)
 	{
-		return new Vector3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
+		return new Vector3
+		{
+			x = a.x + (b.x - a.x) * t,
+			y = a.y + (b.y - a.y) * t,
+			z = a.z + (b.z - a.z) * t
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 LerpUnclamped(in Vector3 a, in Vector3 b, float t)
+	{
+		return new Vector3
+		{
+			x = a.x + (b.x - a.x) * t,
+			y = a.y + (b.y - a.y) * t,
+			z = a.z + (b.z - a.z) * t
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -264,7 +330,30 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 			return target;
 		}
 		float num5 = (float)Math.Sqrt(num4);
-		return new Vector3(current.x + num / num5 * maxDistanceDelta, current.y + num2 / num5 * maxDistanceDelta, current.z + num3 / num5 * maxDistanceDelta);
+		Vector3 result = default(Vector3);
+		result.x = current.x + num / num5 * maxDistanceDelta;
+		result.y = current.y + num2 / num5 * maxDistanceDelta;
+		result.z = current.z + num3 / num5 * maxDistanceDelta;
+		return result;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 MoveTowards(in Vector3 current, in Vector3 target, float maxDistanceDelta)
+	{
+		float num = target.x - current.x;
+		float num2 = target.y - current.y;
+		float num3 = target.z - current.z;
+		float num4 = num * num + num2 * num2 + num3 * num3;
+		if (num4 == 0f || (maxDistanceDelta >= 0f && num4 <= maxDistanceDelta * maxDistanceDelta))
+		{
+			return target;
+		}
+		float num5 = (float)Math.Sqrt(num4);
+		Vector3 result = default(Vector3);
+		result.x = current.x + num / num5 * maxDistanceDelta;
+		result.y = current.y + num2 / num5 * maxDistanceDelta;
+		result.z = current.z + num3 / num5 * maxDistanceDelta;
+		return result;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -272,7 +361,15 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 	public static Vector3 SmoothDamp(Vector3 current, Vector3 target, ref Vector3 currentVelocity, float smoothTime, float maxSpeed)
 	{
 		float deltaTime = Time.deltaTime;
-		return SmoothDamp(current, target, ref currentVelocity, smoothTime, maxSpeed, deltaTime);
+		return SmoothDamp(in current, in target, ref currentVelocity, smoothTime, maxSpeed, deltaTime);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[ExcludeFromDocs]
+	public static Vector3 SmoothDamp(in Vector3 current, in Vector3 target, ref Vector3 currentVelocity, float smoothTime, float maxSpeed)
+	{
+		float deltaTime = Time.deltaTime;
+		return SmoothDamp(in current, in target, ref currentVelocity, smoothTime, maxSpeed, deltaTime);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -281,7 +378,16 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 	{
 		float deltaTime = Time.deltaTime;
 		float maxSpeed = float.PositiveInfinity;
-		return SmoothDamp(current, target, ref currentVelocity, smoothTime, maxSpeed, deltaTime);
+		return SmoothDamp(in current, in target, ref currentVelocity, smoothTime, maxSpeed, deltaTime);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[ExcludeFromDocs]
+	public static Vector3 SmoothDamp(in Vector3 current, in Vector3 target, ref Vector3 currentVelocity, float smoothTime)
+	{
+		float deltaTime = Time.deltaTime;
+		float maxSpeed = float.PositiveInfinity;
+		return SmoothDamp(in current, in target, ref currentVelocity, smoothTime, maxSpeed, deltaTime);
 	}
 
 	public static Vector3 SmoothDamp(Vector3 current, Vector3 target, ref Vector3 currentVelocity, float smoothTime, [DefaultValue("Mathf.Infinity")] float maxSpeed, [DefaultValue("Time.deltaTime")] float deltaTime)
@@ -296,7 +402,6 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 		float num7 = current.x - target.x;
 		float num8 = current.y - target.y;
 		float num9 = current.z - target.z;
-		Vector3 vector = target;
 		float num10 = maxSpeed * smoothTime;
 		float num11 = num10 * num10;
 		float num12 = num7 * num7 + num8 * num8 + num9 * num9;
@@ -307,34 +412,94 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 			num8 = num8 / num13 * num10;
 			num9 = num9 / num13 * num10;
 		}
-		target.x = current.x - num7;
-		target.y = current.y - num8;
-		target.z = current.z - num9;
-		float num14 = (currentVelocity.x + num4 * num7) * deltaTime;
-		float num15 = (currentVelocity.y + num4 * num8) * deltaTime;
-		float num16 = (currentVelocity.z + num4 * num9) * deltaTime;
-		currentVelocity.x = (currentVelocity.x - num4 * num14) * num6;
-		currentVelocity.y = (currentVelocity.y - num4 * num15) * num6;
-		currentVelocity.z = (currentVelocity.z - num4 * num16) * num6;
-		num = target.x + (num7 + num14) * num6;
-		num2 = target.y + (num8 + num15) * num6;
-		num3 = target.z + (num9 + num16) * num6;
-		float num17 = vector.x - current.x;
-		float num18 = vector.y - current.y;
-		float num19 = vector.z - current.z;
-		float num20 = num - vector.x;
-		float num21 = num2 - vector.y;
-		float num22 = num3 - vector.z;
-		if (num17 * num20 + num18 * num21 + num19 * num22 > 0f)
+		float num14 = current.x - num7;
+		float num15 = current.y - num8;
+		float num16 = current.z - num9;
+		float num17 = (currentVelocity.x + num4 * num7) * deltaTime;
+		float num18 = (currentVelocity.y + num4 * num8) * deltaTime;
+		float num19 = (currentVelocity.z + num4 * num9) * deltaTime;
+		currentVelocity.x = (currentVelocity.x - num4 * num17) * num6;
+		currentVelocity.y = (currentVelocity.y - num4 * num18) * num6;
+		currentVelocity.z = (currentVelocity.z - num4 * num19) * num6;
+		num = num14 + (num7 + num17) * num6;
+		num2 = num15 + (num8 + num18) * num6;
+		num3 = num16 + (num9 + num19) * num6;
+		float num20 = target.x - current.x;
+		float num21 = target.y - current.y;
+		float num22 = target.z - current.z;
+		float num23 = num - target.x;
+		float num24 = num2 - target.y;
+		float num25 = num3 - target.z;
+		if (num20 * num23 + num21 * num24 + num22 * num25 > 0f)
 		{
-			num = vector.x;
-			num2 = vector.y;
-			num3 = vector.z;
-			currentVelocity.x = (num - vector.x) / deltaTime;
-			currentVelocity.y = (num2 - vector.y) / deltaTime;
-			currentVelocity.z = (num3 - vector.z) / deltaTime;
+			num = target.x;
+			num2 = target.y;
+			num3 = target.z;
+			currentVelocity.x = (num - target.x) / deltaTime;
+			currentVelocity.y = (num2 - target.y) / deltaTime;
+			currentVelocity.z = (num3 - target.z) / deltaTime;
 		}
-		return new Vector3(num, num2, num3);
+		Vector3 result = default(Vector3);
+		result.x = num;
+		result.y = num2;
+		result.z = num3;
+		return result;
+	}
+
+	public static Vector3 SmoothDamp(in Vector3 current, in Vector3 target, ref Vector3 currentVelocity, float smoothTime, [DefaultValue("Mathf.Infinity")] float maxSpeed, [DefaultValue("Time.deltaTime")] float deltaTime)
+	{
+		float num = 0f;
+		float num2 = 0f;
+		float num3 = 0f;
+		smoothTime = Mathf.Max(0.0001f, smoothTime);
+		float num4 = 2f / smoothTime;
+		float num5 = num4 * deltaTime;
+		float num6 = 1f / (1f + num5 + 0.48f * num5 * num5 + 0.235f * num5 * num5 * num5);
+		float num7 = current.x - target.x;
+		float num8 = current.y - target.y;
+		float num9 = current.z - target.z;
+		float num10 = maxSpeed * smoothTime;
+		float num11 = num10 * num10;
+		float num12 = num7 * num7 + num8 * num8 + num9 * num9;
+		if (num12 > num11)
+		{
+			float num13 = (float)Math.Sqrt(num12);
+			num7 = num7 / num13 * num10;
+			num8 = num8 / num13 * num10;
+			num9 = num9 / num13 * num10;
+		}
+		float num14 = current.x - num7;
+		float num15 = current.y - num8;
+		float num16 = current.z - num9;
+		float num17 = (currentVelocity.x + num4 * num7) * deltaTime;
+		float num18 = (currentVelocity.y + num4 * num8) * deltaTime;
+		float num19 = (currentVelocity.z + num4 * num9) * deltaTime;
+		currentVelocity.x = (currentVelocity.x - num4 * num17) * num6;
+		currentVelocity.y = (currentVelocity.y - num4 * num18) * num6;
+		currentVelocity.z = (currentVelocity.z - num4 * num19) * num6;
+		num = num14 + (num7 + num17) * num6;
+		num2 = num15 + (num8 + num18) * num6;
+		num3 = num16 + (num9 + num19) * num6;
+		float num20 = target.x - current.x;
+		float num21 = target.y - current.y;
+		float num22 = target.z - current.z;
+		float num23 = num - target.x;
+		float num24 = num2 - target.y;
+		float num25 = num3 - target.z;
+		if (num20 * num23 + num21 * num24 + num22 * num25 > 0f)
+		{
+			num = target.x;
+			num2 = target.y;
+			num3 = target.z;
+			currentVelocity.x = (num - target.x) / deltaTime;
+			currentVelocity.y = (num2 - target.y) / deltaTime;
+			currentVelocity.z = (num3 - target.z) / deltaTime;
+		}
+		Vector3 result = default(Vector3);
+		result.x = num;
+		result.y = num2;
+		result.z = num3;
+		return result;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -364,7 +529,23 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 Scale(Vector3 a, Vector3 b)
 	{
-		return new Vector3(a.x * b.x, a.y * b.y, a.z * b.z);
+		return new Vector3
+		{
+			x = a.x * b.x,
+			y = a.y * b.y,
+			z = a.z * b.z
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 Scale(in Vector3 a, in Vector3 b)
+	{
+		return new Vector3
+		{
+			x = a.x * b.x,
+			y = a.y * b.y,
+			z = a.z * b.z
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -376,29 +557,59 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static Vector3 Cross(Vector3 lhs, Vector3 rhs)
+	public void Scale(in Vector3 scale)
 	{
-		return new Vector3(lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x);
+		x *= scale.x;
+		y *= scale.y;
+		z *= scale.z;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override int GetHashCode()
+	public static Vector3 Cross(Vector3 lhs, Vector3 rhs)
+	{
+		return new Vector3
+		{
+			x = lhs.y * rhs.z - lhs.z * rhs.y,
+			y = lhs.z * rhs.x - lhs.x * rhs.z,
+			z = lhs.x * rhs.y - lhs.y * rhs.x
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 Cross(in Vector3 lhs, in Vector3 rhs)
+	{
+		return new Vector3
+		{
+			x = lhs.y * rhs.z - lhs.z * rhs.y,
+			y = lhs.z * rhs.x - lhs.x * rhs.z,
+			z = lhs.x * rhs.y - lhs.y * rhs.x
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public override readonly int GetHashCode()
 	{
 		return x.GetHashCode() ^ (y.GetHashCode() << 2) ^ (z.GetHashCode() >> 2);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override bool Equals(object other)
+	public override readonly bool Equals(object other)
 	{
 		if (other is Vector3 other2)
 		{
-			return Equals(other2);
+			return Equals(in other2);
 		}
 		return false;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public bool Equals(Vector3 other)
+	public readonly bool Equals(Vector3 other)
+	{
+		return x == other.x && y == other.y && z == other.z;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public readonly bool Equals(in Vector3 other)
 	{
 		return x == other.x && y == other.y && z == other.z;
 	}
@@ -406,32 +617,64 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 Reflect(Vector3 inDirection, Vector3 inNormal)
 	{
-		float num = -2f * Dot(inNormal, inDirection);
-		return new Vector3(num * inNormal.x + inDirection.x, num * inNormal.y + inDirection.y, num * inNormal.z + inDirection.z);
+		float num = -2f * Dot(in inNormal, in inDirection);
+		Vector3 result = default(Vector3);
+		result.x = num * inNormal.x + inDirection.x;
+		result.y = num * inNormal.y + inDirection.y;
+		result.z = num * inNormal.z + inDirection.z;
+		return result;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 Reflect(in Vector3 inDirection, in Vector3 inNormal)
+	{
+		float num = -2f * Dot(in inNormal, in inDirection);
+		Vector3 result = default(Vector3);
+		result.x = num * inNormal.x + inDirection.x;
+		result.y = num * inNormal.y + inDirection.y;
+		result.z = num * inNormal.z + inDirection.z;
+		return result;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 Normalize(Vector3 value)
 	{
-		float num = Magnitude(value);
-		if (num > 1E-05f)
+		float num = value.magnitude;
+		return (num > 1E-05f) ? new Vector3
 		{
-			return value / num;
-		}
-		return zero;
+			x = value.x / num,
+			y = value.y / num,
+			z = value.z / num
+		} : zeroVector;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 Normalize(in Vector3 value)
+	{
+		float num = value.magnitude;
+		return (num > 1E-05f) ? new Vector3
+		{
+			x = value.x / num,
+			y = value.y / num,
+			z = value.z / num
+		} : zeroVector;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void Normalize()
 	{
-		float num = Magnitude(this);
+		float num = magnitude;
 		if (num > 1E-05f)
 		{
-			this /= num;
+			x /= num;
+			y /= num;
+			z /= num;
 		}
 		else
 		{
-			this = zero;
+			x = 0f;
+			y = 0f;
+			z = 0f;
 		}
 	}
 
@@ -442,27 +685,73 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float Dot(in Vector3 lhs, in Vector3 rhs)
+	{
+		return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 Project(Vector3 vector, Vector3 onNormal)
 	{
-		float num = Dot(onNormal, onNormal);
+		float num = Dot(in onNormal, in onNormal);
 		if (num < Mathf.Epsilon)
 		{
 			return zero;
 		}
-		float num2 = Dot(vector, onNormal);
-		return new Vector3(onNormal.x * num2 / num, onNormal.y * num2 / num, onNormal.z * num2 / num);
+		float num2 = Dot(in vector, in onNormal) / num;
+		Vector3 result = default(Vector3);
+		result.x = onNormal.x * num2;
+		result.y = onNormal.y * num2;
+		result.z = onNormal.z * num2;
+		return result;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 Project(in Vector3 vector, in Vector3 onNormal)
+	{
+		float num = Dot(in onNormal, in onNormal);
+		if (num < Mathf.Epsilon)
+		{
+			return zero;
+		}
+		float num2 = Dot(in vector, in onNormal) / num;
+		Vector3 result = default(Vector3);
+		result.x = onNormal.x * num2;
+		result.y = onNormal.y * num2;
+		result.z = onNormal.z * num2;
+		return result;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 ProjectOnPlane(Vector3 vector, Vector3 planeNormal)
 	{
-		float num = Dot(planeNormal, planeNormal);
+		float num = Dot(in planeNormal, in planeNormal);
 		if (num < Mathf.Epsilon)
 		{
 			return vector;
 		}
-		float num2 = Dot(vector, planeNormal);
-		return new Vector3(vector.x - planeNormal.x * num2 / num, vector.y - planeNormal.y * num2 / num, vector.z - planeNormal.z * num2 / num);
+		float num2 = Dot(in vector, in planeNormal) / num;
+		Vector3 result = default(Vector3);
+		result.x = vector.x - planeNormal.x * num2;
+		result.y = vector.y - planeNormal.y * num2;
+		result.z = vector.z - planeNormal.z * num2;
+		return result;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 ProjectOnPlane(in Vector3 vector, in Vector3 planeNormal)
+	{
+		float num = Dot(in planeNormal, in planeNormal);
+		if (num < Mathf.Epsilon)
+		{
+			return vector;
+		}
+		float num2 = Dot(in vector, in planeNormal) / num;
+		Vector3 result = default(Vector3);
+		result.x = vector.x - planeNormal.x * num2;
+		result.y = vector.y - planeNormal.y * num2;
+		result.z = vector.z - planeNormal.z * num2;
+		return result;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -473,14 +762,37 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 		{
 			return 0f;
 		}
-		float num2 = Mathf.Clamp(Dot(from, to) / num, -1f, 1f);
+		float num2 = Mathf.Clamp(Dot(in from, in to) / num, -1f, 1f);
+		return (float)Math.Acos(num2) * 57.29578f;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float Angle(in Vector3 from, in Vector3 to)
+	{
+		float num = (float)Math.Sqrt(from.sqrMagnitude * to.sqrMagnitude);
+		if (num < 1E-15f)
+		{
+			return 0f;
+		}
+		float num2 = Mathf.Clamp(Dot(in from, in to) / num, -1f, 1f);
 		return (float)Math.Acos(num2) * 57.29578f;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static float SignedAngle(Vector3 from, Vector3 to, Vector3 axis)
 	{
-		float num = Angle(from, to);
+		float num = Angle(in from, in to);
+		float num2 = from.y * to.z - from.z * to.y;
+		float num3 = from.z * to.x - from.x * to.z;
+		float num4 = from.x * to.y - from.y * to.x;
+		float num5 = Mathf.Sign(axis.x * num2 + axis.y * num3 + axis.z * num4);
+		return num * num5;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float SignedAngle(in Vector3 from, in Vector3 to, in Vector3 axis)
+	{
+		float num = Angle(in from, in to);
 		float num2 = from.y * to.z - from.z * to.y;
 		float num3 = from.z * to.x - from.x * to.z;
 		float num4 = from.x * to.y - from.y * to.x;
@@ -498,6 +810,15 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float Distance(in Vector3 a, in Vector3 b)
+	{
+		float num = a.x - b.x;
+		float num2 = a.y - b.y;
+		float num3 = a.z - b.z;
+		return (float)Math.Sqrt(num * num + num2 * num2 + num3 * num3);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 ClampMagnitude(Vector3 vector, float maxLength)
 	{
 		float num = vector.sqrMagnitude;
@@ -507,7 +828,30 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 			float num3 = vector.x / num2;
 			float num4 = vector.y / num2;
 			float num5 = vector.z / num2;
-			return new Vector3(num3 * maxLength, num4 * maxLength, num5 * maxLength);
+			Vector3 result = default(Vector3);
+			result.x = num3 * maxLength;
+			result.y = num4 * maxLength;
+			result.z = num5 * maxLength;
+			return result;
+		}
+		return vector;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 ClampMagnitude(in Vector3 vector, float maxLength)
+	{
+		float num = vector.sqrMagnitude;
+		if (num > maxLength * maxLength)
+		{
+			float num2 = (float)Math.Sqrt(num);
+			float num3 = vector.x / num2;
+			float num4 = vector.y / num2;
+			float num5 = vector.z / num2;
+			Vector3 result = default(Vector3);
+			result.x = num3 * maxLength;
+			result.y = num4 * maxLength;
+			result.z = num5 * maxLength;
+			return result;
 		}
 		return vector;
 	}
@@ -515,61 +859,135 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static float Magnitude(Vector3 vector)
 	{
-		return (float)Math.Sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
+		return vector.magnitude;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float Magnitude(in Vector3 vector)
+	{
+		return vector.magnitude;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static float SqrMagnitude(Vector3 vector)
 	{
-		return vector.x * vector.x + vector.y * vector.y + vector.z * vector.z;
+		return vector.sqrMagnitude;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float SqrMagnitude(in Vector3 vector)
+	{
+		return vector.sqrMagnitude;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 Min(Vector3 lhs, Vector3 rhs)
 	{
-		return new Vector3(Mathf.Min(lhs.x, rhs.x), Mathf.Min(lhs.y, rhs.y), Mathf.Min(lhs.z, rhs.z));
+		return new Vector3
+		{
+			x = Mathf.Min(lhs.x, rhs.x),
+			y = Mathf.Min(lhs.y, rhs.y),
+			z = Mathf.Min(lhs.z, rhs.z)
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 Min(in Vector3 lhs, in Vector3 rhs)
+	{
+		return new Vector3
+		{
+			x = Mathf.Min(lhs.x, rhs.x),
+			y = Mathf.Min(lhs.y, rhs.y),
+			z = Mathf.Min(lhs.z, rhs.z)
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 Max(Vector3 lhs, Vector3 rhs)
 	{
-		return new Vector3(Mathf.Max(lhs.x, rhs.x), Mathf.Max(lhs.y, rhs.y), Mathf.Max(lhs.z, rhs.z));
+		return new Vector3
+		{
+			x = Mathf.Max(lhs.x, rhs.x),
+			y = Mathf.Max(lhs.y, rhs.y),
+			z = Mathf.Max(lhs.z, rhs.z)
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3 Max(in Vector3 lhs, in Vector3 rhs)
+	{
+		return new Vector3
+		{
+			x = Mathf.Max(lhs.x, rhs.x),
+			y = Mathf.Max(lhs.y, rhs.y),
+			z = Mathf.Max(lhs.z, rhs.z)
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 operator +(Vector3 a, Vector3 b)
 	{
-		return new Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
+		return new Vector3
+		{
+			x = a.x + b.x,
+			y = a.y + b.y,
+			z = a.z + b.z
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 operator -(Vector3 a, Vector3 b)
 	{
-		return new Vector3(a.x - b.x, a.y - b.y, a.z - b.z);
+		return new Vector3
+		{
+			x = a.x - b.x,
+			y = a.y - b.y,
+			z = a.z - b.z
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 operator -(Vector3 a)
 	{
-		return new Vector3(0f - a.x, 0f - a.y, 0f - a.z);
+		return new Vector3
+		{
+			x = 0f - a.x,
+			y = 0f - a.y,
+			z = 0f - a.z
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 operator *(Vector3 a, float d)
 	{
-		return new Vector3(a.x * d, a.y * d, a.z * d);
+		return new Vector3
+		{
+			x = a.x * d,
+			y = a.y * d,
+			z = a.z * d
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 operator *(float d, Vector3 a)
 	{
-		return new Vector3(a.x * d, a.y * d, a.z * d);
+		return new Vector3
+		{
+			x = a.x * d,
+			y = a.y * d,
+			z = a.z * d
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3 operator /(Vector3 a, float d)
 	{
-		return new Vector3(a.x / d, a.y / d, a.z / d);
+		return new Vector3
+		{
+			x = a.x / d,
+			y = a.y / d,
+			z = a.z / d
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -589,19 +1007,19 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override string ToString()
+	public override readonly string ToString()
 	{
 		return ToString(null, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format)
+	public readonly string ToString(string format)
 	{
 		return ToString(format, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format, IFormatProvider formatProvider)
+	public readonly string ToString(string format, IFormatProvider formatProvider)
 	{
 		if (string.IsNullOrEmpty(format))
 		{
@@ -617,21 +1035,21 @@ public struct Vector3 : IEquatable<Vector3>, IFormattable
 	[Obsolete("Use Vector3.Angle instead. AngleBetween uses radians instead of degrees and was deprecated for this reason")]
 	public static float AngleBetween(Vector3 from, Vector3 to)
 	{
-		return (float)Math.Acos(Mathf.Clamp(Dot(from.normalized, to.normalized), -1f, 1f));
+		return (float)Math.Acos(Mathf.Clamp(Vector3.Dot(from.normalized, to.normalized), -1f, 1f));
 	}
 
 	[Obsolete("Use Vector3.ProjectOnPlane instead.")]
 	public static Vector3 Exclude(Vector3 excludeThis, Vector3 fromThat)
 	{
-		return ProjectOnPlane(fromThat, excludeThis);
+		return Vector3.ProjectOnPlane(fromThat, excludeThis);
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void Slerp_Injected([In] ref Vector3 a, [In] ref Vector3 b, float t, out Vector3 ret);
+	private static extern void Internal_Slerp_Injected(in Vector3 a, in Vector3 b, float t, out Vector3 ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void SlerpUnclamped_Injected([In] ref Vector3 a, [In] ref Vector3 b, float t, out Vector3 ret);
+	private static extern void Internal_SlerpUnclamped_Injected(in Vector3 a, in Vector3 b, float t, out Vector3 ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void RotateTowards_Injected([In] ref Vector3 current, [In] ref Vector3 target, float maxRadiansDelta, float maxMagnitudeDelta, out Vector3 ret);
+	private static extern void Internal_RotateTowards_Injected(in Vector3 current, in Vector3 target, float maxRadiansDelta, float maxMagnitudeDelta, out Vector3 ret);
 }

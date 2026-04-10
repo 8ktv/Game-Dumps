@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "VFX Pool Settings", menuName = "Scriptable Objects/VFX/Pool Settings")]
+[CreateAssetMenu(fileName = "VFX Pool Settings", menuName = "Settings/VFX/Pool Settings")]
 public class VfxPoolSettings : ScriptableObject
 {
 	[SerializeField]

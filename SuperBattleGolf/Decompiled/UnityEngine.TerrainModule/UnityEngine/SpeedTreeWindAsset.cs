@@ -4,8 +4,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[NativeHeader("Modules/Terrain/Public/SpeedTreeWind.h")]
 [ExcludeFromPreset]
+[NativeHeader("Modules/Terrain/Public/SpeedTreeWind.h")]
 public class SpeedTreeWindAsset : Object
 {
 	public int Version

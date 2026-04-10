@@ -11,7 +11,7 @@ namespace UnityEngine.Rendering;
 internal static class InstanceDataSystemBurst
 {
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	internal delegate void ReallocateInstances_000002A0_0024PostfixBurstDelegate(bool implicitInstanceIndices, in NativeArray<int> rendererGroupIDs, in NativeArray<GPUDrivenPackedRendererData> packedRendererData, in NativeArray<int> instanceOffsets, in NativeArray<int> instanceCounts, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeArray<InstanceHandle> instances, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash);
+	internal delegate void ReallocateInstances_000002A0_0024PostfixBurstDelegate(bool implicitInstanceIndices, in NativeArray<EntityId> rendererGroupIDs, in NativeArray<GPUDrivenPackedRendererData> packedRendererData, in NativeArray<int> instanceOffsets, in NativeArray<int> instanceCounts, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeArray<InstanceHandle> instances, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash);
 
 	internal static class ReallocateInstances_000002A0_0024BurstDirectCall
 	{
@@ -34,14 +34,14 @@ internal static class InstanceDataSystemBurst
 			return result;
 		}
 
-		public unsafe static void Invoke(bool implicitInstanceIndices, in NativeArray<int> rendererGroupIDs, in NativeArray<GPUDrivenPackedRendererData> packedRendererData, in NativeArray<int> instanceOffsets, in NativeArray<int> instanceCounts, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeArray<InstanceHandle> instances, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash)
+		public unsafe static void Invoke(bool implicitInstanceIndices, in NativeArray<EntityId> rendererGroupIDs, in NativeArray<GPUDrivenPackedRendererData> packedRendererData, in NativeArray<int> instanceOffsets, in NativeArray<int> instanceCounts, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeArray<InstanceHandle> instances, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash)
 		{
 			if (BurstCompiler.IsEnabled)
 			{
 				IntPtr functionPointer = GetFunctionPointer();
 				if (functionPointer != (IntPtr)0)
 				{
-					((delegate* unmanaged[Cdecl]<bool, ref NativeArray<int>, ref NativeArray<GPUDrivenPackedRendererData>, ref NativeArray<int>, ref NativeArray<int>, ref InstanceAllocators, ref CPUInstanceData, ref CPUPerCameraInstanceData, ref CPUSharedInstanceData, ref NativeArray<InstanceHandle>, ref NativeParallelMultiHashMap<int, InstanceHandle>, void>)functionPointer)(implicitInstanceIndices, ref rendererGroupIDs, ref packedRendererData, ref instanceOffsets, ref instanceCounts, ref instanceAllocators, ref instanceData, ref perCameraInstanceData, ref sharedInstanceData, ref instances, ref rendererGroupInstanceMultiHash);
+					((delegate* unmanaged[Cdecl]<bool, ref NativeArray<EntityId>, ref NativeArray<GPUDrivenPackedRendererData>, ref NativeArray<int>, ref NativeArray<int>, ref InstanceAllocators, ref CPUInstanceData, ref CPUPerCameraInstanceData, ref CPUSharedInstanceData, ref NativeArray<InstanceHandle>, ref NativeParallelMultiHashMap<int, InstanceHandle>, void>)functionPointer)(implicitInstanceIndices, ref rendererGroupIDs, ref packedRendererData, ref instanceOffsets, ref instanceCounts, ref instanceAllocators, ref instanceData, ref perCameraInstanceData, ref sharedInstanceData, ref instances, ref rendererGroupInstanceMultiHash);
 					return;
 				}
 			}
@@ -50,7 +50,7 @@ internal static class InstanceDataSystemBurst
 	}
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	internal delegate void FreeRendererGroupInstances_000002A1_0024PostfixBurstDelegate(in NativeArray<int>.ReadOnly rendererGroupsID, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash);
+	internal delegate void FreeRendererGroupInstances_000002A1_0024PostfixBurstDelegate(in NativeArray<EntityId>.ReadOnly rendererGroupsID, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash);
 
 	internal static class FreeRendererGroupInstances_000002A1_0024BurstDirectCall
 	{
@@ -73,14 +73,14 @@ internal static class InstanceDataSystemBurst
 			return result;
 		}
 
-		public unsafe static void Invoke(in NativeArray<int>.ReadOnly rendererGroupsID, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash)
+		public unsafe static void Invoke(in NativeArray<EntityId>.ReadOnly rendererGroupsID, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash)
 		{
 			if (BurstCompiler.IsEnabled)
 			{
 				IntPtr functionPointer = GetFunctionPointer();
 				if (functionPointer != (IntPtr)0)
 				{
-					((delegate* unmanaged[Cdecl]<ref NativeArray<int>.ReadOnly, ref InstanceAllocators, ref CPUInstanceData, ref CPUPerCameraInstanceData, ref CPUSharedInstanceData, ref NativeParallelMultiHashMap<int, InstanceHandle>, void>)functionPointer)(ref rendererGroupsID, ref instanceAllocators, ref instanceData, ref perCameraInstanceData, ref sharedInstanceData, ref rendererGroupInstanceMultiHash);
+					((delegate* unmanaged[Cdecl]<ref NativeArray<EntityId>.ReadOnly, ref InstanceAllocators, ref CPUInstanceData, ref CPUPerCameraInstanceData, ref CPUSharedInstanceData, ref NativeParallelMultiHashMap<int, InstanceHandle>, void>)functionPointer)(ref rendererGroupsID, ref instanceAllocators, ref instanceData, ref perCameraInstanceData, ref sharedInstanceData, ref rendererGroupInstanceMultiHash);
 					return;
 				}
 			}
@@ -129,14 +129,14 @@ internal static class InstanceDataSystemBurst
 
 	[BurstCompile(DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
 	[MonoPInvokeCallback(typeof(UnityEngine_002ERendering_002EReallocateInstances_000002A0_0024PostfixBurstDelegate))]
-	public static void ReallocateInstances(bool implicitInstanceIndices, in NativeArray<int> rendererGroupIDs, in NativeArray<GPUDrivenPackedRendererData> packedRendererData, in NativeArray<int> instanceOffsets, in NativeArray<int> instanceCounts, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeArray<InstanceHandle> instances, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash)
+	public static void ReallocateInstances(bool implicitInstanceIndices, in NativeArray<EntityId> rendererGroupIDs, in NativeArray<GPUDrivenPackedRendererData> packedRendererData, in NativeArray<int> instanceOffsets, in NativeArray<int> instanceCounts, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeArray<InstanceHandle> instances, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash)
 	{
 		ReallocateInstances_000002A0_0024BurstDirectCall.Invoke(implicitInstanceIndices, in rendererGroupIDs, in packedRendererData, in instanceOffsets, in instanceCounts, ref instanceAllocators, ref instanceData, ref perCameraInstanceData, ref sharedInstanceData, ref instances, ref rendererGroupInstanceMultiHash);
 	}
 
 	[BurstCompile(DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
 	[MonoPInvokeCallback(typeof(UnityEngine_002ERendering_002EFreeRendererGroupInstances_000002A1_0024PostfixBurstDelegate))]
-	public static void FreeRendererGroupInstances(in NativeArray<int>.ReadOnly rendererGroupsID, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash)
+	public static void FreeRendererGroupInstances(in NativeArray<EntityId>.ReadOnly rendererGroupsID, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash)
 	{
 		FreeRendererGroupInstances_000002A1_0024BurstDirectCall.Invoke(in rendererGroupsID, ref instanceAllocators, ref instanceData, ref perCameraInstanceData, ref sharedInstanceData, ref rendererGroupInstanceMultiHash);
 	}
@@ -150,11 +150,11 @@ internal static class InstanceDataSystemBurst
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[BurstCompile(DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
-	internal static void ReallocateInstances_0024BurstManaged(bool implicitInstanceIndices, in NativeArray<int> rendererGroupIDs, in NativeArray<GPUDrivenPackedRendererData> packedRendererData, in NativeArray<int> instanceOffsets, in NativeArray<int> instanceCounts, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeArray<InstanceHandle> instances, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash)
+	internal static void ReallocateInstances_0024BurstManaged(bool implicitInstanceIndices, in NativeArray<EntityId> rendererGroupIDs, in NativeArray<GPUDrivenPackedRendererData> packedRendererData, in NativeArray<int> instanceOffsets, in NativeArray<int> instanceCounts, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeArray<InstanceHandle> instances, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash)
 	{
 		for (int i = 0; i < rendererGroupIDs.Length; i++)
 		{
-			int key = rendererGroupIDs[i];
+			EntityId entityId = rendererGroupIDs[i];
 			bool hasTree = packedRendererData[i].hasTree;
 			int num;
 			int num2;
@@ -169,7 +169,7 @@ internal static class InstanceDataSystemBurst
 				num2 = instanceOffsets[i];
 			}
 			SharedInstanceHandle sharedInstanceHandle;
-			if (rendererGroupInstanceMultiHash.TryGetFirstValue(key, out var item, out var it))
+			if (rendererGroupInstanceMultiHash.TryGetFirstValue(entityId, out var item, out var it))
 			{
 				sharedInstanceHandle = instanceData.Get_SharedInstance(item);
 				if (sharedInstanceData.Get_RefCount(sharedInstanceHandle) - num > 0)
@@ -213,7 +213,7 @@ internal static class InstanceDataSystemBurst
 						instanceData.movedInCurrentFrameBits.Set(index3, value: false);
 						instanceData.movedInPreviousFrameBits.Set(index3, value: false);
 						instanceData.visibleInPreviousFrameBits.Set(index3, value: false);
-						rendererGroupInstanceMultiHash.Add(key, instanceHandle);
+						rendererGroupInstanceMultiHash.Add(entityId, instanceHandle);
 						instances[index2] = instanceHandle;
 					}
 				}
@@ -228,9 +228,9 @@ internal static class InstanceDataSystemBurst
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[BurstCompile(DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
-	internal static void FreeRendererGroupInstances_0024BurstManaged(in NativeArray<int>.ReadOnly rendererGroupsID, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash)
+	internal static void FreeRendererGroupInstances_0024BurstManaged(in NativeArray<EntityId>.ReadOnly rendererGroupsID, ref InstanceAllocators instanceAllocators, ref CPUInstanceData instanceData, ref CPUPerCameraInstanceData perCameraInstanceData, ref CPUSharedInstanceData sharedInstanceData, ref NativeParallelMultiHashMap<int, InstanceHandle> rendererGroupInstanceMultiHash)
 	{
-		foreach (int item2 in rendererGroupsID)
+		foreach (EntityId item2 in rendererGroupsID)
 		{
 			InstanceHandle item;
 			NativeParallelMultiHashMapIterator<int> it;
@@ -273,7 +273,7 @@ internal static class InstanceDataSystemBurst
 			SharedInstanceHandle instance = instanceData.sharedInstances[index];
 			int index2 = sharedInstanceData.SharedInstanceToIndex(instance);
 			int num = sharedInstanceData.refCounts[index2];
-			int key = sharedInstanceData.rendererGroupIDs[index2];
+			EntityId entityId = sharedInstanceData.rendererGroupIDs[index2];
 			if (num > 1)
 			{
 				sharedInstanceData.refCounts[index2] = num - 1;
@@ -289,7 +289,7 @@ internal static class InstanceDataSystemBurst
 			instanceAllocators.FreeInstance(instance2);
 			InstanceHandle item;
 			NativeParallelMultiHashMapIterator<int> it;
-			bool flag = rendererGroupInstanceMultiHash.TryGetFirstValue(key, out item, out it);
+			bool flag = rendererGroupInstanceMultiHash.TryGetFirstValue(entityId, out item, out it);
 			while (flag)
 			{
 				if (instance2.Equals(item))

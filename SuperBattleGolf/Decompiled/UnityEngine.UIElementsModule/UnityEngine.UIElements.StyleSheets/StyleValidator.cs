@@ -22,7 +22,7 @@ internal class StyleValidator
 		{
 			status = StyleValidationStatus.Ok
 		};
-		if (name.StartsWith("--"))
+		if (name.StartsWith("--") || value.StartsWith("--"))
 		{
 			return result;
 		}

@@ -2,10 +2,13 @@ using System;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleCursor : IStyleValue<Cursor>, IEquatable<StyleCursor>
 {
+	[SerializeField]
 	private Cursor m_Value;
 
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
 	public Cursor value

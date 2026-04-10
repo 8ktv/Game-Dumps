@@ -36,14 +36,14 @@ internal abstract class RenderGraphResource<DescType, ResType> : IRenderGraphRes
 		graphicsResource = null;
 	}
 
-	public override void CreatePooledGraphicsResource()
+	public override void CreatePooledGraphicsResource(bool forceResourceCreation)
 	{
 		int descHashCode = GetDescHashCode();
 		if (graphicsResource != null)
 		{
 			throw new InvalidOperationException("RenderGraphResource: Trying to create an already created resource (" + GetName() + "). Resource was probably declared for writing more than once in the same pass.");
 		}
-		if (!m_Pool.TryGetResource(descHashCode, out graphicsResource))
+		if (forceResourceCreation || !m_Pool.TryGetResource(descHashCode, out graphicsResource))
 		{
 			CreateGraphicsResource();
 		}

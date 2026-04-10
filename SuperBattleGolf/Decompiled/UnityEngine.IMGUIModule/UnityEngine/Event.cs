@@ -8,8 +8,8 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
-[StaticAccessor("GUIEvent", StaticAccessorType.DoubleColon)]
 [NativeHeader("Modules/IMGUI/Event.bindings.h")]
+[StaticAccessor("GUIEvent", StaticAccessorType.DoubleColon)]
 public sealed class Event
 {
 	internal static class BindingsMarshaller
@@ -25,7 +25,7 @@ public sealed class Event
 
 	internal const float scrollWheelDeltaPerTick = 3f;
 
-	internal static bool ignoreGuiDepth;
+	internal static bool s_AllowOutsideOnGUI;
 
 	private static Event s_Current;
 
@@ -440,8 +440,8 @@ public sealed class Event
 		}
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Use HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public Ray mouseRay
 	{
 		get
@@ -652,8 +652,8 @@ public sealed class Event
 		return GetTypeForControl_Injected(intPtr, controlID);
 	}
 
-	[FreeFunction("GUIEvent::CopyFromPtr", IsThreadSafe = true, HasExplicitThis = true)]
 	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+	[FreeFunction("GUIEvent::CopyFromPtr", IsThreadSafe = true, HasExplicitThis = true)]
 	internal void CopyFromPtr(IntPtr ptr)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);

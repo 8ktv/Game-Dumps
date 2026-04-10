@@ -432,7 +432,7 @@ public struct InputBinding : IEquatable<InputBinding>
 
 	internal bool Matches(ref InputBinding binding, MatchOptions options = (MatchOptions)0)
 	{
-		if (name != null && (binding.name == null || !StringHelpers.CharacterSeparatedListsHaveAtLeastOneCommonElement(name, binding.name, ';')))
+		if (!string.IsNullOrEmpty(name) && (string.IsNullOrEmpty(binding.name) || !StringHelpers.CharacterSeparatedListsHaveAtLeastOneCommonElement(name, binding.name, ';')))
 		{
 			return false;
 		}

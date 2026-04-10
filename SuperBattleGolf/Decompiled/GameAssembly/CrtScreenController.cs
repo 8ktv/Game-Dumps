@@ -68,7 +68,7 @@ public class CrtScreenController : MonoBehaviour
 			return false;
 		}
 		float num = GetSettings().bulgeIntensity;
-		float num2 = Vector2.Distance(viewportPoint, new Vector2(0.5f, 0.5f));
+		float num2 = Vector2.Distance((Vector2)viewportPoint, new Vector2(0.5f, 0.5f));
 		float x = viewportPoint.x + (num2 - 0.5f) * num * (0.5f - viewportPoint.x);
 		float y = viewportPoint.y + (num2 - 0.5f) * num * (0.5f - viewportPoint.y);
 		buldgedViewportPoint.x = x;

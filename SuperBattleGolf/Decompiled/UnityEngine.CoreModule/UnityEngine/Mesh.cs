@@ -13,9 +13,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[RequiredByNativeCode]
-[NativeHeader("Runtime/Graphics/Mesh/MeshScriptBindings.h")]
 [ExcludeFromPreset]
+[NativeHeader("Runtime/Graphics/Mesh/MeshScriptBindings.h")]
+[RequiredByNativeCode]
 public sealed class Mesh : Object
 {
 	[Serializable]
@@ -64,8 +64,8 @@ public sealed class Mesh : Object
 		}
 	}
 
-	[StaticAccessor("MeshDataBindings", StaticAccessorType.DoubleColon)]
 	[NativeHeader("Runtime/Graphics/Mesh/MeshScriptBindings.h")]
+	[StaticAccessor("MeshDataBindings", StaticAccessorType.DoubleColon)]
 	public struct MeshData
 	{
 		[NativeDisableUnsafePtrRestriction]
@@ -528,9 +528,9 @@ public sealed class Mesh : Object
 		private static extern void SetSubMeshImpl_Injected(IntPtr self, int index, [In] ref SubMeshDescriptor desc, MeshUpdateFlags flags);
 	}
 
+	[StaticAccessor("MeshDataArrayBindings", StaticAccessorType.DoubleColon)]
 	[NativeContainer]
 	[NativeContainerSupportsMinMaxWriteRestriction]
-	[StaticAccessor("MeshDataArrayBindings", StaticAccessorType.DoubleColon)]
 	public struct MeshDataArray : IDisposable
 	{
 		[NativeDisableUnsafePtrRestriction]
@@ -1789,8 +1789,8 @@ public sealed class Mesh : Object
 		return GetVertexBufferStride_Injected(intPtr, stream);
 	}
 
-	[NativeThrows]
 	[FreeFunction(Name = "MeshScripting::GetNativeVertexBufferPtr", HasExplicitThis = true)]
+	[NativeThrows]
 	public IntPtr GetNativeVertexBufferPtr(int index)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -2162,8 +2162,8 @@ public sealed class Mesh : Object
 		return GetBoneWeightBufferLayoutInternal_Injected(intPtr);
 	}
 
-	[SecurityCritical]
 	[FreeFunction(Name = "MeshScripting::GetAllBoneWeightsArray", HasExplicitThis = true)]
+	[SecurityCritical]
 	private IntPtr GetAllBoneWeightsArray()
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -2211,8 +2211,8 @@ public sealed class Mesh : Object
 		SetBindposesFromScript_NativeArray_Injected(intPtr, posesPtr, posesCount);
 	}
 
-	[FreeFunction(Name = "MeshScripting::GetBindposesArray", HasExplicitThis = true)]
 	[SecurityCritical]
+	[FreeFunction(Name = "MeshScripting::GetBindposesArray", HasExplicitThis = true)]
 	private IntPtr GetBindposesArray()
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);

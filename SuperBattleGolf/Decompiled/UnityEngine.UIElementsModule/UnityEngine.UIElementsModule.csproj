@@ -26,9 +26,6 @@
     <Reference Include="UnityEngine.HierarchyCoreModule">
       <HintPath>UnityEngine.HierarchyCoreModule.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine.TextCoreTextEngineModule">
-      <HintPath>UnityEngine.TextCoreTextEngineModule.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
       <HintPath>UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
@@ -40,6 +37,9 @@
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
       <HintPath>UnityEngine.TextRenderingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TextCoreTextEngineModule">
+      <HintPath>UnityEngine.TextCoreTextEngineModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextCoreFontEngineModule">
       <HintPath>UnityEngine.TextCoreFontEngineModule.dll</HintPath>

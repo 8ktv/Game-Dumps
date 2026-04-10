@@ -7,14 +7,14 @@ using UnityEngine.Rendering;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Shaders/Keywords/KeywordSpaceScriptBindings.h")]
-[NativeHeader("Runtime/Misc/ResourceManager.h")]
-[NativeHeader("Runtime/Graphics/ShaderScriptBindings.h")]
 [NativeHeader("Runtime/Graphics/ShaderScriptBindings.h")]
 [NativeHeader("Runtime/Shaders/Shader.h")]
-[NativeHeader("Runtime/Shaders/GpuPrograms/ShaderVariantCollection.h")]
-[NativeHeader("Runtime/Shaders/ShaderNameRegistry.h")]
+[NativeHeader("Runtime/Misc/ResourceManager.h")]
 [NativeHeader("Runtime/Shaders/ComputeShader.h")]
+[NativeHeader("Runtime/Shaders/ShaderNameRegistry.h")]
+[NativeHeader("Runtime/Shaders/Keywords/KeywordSpaceScriptBindings.h")]
+[NativeHeader("Runtime/Shaders/GpuPrograms/ShaderVariantCollection.h")]
+[NativeHeader("Runtime/Graphics/ShaderScriptBindings.h")]
 public sealed class Shader : Object
 {
 	[Obsolete("Use Graphics.activeTier instead (UnityUpgradable) -> UnityEngine.Graphics.activeTier", true)]
@@ -397,6 +397,18 @@ public sealed class Shader : Object
 	{
 		return IsKeywordEnabledFast(keyword);
 	}
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[FreeFunction("ShaderScripting::GetGlobalPropertyCount")]
+	internal static extern int GetGlobalPropertyCount();
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[FreeFunction("ShaderScripting::GetGlobalPropertyCount")]
+	private static extern int GetGlobalPropertyCountImpl(int propertyType);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[FreeFunction("ShaderScripting::ExtractGlobalPropertyNames")]
+	private static extern void ExtractGlobalPropertyNamesImpl(int propertyType, [Out] string[] names);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction]
@@ -951,6 +963,21 @@ public sealed class Shader : Object
 		}
 	}
 
+	private static void ExtractGlobalPropertyNames(MaterialPropertyType type, List<string> names)
+	{
+		if (names == null)
+		{
+			throw new ArgumentNullException("names");
+		}
+		names.Clear();
+		int globalPropertyCountImpl = GetGlobalPropertyCountImpl((int)type);
+		if (globalPropertyCountImpl > 0)
+		{
+			NoAllocHelpers.EnsureListElemCount(names, globalPropertyCountImpl);
+			ExtractGlobalPropertyNamesImpl((int)type, NoAllocHelpers.ExtractArrayFromList(names));
+		}
+	}
+
 	public static void SetGlobalInt(string name, int value)
 	{
 		SetGlobalFloatImpl(PropertyToID(name), value);
@@ -1269,6 +1296,11 @@ public sealed class Shader : Object
 	public static void GetGlobalMatrixArray(int nameID, List<Matrix4x4> values)
 	{
 		ExtractGlobalMatrixArray(nameID, values);
+	}
+
+	internal static void GetGlobalPropertyNames(MaterialPropertyType type, List<string> names)
+	{
+		ExtractGlobalPropertyNames(type, names);
 	}
 
 	private Shader()

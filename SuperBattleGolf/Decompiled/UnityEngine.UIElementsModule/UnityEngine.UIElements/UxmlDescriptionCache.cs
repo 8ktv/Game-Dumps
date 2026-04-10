@@ -5,15 +5,26 @@ namespace UnityEngine.UIElements;
 
 public static class UxmlDescriptionCache
 {
-	private static readonly Dictionary<Type, UxmlAttributeNames[]> s_NamesPerType = new Dictionary<Type, UxmlAttributeNames[]>();
-
-	public static void RegisterType(Type type, UxmlAttributeNames[] attributeNames)
+	internal struct CachedDescription
 	{
-		s_NamesPerType[type] = attributeNames;
+		public UxmlAttributeNames[] attributeNames;
+
+		public bool editorOnly;
 	}
 
-	internal static bool TryGetCachedDescription(Type type, out UxmlAttributeNames[] attributes)
+	private static readonly Dictionary<Type, CachedDescription> s_NamesPerType = new Dictionary<Type, CachedDescription>();
+
+	public static void RegisterType(Type type, UxmlAttributeNames[] attributeNames, bool isEditorOnly = false)
 	{
-		return s_NamesPerType.TryGetValue(type, out attributes);
+		s_NamesPerType[type] = new CachedDescription
+		{
+			attributeNames = attributeNames,
+			editorOnly = isEditorOnly
+		};
+	}
+
+	internal static bool TryGetCachedDescription(Type type, out CachedDescription description)
+	{
+		return s_NamesPerType.TryGetValue(type, out description);
 	}
 }

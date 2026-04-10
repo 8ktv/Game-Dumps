@@ -5,6 +5,11 @@ public static class InputModeExtensions
 		return (inputMode & modeToCheck) != 0;
 	}
 
+	public static bool HasOverride(this InputOverride inputMode, InputOverride modeToCheck)
+	{
+		return (inputMode & modeToCheck) != 0;
+	}
+
 	public static bool DisablesUiInputModule(this InputMode inputMode)
 	{
 		return inputMode.HasMode(InputMode.SteamOverlay | InputMode.ForceDisabled);

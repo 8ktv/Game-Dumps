@@ -18,11 +18,14 @@ public class FullScreenMessage : MonoBehaviour
 
 		public bool cancel;
 
-		public ButtonEntry(string name, UnityAction callback, bool cancel = false)
+		public bool submit;
+
+		public ButtonEntry(string name, UnityAction callback, bool cancel = false, bool submit = false)
 		{
 			this.name = name;
 			this.callback = callback;
 			this.cancel = cancel;
+			this.submit = submit;
 		}
 	}
 
@@ -49,6 +52,8 @@ public class FullScreenMessage : MonoBehaviour
 	private MenuNavigation navigation;
 
 	private UnityAction cancel;
+
+	private UnityAction submit;
 
 	private int currentlyDisplayedErrorPriority = int.MaxValue;
 
@@ -116,6 +121,7 @@ public class FullScreenMessage : MonoBehaviour
 
 	private void OnDestroy()
 	{
+		InputManager.DisableMode(InputMode.FullScreenMessage);
 		SceneManager.activeSceneChanged -= ActiveSceneChanged;
 	}
 
@@ -138,20 +144,35 @@ public class FullScreenMessage : MonoBehaviour
 
 	private void Update()
 	{
-		if (cancel == null)
+		if (cancel != null)
+		{
+			Keyboard current = Keyboard.current;
+			if (current == null || !current.escapeKey.wasPressedThisFrame)
+			{
+				Gamepad currentGamepad = InputManager.CurrentGamepad;
+				if (currentGamepad == null || !currentGamepad.buttonEast.wasPressedThisFrame)
+				{
+					goto IL_0043;
+				}
+			}
+			cancel();
+		}
+		goto IL_0043;
+		IL_0043:
+		if (submit == null)
 		{
 			return;
 		}
-		Keyboard current = Keyboard.current;
-		if (current == null || !current.escapeKey.wasPressedThisFrame)
+		Keyboard current2 = Keyboard.current;
+		if (current2 == null || !current2.enterKey.wasPressedThisFrame)
 		{
-			Gamepad currentGamepad = InputManager.CurrentGamepad;
-			if (currentGamepad == null || !currentGamepad.buttonEast.wasPressedThisFrame)
+			Gamepad currentGamepad2 = InputManager.CurrentGamepad;
+			if (currentGamepad2 == null || !currentGamepad2.buttonSouth.wasPressedThisFrame)
 			{
 				return;
 			}
 		}
-		cancel();
+		submit();
 	}
 
 	public static void Show(string message, params ButtonEntry[] buttonEntries)
@@ -253,6 +274,10 @@ public class FullScreenMessage : MonoBehaviour
 			{
 				cancel = buttonEntries[i].callback;
 			}
+			else if (buttonEntries[i].submit)
+			{
+				submit = buttonEntries[i].callback;
+			}
 		}
 		EnableInputs();
 		isDisplayingAnyMessage = true;
@@ -260,6 +285,7 @@ public class FullScreenMessage : MonoBehaviour
 		inputField.gameObject.SetActive(value: false);
 		LayoutRebuilder.ForceRebuildLayoutImmediate(GetComponentInChildren<VerticalLayoutGroup>().GetComponent<RectTransform>());
 		Canvas.ForceUpdateCanvases();
+		InputManager.EnableMode(InputMode.FullScreenMessage);
 		RuntimeManager.PlayOneShot(GameManager.AudioSettings.FullScreenMessageOpen);
 		async void EnableInputs()
 		{
@@ -284,6 +310,7 @@ public class FullScreenMessage : MonoBehaviour
 		inputField.contentType = (isPasswordField ? TMP_InputField.ContentType.Password : TMP_InputField.ContentType.Standard);
 		inputField.characterLimit = characterLimit;
 		this.inputFieldPromptText.text = inputFieldPromptText;
+		inputField.Select();
 	}
 
 	private void ShowErrorMessageInternal(string message, string additionalMessage, string header, int priority, bool canOnlyQuit)
@@ -314,6 +341,7 @@ public class FullScreenMessage : MonoBehaviour
 		base.gameObject.SetActive(value: false);
 		isDisplayingAnyMessage = false;
 		CursorManager.SetCursorForceUnlocked(forceUnlocked: false);
+		InputManager.DisableMode(InputMode.FullScreenMessage);
 		if (activeSelf && playSfx)
 		{
 			RuntimeManager.PlayOneShot(GameManager.AudioSettings.FullScreenMessageClose);

@@ -12,10 +12,10 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [ExcludeFromPreset]
-[UsedByNativeCode]
 [HelpURL("texture-type-default")]
-[NativeHeader("Runtime/Graphics/Texture2D.h")]
 [NativeHeader("Runtime/Graphics/GeneratedTextures.h")]
+[NativeHeader("Runtime/Graphics/Texture2D.h")]
+[UsedByNativeCode]
 public sealed class Texture2D : Texture
 {
 	[Flags]
@@ -664,7 +664,7 @@ public sealed class Texture2D : Texture
 	}
 
 	[FreeFunction("Texture2DScripting::GetRawTextureData", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public byte[] GetRawTextureData()
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -676,7 +676,7 @@ public sealed class Texture2D : Texture
 	}
 
 	[FreeFunction("Texture2DScripting::GetPixels", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public Color[] GetPixels(int x, int y, int blockWidth, int blockHeight, [DefaultValue("0")] int miplevel)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -694,7 +694,7 @@ public sealed class Texture2D : Texture
 	}
 
 	[FreeFunction("Texture2DScripting::GetPixels32", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public Color32[] GetPixels32([DefaultValue("0")] int miplevel)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -712,7 +712,7 @@ public sealed class Texture2D : Texture
 	}
 
 	[FreeFunction("Texture2DScripting::PackTextures", HasExplicitThis = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public Rect[] PackTextures(Texture2D[] textures, int padding, int maximumAtlasSize, bool makeNoLongerReadable)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -812,8 +812,8 @@ public sealed class Texture2D : Texture
 	{
 	}
 
-	[ExcludeFromDocs]
 	[Obsolete("Please provide mipmap limit information using a MipmapLimitDescriptor argument", false)]
+	[ExcludeFromDocs]
 	public Texture2D(int width, int height, DefaultFormat format, int mipCount, string mipmapLimitGroupName, TextureCreationFlags flags)
 		: this(width, height, SystemInfo.GetGraphicsFormat(format), flags, mipCount, IntPtr.Zero, new MipmapLimitDescriptor(useMipmapLimit: true, mipmapLimitGroupName))
 	{

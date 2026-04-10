@@ -11,12 +11,12 @@ public class DoubleField : TextValueField<double>
 {
 	[Serializable]
 	[ExcludeFromDocs]
-	public new class UxmlSerializedData : TextInputBaseField<double>.UxmlSerializedData
+	public new class UxmlSerializedData : TextValueField<double>.UxmlSerializedData
 	{
 		[Conditional("UNITY_EDITOR")]
 		public new static void Register()
 		{
-			TextInputBaseField<double>.UxmlSerializedData.Register();
+			TextValueField<double>.UxmlSerializedData.Register();
 		}
 
 		public override object CreateInstance()
@@ -39,7 +39,7 @@ public class DoubleField : TextValueField<double>
 	{
 		private DoubleField parentDoubleField => (DoubleField)base.parent;
 
-		protected override string allowedCharacters => UINumericFieldsUtils.k_AllowedCharactersForFloat;
+		protected override string allowedCharacters => parentDoubleField.supportExpressions ? UINumericFieldsUtils.k_AllowedCharactersForFloat : UINumericFieldsUtils.k_AllowedCharactersForFloat_NoExpressions;
 
 		internal DoubleInput()
 		{

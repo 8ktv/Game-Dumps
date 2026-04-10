@@ -7,8 +7,8 @@ using UnityEngineInternal;
 
 namespace UnityEngine;
 
-[NativeHeader("Modules/IMGUI/GUISkin.bindings.h")]
 [NativeHeader("Modules/IMGUI/GUI.bindings.h")]
+[NativeHeader("Modules/IMGUI/GUISkin.bindings.h")]
 public class GUI
 {
 	public enum ToolbarButtonSize
@@ -540,13 +540,13 @@ public class GUI
 		return stringAndDispose;
 	}
 
-	private static Rect Internal_DoModalWindow(int id, int instanceID, Rect clientRect, WindowFunction func, GUIContent content, [Unmarshalled] GUIStyle style, object skin)
+	private static Rect Internal_DoModalWindow(int id, int instanceID, Rect clientRect, WindowFunction func, GUIContent content, [UnityMarshalAs(NativeType.ScriptingObjectPtr)] GUIStyle style, object skin)
 	{
 		Internal_DoModalWindow_Injected(id, instanceID, ref clientRect, func, content, style, skin, out var ret);
 		return ret;
 	}
 
-	private static Rect Internal_DoWindow(int id, int instanceID, Rect clientRect, WindowFunction func, GUIContent title, [Unmarshalled] GUIStyle style, object skin, bool forceRectOnLayout)
+	private static Rect Internal_DoWindow(int id, int instanceID, Rect clientRect, WindowFunction func, GUIContent title, [UnityMarshalAs(NativeType.ScriptingObjectPtr)] GUIStyle style, object skin, bool forceRectOnLayout)
 	{
 		Internal_DoWindow_Injected(id, instanceID, ref clientRect, func, title, style, skin, forceRectOnLayout, out var ret);
 		return ret;
@@ -1635,7 +1635,10 @@ public class GUI
 				bool flag3 = GUIUtility.hotControl == controlID;
 				if (selected != i)
 				{
-					gUIStyle2.Draw(rect, gUIContent, enabled && flag2 && (flag3 || GUIUtility.hotControl == 0), enabled && flag3, on: false, hasKeyboardFocus: false);
+					if (rect.Overlaps(GUIClip.visibleRect))
+					{
+						gUIStyle2.Draw(rect, gUIContent, enabled && flag2 && (flag3 || GUIUtility.hotControl == 0), enabled && flag3, on: false, hasKeyboardFocus: false);
+					}
 				}
 				else
 				{
@@ -1662,7 +1665,10 @@ public class GUI
 			bool flag5 = GUIUtility.hotControl == num3;
 			bool flag6 = enabled;
 			enabled &= contentsEnabled == null || contentsEnabled[selected];
-			gUIStyle.Draw(position2, content, enabled && flag4 && (flag5 || GUIUtility.hotControl == 0), enabled && flag5, on: true, hasKeyboardFocus: false);
+			if (position2.Overlaps(GUIClip.visibleRect))
+			{
+				gUIStyle.Draw(position2, content, enabled && flag4 && (flag5 || GUIUtility.hotControl == 0), enabled && flag5, on: true, hasKeyboardFocus: false);
+			}
 			enabled = flag6;
 		}
 		return selected;

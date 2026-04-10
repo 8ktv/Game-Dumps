@@ -5,6 +5,7 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct Cursor : IEquatable<Cursor>
 {
 	internal class PropertyBag : ContainerPropertyBag<Cursor>
@@ -68,9 +69,35 @@ public struct Cursor : IEquatable<Cursor>
 		}
 	}
 
-	public Texture2D texture { get; set; }
+	[SerializeField]
+	private Texture2D m_Texture;
 
-	public Vector2 hotspot { get; set; }
+	[SerializeField]
+	private Vector2 m_Hotspot;
+
+	public Texture2D texture
+	{
+		get
+		{
+			return m_Texture;
+		}
+		set
+		{
+			m_Texture = value;
+		}
+	}
+
+	public Vector2 hotspot
+	{
+		get
+		{
+			return m_Hotspot;
+		}
+		set
+		{
+			m_Hotspot = value;
+		}
+	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal int defaultCursorId { get; set; }

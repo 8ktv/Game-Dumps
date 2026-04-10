@@ -1,12 +1,14 @@
 #define DEBUG_DRAW
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using FMOD.Studio;
 using FMODUnity;
 using Mirror;
 using Mirror.RemoteCalls;
 using UnityEngine;
+using UnityEngine.Pool;
 
 public class Rocket : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCallback, ILateBUpdateCallback
 {
@@ -204,7 +206,7 @@ public class Rocket : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCallba
 			for (int i = 0; i < num; i++)
 			{
 				Collider collider = PlayerGolfer.overlappingColliderBuffer[i];
-				if (!flag || (!collider.TryGetComponentInParent<PlayerInfo>(out var foundComponent, includeInactive: true) && !(foundComponent != Networklauncher)))
+				if (!flag || !collider.TryGetComponentInParent<PlayerInfo>(out var foundComponent, includeInactive: true) || !(foundComponent == Networklauncher))
 				{
 					if (collider.gameObject.layer == GameManager.LayerSettings.ElectromagnetShieldLayer && collider.TryGetComponentInParent<PlayerInfo>(out var foundComponent2, includeInactive: true))
 					{
@@ -296,41 +298,44 @@ public class Rocket : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCallba
 				return;
 			}
 			int num = Physics.OverlapSphereNonAlloc(worldPosition, GameManager.ItemSettings.RocketExplosionRange, layerMask: GameManager.LayerSettings.RocketHittablesMask, results: PlayerGolfer.overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
-			PlayerGolfer.processedHittableBuffer.Clear();
-			for (int i = 0; i < num; i++)
+			HashSet<Hittable> value;
+			using (CollectionPool<HashSet<Hittable>, Hittable>.Get(out value))
 			{
-				if (PlayerGolfer.overlappingColliderBuffer[i].TryGetComponentInParent<Hittable>(out var foundComponent, includeInactive: true) && PlayerGolfer.processedHittableBuffer.Add(foundComponent))
+				for (int i = 0; i < num; i++)
 				{
-					if (!foundComponent.TryGetClosestPointOnAllActiveColliders(worldPosition, out var closestPoint, out var distanceSquared))
+					if (PlayerGolfer.overlappingColliderBuffer[i].TryGetComponentInParent<Hittable>(out var foundComponent, includeInactive: true) && value.Add(foundComponent))
 					{
-						distanceSquared = 0f;
-						closestPoint = ((!foundComponent.AsEntity.HasRigidbody) ? foundComponent.transform.position : foundComponent.AsEntity.Rigidbody.worldCenterOfMass);
-					}
-					Vector3 vector = closestPoint - worldPosition;
-					if (vector == Vector3.zero)
-					{
-						vector = asEntity.Rigidbody.linearVelocity;
-					}
-					foundComponent.HitWithItem(ItemType.RocketLauncher, itemUseId, foundComponent.transform.InverseTransformPoint(closestPoint), vector, foundComponent.transform.InverseTransformPoint(worldPosition), BMath.Sqrt(distanceSquared), (Networklauncher != null) ? Networklauncher.Inventory : null, isReflected, isInSpecialState: false, canHitWithNoUser: true);
-					if (drawRocketDebug)
-					{
-						BDebug.DrawLine(worldPosition, closestPoint, Color.yellow, 5f);
+						if (!foundComponent.TryGetClosestPointOnAllActiveColliders(worldPosition, out var closestPoint, out var distanceSquared))
+						{
+							distanceSquared = 0f;
+							closestPoint = ((!foundComponent.AsEntity.HasRigidbody) ? foundComponent.transform.position : foundComponent.AsEntity.Rigidbody.worldCenterOfMass);
+						}
+						Vector3 vector = closestPoint - worldPosition;
+						if (vector == Vector3.zero)
+						{
+							vector = asEntity.Rigidbody.linearVelocity;
+						}
+						foundComponent.HitWithItem(ItemType.RocketLauncher, itemUseId, foundComponent.transform.InverseTransformPoint(closestPoint), vector, foundComponent.transform.InverseTransformPoint(worldPosition), BMath.Sqrt(distanceSquared), (Networklauncher != null) ? Networklauncher.Inventory : null, isReflected, isInSpecialState: false, canHitWithNoUser: true);
+						if (drawRocketDebug)
+						{
+							BDebug.DrawLine(worldPosition, closestPoint, Color.yellow, 5f);
+						}
 					}
 				}
-			}
-			OnExploded(worldPosition);
-			foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
-			{
-				if (value != NetworkServer.localConnection)
+				OnExploded(worldPosition);
+				foreach (NetworkConnectionToClient value2 in NetworkServer.connections.Values)
 				{
-					RpcInformExploded(value, worldPosition);
+					if (value2 != NetworkServer.localConnection)
+					{
+						RpcInformExploded(value2, worldPosition);
+					}
 				}
+				if (drawRocketDebug)
+				{
+					BDebug.DrawWireSphere(worldPosition, GameManager.ItemSettings.RocketExplosionRange, Color.red, 5f, drawInsideLines: true);
+				}
+				asEntity.DestroyEntity();
 			}
-			if (drawRocketDebug)
-			{
-				BDebug.DrawWireSphere(worldPosition, GameManager.ItemSettings.RocketExplosionRange, Color.red, 5f, drawInsideLines: true);
-			}
-			asEntity.DestroyEntity();
 		}
 	}
 

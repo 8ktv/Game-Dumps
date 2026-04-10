@@ -5,6 +5,7 @@ namespace UnityEngine.Rendering;
 [Serializable]
 [VolumeComponentMenu("Lighting/Adaptive Probe Volumes Options")]
 [SupportedOnRenderPipeline(new Type[] { })]
+[DisplayInfo(name = "Adaptive Probe Volumes Options")]
 public sealed class ProbeVolumesOptions : VolumeComponent
 {
 	[Tooltip("The overridden normal bias to be applied to the world position when sampling the Adaptive Probe Volumes data structure. Unit is meters.")]
@@ -25,7 +26,7 @@ public sealed class ProbeVolumesOptions : VolumeComponent
 	[Tooltip("Method used to reduce leaks. Currently available modes are crude, but cheap methods.")]
 	public APVLeakReductionModeParameter leakReductionMode = new APVLeakReductionModeParameter(APVLeakReductionMode.Quality);
 
-	[Obsolete("This parameter isn't used anymore.")]
+	[Obsolete("This parameter isn't used anymore. #from(6000.0)")]
 	public ClampedFloatParameter minValidDotProductValue = new ClampedFloatParameter(0.1f, -1f, 0.33f);
 
 	[Tooltip("When enabled, reflection probe normalization can only decrease the reflection intensity.")]
@@ -42,9 +43,4 @@ public sealed class ProbeVolumesOptions : VolumeComponent
 	[AdditionalProperty]
 	[Tooltip("Offset applied at runtime to probe positions in world space.\nThis is not considered while baking.")]
 	public Vector3Parameter worldOffset = new Vector3Parameter(Vector3.zero);
-
-	private ProbeVolumesOptions()
-	{
-		base.displayName = "Adaptive Probe Volumes Options";
-	}
 }

@@ -103,7 +103,7 @@ internal struct ReceiverPlanes
 								x /= math.length(x.xyz);
 								if (!math.any(math.isnan(x)))
 								{
-									result.planes.Add(new Plane(x.xyz, x.w));
+									result.planes.Add(new Plane((Vector3)x.xyz, x.w));
 								}
 							}
 						}
@@ -159,7 +159,7 @@ internal struct ReceiverPlanes
 								x2 /= math.length(x2.xyz);
 								if (!math.any(math.isnan(x2)))
 								{
-									result.planes.Add(new Plane(x2.xyz, x2.w));
+									result.planes.Add(new Plane((Vector3)x2.xyz, x2.w));
 								}
 							}
 						}

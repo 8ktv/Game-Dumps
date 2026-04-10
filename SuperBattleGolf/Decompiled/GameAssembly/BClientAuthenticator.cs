@@ -304,7 +304,7 @@ public class BClientAuthenticator : NetworkAuthenticator
 				return;
 			}
 			FullScreenMessage.Hide();
-			FullScreenMessage.ShowTextField(string.Empty, Localization.UI.AUTHENTICATION_Password, string.Empty, Localization.UI.AUTHENTICATION_EnterPassword, true, new FullScreenMessage.ButtonEntry(Localization.UI.AUTHENTICATION_Connect, Connect), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Cancel, Cancel));
+			FullScreenMessage.ShowTextField(string.Empty, Localization.UI.AUTHENTICATION_Password, string.Empty, Localization.UI.AUTHENTICATION_EnterPassword, true, new FullScreenMessage.ButtonEntry(Localization.UI.AUTHENTICATION_Connect, Connect, cancel: false, submit: true), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Cancel, Cancel, cancel: true));
 		}
 		void Cancel()
 		{

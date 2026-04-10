@@ -3,7 +3,7 @@ using System;
 namespace UnityEngine.UIElements;
 
 [Serializable]
-internal enum FilterFunctionType
+public enum FilterFunctionType
 {
 	None,
 	Custom,
@@ -13,5 +13,8 @@ internal enum FilterFunctionType
 	Grayscale,
 	Sepia,
 	Blur,
+	Contrast,
+	HueRotate,
+	[Obsolete("Use Enum.GetValues(typeof(FilterFunctionType)).Length instead", false)]
 	Count
 }

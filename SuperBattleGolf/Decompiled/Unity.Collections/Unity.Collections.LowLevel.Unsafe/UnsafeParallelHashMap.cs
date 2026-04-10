@@ -159,7 +159,7 @@ public struct UnsafeParallelHashMap<TKey, TValue> : INativeDisposable, IDisposab
 			return UnsafeParallelHashMapBase<TKey, TValue>.TryAddAtomic(m_Buffer, key, item, m_ThreadIndex);
 		}
 
-		internal unsafe bool TryAdd(TKey key, TValue item, int threadIndexOverride)
+		public unsafe bool TryAdd(TKey key, TValue item, int threadIndexOverride)
 		{
 			return UnsafeParallelHashMapBase<TKey, TValue>.TryAddAtomic(m_Buffer, key, item, threadIndexOverride);
 		}

@@ -3,8 +3,8 @@ using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine.UIElements;
 
-[Obsolete("TextValueFieldTraits<TValueType, TValueUxmlAttributeType> is deprecated and will be removed. Use UxmlElementAttribute instead.", false)]
 [MovedFrom(true, "UnityEditor.UIElements", "UnityEditor.UIElementsModule", null)]
+[Obsolete("TextValueFieldTraits<TValueType, TValueUxmlAttributeType> is deprecated and will be removed. Use UxmlElementAttribute instead.", false)]
 public class TextValueFieldTraits<TValueType, TValueUxmlAttributeType> : BaseFieldTraits<TValueType, TValueUxmlAttributeType> where TValueUxmlAttributeType : TypedUxmlAttributeDescription<TValueType>, new()
 {
 	private UxmlStringAttributeDescription m_PlaceholderText = new UxmlStringAttributeDescription

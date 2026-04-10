@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using UnityEngine.UIElements.StyleSheets.Syntax;
 
@@ -22,9 +23,9 @@ internal class StyleMatcher : BaseStyleMatcher
 
 	private static readonly Regex s_HexColorRegex = new Regex("^#[a-fA-F0-9]{3}(?:[a-fA-F0-9]{3})?$", RegexOptions.Compiled);
 
-	private static readonly Regex s_RgbRegex = new Regex("^rgb\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*\\)$", RegexOptions.Compiled);
+	private static readonly Regex s_RgbRegex = new Regex("^rgb\\(\\s*(\\d+\\.?\\d*)\\s*,\\s*(\\d+\\.?\\d*)\\s*,\\s*(\\d+\\.?\\d*)\\s*\\)$", RegexOptions.Compiled);
 
-	private static readonly Regex s_RgbaRegex = new Regex("rgba\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*([\\d.]+)\\s*\\)$", RegexOptions.Compiled);
+	private static readonly Regex s_RgbaRegex = new Regex("^rgba\\(\\s*(\\d+\\.?\\d*)\\s*,\\s*(\\d+\\.?\\d*)\\s*,\\s*(\\d+\\.?\\d*)\\s*,\\s*(\\d*\\.?\\d*)\\s*\\)$", RegexOptions.Compiled);
 
 	private static readonly Regex s_VarFunctionRegex = new Regex("^var\\(.+\\)$", RegexOptions.Compiled);
 
@@ -34,7 +35,9 @@ internal class StyleMatcher : BaseStyleMatcher
 
 	private static readonly Regex s_TimeRegex = new Regex("^[+-]?\\.?\\d+(?:\\.\\d+)?(?:s|ms)$", RegexOptions.Compiled);
 
-	private static readonly Regex s_FilterFunctionRegex = new Regex("^([a-zA-Z0-9\\-]+)\\([^\\)]*\\)$", RegexOptions.Compiled);
+	private static readonly Regex s_FilterFunctionRegex = new Regex("^([a-zA-Z0-9\\-]+)\\(.*\\)$", RegexOptions.Compiled);
+
+	private static readonly Regex s_PropFunctionRegex = new Regex("^prop\\(\"[a-zA-Z0-9_]+\"\\s+.+\\)$", RegexOptions.Compiled);
 
 	private static readonly Regex s_AngleRegex = new Regex("^[+-]?\\d+(?:\\.\\d+)?(?:deg|grad|rad|turn)$", RegexOptions.Compiled);
 
@@ -93,11 +96,15 @@ internal class StyleMatcher : BaseStyleMatcher
 		return string.Compare(current, keyword, StringComparison.OrdinalIgnoreCase) == 0;
 	}
 
-	protected override bool MatchNumber()
+	protected override bool MatchNumber(Expression exp)
 	{
-		string input = current;
-		Match match = s_NumberRegex.Match(input);
-		return match.Success;
+		string text = current;
+		Match match = s_NumberRegex.Match(text);
+		if (match.Success && float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var result))
+		{
+			return exp.min <= result && result <= exp.max;
+		}
+		return false;
 	}
 
 	protected override bool MatchInteger()
@@ -194,6 +201,13 @@ internal class StyleMatcher : BaseStyleMatcher
 	{
 		string input = current;
 		Match match = s_FilterFunctionRegex.Match(input);
+		return match.Success;
+	}
+
+	protected override bool MatchMaterialPropertyValue()
+	{
+		string input = current;
+		Match match = s_PropFunctionRegex.Match(input);
 		return match.Success;
 	}
 

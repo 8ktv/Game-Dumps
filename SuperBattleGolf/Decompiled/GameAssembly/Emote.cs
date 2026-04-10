@@ -7,5 +7,8 @@ public enum Emote
 	PointAndLaugh,
 	ThumbsUp,
 	VPose,
-	Wave
+	Wave,
+	Chicken,
+	FistPump,
+	HandsUp
 }

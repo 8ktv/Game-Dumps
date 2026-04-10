@@ -6,9 +6,9 @@ namespace UnityEngine;
 [UsedByNativeCode]
 public readonly struct ContactPairHeader
 {
-	internal readonly int m_BodyID;
+	internal readonly EntityId m_BodyID;
 
-	internal readonly int m_OtherBodyID;
+	internal readonly EntityId m_OtherBodyID;
 
 	internal readonly IntPtr m_StartPtr;
 
@@ -18,9 +18,15 @@ public readonly struct ContactPairHeader
 
 	internal readonly Vector3 m_RelativeVelocity;
 
+	[Obsolete("bodyInstanceID is deprecated, use bodyEntityId instead.", false)]
 	public int bodyInstanceID => m_BodyID;
 
+	[Obsolete("otherBodyInstanceID is deprecated, use otherBodyEntityId instead.", false)]
 	public int otherBodyInstanceID => m_OtherBodyID;
+
+	public EntityId bodyEntityId => m_BodyID;
+
+	public EntityId otherBodyEntityId => m_OtherBodyID;
 
 	public Component body => Physics.GetBodyByInstanceID(m_BodyID);
 

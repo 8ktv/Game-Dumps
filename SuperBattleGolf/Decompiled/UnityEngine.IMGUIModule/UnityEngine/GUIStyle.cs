@@ -9,9 +9,9 @@ namespace UnityEngine;
 
 [Serializable]
 [StructLayout(LayoutKind.Sequential)]
-[NativeHeader("Modules/IMGUI/GUIStyle.bindings.h")]
 [RequiredByNativeCode]
 [NativeHeader("IMGUIScriptingClasses.h")]
+[NativeHeader("Modules/IMGUI/GUIStyle.bindings.h")]
 public sealed class GUIStyle
 {
 	internal static class BindingsMarshaller
@@ -442,8 +442,8 @@ public sealed class GUIStyle
 		}
 	}
 
-	[NativeProperty("m_ClipOffset", false, TargetType.Field)]
 	[Obsolete("Don't use clipOffset - put things inside BeginGroup instead. This functionality will be removed in a later version.", false)]
+	[NativeProperty("m_ClipOffset", false, TargetType.Field)]
 	public Vector2 clipOffset
 	{
 		get
@@ -656,10 +656,10 @@ public sealed class GUIStyle
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction(Name = "GUIStyle_Bindings::Internal_Create", IsThreadSafe = true)]
-	private static extern IntPtr Internal_Create([Unmarshalled] GUIStyle self);
+	private static extern IntPtr Internal_Create([UnityMarshalAs(NativeType.ScriptingObjectPtr)] GUIStyle self);
 
 	[FreeFunction(Name = "GUIStyle_Bindings::Internal_Copy", IsThreadSafe = true)]
-	private static IntPtr Internal_Copy([Unmarshalled] GUIStyle self, GUIStyle other)
+	private static IntPtr Internal_Copy([UnityMarshalAs(NativeType.ScriptingObjectPtr)] GUIStyle self, GUIStyle other)
 	{
 		return Internal_Copy_Injected(self, (other == null) ? ((IntPtr)0) : BindingsMarshaller.ConvertToNative(other));
 	}
@@ -1036,10 +1036,13 @@ public sealed class GUIStyle
 
 	public Vector2 GetCursorPixelPosition(Rect position, GUIContent content, int cursorStringIndex)
 	{
-		IMGUITextHandle textHandle = IMGUITextHandle.GetTextHandle(this, padding.Remove(position), content.textWithWhitespace, Color.white);
+		Rect rect = position;
+		rect.width = ((fixedWidth == 0f) ? rect.width : fixedWidth);
+		rect.height = ((fixedHeight == 0f) ? rect.height : fixedHeight);
+		IMGUITextHandle textHandle = IMGUITextHandle.GetTextHandle(this, padding.Remove(rect), content.textWithWhitespace, Color.white);
 		Vector2 cursorPositionFromStringIndexUsingLineHeight = textHandle.GetCursorPositionFromStringIndexUsingLineHeight(cursorStringIndex);
 		cursorPositionFromStringIndexUsingLineHeight = new Vector2(Mathf.Max(0f, cursorPositionFromStringIndexUsingLineHeight.x), cursorPositionFromStringIndexUsingLineHeight.y);
-		Vector2 vector = Internal_GetTextRectOffset(position, content, new Vector2(textHandle.preferredSize.x, (textHandle.preferredSize.y > 0f) ? textHandle.preferredSize.y : lineHeight));
+		Vector2 vector = Internal_GetTextRectOffset(rect, content, new Vector2(textHandle.preferredSize.x, (textHandle.preferredSize.y > 0f) ? textHandle.preferredSize.y : lineHeight));
 		return cursorPositionFromStringIndexUsingLineHeight + vector + Internal_clipOffset - new Vector2(0f, lineHeight);
 	}
 

@@ -9,9 +9,9 @@ using UnityEngineInternal;
 
 namespace UnityEngine;
 
+[RequiredByNativeCode]
 [NativeHeader("Runtime/Export/Scripting/Component.bindings.h")]
 [NativeClass("Unity::Component")]
-[RequiredByNativeCode]
 public class Component : Object
 {
 	public Transform transform
@@ -25,6 +25,21 @@ public class Component : Object
 				ThrowHelper.ThrowNullReferenceException(this);
 			}
 			return Unmarshal.UnmarshalUnityObject<Transform>(get_transform_Injected(intPtr));
+		}
+	}
+
+	public TransformHandle transformHandle
+	{
+		[FreeFunction("GetTransformHandle", HasExplicitThis = true, ThrowsException = true)]
+		get
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			get_transformHandle_Injected(intPtr, out var ret);
+			return ret;
 		}
 	}
 
@@ -417,6 +432,9 @@ public class Component : Object
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern IntPtr get_transform_Injected(IntPtr _unity_self);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void get_transformHandle_Injected(IntPtr _unity_self, out TransformHandle ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern IntPtr get_gameObject_Injected(IntPtr _unity_self);

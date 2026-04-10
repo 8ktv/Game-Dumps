@@ -9,7 +9,7 @@ namespace UnityEngine.InputSystem.UI;
 
 [AddComponentMenu("Event/Tracked Device Raycaster")]
 [RequireComponent(typeof(Canvas))]
-[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.14/manual/TrackedInputDevices.html#tracked-device-raycaster")]
+[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.18/manual/TrackedInputDevices.html#tracked-device-raycaster")]
 public class TrackedDeviceRaycaster : BaseRaycaster
 {
 	private struct RaycastHitData
@@ -245,7 +245,7 @@ public class TrackedDeviceRaycaster : BaseRaycaster
 	{
 		Vector3[] array = new Vector3[4];
 		transform.GetWorldCorners(array);
-		if (new Plane(array[0], array[1], array[2]).Raycast(ray, out var enter))
+		if (new Plane(array[0], array[1], array[2]).Raycast(ray, out float enter))
 		{
 			Vector3 point = ray.GetPoint(enter);
 			Vector3 rhs = array[3] - array[0];

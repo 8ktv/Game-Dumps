@@ -29,7 +29,7 @@ public abstract class RenderPipelineGlobalSettings : ScriptableObject, ISerializ
 			IRenderPipelineGraphicsSettings renderPipelineGraphicsSettings = settingsList[i];
 			if (renderPipelineGraphicsSettings != null)
 			{
-				settingsMap.Add(renderPipelineGraphicsSettings.GetType(), i);
+				settingsMap[renderPipelineGraphicsSettings.GetType()] = i;
 			}
 		}
 	}

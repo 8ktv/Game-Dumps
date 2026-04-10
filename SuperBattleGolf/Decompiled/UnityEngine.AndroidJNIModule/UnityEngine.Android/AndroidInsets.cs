@@ -5,8 +5,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Android;
 
-[RequiredByNativeCode]
 [StaticAccessor("AndroidInsets", StaticAccessorType.DoubleColon)]
+[RequiredByNativeCode]
 [NativeHeader("Modules/AndroidJNI/Public/AndroidInsets.bindings.h")]
 internal class AndroidInsets
 {

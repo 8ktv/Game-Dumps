@@ -10,5 +10,11 @@ public enum TerrainLayer
 	DryGreen,
 	SandRough,
 	SandOutOfBounds,
-	DesertSand
+	DesertSand,
+	SnowFairway,
+	SnowGreen,
+	SnowRough,
+	SnowOutOfBounds,
+	Ice,
+	BreakableIce
 }

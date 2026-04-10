@@ -10,11 +10,11 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[StaticAccessor("GetITerrainManager()", StaticAccessorType.Arrow)]
 [UsedByNativeCode]
 [NativeHeader("Modules/Terrain/Public/Terrain.h")]
 [NativeHeader("Runtime/Interfaces/ITerrainManager.h")]
 [NativeHeader("TerrainScriptingClasses.h")]
+[StaticAccessor("GetITerrainManager()", StaticAccessorType.Arrow)]
 public sealed class Terrain : Behaviour
 {
 	[Obsolete("Enum type MaterialType is not used any more.", false)]
@@ -362,8 +362,8 @@ public sealed class Terrain : Behaviour
 		}
 	}
 
-	[NativeProperty("FreeUnusedRenderingResourcesObsolete")]
 	[Obsolete("Terrain.freeUnusedRenderingResources is obsolete; use keepUnusedRenderingResources instead.")]
+	[NativeProperty("FreeUnusedRenderingResourcesObsolete")]
 	public bool freeUnusedRenderingResources
 	{
 		get
@@ -822,7 +822,7 @@ public sealed class Terrain : Behaviour
 	public static extern Terrain[] activeTerrains
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		[return: Unmarshalled]
+		[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 		get;
 	}
 
@@ -963,24 +963,36 @@ public sealed class Terrain : Behaviour
 		}
 	}
 
-	public bool GetKeepUnusedCameraRenderingResources(int cameraInstanceID)
+	public bool GetKeepUnusedCameraRenderingResources(EntityId cameraEntityId)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 		if (intPtr == (IntPtr)0)
 		{
 			ThrowHelper.ThrowNullReferenceException(this);
 		}
-		return GetKeepUnusedCameraRenderingResources_Injected(intPtr, cameraInstanceID);
+		return GetKeepUnusedCameraRenderingResources_Injected(intPtr, ref cameraEntityId);
 	}
 
-	public void SetKeepUnusedCameraRenderingResources(int cameraInstanceID, bool keepUnused)
+	public void SetKeepUnusedCameraRenderingResources(EntityId cameraEntityId, bool keepUnused)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 		if (intPtr == (IntPtr)0)
 		{
 			ThrowHelper.ThrowNullReferenceException(this);
 		}
-		SetKeepUnusedCameraRenderingResources_Injected(intPtr, cameraInstanceID, keepUnused);
+		SetKeepUnusedCameraRenderingResources_Injected(intPtr, ref cameraEntityId, keepUnused);
+	}
+
+	[Obsolete("GetKeepUnusedCameraRenderingResources(int) is obsolete. Use GetKeepUnusedCameraRenderingResources(EntityId) instead.")]
+	public bool GetKeepUnusedCameraRenderingResources(int cameraInstanceID)
+	{
+		return GetKeepUnusedCameraRenderingResources((EntityId)cameraInstanceID);
+	}
+
+	[Obsolete("SetKeepUnusedCameraRenderingResources(int, bool) is obsolete. Use SetKeepUnusedCameraRenderingResources(EntityId, bool) instead.")]
+	public void SetKeepUnusedCameraRenderingResources(int cameraInstanceID, bool keepUnused)
+	{
+		SetKeepUnusedCameraRenderingResources((EntityId)cameraInstanceID, keepUnused);
 	}
 
 	public void GetClosestReflectionProbes(List<ReflectionProbeBlendInfo> result)
@@ -1217,10 +1229,10 @@ public sealed class Terrain : Behaviour
 	private static extern void set_keepUnusedRenderingResources_Injected(IntPtr _unity_self, bool value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern bool GetKeepUnusedCameraRenderingResources_Injected(IntPtr _unity_self, int cameraInstanceID);
+	private static extern bool GetKeepUnusedCameraRenderingResources_Injected(IntPtr _unity_self, [In] ref EntityId cameraEntityId);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void SetKeepUnusedCameraRenderingResources_Injected(IntPtr _unity_self, int cameraInstanceID, bool keepUnused);
+	private static extern void SetKeepUnusedCameraRenderingResources_Injected(IntPtr _unity_self, [In] ref EntityId cameraEntityId, bool keepUnused);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern ShadowCastingMode get_shadowCastingMode_Injected(IntPtr _unity_self);

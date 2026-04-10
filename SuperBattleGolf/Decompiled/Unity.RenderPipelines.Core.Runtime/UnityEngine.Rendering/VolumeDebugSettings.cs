@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace UnityEngine.Rendering;
 
-[Obsolete("This is not longer supported Please use DebugDisplaySettingsVolume. #from(6000.2)", false)]
+[Obsolete("This is not longer supported Please use DebugDisplaySettingsVolume. #from(6000.2)")]
 public abstract class VolumeDebugSettings<T> : IVolumeDebugSettings where T : MonoBehaviour, IAdditionalData
 {
 	protected int m_SelectedCameraIndex = -1;
@@ -111,10 +111,10 @@ public abstract class VolumeDebugSettings<T> : IVolumeDebugSettings where T : Mo
 
 	public List<(string, Type)> volumeComponentsPathAndType => VolumeManager.instance.GetVolumeComponentsForDisplay(GraphicsSettings.currentRenderPipelineAssetType);
 
-	[Obsolete("This property is obsolete and kept only for not breaking user code. VolumeDebugSettings will use current pipeline when it needs to gather volume component types and paths. #from(23.2)", false)]
+	[Obsolete("This property is obsolete and kept only for not breaking user code. VolumeDebugSettings will use current pipeline when it needs to gather volume component types and paths. #from(2023.2)")]
 	public virtual Type targetRenderPipeline { get; }
 
-	[Obsolete("Please use volumeComponentsPathAndType instead, and get the second element of the tuple", false)]
+	[Obsolete("Please use volumeComponentsPathAndType instead, and get the second element of the tuple #from(2022.2)")]
 	public static List<Type> componentTypes
 	{
 		get
@@ -131,7 +131,7 @@ public abstract class VolumeDebugSettings<T> : IVolumeDebugSettings where T : Mo
 		}
 	}
 
-	[Obsolete("Cameras are auto registered/unregistered, use property cameras", false)]
+	[Obsolete("Cameras are auto registered/unregistered, use property cameras #from(2022.2)")]
 	protected static List<T> additionalCameraDatas { get; private set; } = new List<T>();
 
 	internal VolumeParameter GetParameter(VolumeComponent component, FieldInfo field)
@@ -300,7 +300,7 @@ public abstract class VolumeDebugSettings<T> : IVolumeDebugSettings where T : Mo
 		return ComputeWeight(volume, triggerPos) > 0f;
 	}
 
-	[Obsolete("Please use componentPathAndType instead, and get the first element of the tuple", false)]
+	[Obsolete("Please use componentPathAndType instead, and get the first element of the tuple #from(2022.2)")]
 	public static string ComponentDisplayName(Type component)
 	{
 		if (component.GetCustomAttribute(typeof(VolumeComponentMenuForRenderPipeline), inherit: false) is VolumeComponentMenuForRenderPipeline volumeComponentMenuForRenderPipeline)
@@ -314,7 +314,7 @@ public abstract class VolumeDebugSettings<T> : IVolumeDebugSettings where T : Mo
 		return component.Name;
 	}
 
-	[Obsolete("Cameras are auto registered/unregistered", false)]
+	[Obsolete("Cameras are auto registered/unregistered #from(2022.2)")]
 	public static void RegisterCamera(T additionalCamera)
 	{
 		if (!additionalCameraDatas.Contains(additionalCamera))
@@ -323,7 +323,7 @@ public abstract class VolumeDebugSettings<T> : IVolumeDebugSettings where T : Mo
 		}
 	}
 
-	[Obsolete("Cameras are auto registered/unregistered", false)]
+	[Obsolete("Cameras are auto registered/unregistered #from(2022.2)")]
 	public static void UnRegisterCamera(T additionalCamera)
 	{
 		if (additionalCameraDatas.Contains(additionalCamera))

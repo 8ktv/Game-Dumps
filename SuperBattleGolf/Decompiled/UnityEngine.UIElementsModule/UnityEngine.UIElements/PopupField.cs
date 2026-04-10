@@ -165,7 +165,7 @@ public class PopupField<T> : BasePopupField<T, T>
 		this.formatSelectedValueCallback = formatSelectedValueCallback;
 	}
 
-	internal override void AddMenuItems(IGenericMenu menu)
+	internal override void AddMenuItems(AbstractGenericMenu menu)
 	{
 		if (menu == null)
 		{

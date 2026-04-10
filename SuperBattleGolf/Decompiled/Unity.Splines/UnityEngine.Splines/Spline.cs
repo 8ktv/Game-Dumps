@@ -746,7 +746,7 @@ public class Spline : ISpline, IReadOnlyList<BezierKnot>, IEnumerable<BezierKnot
 		{
 			if (t <= num2 + num)
 			{
-				return Vector3.Lerp(upVectors[i], upVectors[i + 1], (t - num2) / num);
+				return Vector3.Lerp((Vector3)upVectors[i], (Vector3)upVectors[i + 1], (t - num2) / num);
 			}
 			num2 += num;
 		}

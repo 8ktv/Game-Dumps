@@ -6,10 +6,10 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [Serializable]
+[NativeHeader("Runtime/Graphics/RenderingLayerMask.h")]
+[NativeHeader("Runtime/BaseClasses/TagManager.h")]
 [NativeClass("RenderingLayerMask", "struct RenderingLayerMask;")]
 [RequiredByNativeCode(Optional = true, GenerateProxy = true)]
-[NativeHeader("Runtime/BaseClasses/TagManager.h")]
-[NativeHeader("Runtime/Graphics/RenderingLayerMask.h")]
 public struct RenderingLayerMask
 {
 	[NativeName("m_Bits")]
@@ -79,8 +79,8 @@ public struct RenderingLayerMask
 		return stringAndDispose;
 	}
 
-	[StaticAccessor("GetTagManager()", StaticAccessorType.Dot)]
 	[NativeMethod("StringToRenderingLayer")]
+	[StaticAccessor("GetTagManager()", StaticAccessorType.Dot)]
 	public unsafe static int NameToRenderingLayer(string layerName)
 	{
 		//The blocks IL_0029 are reachable both inside and outside the pinned region starting at IL_0018. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Cysharp.Threading.Tasks;
 using Steamworks;
 using Steamworks.Data;
@@ -58,7 +59,7 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 			None = -1,
 			Name,
 			Course,
-			Mode,
+			Rules,
 			Players,
 			Ping
 		}
@@ -95,8 +96,12 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 				}
 				return info2.CompareTo(info);
 			}
-			case SortMode.Mode:
-				return 0;
+			case SortMode.Rules:
+				if (!reverse)
+				{
+					return x.GetRulePreset().CompareTo(y.GetRulePreset());
+				}
+				return y.GetRulePreset().CompareTo(x.GetRulePreset());
 			case SortMode.Players:
 			{
 				int.TryParse(x.GetCurrentPlayerCount(), out var result);
@@ -269,6 +274,46 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 				return course + " (" + text2 + "/" + text3 + ")";
 			}
 		}
+
+		public MatchSetupRules.Preset GetRulePreset()
+		{
+			string value = ((!isFakeEntry) ? SteamLobby.GetData("currentRules") : ((MatchSetupRules.Preset)GetFakeValue(0, 3)/*cast due to .constrained prefix*/).ToString());
+			if (!Enum.TryParse<MatchSetupRules.Preset>(value, out var result))
+			{
+				return MatchSetupRules.Preset.Invalid;
+			}
+			return result;
+		}
+
+		public string GetRuleString()
+		{
+			MatchSetupRules.Preset rulePreset = GetRulePreset();
+			if (rulePreset < MatchSetupRules.Preset.Classic)
+			{
+				return "-";
+			}
+			string text = LocalizationManager.GetString(StringTable.UI, "MATCHSETUP_RulePreset_" + rulePreset);
+			if (text == string.Empty)
+			{
+				return "-";
+			}
+			return text;
+		}
+	}
+
+	public class FilterSettings
+	{
+		public bool friendsOnly;
+
+		public bool hidePassword;
+
+		public bool hideFull;
+
+		public bool hideActive;
+
+		public bool hideCustom;
+
+		public int maxPing;
 	}
 
 	[SerializeField]
@@ -327,6 +372,12 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 	private Toggle hideFull;
 
 	[SerializeField]
+	private Toggle hideCustom;
+
+	[SerializeField]
+	private Toggle hideActive;
+
+	[SerializeField]
 	private CanvasGroup filterGroup;
 
 	[SerializeField]
@@ -353,11 +404,20 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 	[SerializeField]
 	private GameObject screen;
 
+	[SerializeField]
+	private GameObject joinButtonPrompt;
+
+	[SerializeField]
+	private GameObject refreshButtonPrompt;
+
+	[SerializeField]
+	private UiTooltip tooltip;
+
 	private readonly Queue<LobbyEntryUi> unusedLobbyEntries = new Queue<LobbyEntryUi>();
 
 	private readonly List<Lobby> listedLobbies = new List<Lobby>();
 
-	private readonly Dictionary<Steamworks.Data.Lobby, Lobby> lobbiesRefreshingData = new Dictionary<Steamworks.Data.Lobby, Lobby>();
+	private readonly Dictionary<ulong, Lobby> lobbiesRefreshingData = new Dictionary<ulong, Lobby>();
 
 	private readonly MultiDictionary<ulong, FriendInfo, List<FriendInfo>> friendsInLobbies = new MultiDictionary<ulong, FriendInfo, List<FriendInfo>>();
 
@@ -418,6 +478,8 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 		}
 	}
 
+	private static string settingsPath => Path.Combine(Application.persistentDataPath, "./LobbyBrowser.json");
+
 	protected override void Awake()
 	{
 		base.Awake();
@@ -446,10 +508,31 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 				value.Add(item);
 			}
 			maxPingDropdown.SetOptions(value);
-			maxPingDropdown.Initialize(ApplyFilters, value.Count / 2);
-			hideFull.isOn = true;
-			hidePassword.isOn = true;
-			friendsOnly.isOn = false;
+			int startValue = value.Count / 2;
+			if (File.Exists(settingsPath))
+			{
+				FilterSettings filterSettings;
+				try
+				{
+					filterSettings = JsonUtility.FromJson<FilterSettings>(File.ReadAllText(settingsPath));
+				}
+				catch (Exception exception)
+				{
+					Debug.LogError("Encountered exception while deserializing settings; falling back to default values. See next log for details");
+					Debug.LogException(exception);
+					filterSettings = null;
+				}
+				if (filterSettings != null)
+				{
+					startValue = BMath.Clamp(filterSettings.maxPing, 0, value.Count - 1);
+					friendsOnly.isOn = filterSettings.friendsOnly;
+					hidePassword.isOn = filterSettings.hidePassword;
+					hideFull.isOn = filterSettings.hideFull;
+					hideActive.isOn = filterSettings.hideActive;
+					hideCustom.isOn = filterSettings.hideCustom;
+				}
+			}
+			maxPingDropdown.Initialize(ApplyFilters, startValue);
 			nameFilter.onValueChanged.AddListener(delegate
 			{
 				ApplyFilters();
@@ -466,6 +549,14 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 			{
 				ApplyFilters();
 			});
+			hideActive.onValueChanged.AddListener(delegate
+			{
+				ApplyFilters();
+			});
+			hideCustom.onValueChanged.AddListener(delegate
+			{
+				ApplyFilters();
+			});
 			onlinePlayersLabel.text = string.Format(Localization.UI.LOBBY_BROWSER_PlayersOnline, 0);
 			ToggleSortMode(LobbyCmp.SortMode.Ping);
 			for (int num3 = 0; num3 < sortButtons.Length; num3++)
@@ -478,7 +569,16 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 			}
 			SetEnabled(enabled: false);
 			navigation.OnExitEvent += OnMenuExit;
+			UpdateTooltips();
+			LocalizationManager.LanguageChanged += UpdateTooltips;
 		}
+	}
+
+	private void UpdateTooltips()
+	{
+		tooltip.RegisterTooltip(hideCustom.GetComponent<RectTransform>(), Localization.UI.LOBBY_BROWSER_Tooltip_HideCustom);
+		tooltip.RegisterTooltip(hideActive.GetComponent<RectTransform>(), Localization.UI.LOBBY_BROWSER_Tooltip_HideActive);
+		tooltip.RegisterTooltip(friendsOnly.GetComponent<RectTransform>(), Localization.UI.LOBBY_BROWSER_Tooltip_FriendsOnly);
 	}
 
 	public void SetEnabled(bool enabled)
@@ -488,6 +588,16 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 		if (activeSelf && !enabled)
 		{
 			SteamMatchmaking.OnLobbyDataChanged -= OnLobbyDataChanged;
+			string contents = JsonUtility.ToJson(new FilterSettings
+			{
+				maxPing = maxPingDropdown.value,
+				friendsOnly = friendsOnly.isOn,
+				hidePassword = hidePassword.isOn,
+				hideFull = hideFull.isOn,
+				hideActive = hideActive.isOn,
+				hideCustom = hideCustom.isOn
+			}, prettyPrint: true);
+			File.WriteAllText(settingsPath, contents);
 		}
 		else if (!activeSelf && enabled)
 		{
@@ -501,6 +611,7 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 	{
 		base.OnDestroy();
 		SetEnabled(enabled: false);
+		LocalizationManager.LanguageChanged -= UpdateTooltips;
 	}
 
 	public void OnMenuExit()
@@ -558,7 +669,7 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 		{
 			return false;
 		}
-		if (friendsOnly.isOn && !lobby.IsHostedByFriend())
+		if (friendsOnly.isOn && !friendsInLobbies.ContainsKey(lobby.SteamLobby.Id))
 		{
 			return false;
 		}
@@ -569,6 +680,18 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 		if (hideFull.isOn && lobby.IsLobbyFull())
 		{
 			return false;
+		}
+		if (hideCustom.isOn && lobby.GetRulePreset() == MatchSetupRules.Preset.Custom)
+		{
+			return false;
+		}
+		if (hideActive.isOn)
+		{
+			lobby.GetCourseInfo(out var _, out var isOnDrivingRange);
+			if (!isOnDrivingRange)
+			{
+				return false;
+			}
 		}
 		return true;
 	}
@@ -645,14 +768,14 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 		}
 		if (first != null)
 		{
-			SetNavigationDown(nameFilter);
-			SetNavigationDown(maxPingDropdown.Selectable);
+			SetNavigationDown(hideActive);
+			SetNavigationDown(hideCustom);
 			SetNavigationDown(friendsOnly);
 			SetNavigationDown(hidePassword);
 			SetNavigationDown(hideFull);
 			Selectable component3 = first.Entry.GetComponent<Selectable>();
 			Navigation navigation2 = component3.navigation;
-			navigation2.selectOnUp = hideFull;
+			navigation2.selectOnUp = hidePassword;
 			navigation2.mode = Navigation.Mode.Explicit;
 			component3.navigation = navigation2;
 		}
@@ -734,7 +857,7 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 			}
 			else if (InputManager.CurrentGamepad.buttonNorth.wasPressedThisFrame)
 			{
-				navigation.Select(hideFull.GetComponent<ControllerSelectable>());
+				navigation.Select(maxPingDropdown.GetComponent<ControllerSelectable>());
 			}
 			if (InputManager.CurrentGamepad.buttonEast.wasPressedThisFrame)
 			{
@@ -745,9 +868,16 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 
 	private void DisableButtons(bool disableJoin)
 	{
-		joinButton.interactable = !disableJoin;
-		joinAsSpectatorButton.interactable = !disableJoin;
+		SetJoinButtonInteractable(!disableJoin);
 		refreshButton.interactable = false;
+	}
+
+	private void SetJoinButtonInteractable(bool enable)
+	{
+		joinButton.interactable = enable;
+		joinAsSpectatorButton.interactable = enable;
+		joinButtonPrompt.SetActive(enable);
+		refreshButtonPrompt.SetActive(!enable);
 	}
 
 	private async void QuickRefresh()
@@ -821,7 +951,7 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 			if (!listedLobby.isFakeEntry)
 			{
 				listedLobby.SteamLobby.Refresh();
-				lobbiesRefreshingData.TryAdd(listedLobby.SteamLobby, listedLobby);
+				lobbiesRefreshingData.TryAdd(listedLobby.SteamLobby.Id, listedLobby);
 			}
 		}
 		await WaitForLobbyRefresh(1f);
@@ -913,43 +1043,48 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 				{
 					return;
 				}
-				if (!friendsOnly.isOn)
+				LobbyQuery lobbyQuery = SteamMatchmaking.LobbyList.WithMaxResults(50).FilterDistanceWorldwide().WithHigher("maxPlayers", 0);
+				if (hidePassword.isOn)
 				{
-					LobbyQuery lobbyQuery = SteamMatchmaking.LobbyList.WithMaxResults(50).FilterDistanceWorldwide().WithHigher("maxPlayers", 0);
-					if (hidePassword.isOn)
+					lobbyQuery = lobbyQuery.WithKeyValue("sbg_passwordRequired", "false");
+				}
+				if (hideCustom.isOn)
+				{
+					lobbyQuery = lobbyQuery.WithNotEqual("currentRules", 2);
+				}
+				if (hideActive.isOn)
+				{
+					lobbyQuery = lobbyQuery.WithKeyValue("currentCourse", "DrivingRange");
+				}
+				if (hideFull.isOn)
+				{
+					lobbyQuery = lobbyQuery.WithSlotsAvailable(1);
+				}
+				Steamworks.Data.Lobby[] array = await lobbyQuery.RequestAsync();
+				if (this == null)
+				{
+					return;
+				}
+				if (array != null)
+				{
+					Steamworks.Data.Lobby[] array2 = array;
+					for (int i = 0; i < array2.Length; i++)
 					{
-						lobbyQuery = lobbyQuery.WithKeyValue("sbg_passwordRequired", "false");
-					}
-					if (hideFull.isOn)
-					{
-						lobbyQuery = lobbyQuery.WithSlotsAvailable(1);
-					}
-					Steamworks.Data.Lobby[] array = await lobbyQuery.RequestAsync();
-					if (this == null)
-					{
-						return;
-					}
-					if (array != null)
-					{
-						Steamworks.Data.Lobby[] array2 = array;
-						for (int i = 0; i < array2.Length; i++)
+						Lobby lobby = new Lobby(array2[i]);
+						if (lobby.TryRefreshData())
 						{
-							Lobby lobby = new Lobby(array2[i]);
-							if (lobby.TryRefreshData())
-							{
-								lobbiesRefreshingData.TryAdd(lobby.SteamLobby, lobby);
-							}
+							lobbiesRefreshingData.TryAdd(lobby.SteamLobby.Id, lobby);
 						}
 					}
 				}
 				foreach (FriendInfo allValue in friendsInLobbies.GetAllValues())
 				{
-					if (allValue.IsHost)
+					if (!lobbiesRefreshingData.ContainsKey(allValue.SteamLobby.Id))
 					{
 						Lobby lobby2 = new Lobby(allValue.SteamLobby);
 						if (lobby2.TryRefreshData())
 						{
-							lobbiesRefreshingData.TryAdd(lobby2.SteamLobby, lobby2);
+							lobbiesRefreshingData.TryAdd(lobby2.SteamLobby.Id, lobby2);
 						}
 					}
 				}
@@ -1124,8 +1259,7 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 		Deselect();
 		selectedLobby = lobby;
 		selectedLobby.Entry.SetIsSelected(isSelected: true);
-		joinButton.interactable = true;
-		joinAsSpectatorButton.interactable = true;
+		SetJoinButtonInteractable(enable: true);
 		if (checkDoubleClick)
 		{
 			lastGameSelectTimestamp = Time.timeAsDouble;
@@ -1134,8 +1268,7 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 
 	private void Deselect()
 	{
-		joinButton.interactable = false;
-		joinAsSpectatorButton.interactable = false;
+		SetJoinButtonInteractable(enable: false);
 		if (selectedLobby != null)
 		{
 			selectedLobby.Entry.SetIsSelected(isSelected: false);
@@ -1160,9 +1293,9 @@ public class LobbyBrowser : SingletonBehaviour<LobbyBrowser>
 
 	private void OnLobbyDataChanged(Steamworks.Data.Lobby steamLobby)
 	{
-		if (lobbiesRefreshingData.TryGetValue(steamLobby, out var value))
+		if (lobbiesRefreshingData.TryGetValue(steamLobby.Id, out var value))
 		{
-			lobbiesRefreshingData.Remove(steamLobby);
+			lobbiesRefreshingData.Remove(steamLobby.Id);
 			lobbyUpdateQueue.Enqueue(value);
 		}
 	}

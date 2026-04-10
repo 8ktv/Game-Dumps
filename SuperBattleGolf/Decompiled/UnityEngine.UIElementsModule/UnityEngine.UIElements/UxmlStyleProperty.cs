@@ -13,7 +13,7 @@ internal struct UxmlStyleProperty : IDisposable, IEquatable<UxmlStyleProperty>
 
 	public UxmlStyleProperty(StyleValueHandle[] values, bool requireVariableResolve)
 	{
-		this.values = new NativeArray<StyleValueHandle>(values, Allocator.Persistent);
+		this.values = new NativeArray<StyleValueHandle>(values, StyleDiff.k_MemoryLabel);
 		this.requireVariableResolve = requireVariableResolve;
 	}
 

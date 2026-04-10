@@ -11,7 +11,7 @@ public enum TextureCreationFlags
 	DontInitializePixels = 4,
 	Crunch = 0x40,
 	DontUploadUponCreate = 0x400,
-	[ExcludeFromDocs]
 	[Obsolete("IgnoreMipmapLimit flag is no longer used since this is now the default behavior for all Texture shapes. Please provide mipmap limit information using a MipmapLimitDescriptor argument.", false)]
+	[ExcludeFromDocs]
 	IgnoreMipmapLimit = 0x800
 }

@@ -25,14 +25,6 @@ internal sealed class Transform2D
 
 	public override string ToString()
 	{
-		string[] obj = new string[6] { "T: ", null, null, null, null, null };
-		Vector2 vector = position;
-		obj[1] = vector.ToString();
-		obj[2] = "\nR: ";
-		obj[3] = rotation.ToString();
-		obj[4] = "°\nS: ";
-		vector = scale;
-		obj[5] = vector.ToString();
-		return string.Concat(obj);
+		return "T: " + position.ToString() + "\nR: " + rotation + "°\nS: " + scale;
 	}
 }

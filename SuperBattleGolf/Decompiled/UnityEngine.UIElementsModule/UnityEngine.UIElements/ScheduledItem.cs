@@ -18,20 +18,29 @@ internal abstract class ScheduledItem
 
 	public long endTimeMs { get; private set; }
 
-	public ScheduledItem()
+	public ScheduledItem(long startMs)
 	{
-		ResetStartTime();
+		ResetStartTime(startMs);
 		timerUpdateStopCondition = OnceCondition;
 	}
 
-	protected void ResetStartTime()
+	protected void ResetStartTime(long startMs)
 	{
-		startMs = Panel.TimeSinceStartupMs();
+		this.startMs = startMs;
 	}
 
 	public void SetDuration(long durationMs)
 	{
 		endTimeMs = startMs + durationMs;
+	}
+
+	public void OffsetBy(long deltaMs)
+	{
+		if (endTimeMs > 0)
+		{
+			endTimeMs += deltaMs;
+		}
+		startMs += deltaMs;
 	}
 
 	public abstract void PerformTimerUpdate(TimerState state);

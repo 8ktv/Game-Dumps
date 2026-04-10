@@ -1,7 +1,6 @@
 using System;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Unity.IL2CPP.CompilerServices;
 using UnityEngine.Bindings;
 using UnityEngine.Internal;
@@ -9,10 +8,10 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[UsedByNativeCode]
 [NativeHeader("Runtime/Math/MathScripting.h")]
-[Il2CppEagerStaticClassConstruction]
 [NativeType(Header = "Runtime/Math/Quaternion.h")]
+[UsedByNativeCode]
+[Il2CppEagerStaticClassConstruction]
 public struct Quaternion : IEquatable<Quaternion>, IFormattable
 {
 	public float x;
@@ -30,7 +29,7 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 	public float this[int index]
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return index switch
 			{
@@ -76,9 +75,9 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 	public Vector3 eulerAngles
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
-			return Internal_MakePositive(Internal_ToEulerRad(this) * 57.29578f);
+			return Internal_MakePositive(Internal_ToEulerRad(in this) * 57.29578f);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		set
@@ -87,95 +86,197 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 		}
 	}
 
-	public Quaternion normalized
+	public readonly Quaternion normalized
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
 		{
-			return Normalize(this);
+			return Normalize(in this);
 		}
 	}
 
 	[FreeFunction("FromToQuaternionSafe", IsThreadSafe = true)]
-	public static Quaternion FromToRotation(Vector3 fromDirection, Vector3 toDirection)
+	private static Quaternion Internal_FromToRotation(in Vector3 fromDirection, in Vector3 toDirection)
 	{
-		FromToRotation_Injected(ref fromDirection, ref toDirection, out var ret);
+		Internal_FromToRotation_Injected(in fromDirection, in toDirection, out var ret);
 		return ret;
 	}
 
-	[FreeFunction(IsThreadSafe = true)]
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion FromToRotation(Vector3 fromDirection, Vector3 toDirection)
+	{
+		return Internal_FromToRotation(in fromDirection, in toDirection);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion FromToRotation(in Vector3 fromDirection, in Vector3 toDirection)
+	{
+		return Internal_FromToRotation(in fromDirection, in toDirection);
+	}
+
+	[FreeFunction("QuaternionScripting::Inverse", IsThreadSafe = true)]
+	private static Quaternion Internal_Inverse(in Quaternion rotation)
+	{
+		Internal_Inverse_Injected(in rotation, out var ret);
+		return ret;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Quaternion Inverse(Quaternion rotation)
 	{
-		Inverse_Injected(ref rotation, out var ret);
-		return ret;
+		return Internal_Inverse(in rotation);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion Inverse(in Quaternion rotation)
+	{
+		return Internal_Inverse(in rotation);
 	}
 
 	[FreeFunction("QuaternionScripting::Slerp", IsThreadSafe = true)]
-	public static Quaternion Slerp(Quaternion a, Quaternion b, float t)
+	private static Quaternion Internal_Slerp(in Quaternion a, in Quaternion b, float t)
 	{
-		Slerp_Injected(ref a, ref b, t, out var ret);
+		Internal_Slerp_Injected(in a, in b, t, out var ret);
 		return ret;
 	}
 
 	[FreeFunction("QuaternionScripting::SlerpUnclamped", IsThreadSafe = true)]
-	public static Quaternion SlerpUnclamped(Quaternion a, Quaternion b, float t)
+	private static Quaternion Internal_SlerpUnclamped(in Quaternion a, in Quaternion b, float t)
 	{
-		SlerpUnclamped_Injected(ref a, ref b, t, out var ret);
+		Internal_SlerpUnclamped_Injected(in a, in b, t, out var ret);
 		return ret;
 	}
 
 	[FreeFunction("QuaternionScripting::Lerp", IsThreadSafe = true)]
-	public static Quaternion Lerp(Quaternion a, Quaternion b, float t)
+	private static Quaternion Internal_Lerp(in Quaternion a, in Quaternion b, float t)
 	{
-		Lerp_Injected(ref a, ref b, t, out var ret);
+		Internal_Lerp_Injected(in a, in b, t, out var ret);
 		return ret;
 	}
 
 	[FreeFunction("QuaternionScripting::LerpUnclamped", IsThreadSafe = true)]
-	public static Quaternion LerpUnclamped(Quaternion a, Quaternion b, float t)
+	private static Quaternion Internal_LerpUnclamped(in Quaternion a, in Quaternion b, float t)
 	{
-		LerpUnclamped_Injected(ref a, ref b, t, out var ret);
+		Internal_LerpUnclamped_Injected(in a, in b, t, out var ret);
 		return ret;
 	}
 
-	[FreeFunction("EulerToQuaternion", IsThreadSafe = true)]
-	private static Quaternion Internal_FromEulerRad(Vector3 euler)
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion Slerp(Quaternion a, Quaternion b, float t)
 	{
-		Internal_FromEulerRad_Injected(ref euler, out var ret);
+		return Internal_Slerp(in a, in b, t);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion SlerpUnclamped(Quaternion a, Quaternion b, float t)
+	{
+		return Internal_SlerpUnclamped(in a, in b, t);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion Lerp(Quaternion a, Quaternion b, float t)
+	{
+		return Internal_Lerp(in a, in b, t);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion LerpUnclamped(Quaternion a, Quaternion b, float t)
+	{
+		return Internal_LerpUnclamped(in a, in b, t);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion Slerp(in Quaternion a, in Quaternion b, float t)
+	{
+		return Internal_Slerp(in a, in b, t);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion SlerpUnclamped(in Quaternion a, in Quaternion b, float t)
+	{
+		return Internal_SlerpUnclamped(in a, in b, t);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion Lerp(in Quaternion a, in Quaternion b, float t)
+	{
+		return Internal_Lerp(in a, in b, t);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion LerpUnclamped(in Quaternion a, in Quaternion b, float t)
+	{
+		return Internal_LerpUnclamped(in a, in b, t);
+	}
+
+	[FreeFunction("EulerToQuaternion", IsThreadSafe = true)]
+	private static Quaternion Internal_FromEulerRad(in Vector3 euler)
+	{
+		Internal_FromEulerRad_Injected(in euler, out var ret);
 		return ret;
 	}
 
 	[FreeFunction("QuaternionScripting::ToEuler", IsThreadSafe = true)]
-	private static Vector3 Internal_ToEulerRad(Quaternion rotation)
+	private static Vector3 Internal_ToEulerRad(in Quaternion rotation)
 	{
-		Internal_ToEulerRad_Injected(ref rotation, out var ret);
+		Internal_ToEulerRad_Injected(in rotation, out var ret);
 		return ret;
 	}
 
+	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction("QuaternionScripting::ToAxisAngle", IsThreadSafe = true)]
-	private static void Internal_ToAxisAngleRad(Quaternion q, out Vector3 axis, out float angle)
-	{
-		Internal_ToAxisAngleRad_Injected(ref q, out axis, out angle);
-	}
+	private static extern void Internal_ToAxisAngleRad(in Quaternion q, out Vector3 axis, out float angle);
 
 	[FreeFunction("QuaternionScripting::AngleAxis", IsThreadSafe = true)]
+	private static Quaternion Internal_AngleAxis(float angle, in Vector3 axis)
+	{
+		Internal_AngleAxis_Injected(angle, in axis, out var ret);
+		return ret;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Quaternion AngleAxis(float angle, Vector3 axis)
 	{
-		AngleAxis_Injected(angle, ref axis, out var ret);
-		return ret;
+		return Internal_AngleAxis(angle, in axis);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion AngleAxis(float angle, in Vector3 axis)
+	{
+		return Internal_AngleAxis(angle, in axis);
 	}
 
 	[FreeFunction("QuaternionScripting::LookRotation", IsThreadSafe = true)]
-	public static Quaternion LookRotation(Vector3 forward, [DefaultValue("Vector3.up")] Vector3 upwards)
+	private static Quaternion Internal_LookRotation(in Vector3 forward, [DefaultValue("Vector3.up")] in Vector3 upwards)
 	{
-		LookRotation_Injected(ref forward, ref upwards, out var ret);
+		Internal_LookRotation_Injected(in forward, in upwards, out var ret);
 		return ret;
 	}
 
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion LookRotation(Vector3 forward, [DefaultValue("Vector3.up")] Vector3 upwards)
+	{
+		return Internal_LookRotation(in forward, in upwards);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion LookRotation(in Vector3 forward, [DefaultValue("Vector3.up")] in Vector3 upwards)
+	{
+		return Internal_LookRotation(in forward, in upwards);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[ExcludeFromDocs]
 	public static Quaternion LookRotation(Vector3 forward)
 	{
-		return LookRotation(forward, Vector3.up);
+		return Internal_LookRotation(in forward, Vector3.up);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[ExcludeFromDocs]
+	public static Quaternion LookRotation(in Vector3 forward)
+	{
+		return Internal_LookRotation(in forward, Vector3.up);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -199,7 +300,13 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Quaternion operator *(Quaternion lhs, Quaternion rhs)
 	{
-		return new Quaternion(lhs.w * rhs.x + lhs.x * rhs.w + lhs.y * rhs.z - lhs.z * rhs.y, lhs.w * rhs.y + lhs.y * rhs.w + lhs.z * rhs.x - lhs.x * rhs.z, lhs.w * rhs.z + lhs.z * rhs.w + lhs.x * rhs.y - lhs.y * rhs.x, lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z);
+		return new Quaternion
+		{
+			x = lhs.w * rhs.x + lhs.x * rhs.w + lhs.y * rhs.z - lhs.z * rhs.y,
+			y = lhs.w * rhs.y + lhs.y * rhs.w + lhs.z * rhs.x - lhs.x * rhs.z,
+			z = lhs.w * rhs.z + lhs.z * rhs.w + lhs.x * rhs.y - lhs.y * rhs.x,
+			w = lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z
+		};
 	}
 
 	public static Vector3 operator *(Quaternion rotation, Vector3 point)
@@ -224,15 +331,9 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static bool IsEqualUsingDot(float dot)
-	{
-		return dot > 0.999999f;
-	}
-
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static bool operator ==(Quaternion lhs, Quaternion rhs)
 	{
-		return IsEqualUsingDot(Dot(lhs, rhs));
+		return IsEqualUsingDot(Dot(in lhs, in rhs));
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -242,7 +343,19 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static bool IsEqualUsingDot(float dot)
+	{
+		return dot > 0.999999f;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static float Dot(Quaternion a, Quaternion b)
+	{
+		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float Dot(in Quaternion a, in Quaternion b)
 	{
 		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 	}
@@ -251,20 +364,39 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 	[ExcludeFromDocs]
 	public void SetLookRotation(Vector3 view)
 	{
-		Vector3 up = Vector3.up;
-		SetLookRotation(view, up);
+		SetLookRotation(in view, Vector3.up);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[ExcludeFromDocs]
+	public void SetLookRotation(in Vector3 view)
+	{
+		SetLookRotation(in view, Vector3.up);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void SetLookRotation(Vector3 view, [DefaultValue("Vector3.up")] Vector3 up)
 	{
-		this = LookRotation(view, up);
+		this = LookRotation(in view, in up);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public void SetLookRotation(in Vector3 view, [DefaultValue("Vector3.up")] in Vector3 up)
+	{
+		this = LookRotation(in view, in up);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static float Angle(Quaternion a, Quaternion b)
 	{
-		float num = Mathf.Min(Mathf.Abs(Dot(a, b)), 1f);
+		float num = Mathf.Min(Mathf.Abs(Dot(in a, in b)), 1f);
+		return IsEqualUsingDot(num) ? 0f : (Mathf.Acos(num) * 2f * 57.29578f);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float Angle(in Quaternion a, in Quaternion b)
+	{
+		float num = Mathf.Min(Mathf.Abs(Dot(in a, in b)), 1f);
 		return IsEqualUsingDot(num) ? 0f : (Mathf.Acos(num) * 2f * 57.29578f);
 	}
 
@@ -299,10 +431,48 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 		return euler;
 	}
 
+	private static Vector3 Internal_MakePositive(in Vector3 eulerAngles)
+	{
+		float num = -0.005729578f;
+		float num2 = 360f + num;
+		Vector3 result = eulerAngles;
+		if (result.x < num)
+		{
+			result.x += 360f;
+		}
+		else if (result.x > num2)
+		{
+			result.x -= 360f;
+		}
+		if (result.y < num)
+		{
+			result.y += 360f;
+		}
+		else if (result.y > num2)
+		{
+			result.y -= 360f;
+		}
+		if (result.z < num)
+		{
+			result.z += 360f;
+		}
+		else if (result.z > num2)
+		{
+			result.z -= 360f;
+		}
+		return result;
+	}
+
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Quaternion Euler(float x, float y, float z)
 	{
-		return Internal_FromEulerRad(new Vector3(x, y, z) * (MathF.PI / 180f));
+		Vector3 euler = new Vector3
+		{
+			x = x * (MathF.PI / 180f),
+			y = y * (MathF.PI / 180f),
+			z = z * (MathF.PI / 180f)
+		};
+		return Internal_FromEulerRad(in euler);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -312,82 +482,134 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion Euler(in Vector3 euler)
+	{
+		return Internal_FromEulerRad(euler * (MathF.PI / 180f));
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void ToAngleAxis(out float angle, out Vector3 axis)
 	{
-		Internal_ToAxisAngleRad(this, out axis, out angle);
+		Internal_ToAxisAngleRad(in this, out axis, out angle);
 		angle *= 57.29578f;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void SetFromToRotation(Vector3 fromDirection, Vector3 toDirection)
 	{
-		this = FromToRotation(fromDirection, toDirection);
+		this = FromToRotation(in fromDirection, in toDirection);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public void SetFromToRotation(in Vector3 fromDirection, in Vector3 toDirection)
+	{
+		this = FromToRotation(in fromDirection, in toDirection);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Quaternion RotateTowards(Quaternion from, Quaternion to, float maxDegreesDelta)
 	{
-		float num = Angle(from, to);
+		float num = Angle(in from, in to);
 		if (num == 0f)
 		{
 			return to;
 		}
-		return SlerpUnclamped(from, to, Mathf.Min(1f, maxDegreesDelta / num));
+		return SlerpUnclamped(in from, in to, Mathf.Min(1f, maxDegreesDelta / num));
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion RotateTowards(in Quaternion from, in Quaternion to, float maxDegreesDelta)
+	{
+		float num = Angle(in from, in to);
+		if (num == 0f)
+		{
+			return to;
+		}
+		return SlerpUnclamped(in from, in to, Mathf.Min(1f, maxDegreesDelta / num));
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Quaternion Normalize(Quaternion q)
 	{
-		float num = Mathf.Sqrt(Dot(q, q));
+		float num = Mathf.Sqrt(Dot(in q, in q));
 		if (num < Mathf.Epsilon)
 		{
 			return identity;
 		}
-		return new Quaternion(q.x / num, q.y / num, q.z / num, q.w / num);
+		return new Quaternion
+		{
+			x = q.x / num,
+			y = q.y / num,
+			z = q.z / num,
+			w = q.w / num
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Quaternion Normalize(in Quaternion q)
+	{
+		float num = Mathf.Sqrt(Dot(in q, in q));
+		if (num < Mathf.Epsilon)
+		{
+			return identity;
+		}
+		return new Quaternion
+		{
+			x = q.x / num,
+			y = q.y / num,
+			z = q.z / num,
+			w = q.w / num
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void Normalize()
 	{
-		this = Normalize(this);
+		this = Normalize(in this);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override int GetHashCode()
+	public override readonly int GetHashCode()
 	{
 		return x.GetHashCode() ^ (y.GetHashCode() << 2) ^ (z.GetHashCode() >> 2) ^ (w.GetHashCode() >> 1);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override bool Equals(object other)
+	public override readonly bool Equals(object other)
 	{
 		if (other is Quaternion other2)
 		{
-			return Equals(other2);
+			return Equals(in other2);
 		}
 		return false;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public bool Equals(Quaternion other)
+	public readonly bool Equals(Quaternion other)
 	{
 		return x.Equals(other.x) && y.Equals(other.y) && z.Equals(other.z) && w.Equals(other.w);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override string ToString()
+	public readonly bool Equals(in Quaternion other)
+	{
+		return x.Equals(other.x) && y.Equals(other.y) && z.Equals(other.z) && w.Equals(other.w);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public override readonly string ToString()
 	{
 		return ToString(null, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format)
+	public readonly string ToString(string format)
 	{
 		return ToString(format, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format, IFormatProvider formatProvider)
+	public readonly string ToString(string format, IFormatProvider formatProvider)
 	{
 		if (string.IsNullOrEmpty(format))
 		{
@@ -411,7 +633,7 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 	[Obsolete("Use Quaternion.Euler instead. This function was deprecated because it uses radians instead of degrees.")]
 	public static Quaternion EulerRotation(Vector3 euler)
 	{
-		return Internal_FromEulerRad(euler);
+		return Internal_FromEulerRad(in euler);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -425,14 +647,14 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 	[Obsolete("Use Quaternion.Euler instead. This function was deprecated because it uses radians instead of degrees.")]
 	public void SetEulerRotation(Vector3 euler)
 	{
-		this = Internal_FromEulerRad(euler);
+		this = Internal_FromEulerRad(in euler);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[Obsolete("Use Quaternion.eulerAngles instead. This function was deprecated because it uses radians instead of degrees.")]
-	public Vector3 ToEuler()
+	public readonly Vector3 ToEuler()
 	{
-		return Internal_ToEulerRad(this);
+		return Internal_ToEulerRad(in this);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -446,14 +668,14 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 	[Obsolete("Use Quaternion.Euler instead. This function was deprecated because it uses radians instead of degrees.")]
 	public static Quaternion EulerAngles(Vector3 euler)
 	{
-		return Internal_FromEulerRad(euler);
+		return Internal_FromEulerRad(in euler);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[Obsolete("Use Quaternion.ToAngleAxis instead. This function was deprecated because it uses radians instead of degrees.")]
-	public void ToAxisAngle(out Vector3 axis, out float angle)
+	public readonly void ToAxisAngle(out Vector3 axis, out float angle)
 	{
-		Internal_ToAxisAngleRad(this, out axis, out angle);
+		Internal_ToAxisAngleRad(in this, out axis, out angle);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -467,67 +689,64 @@ public struct Quaternion : IEquatable<Quaternion>, IFormattable
 	[Obsolete("Use Quaternion.Euler instead. This function was deprecated because it uses radians instead of degrees.")]
 	public void SetEulerAngles(Vector3 euler)
 	{
-		this = EulerRotation(euler);
+		this = Internal_FromEulerRad(in euler);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[Obsolete("Use Quaternion.eulerAngles instead. This function was deprecated because it uses radians instead of degrees.")]
 	public static Vector3 ToEulerAngles(Quaternion rotation)
 	{
-		return Internal_ToEulerRad(rotation);
+		return Internal_ToEulerRad(in rotation);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[Obsolete("Use Quaternion.eulerAngles instead. This function was deprecated because it uses radians instead of degrees.")]
-	public Vector3 ToEulerAngles()
+	public readonly Vector3 ToEulerAngles()
 	{
-		return Internal_ToEulerRad(this);
+		return Internal_ToEulerRad(in this);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[Obsolete("Use Quaternion.AngleAxis instead. This function was deprecated because it uses radians instead of degrees.")]
 	public void SetAxisAngle(Vector3 axis, float angle)
 	{
-		this = AxisAngle(axis, angle);
+		this = Internal_AngleAxis(57.29578f * angle, in axis);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[Obsolete("Use Quaternion.AngleAxis instead. This function was deprecated because it uses radians instead of degrees")]
 	public static Quaternion AxisAngle(Vector3 axis, float angle)
 	{
-		return AngleAxis(57.29578f * angle, axis);
+		return Internal_AngleAxis(57.29578f * angle, in axis);
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void FromToRotation_Injected([In] ref Vector3 fromDirection, [In] ref Vector3 toDirection, out Quaternion ret);
+	private static extern void Internal_FromToRotation_Injected(in Vector3 fromDirection, in Vector3 toDirection, out Quaternion ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void Inverse_Injected([In] ref Quaternion rotation, out Quaternion ret);
+	private static extern void Internal_Inverse_Injected(in Quaternion rotation, out Quaternion ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void Slerp_Injected([In] ref Quaternion a, [In] ref Quaternion b, float t, out Quaternion ret);
+	private static extern void Internal_Slerp_Injected(in Quaternion a, in Quaternion b, float t, out Quaternion ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void SlerpUnclamped_Injected([In] ref Quaternion a, [In] ref Quaternion b, float t, out Quaternion ret);
+	private static extern void Internal_SlerpUnclamped_Injected(in Quaternion a, in Quaternion b, float t, out Quaternion ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void Lerp_Injected([In] ref Quaternion a, [In] ref Quaternion b, float t, out Quaternion ret);
+	private static extern void Internal_Lerp_Injected(in Quaternion a, in Quaternion b, float t, out Quaternion ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void LerpUnclamped_Injected([In] ref Quaternion a, [In] ref Quaternion b, float t, out Quaternion ret);
+	private static extern void Internal_LerpUnclamped_Injected(in Quaternion a, in Quaternion b, float t, out Quaternion ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void Internal_FromEulerRad_Injected([In] ref Vector3 euler, out Quaternion ret);
+	private static extern void Internal_FromEulerRad_Injected(in Vector3 euler, out Quaternion ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void Internal_ToEulerRad_Injected([In] ref Quaternion rotation, out Vector3 ret);
+	private static extern void Internal_ToEulerRad_Injected(in Quaternion rotation, out Vector3 ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void Internal_ToAxisAngleRad_Injected([In] ref Quaternion q, out Vector3 axis, out float angle);
+	private static extern void Internal_AngleAxis_Injected(float angle, in Vector3 axis, out Quaternion ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void AngleAxis_Injected(float angle, [In] ref Vector3 axis, out Quaternion ret);
-
-	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void LookRotation_Injected([In] ref Vector3 forward, [In][DefaultValue("Vector3.up")] ref Vector3 upwards, out Quaternion ret);
+	private static extern void Internal_LookRotation_Injected(in Vector3 forward, [DefaultValue("Vector3.up")] in Vector3 upwards, out Quaternion ret);
 }

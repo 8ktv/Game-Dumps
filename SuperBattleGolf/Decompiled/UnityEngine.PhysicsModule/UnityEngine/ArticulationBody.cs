@@ -8,8 +8,8 @@ using UnityEngine.Internal;
 
 namespace UnityEngine;
 
-[RequireComponent(typeof(Transform))]
 [NativeClass("Physics::ArticulationBody")]
+[RequireComponent(typeof(Transform))]
 [NativeHeader("Modules/Physics/ArticulationBody.h")]
 public class ArticulationBody : Behaviour
 {

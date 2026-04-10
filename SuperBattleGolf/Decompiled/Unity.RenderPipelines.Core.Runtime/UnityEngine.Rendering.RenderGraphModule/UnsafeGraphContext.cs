@@ -22,4 +22,22 @@ public class UnsafeGraphContext : IDerivedRendergraphContext
 		unsCmd.m_ExecutingPass = context.executingPass;
 		cmd = unsCmd;
 	}
+
+	public TextureUVOrigin GetTextureUVOrigin(in TextureHandle textureHandle)
+	{
+		if (!SystemInfo.graphicsUVStartsAtTop)
+		{
+			return TextureUVOrigin.BottomLeft;
+		}
+		if (wrappedContext.compilerContext != null)
+		{
+			return wrappedContext.compilerContext.GetTextureUVOrigin(in textureHandle);
+		}
+		return TextureUVOrigin.BottomLeft;
+	}
+
+	TextureUVOrigin IDerivedRendergraphContext.GetTextureUVOrigin(in TextureHandle textureHandle)
+	{
+		return GetTextureUVOrigin(in textureHandle);
+	}
 }

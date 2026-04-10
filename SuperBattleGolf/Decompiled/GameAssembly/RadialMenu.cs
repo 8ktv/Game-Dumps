@@ -47,6 +47,8 @@ public class RadialMenu : SingletonBehaviour<RadialMenu>
 
 	private int lastOpenFrame;
 
+	private int lastSelectionFrame;
+
 	private Coroutine visibilityRoutine;
 
 	private static Transform optionUiPoolParent;
@@ -114,6 +116,18 @@ public class RadialMenu : SingletonBehaviour<RadialMenu>
 				return SingletonBehaviour<RadialMenu>.Instance.currentMode != RadialMenuMode.None;
 			}
 			return false;
+		}
+	}
+
+	public static int LastSelectionFrame
+	{
+		get
+		{
+			if (!SingletonBehaviour<RadialMenu>.HasInstance)
+			{
+				return int.MinValue;
+			}
+			return SingletonBehaviour<RadialMenu>.Instance.lastSelectionFrame;
 		}
 	}
 
@@ -316,6 +330,7 @@ public class RadialMenu : SingletonBehaviour<RadialMenu>
 	{
 		if (highlightedIndex >= 0)
 		{
+			lastSelectionFrame = Time.frameCount;
 			if (ui.Options[highlightedIndex].SelectionIndex >= 0)
 			{
 				this.OnSelected(ui.Options[highlightedIndex].SelectionIndex);

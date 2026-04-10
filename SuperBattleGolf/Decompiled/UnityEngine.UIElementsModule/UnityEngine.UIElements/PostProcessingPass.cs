@@ -1,20 +1,27 @@
 using System;
+using Unity.Properties;
 
 namespace UnityEngine.UIElements;
 
 [Serializable]
-internal struct PostProcessingPass
+public struct PostProcessingPass
 {
+	[Obsolete("This delegate will be removed. Use ApplyFilterPassSettingsDelegate instead.")]
 	public delegate void PrepareMaterialPropertyBlockDelegate(MaterialPropertyBlock mpb, FilterFunction func);
+
+	public delegate void ApplyFilterPassSettingsDelegate(MaterialPropertyBlock mpb, FilterPassContext context);
 
 	public delegate PostProcessingMargins ComputeRequiredMarginsDelegate(FilterFunction func);
 
+	[DontCreateProperty]
 	[SerializeField]
 	private Material m_Material;
 
+	[DontCreateProperty]
 	[SerializeField]
 	private int m_PassIndex;
 
+	[DontCreateProperty]
 	[SerializeField]
 	private ParameterBinding[] m_ParameterBindings;
 
@@ -22,8 +29,10 @@ internal struct PostProcessingPass
 	private PostProcessingMargins m_ReadMargins;
 
 	[SerializeField]
+	[DontCreateProperty]
 	private PostProcessingMargins m_WriteMargins;
 
+	[CreateProperty]
 	public Material material
 	{
 		get
@@ -36,6 +45,7 @@ internal struct PostProcessingPass
 		}
 	}
 
+	[CreateProperty]
 	public int passIndex
 	{
 		get
@@ -48,6 +58,7 @@ internal struct PostProcessingPass
 		}
 	}
 
+	[CreateProperty]
 	public ParameterBinding[] parameterBindings
 	{
 		get
@@ -72,6 +83,7 @@ internal struct PostProcessingPass
 		}
 	}
 
+	[CreateProperty]
 	public PostProcessingMargins writeMargins
 	{
 		get
@@ -84,7 +96,10 @@ internal struct PostProcessingPass
 		}
 	}
 
+	[Obsolete("This property will be removed. Use applySettingsCallback instead, which provides additional contextual information.")]
 	public PrepareMaterialPropertyBlockDelegate prepareMaterialPropertyBlockCallback { get; set; }
+
+	public ApplyFilterPassSettingsDelegate applySettingsCallback { get; set; }
 
 	public ComputeRequiredMarginsDelegate computeRequiredReadMarginsCallback { get; set; }
 

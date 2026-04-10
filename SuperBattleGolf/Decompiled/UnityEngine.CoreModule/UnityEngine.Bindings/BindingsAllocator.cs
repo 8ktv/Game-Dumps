@@ -3,8 +3,8 @@ using System.Runtime.CompilerServices;
 namespace UnityEngine.Bindings;
 
 [StaticAccessor("Marshalling::BindingsAllocator", StaticAccessorType.DoubleColon)]
-[NativeHeader("Runtime/Scripting/Marshalling/BindingsAllocator.h")]
 [VisibleToOtherModules]
+[NativeHeader("Runtime/Scripting/Marshalling/BindingsAllocator.h")]
 internal static class BindingsAllocator
 {
 	private struct NativeOwnedMemory

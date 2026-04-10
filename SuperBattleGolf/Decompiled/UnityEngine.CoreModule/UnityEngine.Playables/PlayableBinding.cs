@@ -60,8 +60,8 @@ public struct PlayableBinding
 		}
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("streamType is no longer supported on PlayableBinding. Use the appropriate binding create method (e.g. AnimationPlayableBinding.Create(name, key)) instead.", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public DataStreamType streamType
 	{
 		get

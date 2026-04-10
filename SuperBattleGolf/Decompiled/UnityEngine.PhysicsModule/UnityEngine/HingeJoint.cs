@@ -5,8 +5,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[NativeClass("Unity::HingeJoint")]
 [NativeHeader("Modules/Physics/HingeJoint.h")]
+[NativeClass("Unity::HingeJoint")]
 [RequireComponent(typeof(Rigidbody))]
 public class HingeJoint : Joint
 {

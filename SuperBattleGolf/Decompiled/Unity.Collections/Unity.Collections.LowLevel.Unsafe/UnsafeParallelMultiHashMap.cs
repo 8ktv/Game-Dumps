@@ -90,6 +90,11 @@ public struct UnsafeParallelMultiHashMap<TKey, TValue> : INativeDisposable, IDis
 		{
 			UnsafeParallelHashMapBase<TKey, TValue>.AddAtomicMulti(m_Buffer, key, item, m_ThreadIndex);
 		}
+
+		public unsafe void Add(TKey key, TValue item, int threadIndexOverride)
+		{
+			UnsafeParallelHashMapBase<TKey, TValue>.AddAtomicMulti(m_Buffer, key, item, threadIndexOverride);
+		}
 	}
 
 	public struct KeyValueEnumerator : IEnumerator<KeyValue<TKey, TValue>>, IEnumerator, IDisposable

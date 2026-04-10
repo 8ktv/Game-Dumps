@@ -11,6 +11,8 @@ public interface IResolvedStyle
 
 	Align alignSelf { get; }
 
+	Ratio aspectRatio { get; }
+
 	Color backgroundColor { get; }
 
 	Background backgroundImage { get; }
@@ -52,6 +54,8 @@ public interface IResolvedStyle
 	Color color { get; }
 
 	DisplayStyle display { get; }
+
+	IEnumerable<FilterFunction> filter { get; }
 
 	StyleFloat flexBasis { get; }
 
@@ -132,6 +136,8 @@ public interface IResolvedStyle
 	FontDefinition unityFontDefinition { get; }
 
 	FontStyle unityFontStyleAndWeight { get; }
+
+	MaterialDefinition unityMaterial { get; }
 
 	float unityParagraphSpacing { get; }
 

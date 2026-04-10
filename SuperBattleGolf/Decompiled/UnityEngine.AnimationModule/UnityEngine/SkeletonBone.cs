@@ -5,8 +5,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[RequiredByNativeCode]
 [NativeHeader("Modules/Animation/HumanDescription.h")]
+[RequiredByNativeCode]
 [NativeType(CodegenOptions.Custom, "MonoSkeletonBone")]
 public struct SkeletonBone
 {

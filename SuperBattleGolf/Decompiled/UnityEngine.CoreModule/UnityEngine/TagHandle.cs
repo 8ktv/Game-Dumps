@@ -23,9 +23,9 @@ public struct TagHandle
 		return TagToString(_tagIndex);
 	}
 
-	[NativeHeader("Runtime/Export/Scripting/GameObject.bindings.h")]
-	[FreeFunction]
 	[NativeThrows]
+	[FreeFunction]
+	[NativeHeader("Runtime/Export/Scripting/GameObject.bindings.h")]
 	private unsafe static uint ExtractTagThrowing(string tagName)
 	{
 		//The blocks IL_0029 are reachable both inside and outside the pinned region starting at IL_0018. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.

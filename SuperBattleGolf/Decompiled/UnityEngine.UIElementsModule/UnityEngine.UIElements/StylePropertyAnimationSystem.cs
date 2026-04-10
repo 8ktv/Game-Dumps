@@ -192,7 +192,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 
 		public abstract void GetAllAnimations(VisualElement ve, List<StylePropertyId> outPropertyIds);
 
-		public abstract void Update(long currentTimeMs);
+		public abstract void Update(double currentTime);
 
 		protected abstract void UpdateValues();
 
@@ -251,9 +251,9 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 
 		public struct TimingData
 		{
-			public long startTimeMs;
+			public double startTime;
 
-			public int durationMs;
+			public float duration;
 
 			public Func<float, float> easingCurve;
 
@@ -263,7 +263,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 
 			public bool isStarted;
 
-			public int delayMs;
+			public float delay;
 		}
 
 		public struct StyleData
@@ -283,7 +283,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 			public static EmptyData Default = default(EmptyData);
 		}
 
-		private long m_CurrentTimeMs = 0L;
+		private double m_CurrentTime = 0.0;
 
 		private TransitionEventsFrameState m_CurrentFrameEventsState = new TransitionEventsFrameState();
 
@@ -311,7 +311,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 		{
 			running = AnimationDataSet<TimingData, StyleData>.Create();
 			completed = AnimationDataSet<EmptyData, T>.Create();
-			m_CurrentTimeMs = Panel.TimeSinceStartupMs();
+			m_CurrentTime = 0.0;
 		}
 
 		private void SwapFrameStates()
@@ -364,8 +364,8 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 					m_NextFrameEventsState.elementPropertyStateDelta.Add(elementPropertyPair, TransitionState.Running);
 				}
 				ref TimingData reference = ref running.timing[runningIndex];
-				int num = ((reference.delayMs < 0) ? Mathf.Min(Mathf.Max(-reference.delayMs, 0), reference.durationMs) : 0);
-				TransitionRunEvent pooled = TransitionEventBase<TransitionRunEvent>.GetPooled(new StylePropertyName(stylePropertyId), (float)num / 1000f);
+				float num = ((reference.delay < 0f) ? Mathf.Min(Mathf.Max(0f - reference.delay, 0f), reference.duration) : 0f);
+				TransitionRunEvent pooled = TransitionEventBase<TransitionRunEvent>.GetPooled(new StylePropertyName(stylePropertyId), num);
 				QueueEvent(pooled, elementPropertyPair);
 			}
 		}
@@ -385,8 +385,8 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 					m_NextFrameEventsState.elementPropertyStateDelta.Add(elementPropertyPair, TransitionState.Started);
 				}
 				ref TimingData reference = ref running.timing[runningIndex];
-				int num = ((reference.delayMs < 0) ? Mathf.Min(Mathf.Max(-reference.delayMs, 0), reference.durationMs) : 0);
-				TransitionStartEvent pooled = TransitionEventBase<TransitionStartEvent>.GetPooled(new StylePropertyName(stylePropertyId), (float)num / 1000f);
+				float num = ((reference.delay < 0f) ? Mathf.Min(Mathf.Max(0f - reference.delay, 0f), reference.duration) : 0f);
+				TransitionStartEvent pooled = TransitionEventBase<TransitionStartEvent>.GetPooled(new StylePropertyName(stylePropertyId), num);
 				QueueEvent(pooled, elementPropertyPair);
 			}
 		}
@@ -406,12 +406,12 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 					m_NextFrameEventsState.elementPropertyStateDelta.Add(elementPropertyPair, TransitionState.Ended);
 				}
 				ref TimingData reference = ref running.timing[runningIndex];
-				TransitionEndEvent pooled = TransitionEventBase<TransitionEndEvent>.GetPooled(new StylePropertyName(stylePropertyId), (float)reference.durationMs / 1000f);
+				TransitionEndEvent pooled = TransitionEventBase<TransitionEndEvent>.GetPooled(new StylePropertyName(stylePropertyId), reference.duration);
 				QueueEvent(pooled, elementPropertyPair);
 			}
 		}
 
-		private void QueueTransitionCancelEvent(VisualElement ve, int runningIndex, long panelElapsedMs)
+		private void QueueTransitionCancelEvent(VisualElement ve, int runningIndex, double panelElapsed)
 		{
 			if (!ve.HasParentEventInterests(EventCategory.StyleTransition))
 			{
@@ -443,17 +443,17 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 			if (flag)
 			{
 				ref TimingData reference = ref running.timing[runningIndex];
-				long num = (reference.isStarted ? (panelElapsedMs - reference.startTimeMs) : 0);
-				if (reference.delayMs < 0)
+				double num = (reference.isStarted ? (panelElapsed - reference.startTime) : 0.0);
+				if (reference.delay < 0f)
 				{
-					num = -reference.delayMs + num;
+					num = (double)(0f - reference.delay) + num;
 				}
-				TransitionCancelEvent pooled = TransitionEventBase<TransitionCancelEvent>.GetPooled(new StylePropertyName(stylePropertyId), (float)num / 1000f);
+				TransitionCancelEvent pooled = TransitionEventBase<TransitionCancelEvent>.GetPooled(new StylePropertyName(stylePropertyId), num);
 				QueueEvent(pooled, elementPropertyPair);
 			}
 		}
 
-		private void SendTransitionCancelEvent(VisualElement ve, int runningIndex, long panelElapsedMs)
+		private void SendTransitionCancelEvent(VisualElement ve, int runningIndex, double panelElapsed)
 		{
 			if (!ve.HasParentEventInterests(EventBase<TransitionCancelEvent>.EventCategory))
 			{
@@ -461,12 +461,12 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 			}
 			ref TimingData reference = ref running.timing[runningIndex];
 			StylePropertyId stylePropertyId = running.properties[runningIndex];
-			long num = (reference.isStarted ? (panelElapsedMs - reference.startTimeMs) : 0);
-			if (reference.delayMs < 0)
+			double num = (reference.isStarted ? (panelElapsed - reference.startTime) : 0.0);
+			if (reference.delay < 0f)
 			{
-				num = -reference.delayMs + num;
+				num = (double)(0f - reference.delay) + num;
 			}
-			using TransitionCancelEvent transitionCancelEvent = TransitionEventBase<TransitionCancelEvent>.GetPooled(new StylePropertyName(stylePropertyId), (float)num / 1000f);
+			using TransitionCancelEvent transitionCancelEvent = TransitionEventBase<TransitionCancelEvent>.GetPooled(new StylePropertyName(stylePropertyId), num);
 			transitionCancelEvent.elementTarget = ve;
 			ve.SendEvent(transitionCancelEvent);
 		}
@@ -481,7 +481,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 					for (int i = 0; i < count; i++)
 					{
 						VisualElement visualElement = running.elements[i];
-						SendTransitionCancelEvent(visualElement, i, m_CurrentTimeMs);
+						SendTransitionCancelEvent(visualElement, i, m_CurrentTime);
 						ForceComputedStyleEndValue(i);
 						visualElement.styleAnimation.runningAnimationCount--;
 					}
@@ -508,7 +508,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 					{
 						if (running.elements[i] == ve)
 						{
-							SendTransitionCancelEvent(ve, i, m_CurrentTimeMs);
+							SendTransitionCancelEvent(ve, i, m_CurrentTime);
 							ForceComputedStyleEndValue(i);
 							running.elements[i].styleAnimation.runningAnimationCount--;
 						}
@@ -531,7 +531,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 		{
 			if (running.IndexOf(ve, id, out var index))
 			{
-				QueueTransitionCancelEvent(ve, index, m_CurrentTimeMs);
+				QueueTransitionCancelEvent(ve, index, m_CurrentTime);
 				ForceComputedStyleEndValue(index);
 				running.Remove(index);
 				ve.styleAnimation.runningAnimationCount--;
@@ -569,26 +569,26 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 			return Mathf.Clamp01(Mathf.Abs(1f - (1f - reference.easedProgress) * reference.reversingShorteningFactor));
 		}
 
-		private int ComputeReversingDuration(int newTransitionDurationMs, float newReversingShorteningFactor)
+		private float ComputeReversingDuration(float newTransitionDuration, float newReversingShorteningFactor)
 		{
-			return Mathf.RoundToInt((float)newTransitionDurationMs * newReversingShorteningFactor);
+			return newTransitionDuration * newReversingShorteningFactor;
 		}
 
-		private int ComputeReversingDelay(int delayMs, float newReversingShorteningFactor)
+		private float ComputeReversingDelay(float delay, float newReversingShorteningFactor)
 		{
-			return (delayMs < 0) ? Mathf.RoundToInt((float)delayMs * newReversingShorteningFactor) : delayMs;
+			return (delay < 0f) ? (delay * newReversingShorteningFactor) : delay;
 		}
 
-		public bool StartTransition(VisualElement owner, StylePropertyId prop, T startValue, T endValue, int durationMs, int delayMs, Func<float, float> easingCurve, long currentTimeMs)
+		public bool StartTransition(VisualElement owner, StylePropertyId prop, T startValue, T endValue, float duration, float delay, Func<float, float> easingCurve, double currentTime)
 		{
-			long startTimeMs = currentTimeMs + delayMs;
+			double startTime = currentTime + (double)delay;
 			TimingData timingData = new TimingData
 			{
-				startTimeMs = startTimeMs,
-				durationMs = durationMs,
+				startTime = startTime,
+				duration = duration,
 				easingCurve = easingCurve,
 				reversingShorteningFactor = 1f,
-				delayMs = delayMs
+				delay = delay
 			};
 			StyleData styleData = new StyleData
 			{
@@ -597,7 +597,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 				currentValue = Copy(startValue),
 				reversingAdjustedStartValue = Copy(startValue)
 			};
-			int num = Mathf.Max(0, durationMs) + delayMs;
+			float num = Mathf.Max(0f, duration) + delay;
 			if (!ConvertUnits(owner, prop, ref styleData.startValue, ref styleData.endValue))
 			{
 				return false;
@@ -608,7 +608,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 				{
 					return false;
 				}
-				if (num <= 0)
+				if (num <= 0f)
 				{
 					return false;
 				}
@@ -623,14 +623,14 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 				}
 				if (SameFunc(endValue, running.style[index2].currentValue))
 				{
-					QueueTransitionCancelEvent(owner, index2, currentTimeMs);
+					QueueTransitionCancelEvent(owner, index2, currentTime);
 					running.Remove(index2);
 					owner.styleAnimation.runningAnimationCount--;
 					return false;
 				}
-				if (num <= 0)
+				if (num <= 0f)
 				{
-					QueueTransitionCancelEvent(owner, index2, currentTimeMs);
+					QueueTransitionCancelEvent(owner, index2, currentTime);
 					running.Remove(index2);
 					owner.styleAnimation.runningAnimationCount--;
 					return false;
@@ -638,7 +638,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 				styleData.startValue = Copy(running.style[index2].currentValue);
 				if (!ConvertUnits(owner, prop, ref styleData.startValue, ref styleData.endValue))
 				{
-					QueueTransitionCancelEvent(owner, index2, currentTimeMs);
+					QueueTransitionCancelEvent(owner, index2, currentTime);
 					running.Remove(index2);
 					owner.styleAnimation.runningAnimationCount--;
 					return false;
@@ -647,17 +647,17 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 				if (SameFunc(endValue, running.style[index2].reversingAdjustedStartValue))
 				{
 					float newReversingShorteningFactor = (timingData.reversingShorteningFactor = ComputeReversingShorteningFactor(index2));
-					timingData.startTimeMs = currentTimeMs + ComputeReversingDelay(delayMs, newReversingShorteningFactor);
-					timingData.durationMs = ComputeReversingDuration(durationMs, newReversingShorteningFactor);
+					timingData.startTime = currentTime + (double)ComputeReversingDelay(delay, newReversingShorteningFactor);
+					timingData.duration = ComputeReversingDuration(duration, newReversingShorteningFactor);
 					styleData.reversingAdjustedStartValue = Copy(running.style[index2].endValue);
 				}
 				running.timing[index2].isStarted = false;
-				QueueTransitionCancelEvent(owner, index2, currentTimeMs);
+				QueueTransitionCancelEvent(owner, index2, currentTime);
 				QueueTransitionRunEvent(owner, index2);
 				running.Replace(index2, timingData, styleData);
 				return true;
 			}
-			if (num <= 0)
+			if (num <= 0f)
 			{
 				return false;
 			}
@@ -678,10 +678,10 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 			UpdateComputedStyle(runningIndex);
 		}
 
-		public sealed override void Update(long currentTimeMs)
+		public sealed override void Update(double currentTime)
 		{
-			m_CurrentTimeMs = currentTimeMs;
-			UpdateProgress(currentTimeMs);
+			m_CurrentTime = currentTime;
+			UpdateProgress(currentTime);
 			UpdateValues();
 			UpdateComputedStyle();
 			if (m_NextFrameEventsState.StateChanged())
@@ -712,7 +712,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 			}
 		}
 
-		private void UpdateProgress(long currentTimeMs)
+		private void UpdateProgress(double currentTime)
 		{
 			int num = running.count;
 			if (num <= 0)
@@ -722,11 +722,13 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 			for (int i = 0; i < num; i++)
 			{
 				ref TimingData reference = ref running.timing[i];
-				if (currentTimeMs < reference.startTimeMs)
+				if (currentTime < reference.startTime)
 				{
 					reference.easedProgress = 0f;
+					continue;
 				}
-				else if (currentTimeMs >= reference.startTimeMs + reference.durationMs)
+				double num2 = reference.startTime + (double)reference.duration;
+				if (currentTime >= num2 || num2 - currentTime < 0.0001)
 				{
 					ref StyleData reference2 = ref running.style[i];
 					ref VisualElement reference3 = ref running.elements[i];
@@ -747,7 +749,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 						reference.isStarted = true;
 						QueueTransitionStartEvent(running.elements[i], i);
 					}
-					float arg = (float)(currentTimeMs - reference.startTimeMs) / (float)reference.durationMs;
+					float arg = (float)(currentTime - reference.startTime) / reference.duration;
 					reference.easedProgress = reference.easingCurve(arg);
 				}
 			}
@@ -1133,6 +1135,64 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 		}
 	}
 
+	private class ValuesRatio : Values<Ratio>
+	{
+		public override Func<Ratio, Ratio, bool> SameFunc { get; } = IsSame;
+
+		private static bool IsSame(Ratio a, Ratio b)
+		{
+			return a == b;
+		}
+
+		protected sealed override bool ConvertUnits(VisualElement owner, StylePropertyId prop, ref Ratio a, ref Ratio b)
+		{
+			if (b.IsAuto())
+			{
+				return false;
+			}
+			if (a.IsAuto())
+			{
+				if (owner.resolvedStyle.height == 0f || float.IsNaN(owner.resolvedStyle.height))
+				{
+					return false;
+				}
+				a = new Ratio(owner.resolvedStyle.width / owner.resolvedStyle.height);
+				return true;
+			}
+			return true;
+		}
+
+		protected sealed override void UpdateComputedStyle()
+		{
+			int count = running.count;
+			for (int i = 0; i < count; i++)
+			{
+				running.elements[i].computedStyle.ApplyPropertyAnimation(running.elements[i], running.properties[i], running.style[i].currentValue);
+			}
+		}
+
+		protected sealed override void UpdateComputedStyle(int i)
+		{
+			running.elements[i].computedStyle.ApplyPropertyAnimation(running.elements[i], running.properties[i], running.style[i].currentValue);
+		}
+
+		private static Ratio Lerp(Ratio a, Ratio b, float t)
+		{
+			return new Ratio(Mathf.LerpUnclamped(a.value, b.value, t));
+		}
+
+		protected sealed override void UpdateValues()
+		{
+			int count = running.count;
+			for (int i = 0; i < count; i++)
+			{
+				ref TimingData reference = ref running.timing[i];
+				ref StyleData reference2 = ref running.style[i];
+				reference2.currentValue = Lerp(reference2.startValue, reference2.endValue, reference.easedProgress);
+			}
+		}
+	}
+
 	private class ValuesTranslate : Values<Translate>
 	{
 		public override Func<Translate, Translate, bool> SameFunc { get; } = IsSame;
@@ -1359,10 +1419,16 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 
 		protected sealed override void UpdateComputedStyle()
 		{
+			int count = running.count;
+			for (int i = 0; i < count; i++)
+			{
+				running.elements[i].computedStyle.ApplyPropertyAnimation(running.elements[i], running.properties[i], running.style[i].currentValue);
+			}
 		}
 
 		protected sealed override void UpdateComputedStyle(int i)
 		{
+			running.elements[i].computedStyle.ApplyPropertyAnimation(running.elements[i], running.properties[i], running.style[i].currentValue);
 		}
 
 		private static FilterParameter LerpFilterParameters(FilterParameter a, FilterParameter b, float t)
@@ -1442,7 +1508,152 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 		}
 	}
 
-	private long m_CurrentTimeMs = 0L;
+	private class ValuesMaterialDefinition : Values<MaterialDefinition>
+	{
+		public override Func<MaterialDefinition, MaterialDefinition, bool> SameFunc { get; } = IsSame;
+
+		protected override MaterialDefinition Copy(MaterialDefinition value)
+		{
+			return new MaterialDefinition(value);
+		}
+
+		private static bool IsSame(MaterialDefinition a, MaterialDefinition b)
+		{
+			if (a.material != b.material)
+			{
+				return false;
+			}
+			List<MaterialPropertyValue> propertyValues = a.propertyValues;
+			List<MaterialPropertyValue> propertyValues2 = b.propertyValues;
+			if (propertyValues?.Count != propertyValues2?.Count)
+			{
+				return false;
+			}
+			for (int i = 0; i < propertyValues?.Count; i++)
+			{
+				if (propertyValues[i] != propertyValues2[i])
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
+		protected sealed override bool ConvertUnits(VisualElement owner, StylePropertyId prop, ref MaterialDefinition a, ref MaterialDefinition b)
+		{
+			if ((a.material == null && b.material != null) || (b.material == null && a.material != null))
+			{
+				return true;
+			}
+			if (a.material != b.material)
+			{
+				return false;
+			}
+			List<MaterialPropertyValue> propertyValues = a.propertyValues;
+			List<MaterialPropertyValue> propertyValues2 = b.propertyValues;
+			int num = Math.Min(propertyValues?.Count ?? 0, propertyValues2?.Count ?? 0);
+			for (int i = 0; i < num; i++)
+			{
+				if (propertyValues[i].type != propertyValues2[i].type || propertyValues[i].name != propertyValues2[i].name)
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
+		protected sealed override void UpdateComputedStyle()
+		{
+			int count = running.count;
+			for (int i = 0; i < count; i++)
+			{
+				running.elements[i].computedStyle.ApplyPropertyAnimation(running.elements[i], running.properties[i], running.style[i].currentValue);
+			}
+		}
+
+		protected sealed override void UpdateComputedStyle(int i)
+		{
+			running.elements[i].computedStyle.ApplyPropertyAnimation(running.elements[i], running.properties[i], running.style[i].currentValue);
+		}
+
+		private static MaterialPropertyValue LerpPropertyValues(MaterialPropertyValue a, MaterialPropertyValue b, float t)
+		{
+			if (a.type != b.type)
+			{
+				return a;
+			}
+			switch (a.type)
+			{
+			case MaterialPropertyValueType.Float:
+			case MaterialPropertyValueType.Vector:
+			case MaterialPropertyValueType.Color:
+				return new MaterialPropertyValue
+				{
+					type = a.type,
+					name = a.name,
+					packedValue = Vector4.Lerp(a.packedValue, b.packedValue, t)
+				};
+			case MaterialPropertyValueType.Texture:
+				return (t < 0.5f) ? a : b;
+			default:
+				return a;
+			}
+		}
+
+		private static MaterialPropertyValue GetValueOrDefault(List<MaterialPropertyValue> srcList, List<MaterialPropertyValue> refList, int index)
+		{
+			if (index < srcList?.Count)
+			{
+				return srcList[index];
+			}
+			MaterialPropertyValue materialPropertyValue = refList[index];
+			return new MaterialPropertyValue
+			{
+				type = materialPropertyValue.type,
+				name = materialPropertyValue.name
+			};
+		}
+
+		private static void Lerp(MaterialDefinition a, MaterialDefinition b, ref MaterialDefinition result, float t)
+		{
+			if (t > 0.999f)
+			{
+				result = new MaterialDefinition(b);
+				return;
+			}
+			List<MaterialPropertyValue> propertyValues = a.propertyValues;
+			List<MaterialPropertyValue> propertyValues2 = b.propertyValues;
+			int num = Math.Max(propertyValues?.Count ?? 0, propertyValues2?.Count ?? 0);
+			if (result.material == null)
+			{
+				result.material = a.material ?? b.material;
+				result.propertyValues = new List<MaterialPropertyValue>(num);
+			}
+			while (result.propertyValues.Count < num)
+			{
+				result.propertyValues.Add(default(MaterialPropertyValue));
+			}
+			for (int i = 0; i < num; i++)
+			{
+				MaterialPropertyValue valueOrDefault = GetValueOrDefault(propertyValues, propertyValues2, i);
+				MaterialPropertyValue valueOrDefault2 = GetValueOrDefault(propertyValues2, propertyValues, i);
+				result.propertyValues[i] = LerpPropertyValues(valueOrDefault, valueOrDefault2, t);
+			}
+		}
+
+		protected sealed override void UpdateValues()
+		{
+			int count = running.count;
+			for (int i = 0; i < count; i++)
+			{
+				ref TimingData reference = ref running.timing[i];
+				ref StyleData reference2 = ref running.style[i];
+				Lerp(reference2.startValue, reference2.endValue, ref reference2.currentValue, reference.easedProgress);
+			}
+		}
+	}
+
+	private double m_CurrentTime = 0.0;
 
 	private ValuesFloat m_Floats;
 
@@ -1466,6 +1677,8 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 
 	private ValuesRotate m_Rotate;
 
+	private ValuesRatio m_Ratio;
+
 	private ValuesTranslate m_Translate;
 
 	private ValuesTransformOrigin m_TransformOrigin;
@@ -1478,13 +1691,15 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 
 	private ValuesListFilterFunction m_FilterFunctions;
 
+	private ValuesMaterialDefinition m_MaterialDefinition;
+
 	private readonly List<Values> m_AllValues = new List<Values>();
 
 	private readonly Dictionary<StylePropertyId, Values> m_PropertyToValues = new Dictionary<StylePropertyId, Values>();
 
-	public StylePropertyAnimationSystem()
+	public StylePropertyAnimationSystem(BaseVisualElementPanel p)
 	{
-		m_CurrentTimeMs = Panel.TimeSinceStartupMs();
+		m_CurrentTime = p.TimeSinceStartupSeconds();
 	}
 
 	private T GetOrCreate<T>(ref T values) where T : new()
@@ -1496,7 +1711,7 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 	private bool StartTransition<T>(VisualElement owner, StylePropertyId prop, T startValue, T endValue, int durationMs, int delayMs, Func<float, float> easingCurve, Values<T> values)
 	{
 		m_PropertyToValues[prop] = values;
-		bool result = values.StartTransition(owner, prop, startValue, endValue, durationMs, delayMs, easingCurve, CurrentTimeMs());
+		bool result = values.StartTransition(owner, prop, startValue, endValue, (float)durationMs / 1000f, (float)delayMs / 1000f, easingCurve, CurrentTimeSeconds());
 		UpdateTracking(values);
 		return result;
 	}
@@ -1561,6 +1776,11 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 		return StartTransition(owner, prop, startValue, endValue, durationMs, delayMs, easingCurve, GetOrCreate(ref m_Translate));
 	}
 
+	public bool StartTransition(VisualElement owner, StylePropertyId prop, Ratio startValue, Ratio endValue, int durationMs, int delayMs, [JetBrains.Annotations.NotNull] Func<float, float> easingCurve)
+	{
+		return StartTransition(owner, prop, startValue, endValue, durationMs, delayMs, easingCurve, GetOrCreate(ref m_Ratio));
+	}
+
 	public bool StartTransition(VisualElement owner, StylePropertyId prop, TransformOrigin startValue, TransformOrigin endValue, int durationMs, int delayMs, [JetBrains.Annotations.NotNull] Func<float, float> easingCurve)
 	{
 		return StartTransition(owner, prop, startValue, endValue, durationMs, delayMs, easingCurve, GetOrCreate(ref m_TransformOrigin));
@@ -1584,6 +1804,11 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 	public bool StartTransition(VisualElement owner, StylePropertyId prop, List<FilterFunction> startValue, List<FilterFunction> endValue, int durationMs, int delayMs, [JetBrains.Annotations.NotNull] Func<float, float> easingCurve)
 	{
 		return StartTransition(owner, prop, startValue, endValue, durationMs, delayMs, easingCurve, GetOrCreate(ref m_FilterFunctions));
+	}
+
+	public bool StartTransition(VisualElement owner, StylePropertyId prop, MaterialDefinition startValue, MaterialDefinition endValue, int durationMs, int delayMs, [JetBrains.Annotations.NotNull] Func<float, float> easingCurve)
+	{
+		return StartTransition(owner, prop, startValue, endValue, durationMs, delayMs, easingCurve, GetOrCreate(ref m_MaterialDefinition));
 	}
 
 	public void CancelAllAnimations()
@@ -1642,18 +1867,18 @@ internal class StylePropertyAnimationSystem : IStylePropertyAnimationSystem
 		}
 	}
 
-	private long CurrentTimeMs()
+	private double CurrentTimeSeconds()
 	{
-		return m_CurrentTimeMs;
+		return m_CurrentTime;
 	}
 
-	public void Update()
+	public void Update(double updateTime)
 	{
-		m_CurrentTimeMs = Panel.TimeSinceStartupMs();
+		m_CurrentTime = updateTime;
 		int count = m_AllValues.Count;
 		for (int i = 0; i < count; i++)
 		{
-			m_AllValues[i].Update(m_CurrentTimeMs);
+			m_AllValues[i].Update(m_CurrentTime);
 		}
 	}
 }

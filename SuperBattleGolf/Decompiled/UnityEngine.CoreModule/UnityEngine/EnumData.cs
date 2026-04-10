@@ -3,7 +3,7 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule", "UnityEditor.UIBuilderModule" })]
 internal struct EnumData
 {
 	public Enum[] values;

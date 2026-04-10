@@ -6,8 +6,8 @@ using UnityEngine.UIElements.UIR;
 
 namespace UnityEngine.UIElements;
 
-[NativeContainerIsReadOnly]
 [NativeContainer]
+[NativeContainerIsReadOnly]
 public struct TempMeshAllocator
 {
 	private GCHandle m_Handle;

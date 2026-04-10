@@ -14,6 +14,8 @@ internal class DrawParams
 
 	internal readonly List<Material> defaultMaterial = new List<Material>(8);
 
+	internal readonly List<MaterialPropertyBlock> props = new List<MaterialPropertyBlock>(8);
+
 	public void Reset()
 	{
 		view.Clear();

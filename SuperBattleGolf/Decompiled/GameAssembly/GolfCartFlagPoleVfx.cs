@@ -18,6 +18,8 @@ public class GolfCartFlagPoleVfx : MonoBehaviour, IBUpdateCallback, IAnyBUpdateC
 
 	private Vector3 followVelocity;
 
+	private bool isFrozen;
+
 	private Vector3 rotationTargetOriginalLocalPosition;
 
 	private void OnEnable()
@@ -40,10 +42,18 @@ public class GolfCartFlagPoleVfx : MonoBehaviour, IBUpdateCallback, IAnyBUpdateC
 		this.forwardLean = forwardLean;
 	}
 
+	public void SetIsFrozen(bool isFrozen)
+	{
+		this.isFrozen = isFrozen;
+	}
+
 	public void OnBUpdate()
 	{
-		(rotationTarget.localPosition, followVelocity) = BMath.UpdateSpring(rotationTarget.localPosition, followVelocity, GetRotationTargetTargetLocalPosition(), springFactors.x, springFactors.y, Time.deltaTime);
-		pivot.rotation = Quaternion.LookRotation(rotationTarget.position - pivot.position, -base.transform.forward);
+		if (!isFrozen)
+		{
+			(rotationTarget.localPosition, followVelocity) = BMath.UpdateSpring(rotationTarget.localPosition, followVelocity, GetRotationTargetTargetLocalPosition(), springFactors.x, springFactors.y, Time.deltaTime);
+			pivot.rotation = Quaternion.LookRotation(rotationTarget.position - pivot.position, -base.transform.forward);
+		}
 	}
 
 	private Vector3 GetRotationTargetTargetLocalPosition()

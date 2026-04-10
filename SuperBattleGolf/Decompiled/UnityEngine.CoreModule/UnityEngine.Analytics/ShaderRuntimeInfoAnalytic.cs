@@ -7,8 +7,8 @@ namespace UnityEngine.Analytics;
 
 [Serializable]
 [StructLayout(LayoutKind.Sequential)]
-[ExcludeFromDocs]
 [RequiredByNativeCode(GenerateProxy = true)]
+[ExcludeFromDocs]
 internal class ShaderRuntimeInfoAnalytic : AnalyticsEventBase
 {
 	public long VariantsRequested = 0L;

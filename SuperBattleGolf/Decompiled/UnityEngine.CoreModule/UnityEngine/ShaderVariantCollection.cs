@@ -96,7 +96,7 @@ public sealed class ShaderVariantCollection : Object
 		}
 	}
 
-	private bool AddVariant(Shader shader, PassType passType, [Unmarshalled] string[] keywords)
+	private bool AddVariant(Shader shader, PassType passType, [UnityMarshalAs(NativeType.ScriptingObjectPtr)] string[] keywords)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 		if (intPtr == (IntPtr)0)
@@ -106,7 +106,7 @@ public sealed class ShaderVariantCollection : Object
 		return AddVariant_Injected(intPtr, MarshalledUnityObject.Marshal(shader), passType, keywords);
 	}
 
-	private bool RemoveVariant(Shader shader, PassType passType, [Unmarshalled] string[] keywords)
+	private bool RemoveVariant(Shader shader, PassType passType, [UnityMarshalAs(NativeType.ScriptingObjectPtr)] string[] keywords)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 		if (intPtr == (IntPtr)0)
@@ -116,7 +116,7 @@ public sealed class ShaderVariantCollection : Object
 		return RemoveVariant_Injected(intPtr, MarshalledUnityObject.Marshal(shader), passType, keywords);
 	}
 
-	private bool ContainsVariant(Shader shader, PassType passType, [Unmarshalled] string[] keywords)
+	private bool ContainsVariant(Shader shader, PassType passType, [UnityMarshalAs(NativeType.ScriptingObjectPtr)] string[] keywords)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 		if (intPtr == (IntPtr)0)

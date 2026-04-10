@@ -9,6 +9,8 @@ namespace UnityEngine;
 [VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
 internal class TextEditingUtilities
 {
+	internal record struct KeyEvent(KeyCode key, EventModifiers modifiers);
+
 	private TextSelectingUtilities m_TextSelectingUtility;
 
 	internal TextHandle textHandle;
@@ -26,7 +28,62 @@ internal class TextEditingUtilities
 
 	private string m_Text;
 
-	private static Dictionary<Event, TextEditOp> s_KeyEditOps;
+	internal static readonly List<(KeyEvent keyEvent, TextEditOp operation)> s_GlobalKeyMappings = new List<(KeyEvent, TextEditOp)>
+	{
+		(new KeyEvent(KeyCode.LeftArrow, EventModifiers.FunctionKey), TextEditOp.MoveLeft),
+		(new KeyEvent(KeyCode.RightArrow, EventModifiers.FunctionKey), TextEditOp.MoveRight),
+		(new KeyEvent(KeyCode.UpArrow, EventModifiers.FunctionKey), TextEditOp.MoveUp),
+		(new KeyEvent(KeyCode.DownArrow, EventModifiers.FunctionKey), TextEditOp.MoveDown),
+		(new KeyEvent(KeyCode.Delete, EventModifiers.FunctionKey), TextEditOp.Delete),
+		(new KeyEvent(KeyCode.Backspace, EventModifiers.FunctionKey), TextEditOp.Backspace),
+		(new KeyEvent(KeyCode.Backspace, EventModifiers.Shift | EventModifiers.FunctionKey), TextEditOp.Backspace)
+	};
+
+	internal static readonly List<(KeyEvent keyEvent, TextEditOp operation)> s_MacKeyMappings = new List<(KeyEvent, TextEditOp)>
+	{
+		(new KeyEvent(KeyCode.LeftArrow, EventModifiers.Control | EventModifiers.FunctionKey), TextEditOp.MoveGraphicalLineStart),
+		(new KeyEvent(KeyCode.RightArrow, EventModifiers.Control | EventModifiers.FunctionKey), TextEditOp.MoveGraphicalLineEnd),
+		(new KeyEvent(KeyCode.LeftArrow, EventModifiers.Alt | EventModifiers.FunctionKey), TextEditOp.MoveWordLeft),
+		(new KeyEvent(KeyCode.RightArrow, EventModifiers.Alt | EventModifiers.FunctionKey), TextEditOp.MoveWordRight),
+		(new KeyEvent(KeyCode.UpArrow, EventModifiers.Alt | EventModifiers.FunctionKey), TextEditOp.MoveParagraphBackward),
+		(new KeyEvent(KeyCode.DownArrow, EventModifiers.Alt | EventModifiers.FunctionKey), TextEditOp.MoveParagraphForward),
+		(new KeyEvent(KeyCode.LeftArrow, EventModifiers.Command | EventModifiers.FunctionKey), TextEditOp.MoveGraphicalLineStart),
+		(new KeyEvent(KeyCode.RightArrow, EventModifiers.Command | EventModifiers.FunctionKey), TextEditOp.MoveGraphicalLineEnd),
+		(new KeyEvent(KeyCode.UpArrow, EventModifiers.Command | EventModifiers.FunctionKey), TextEditOp.MoveTextStart),
+		(new KeyEvent(KeyCode.DownArrow, EventModifiers.Command | EventModifiers.FunctionKey), TextEditOp.MoveTextEnd),
+		(new KeyEvent(KeyCode.X, EventModifiers.Command), TextEditOp.Cut),
+		(new KeyEvent(KeyCode.V, EventModifiers.Command), TextEditOp.Paste),
+		(new KeyEvent(KeyCode.D, EventModifiers.Control), TextEditOp.Delete),
+		(new KeyEvent(KeyCode.H, EventModifiers.Control), TextEditOp.Backspace),
+		(new KeyEvent(KeyCode.B, EventModifiers.Control), TextEditOp.MoveLeft),
+		(new KeyEvent(KeyCode.F, EventModifiers.Control), TextEditOp.MoveRight),
+		(new KeyEvent(KeyCode.A, EventModifiers.Control), TextEditOp.MoveLineStart),
+		(new KeyEvent(KeyCode.E, EventModifiers.Control), TextEditOp.MoveLineEnd),
+		(new KeyEvent(KeyCode.Delete, EventModifiers.Alt | EventModifiers.FunctionKey), TextEditOp.DeleteWordForward),
+		(new KeyEvent(KeyCode.Backspace, EventModifiers.Alt | EventModifiers.FunctionKey), TextEditOp.DeleteWordBack),
+		(new KeyEvent(KeyCode.Backspace, EventModifiers.Command | EventModifiers.FunctionKey), TextEditOp.DeleteLineBack)
+	};
+
+	internal static readonly List<(KeyEvent keyEvent, TextEditOp operation)> s_WindowsLinuxKeyMappings = new List<(KeyEvent, TextEditOp)>
+	{
+		(new KeyEvent(KeyCode.Home, EventModifiers.FunctionKey), TextEditOp.MoveGraphicalLineStart),
+		(new KeyEvent(KeyCode.End, EventModifiers.FunctionKey), TextEditOp.MoveGraphicalLineEnd),
+		(new KeyEvent(KeyCode.LeftArrow, EventModifiers.Command | EventModifiers.FunctionKey), TextEditOp.MoveWordLeft),
+		(new KeyEvent(KeyCode.RightArrow, EventModifiers.Command | EventModifiers.FunctionKey), TextEditOp.MoveWordRight),
+		(new KeyEvent(KeyCode.UpArrow, EventModifiers.Command | EventModifiers.FunctionKey), TextEditOp.MoveParagraphBackward),
+		(new KeyEvent(KeyCode.DownArrow, EventModifiers.Command | EventModifiers.FunctionKey), TextEditOp.MoveParagraphForward),
+		(new KeyEvent(KeyCode.LeftArrow, EventModifiers.Control | EventModifiers.FunctionKey), TextEditOp.MoveToEndOfPreviousWord),
+		(new KeyEvent(KeyCode.RightArrow, EventModifiers.Control | EventModifiers.FunctionKey), TextEditOp.MoveToStartOfNextWord),
+		(new KeyEvent(KeyCode.UpArrow, EventModifiers.Control | EventModifiers.FunctionKey), TextEditOp.MoveParagraphBackward),
+		(new KeyEvent(KeyCode.DownArrow, EventModifiers.Control | EventModifiers.FunctionKey), TextEditOp.MoveParagraphForward),
+		(new KeyEvent(KeyCode.Delete, EventModifiers.Control | EventModifiers.FunctionKey), TextEditOp.DeleteWordForward),
+		(new KeyEvent(KeyCode.Backspace, EventModifiers.Control | EventModifiers.FunctionKey), TextEditOp.DeleteWordBack),
+		(new KeyEvent(KeyCode.Backspace, EventModifiers.Command | EventModifiers.FunctionKey), TextEditOp.DeleteLineBack),
+		(new KeyEvent(KeyCode.X, EventModifiers.Control), TextEditOp.Cut),
+		(new KeyEvent(KeyCode.V, EventModifiers.Control), TextEditOp.Paste),
+		(new KeyEvent(KeyCode.Delete, EventModifiers.Shift | EventModifiers.FunctionKey), TextEditOp.Cut),
+		(new KeyEvent(KeyCode.Insert, EventModifiers.Shift | EventModifiers.FunctionKey), TextEditOp.Paste)
+	};
 
 	private char m_HighSurrogate;
 
@@ -210,22 +267,42 @@ internal class TextEditingUtilities
 		}
 	}
 
-	[VisibleToOtherModules]
 	internal bool HandleKeyEvent(Event e)
 	{
-		RestoreCursorState();
-		InitKeyActions();
-		EventModifiers modifiers = e.modifiers;
-		e.modifiers &= ~EventModifiers.CapsLock;
-		if (s_KeyEditOps.ContainsKey(e))
+		return HandleKeyEvent(e.keyCode, e.modifiers);
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+	internal bool HandleKeyEvent(KeyCode key, EventModifiers modifiers)
+	{
+		TextEditOp? textEditOp = TextEditOpFromEnum(key, modifiers, SystemInfo.operatingSystemFamily == OperatingSystemFamily.MacOSX);
+		if (textEditOp.HasValue)
 		{
-			TextEditOp operation = s_KeyEditOps[e];
-			PerformOperation(operation);
-			e.modifiers = modifiers;
+			PerformOperation(textEditOp.Value);
 			return true;
 		}
-		e.modifiers = modifiers;
 		return false;
+	}
+
+	internal static TextEditOp? TextEditOpFromEnum(KeyCode key, EventModifiers modifiers, bool IsMacOsFamily)
+	{
+		modifiers &= ~EventModifiers.CapsLock;
+		KeyEvent keyEvent = new KeyEvent(key, modifiers);
+		foreach (var s_GlobalKeyMapping in s_GlobalKeyMappings)
+		{
+			if (s_GlobalKeyMapping.keyEvent == keyEvent)
+			{
+				return s_GlobalKeyMapping.operation;
+			}
+		}
+		foreach (var item in IsMacOsFamily ? s_MacKeyMappings : s_WindowsLinuxKeyMappings)
+		{
+			if (item.keyEvent == keyEvent)
+			{
+				return item.operation;
+			}
+		}
+		return null;
 	}
 
 	private void PerformOperation(TextEditOp operation)
@@ -305,70 +382,6 @@ internal class TextEditingUtilities
 		default:
 			Debug.Log("Unimplemented: " + operation);
 			break;
-		}
-	}
-
-	private static void MapKey(string key, TextEditOp action)
-	{
-		s_KeyEditOps[Event.KeyboardEvent(key)] = action;
-	}
-
-	private void InitKeyActions()
-	{
-		if (s_KeyEditOps == null)
-		{
-			s_KeyEditOps = new Dictionary<Event, TextEditOp>();
-			MapKey("left", TextEditOp.MoveLeft);
-			MapKey("right", TextEditOp.MoveRight);
-			MapKey("up", TextEditOp.MoveUp);
-			MapKey("down", TextEditOp.MoveDown);
-			MapKey("delete", TextEditOp.Delete);
-			MapKey("backspace", TextEditOp.Backspace);
-			MapKey("#backspace", TextEditOp.Backspace);
-			if (SystemInfo.operatingSystemFamily == OperatingSystemFamily.MacOSX)
-			{
-				MapKey("^left", TextEditOp.MoveGraphicalLineStart);
-				MapKey("^right", TextEditOp.MoveGraphicalLineEnd);
-				MapKey("&left", TextEditOp.MoveWordLeft);
-				MapKey("&right", TextEditOp.MoveWordRight);
-				MapKey("&up", TextEditOp.MoveParagraphBackward);
-				MapKey("&down", TextEditOp.MoveParagraphForward);
-				MapKey("%left", TextEditOp.MoveGraphicalLineStart);
-				MapKey("%right", TextEditOp.MoveGraphicalLineEnd);
-				MapKey("%up", TextEditOp.MoveTextStart);
-				MapKey("%down", TextEditOp.MoveTextEnd);
-				MapKey("%x", TextEditOp.Cut);
-				MapKey("%v", TextEditOp.Paste);
-				MapKey("^d", TextEditOp.Delete);
-				MapKey("^h", TextEditOp.Backspace);
-				MapKey("^b", TextEditOp.MoveLeft);
-				MapKey("^f", TextEditOp.MoveRight);
-				MapKey("^a", TextEditOp.MoveLineStart);
-				MapKey("^e", TextEditOp.MoveLineEnd);
-				MapKey("&delete", TextEditOp.DeleteWordForward);
-				MapKey("&backspace", TextEditOp.DeleteWordBack);
-				MapKey("%backspace", TextEditOp.DeleteLineBack);
-			}
-			else
-			{
-				MapKey("home", TextEditOp.MoveGraphicalLineStart);
-				MapKey("end", TextEditOp.MoveGraphicalLineEnd);
-				MapKey("%left", TextEditOp.MoveWordLeft);
-				MapKey("%right", TextEditOp.MoveWordRight);
-				MapKey("%up", TextEditOp.MoveParagraphBackward);
-				MapKey("%down", TextEditOp.MoveParagraphForward);
-				MapKey("^left", TextEditOp.MoveToEndOfPreviousWord);
-				MapKey("^right", TextEditOp.MoveToStartOfNextWord);
-				MapKey("^up", TextEditOp.MoveParagraphBackward);
-				MapKey("^down", TextEditOp.MoveParagraphForward);
-				MapKey("^delete", TextEditOp.DeleteWordForward);
-				MapKey("^backspace", TextEditOp.DeleteWordBack);
-				MapKey("%backspace", TextEditOp.DeleteLineBack);
-				MapKey("^x", TextEditOp.Cut);
-				MapKey("^v", TextEditOp.Paste);
-				MapKey("#delete", TextEditOp.Cut);
-				MapKey("#insert", TextEditOp.Paste);
-			}
 		}
 	}
 
@@ -452,7 +465,7 @@ internal class TextEditingUtilities
 		}
 		if (stringCursorIndex < text.Length)
 		{
-			int count = ((!textHandle.useAdvancedText) ? textHandle.textInfo.textElementInfo[cursorIndex].stringLength : (textHandle.NextCodePointIndex(cursorIndex) - cursorIndex));
+			int count = ((!textHandle.useAdvancedText) ? textHandle.textInfo.textElementInfo[cursorIndex].stringLength : Mathf.Abs(textHandle.NextCodePointIndex(cursorIndex) - cursorIndex));
 			text = text.Remove(stringCursorIndex, count);
 			return true;
 		}
@@ -470,7 +483,7 @@ internal class TextEditingUtilities
 		if (cursorIndex > 0)
 		{
 			int num = m_TextSelectingUtility.PreviousCodePointIndex(cursorIndex);
-			int num2 = ((!textHandle.useAdvancedText) ? textHandle.textInfo.textElementInfo[cursorIndex - 1].stringLength : (cursorIndex - num));
+			int num2 = ((!textHandle.useAdvancedText) ? textHandle.textInfo.textElementInfo[cursorIndex - 1].stringLength : Mathf.Abs(cursorIndex - num));
 			text = text.Remove(stringCursorIndex - num2, num2);
 			cursorIndex = (textHandle.useAdvancedText ? Math.Max(0, cursorIndex - num2) : num);
 			selectIndex = (textHandle.useAdvancedText ? Math.Max(0, selectIndex - num2) : num);

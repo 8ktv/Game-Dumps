@@ -76,8 +76,8 @@ public sealed class BoxCollider2D : Collider2D
 		}
 	}
 
-	[Obsolete("BoxCollider2D.center has been obsolete. Use BoxCollider2D.offset instead (UnityUpgradable) -> offset", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("BoxCollider2D.center has been obsolete. Use BoxCollider2D.offset instead (UnityUpgradable) -> offset", true)]
 	public Vector2 center
 	{
 		get

@@ -70,6 +70,8 @@ internal class DynamicHeightVirtualizationController<T> : VerticalVirtualization
 
 	private IVisualElementScheduledItem m_ScrollResetScheduledItem;
 
+	private IVisualElementScheduledItem m_RefreshScrollOffsetScheduledItem;
+
 	private Predicate<int> m_IndexOutOfBoundsPredicate;
 
 	private bool m_FillExecuted;
@@ -193,18 +195,22 @@ internal class DynamicHeightVirtualizationController<T> : VerticalVirtualization
 		base.Refresh(rebuild);
 		m_ScrollDirection = ScrollDirection.Idle;
 		m_LastChange = VirtualizationChange.None;
-		if (m_CollectionView.HasValidDataAndBindings())
+		if (!m_CollectionView.HasValidDataAndBindings())
 		{
-			if (flag || count != m_ActiveItems.Count)
-			{
-				contentHeight = GetExpectedContentHeight();
-				float highValueWithoutNotify = Mathf.Max(0f, contentHeight - m_ScrollView.contentViewport.layout.height);
-				m_ScrollView.verticalScroller.slider.SetHighValueWithoutNotify(highValueWithoutNotify);
-				m_ScrollView.scrollOffset = base.serializedData.scrollOffset;
-				base.serializedData.scrollOffset.y = m_ScrollView.verticalScroller.value;
-			}
-			ScheduleFill();
+			return;
 		}
+		if (flag || count != m_ActiveItems.Count)
+		{
+			if (m_RefreshScrollOffsetScheduledItem == null)
+			{
+				m_RefreshScrollOffsetScheduledItem = m_CollectionView.schedule.Execute(RefreshScrollOffset);
+			}
+			else if (!m_RefreshScrollOffsetScheduledItem.isActive)
+			{
+				m_RefreshScrollOffsetScheduledItem.Resume();
+			}
+		}
+		ScheduleFill();
 	}
 
 	public override void ScrollToItem(int index)
@@ -218,35 +224,50 @@ internal class DynamicHeightVirtualizationController<T> : VerticalVirtualization
 			m_ScrolledToItemIndex = index;
 			return;
 		}
-		ShouldDeferScrollToItem(index);
+		if (ShouldDeferScrollToItem(index))
+		{
+			ScheduleDeferredScrollToItem();
+		}
+		else
+		{
+			StopDeferredScrollToItem();
+		}
 		float height = m_ScrollView.contentContainer.layout.height;
 		float height2 = m_ScrollView.contentViewport.layout.height;
+		Vector2 scrollOffset = m_ScrollView.scrollOffset;
 		if (index == -1)
 		{
 			m_ForcedLastVisibleItem = base.itemsCount - 1;
 			m_ForcedFirstVisibleItem = -1;
 			m_StickToBottom = true;
 			m_ScrollView.scrollOffset = new Vector2(0f, (height2 >= height) ? 0f : height);
-			return;
 		}
-		if (firstVisibleIndex >= index)
+		else if (firstVisibleIndex >= index)
 		{
 			Vector2 vector = new Vector2(0f, GetContentHeightForIndex(index - 1));
-			if (!(vector == m_ScrollView.scrollOffset))
+			if (vector == m_ScrollView.scrollOffset)
 			{
-				m_ForcedFirstVisibleItem = index;
-				m_ForcedLastVisibleItem = -1;
-				m_ScrollView.scrollOffset = vector;
+				return;
 			}
-			return;
+			m_ForcedFirstVisibleItem = index;
+			m_ForcedLastVisibleItem = -1;
+			m_ScrollView.scrollOffset = vector;
 		}
-		float contentHeightForIndex = GetContentHeightForIndex(index);
-		if (!float.IsNaN(height2) && !(contentHeightForIndex < contentPadding + height2))
+		else
 		{
+			float contentHeightForIndex = GetContentHeightForIndex(index);
+			if (float.IsNaN(height2) || contentHeightForIndex < contentPadding + height2)
+			{
+				return;
+			}
 			float y = contentHeightForIndex - height2 + 22f;
 			m_ForcedLastVisibleItem = index;
 			m_ForcedFirstVisibleItem = -1;
 			m_ScrollView.scrollOffset = new Vector2(0f, y);
+		}
+		if (scrollOffset == m_ScrollView.scrollOffset)
+		{
+			OnScrollUpdate();
 		}
 	}
 
@@ -262,20 +283,15 @@ internal class DynamicHeightVirtualizationController<T> : VerticalVirtualization
 		base.serializedData.scrollOffset.y = m_ScrollView.verticalScroller.value;
 		float num2 = m_CollectionView.ResolveItemHeight(size.y);
 		int num3 = Mathf.CeilToInt(num2 / defaultExpectedHeight);
-		int num4 = num3;
-		if (num4 <= 0)
-		{
-			return;
-		}
-		num4 += 2;
-		int num5 = Mathf.Min(num4, base.itemsCount);
-		if (m_ActiveItems.Count != num5)
+		int a = num3 + 2;
+		int num4 = Mathf.Min(a, base.itemsCount);
+		if (m_ActiveItems.Count != num4)
 		{
 			int count = m_ActiveItems.Count;
-			if (count > num5)
+			if (count > num4)
 			{
-				int num6 = count - num5;
-				for (int i = 0; i < num6; i++)
+				int num5 = count - num4;
+				for (int i = 0; i < num5; i++)
 				{
 					int activeItemsIndex = m_ActiveItems.Count - 1;
 					ReleaseItem(activeItemsIndex);
@@ -283,24 +299,24 @@ internal class DynamicHeightVirtualizationController<T> : VerticalVirtualization
 			}
 			else
 			{
-				int num7 = num5 - m_ActiveItems.Count;
-				int num8 = ((firstVisibleIndex >= 0) ? firstVisibleIndex : 0);
-				for (int j = 0; j < num7; j++)
+				int num6 = num4 - m_ActiveItems.Count;
+				int num7 = ((firstVisibleIndex >= 0) ? firstVisibleIndex : 0);
+				for (int j = 0; j < num6; j++)
 				{
-					int num9 = j + num8 + count;
+					int num8 = j + num7 + count;
 					T orMakeItemAtIndex = GetOrMakeItemAtIndex();
-					if (IsIndexOutOfBounds(num9))
+					if (IsIndexOutOfBounds(num8))
 					{
 						HideItem(m_ActiveItems.Count - 1);
 						continue;
 					}
-					Setup(orMakeItemAtIndex, num9);
+					Setup(orMakeItemAtIndex, num8);
 					MarkWaitingForLayout(orMakeItemAtIndex);
 				}
 			}
 		}
-		long num10 = DateTime.UtcNow.Ticks / 10000;
-		if ((float)(num10 - m_TimeSinceFillScheduledMs) > 100f && m_TimeSinceFillScheduledMs != 0L && !m_FillExecuted)
+		long num9 = DateTime.UtcNow.Ticks / 10000;
+		if ((float)(num9 - m_TimeSinceFillScheduledMs) > 100f && m_TimeSinceFillScheduledMs != 0L && !m_FillExecuted)
 		{
 			Fill();
 			ResetScroll();
@@ -521,7 +537,7 @@ internal class DynamicHeightVirtualizationController<T> : VerticalVirtualization
 		}
 		else
 		{
-			if (anchoredIndex < 0)
+			if (anchoredIndex < 0 || firstVisibleIndex < 0)
 			{
 				return;
 			}
@@ -1019,5 +1035,14 @@ internal class DynamicHeightVirtualizationController<T> : VerticalVirtualization
 	private bool IsIndexOutOfBounds(int i)
 	{
 		return m_CollectionView.itemsSource == null || i >= base.itemsCount;
+	}
+
+	private void RefreshScrollOffset()
+	{
+		contentHeight = GetExpectedContentHeight();
+		float highValueWithoutNotify = Mathf.Max(0f, contentHeight - m_ScrollView.contentViewport.layout.height);
+		m_ScrollView.verticalScroller.slider.SetHighValueWithoutNotify(highValueWithoutNotify);
+		m_ScrollView.scrollOffset = base.serializedData.scrollOffset;
+		base.serializedData.scrollOffset.y = m_ScrollView.verticalScroller.value;
 	}
 }

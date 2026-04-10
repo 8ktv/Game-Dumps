@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngineInternal;
 
 namespace UnityEngine.UIElements;
 
@@ -96,7 +97,7 @@ public class PanelEventHandler : UIBehaviour, IPointerMoveHandler, IEventSystemH
 			int num = Screen.height;
 			Vector3 relativeMousePositionForRaycast = MultipleDisplayUtilities.GetRelativeMousePositionForRaycast(eventData);
 			int num2 = (int)relativeMousePositionForRaycast.z;
-			if (num2 > 0 && num2 < Display.displays.Length)
+			if (DisplayInternal.IsASecondaryDisplayIndex(num2))
 			{
 				num = Display.displays[num2].systemHeight;
 			}
@@ -341,6 +342,8 @@ public class PanelEventHandler : UIBehaviour, IPointerMoveHandler, IEventSystemH
 		{
 			return;
 		}
+		Focusable target = currentFocusedElement ?? m_Panel.visualTree;
+		ProcessImguiEvents(target);
 		if (eventSystem != null)
 		{
 			eventSystem.SetSelectedGameObject(selectableGameObject);

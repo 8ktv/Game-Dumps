@@ -18,6 +18,10 @@ public struct VisibleLight : IEquatable<VisibleLight>
 
 	private float m_SpotAngle;
 
+	private float m_InnerSpotAngle;
+
+	private Vector2 m_AreaSize;
+
 	private int m_InstanceId;
 
 	private VisibleLightFlags m_Flags;
@@ -96,6 +100,30 @@ public struct VisibleLight : IEquatable<VisibleLight>
 		}
 	}
 
+	public float innerSpotAngle
+	{
+		get
+		{
+			return m_InnerSpotAngle;
+		}
+		set
+		{
+			m_InnerSpotAngle = value;
+		}
+	}
+
+	public Vector2 areaSize
+	{
+		get
+		{
+			return m_AreaSize;
+		}
+		set
+		{
+			m_AreaSize = value;
+		}
+	}
+
 	public bool intersectsNearPlane
 	{
 		get
@@ -138,7 +166,7 @@ public struct VisibleLight : IEquatable<VisibleLight>
 
 	public bool Equals(VisibleLight other)
 	{
-		return m_LightType == other.m_LightType && m_FinalColor.Equals(other.m_FinalColor) && m_ScreenRect.Equals(other.m_ScreenRect) && m_LocalToWorldMatrix.Equals(other.m_LocalToWorldMatrix) && m_Range.Equals(other.m_Range) && m_SpotAngle.Equals(other.m_SpotAngle) && m_InstanceId == other.m_InstanceId && m_Flags == other.m_Flags;
+		return m_LightType == other.m_LightType && m_FinalColor.Equals(other.m_FinalColor) && m_ScreenRect.Equals(other.m_ScreenRect) && m_LocalToWorldMatrix.Equals(other.m_LocalToWorldMatrix) && m_Range.Equals(other.m_Range) && m_SpotAngle.Equals(other.m_SpotAngle) && m_InnerSpotAngle.Equals(other.m_InnerSpotAngle) && m_AreaSize.Equals(other.m_AreaSize) && m_InstanceId == other.m_InstanceId && m_Flags == other.m_Flags;
 	}
 
 	public override bool Equals(object obj)
@@ -158,6 +186,8 @@ public struct VisibleLight : IEquatable<VisibleLight>
 		num = (num * 397) ^ m_LocalToWorldMatrix.GetHashCode();
 		num = (num * 397) ^ m_Range.GetHashCode();
 		num = (num * 397) ^ m_SpotAngle.GetHashCode();
+		num = (num * 397) ^ m_InnerSpotAngle.GetHashCode();
+		num = (num * 397) ^ m_AreaSize.GetHashCode();
 		num = (num * 397) ^ m_InstanceId;
 		return (num * 397) ^ (int)m_Flags;
 	}

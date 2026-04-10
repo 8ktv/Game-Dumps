@@ -8,6 +8,14 @@ using UnityEngine.Localization;
 [CreateAssetMenu(fileName = "Hole data", menuName = "Settings/Courses/Hole")]
 public class HoleData : ScriptableObject
 {
+	public enum DifficultyLevel
+	{
+		None = -1,
+		Beginner,
+		Intermediate,
+		Expert
+	}
+
 	[field: SerializeField]
 	public LocalizedString LocalizedName { get; private set; }
 
@@ -17,6 +25,9 @@ public class HoleData : ScriptableObject
 	[field: SerializeField]
 	[field: Min(1f)]
 	public int Par { get; private set; }
+
+	[field: SerializeField]
+	public DifficultyLevel Difficulty { get; private set; }
 
 	[field: SerializeField]
 	public List<Sprite> ScreenshotsThumbnail { get; private set; } = new List<Sprite>();

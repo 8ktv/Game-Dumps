@@ -11,25 +11,25 @@ internal struct FindNonRegisteredMeshesJob : IJobParallelForBatch
 	public const int k_BatchSize = 128;
 
 	[ReadOnly]
-	public NativeArray<int> instanceIDs;
+	public NativeArray<EntityId> instanceIDs;
 
 	[ReadOnly]
-	public NativeParallelHashMap<int, BatchMeshID> hashMap;
+	public NativeParallelHashMap<EntityId, BatchMeshID> hashMap;
 
 	[WriteOnly]
-	public NativeList<int>.ParallelWriter outInstancesWriter;
+	public NativeList<EntityId>.ParallelWriter outInstancesWriter;
 
 	public unsafe void Execute(int startIndex, int count)
 	{
-		int* ptr = stackalloc int[128];
-		UnsafeList<int> unsafeList = new UnsafeList<int>(ptr, 128);
+		EntityId* ptr = stackalloc EntityId[128];
+		UnsafeList<EntityId> unsafeList = new UnsafeList<EntityId>(ptr, 128);
 		unsafeList.Length = 0;
 		for (int i = startIndex; i < startIndex + count; i++)
 		{
-			int num = instanceIDs[i];
-			if (!hashMap.ContainsKey(num))
+			EntityId entityId = instanceIDs[i];
+			if (!hashMap.ContainsKey(entityId))
 			{
-				unsafeList.AddNoResize(num);
+				unsafeList.AddNoResize(entityId);
 			}
 		}
 		outInstancesWriter.AddRangeNoResize(ptr, unsafeList.Length);

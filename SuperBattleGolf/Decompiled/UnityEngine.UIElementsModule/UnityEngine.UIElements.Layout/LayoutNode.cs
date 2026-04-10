@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine.Assertions;
 
@@ -802,6 +801,8 @@ internal struct LayoutNode : IEquatable<LayoutNode>
 
 	public ref LayoutStyleData Style => ref m_Access.GetStyleData(m_Handle);
 
+	internal ref LayoutCacheData Cache => ref m_Access.GetCacheData(m_Handle);
+
 	public bool IsDirty
 	{
 		get
@@ -913,7 +914,7 @@ internal struct LayoutNode : IEquatable<LayoutNode>
 		ref LayoutNodeData nodeData = ref m_Access.GetNodeData(m_Handle);
 		if (!nodeData.Children.IsCreated)
 		{
-			nodeData.Children = new LayoutList<LayoutHandle>(4, Allocator.Persistent);
+			nodeData.Children = new LayoutList<LayoutHandle>(4);
 		}
 		nodeData.Children.Insert(index, child.Handle);
 		child.Parent = this;
@@ -1171,6 +1172,7 @@ internal struct LayoutNode : IEquatable<LayoutNode>
 		JustifyContent = (LayoutJustify)style.justifyContent;
 		Wrap = (LayoutWrap)style.flexWrap;
 		Display = (LayoutDisplay)style.display;
+		AspectRatio = style.aspectRatio.value;
 	}
 
 	public unsafe void CopyStyle(LayoutNode node)
@@ -1193,9 +1195,14 @@ internal struct LayoutNode : IEquatable<LayoutNode>
 		}
 	}
 
-	public void SoftReset()
+	public unsafe void SoftReset()
 	{
 		m_Access.GetNodeData(m_Handle).HasNewLayout = true;
+		ref LayoutCacheData cache = ref Cache;
+		if (cache.CachedLayout.NextMeasurementCache != null)
+		{
+			cache.ClearCachedMeasurements();
+		}
 	}
 
 	public void Reset()

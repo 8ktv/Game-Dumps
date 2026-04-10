@@ -4,7 +4,7 @@ using UnityEngine.Profiling;
 
 namespace UnityEngine.Rendering;
 
-[Obsolete("Please use ProfilingScope")]
+[Obsolete("Please use ProfilingScope. #from(2021.1)")]
 [IgnoredByDeepProfiler]
 public struct ProfilingSample : IDisposable
 {

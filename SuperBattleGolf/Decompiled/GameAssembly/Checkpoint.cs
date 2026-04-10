@@ -30,6 +30,12 @@ public class Checkpoint : NetworkBehaviour
 	private void Awake()
 	{
 		UpdateColor();
+		CheckpointManager.RegisterCheckpoint(this);
+	}
+
+	private void OnDestroy()
+	{
+		CheckpointManager.DeregisterCheckpoint(this);
 	}
 
 	private void OnTriggerEnter(Collider other)

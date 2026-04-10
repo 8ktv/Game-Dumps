@@ -62,13 +62,13 @@ public class HID : InputDevice
 					.WithUsages(CommonUsages.Primary2DMotion);
 				string text = hIDElementDescriptor.DetermineParameters();
 				string text2 = hIDElementDescriptor2.DetermineParameters();
-				builder.AddControl("stick/x").WithFormat(hIDElementDescriptor.isSigned ? InputStateBlock.FormatSBit : InputStateBlock.FormatBit).WithByteOffset((uint)(hIDElementDescriptor.reportOffsetInBits / 8 - num))
+				builder.AddControl("stick/x").WithFormat(hIDElementDescriptor.DetermineFormat()).WithByteOffset((uint)(hIDElementDescriptor.reportOffsetInBits / 8 - num))
 					.WithBitOffset((uint)(hIDElementDescriptor.reportOffsetInBits % 8))
 					.WithSizeInBits((uint)hIDElementDescriptor.reportSizeInBits)
 					.WithParameters(text)
 					.WithDefaultState(hIDElementDescriptor.DetermineDefaultState())
 					.WithProcessors(hIDElementDescriptor.DetermineProcessors());
-				builder.AddControl("stick/y").WithFormat(hIDElementDescriptor2.isSigned ? InputStateBlock.FormatSBit : InputStateBlock.FormatBit).WithByteOffset((uint)(hIDElementDescriptor2.reportOffsetInBits / 8 - num))
+				builder.AddControl("stick/y").WithFormat(hIDElementDescriptor2.DetermineFormat()).WithByteOffset((uint)(hIDElementDescriptor2.reportOffsetInBits / 8 - num))
 					.WithBitOffset((uint)(hIDElementDescriptor2.reportOffsetInBits % 8))
 					.WithSizeInBits((uint)hIDElementDescriptor2.reportSizeInBits)
 					.WithParameters(text2)

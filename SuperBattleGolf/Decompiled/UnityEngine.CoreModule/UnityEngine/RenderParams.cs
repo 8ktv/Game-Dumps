@@ -1,3 +1,4 @@
+using System;
 using UnityEngine.Rendering;
 
 namespace UnityEngine;
@@ -10,7 +11,20 @@ public struct RenderParams
 
 	public int rendererPriority { get; set; }
 
-	public int instanceID { get; set; }
+	[Obsolete("Please use entityId instead.", false)]
+	public int instanceID
+	{
+		get
+		{
+			return entityId;
+		}
+		set
+		{
+			entityId = value;
+		}
+	}
+
+	public EntityId entityId { get; set; }
 
 	public Bounds worldBounds { get; set; }
 
@@ -57,7 +71,7 @@ public struct RenderParams
 		lightProbeProxyVolume = null;
 		overrideSceneCullingMask = false;
 		sceneCullingMask = 0uL;
-		instanceID = 0;
+		entityId = EntityId.None;
 		forceMeshLod = -1;
 		meshLodSelectionBias = 0f;
 	}

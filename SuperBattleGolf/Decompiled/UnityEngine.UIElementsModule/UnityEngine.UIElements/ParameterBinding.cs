@@ -1,16 +1,20 @@
 using System;
+using Unity.Properties;
 
 namespace UnityEngine.UIElements;
 
 [Serializable]
-internal struct ParameterBinding
+public struct ParameterBinding
 {
 	[SerializeField]
+	[DontCreateProperty]
 	private int m_Index;
 
+	[DontCreateProperty]
 	[SerializeField]
 	private string m_Name;
 
+	[CreateProperty]
 	public int index
 	{
 		get
@@ -23,6 +27,7 @@ internal struct ParameterBinding
 		}
 	}
 
+	[CreateProperty]
 	public string name
 	{
 		get

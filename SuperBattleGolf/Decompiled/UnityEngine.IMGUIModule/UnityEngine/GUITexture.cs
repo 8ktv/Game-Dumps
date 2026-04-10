@@ -3,10 +3,10 @@ using System.ComponentModel;
 
 namespace UnityEngine;
 
-[ExcludeFromObjectFactory]
-[ExcludeFromPreset]
-[Obsolete("GUITexture has been removed. Use UI.Image instead.", true)]
 [EditorBrowsable(EditorBrowsableState.Never)]
+[ExcludeFromObjectFactory]
+[Obsolete("GUITexture has been removed. Use UI.Image instead.", true)]
+[ExcludeFromPreset]
 public sealed class GUITexture
 {
 	[Obsolete("GUITexture has been removed. Use UI.Image instead.", true)]

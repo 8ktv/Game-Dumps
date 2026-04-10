@@ -9,13 +9,14 @@ using UnityEngine;
 
 public class Entity : MonoBehaviour
 {
-	private bool isMovingInFoliage;
-
 	private double lastMovementInFoliageTimestamp;
 
 	private EventInstance movingInFoliageLoopSoundInstance;
 
 	private bool isPlayingFoliageSound;
+
+	[field: SerializeField]
+	public bool IsTree { get; private set; }
 
 	public Rigidbody Rigidbody { get; private set; }
 
@@ -45,7 +46,13 @@ public class Entity : MonoBehaviour
 
 	public PhysicalItem AsItem { get; private set; }
 
+	public JumpPad AsJumpPad { get; private set; }
+
 	public bool IsDestroyed { get; private set; }
+
+	public bool IsMovingInFoliage { get; private set; }
+
+	public HashSet<Entity> TemporarilyIgnoredEntities { get; private set; }
 
 	public bool HasRigidbody => Rigidbody != null;
 
@@ -69,6 +76,8 @@ public class Entity : MonoBehaviour
 
 	public bool IsItem => AsItem != null;
 
+	public bool IsJumpPad => AsJumpPad != null;
+
 	public bool IsPredicted
 	{
 		get
@@ -80,6 +89,8 @@ public class Entity : MonoBehaviour
 			return true;
 		}
 	}
+
+	public event Action<Entity> FinishedTemporarilyIgnoringCollisionsWith;
 
 	public event Action WillBeDestroyed;
 
@@ -114,9 +125,13 @@ public class Entity : MonoBehaviour
 						if (!IsGolfTee)
 						{
 							AsGolfHole = GetComponent<GolfHole>();
-							if (!AsGolfHole)
+							if (!IsGolfHole)
 							{
 								AsItem = GetComponent<PhysicalItem>();
+								if (!IsItem)
+								{
+									AsJumpPad = GetComponent<JumpPad>();
+								}
 							}
 						}
 					}
@@ -149,7 +164,7 @@ public class Entity : MonoBehaviour
 		if (Rigidbody.linearVelocity.sqrMagnitude >= AudioSettings.MinMovementInFoliageSpeedSquared)
 		{
 			lastMovementInFoliageTimestamp = Time.timeAsDouble;
-			if (!isMovingInFoliage)
+			if (!IsMovingInFoliage)
 			{
 				StartCoroutine(MoveInFoliageRoutine());
 			}
@@ -165,26 +180,33 @@ public class Entity : MonoBehaviour
 		}
 		void SetIsMovingInFoliage(bool isMoving)
 		{
-			bool flag = isMovingInFoliage;
-			isMovingInFoliage = isMoving;
+			bool isMovingInFoliage = IsMovingInFoliage;
+			IsMovingInFoliage = isMoving;
 			if (IsPlayer)
 			{
 				if (isMoving)
 				{
 					PlayerInfo.InformIsMovingInFoliage();
 				}
-				else if (flag)
+				else if (isMovingInFoliage)
 				{
 					PlayerInfo.InformNoLongerMovingInFoliage();
 				}
 			}
-			else if (isMoving)
+			else
 			{
-				PlayOrUpdateFoliageSoundLocalOnly();
-			}
-			else if (flag)
-			{
-				StopFoliageSoundLocalOnly();
+				if (IsMovingInFoliage != isMovingInFoliage && IsGolfBall && IsMovingInFoliage)
+				{
+					AsGolfBall.InformStartedMovingInFoliage();
+				}
+				if (isMoving)
+				{
+					PlayOrUpdateFoliageSoundLocalOnly();
+				}
+				else if (isMovingInFoliage)
+				{
+					StopFoliageSoundLocalOnly();
+				}
 			}
 		}
 		bool TryGetLinearDragFactor(out float reference)
@@ -321,27 +343,58 @@ public class Entity : MonoBehaviour
 		return false;
 	}
 
-	public void TemporarilyIgnoreCollisionsWith(Rigidbody rigidbody, float duration, bool includeOwnTriggers = false)
+	public async void TemporarilyIgnoreCollisionsWith(Entity entity, float duration, bool includeOwnTriggers = false)
 	{
-		List<Collider> attachedColliders = rigidbody.GetAttachedColliders();
-		TemporarilyIgnoreCollisionsWith(attachedColliders, duration, includeOwnTriggers);
-	}
-
-	public void TemporarilyIgnoreCollisionsWith(GameObject gameObject, float duration, bool includeOwnTriggers = false)
-	{
-		Collider[] componentsInChildren = gameObject.GetComponentsInChildren<Collider>(includeInactive: true);
-		TemporarilyIgnoreCollisionsWith(componentsInChildren, duration, includeOwnTriggers);
-	}
-
-	public void TemporarilyIgnoreCollisionsWith(Entity entity, float duration, bool includeOwnTriggers = false)
-	{
-		if (entity.HasRigidbody)
+		IEnumerable<Collider> otherColliders = ((!entity.HasRigidbody) ? ((IEnumerable<Collider>)entity.GetComponentsInChildren<Collider>(includeInactive: true)) : ((IEnumerable<Collider>)entity.Rigidbody.GetAttachedColliders()));
+		List<Collider> ownColliders;
+		if (HasRigidbody)
 		{
-			TemporarilyIgnoreCollisionsWith(entity.Rigidbody, duration, includeOwnTriggers);
+			ownColliders = Rigidbody.GetAttachedColliders(includeInactive: false, includeOwnTriggers);
 		}
 		else
 		{
-			TemporarilyIgnoreCollisionsWith(entity.gameObject, duration, includeOwnTriggers);
+			ownColliders = new List<Collider>();
+			Collider[] componentsInChildren = GetComponentsInChildren<Collider>(includeInactive: true);
+			foreach (Collider collider in componentsInChildren)
+			{
+				if (!collider.isTrigger || includeOwnTriggers)
+				{
+					ownColliders.Add(collider);
+				}
+			}
+		}
+		if (TemporarilyIgnoredEntities == null)
+		{
+			TemporarilyIgnoredEntities = new HashSet<Entity>();
+		}
+		TemporarilyIgnoredEntities.Add(entity);
+		foreach (Collider item in ownColliders)
+		{
+			foreach (Collider item2 in otherColliders)
+			{
+				Physics.IgnoreCollision(item, item2, ignore: true);
+			}
+		}
+		await UniTask.WaitForSeconds(duration);
+		if (this == null)
+		{
+			return;
+		}
+		TemporarilyIgnoredEntities.Remove(entity);
+		foreach (Collider item3 in ownColliders)
+		{
+			foreach (Collider item4 in otherColliders)
+			{
+				if (item3 != null && item4 != null)
+				{
+					Physics.IgnoreCollision(item3, item4, ignore: false);
+				}
+			}
+		}
+		if (entity != null)
+		{
+			this.FinishedTemporarilyIgnoringCollisionsWith?.Invoke(entity);
+			entity.FinishedTemporarilyIgnoringCollisionsWith?.Invoke(this);
 		}
 	}
 
@@ -366,49 +419,6 @@ public class Entity : MonoBehaviour
 		if (IsGolfBall)
 		{
 			AsGolfBall.OnTeleported();
-		}
-	}
-
-	public async void TemporarilyIgnoreCollisionsWith(IEnumerable<Collider> otherColliders, float duration, bool includeOwnTriggers)
-	{
-		List<Collider> ownColliders;
-		if (HasRigidbody)
-		{
-			ownColliders = Rigidbody.GetAttachedColliders(includeInactive: false, includeOwnTriggers);
-		}
-		else
-		{
-			ownColliders = new List<Collider>();
-			Collider[] componentsInChildren = GetComponentsInChildren<Collider>(includeInactive: true);
-			foreach (Collider collider in componentsInChildren)
-			{
-				if (!collider.isTrigger || includeOwnTriggers)
-				{
-					ownColliders.Add(collider);
-				}
-			}
-		}
-		foreach (Collider item in ownColliders)
-		{
-			foreach (Collider otherCollider in otherColliders)
-			{
-				Physics.IgnoreCollision(item, otherCollider, ignore: true);
-			}
-		}
-		await UniTask.WaitForSeconds(duration);
-		if (this == null)
-		{
-			return;
-		}
-		foreach (Collider item2 in ownColliders)
-		{
-			foreach (Collider otherCollider2 in otherColliders)
-			{
-				if (item2 != null && otherCollider2 != null)
-				{
-					Physics.IgnoreCollision(item2, otherCollider2, ignore: false);
-				}
-			}
 		}
 	}
 

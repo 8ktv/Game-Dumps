@@ -112,4 +112,9 @@ internal static class InternalUtility
 		}
 		return component;
 	}
+
+	internal static int GetObjectId(this Object o)
+	{
+		return o.GetInstanceID();
+	}
 }

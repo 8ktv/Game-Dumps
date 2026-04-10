@@ -195,12 +195,12 @@ internal class VisualTreeBindingsUpdater : BaseVisualTreeHierarchyTrackerUpdater
 		}
 	}
 
-	private static long CurrentTime()
+	private long CurrentTime()
 	{
-		return Panel.TimeSinceStartupMs();
+		return base.panel.TimeSinceStartupMs();
 	}
 
-	public static bool ShouldProcessBindings(long startTime)
+	public bool ShouldProcessBindings(long startTime)
 	{
 		return disableBindingsThrottling || CurrentTime() - startTime < 100;
 	}

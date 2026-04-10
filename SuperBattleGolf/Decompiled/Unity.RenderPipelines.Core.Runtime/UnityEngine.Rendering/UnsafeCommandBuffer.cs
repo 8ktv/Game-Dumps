@@ -15,6 +15,61 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 	{
 	}
 
+	public void RequestAsyncReadback(ComputeBuffer src, Action<AsyncGPUReadbackRequest> callback)
+	{
+		m_WrappedCommandBuffer.RequestAsyncReadback(src, callback);
+	}
+
+	public void RequestAsyncReadback(GraphicsBuffer src, Action<AsyncGPUReadbackRequest> callback)
+	{
+		m_WrappedCommandBuffer.RequestAsyncReadback(src, callback);
+	}
+
+	public void RequestAsyncReadback(ComputeBuffer src, int size, int offset, Action<AsyncGPUReadbackRequest> callback)
+	{
+		m_WrappedCommandBuffer.RequestAsyncReadback(src, size, offset, callback);
+	}
+
+	public void RequestAsyncReadback(GraphicsBuffer src, int size, int offset, Action<AsyncGPUReadbackRequest> callback)
+	{
+		m_WrappedCommandBuffer.RequestAsyncReadback(src, size, offset, callback);
+	}
+
+	public void RequestAsyncReadback(Texture src, Action<AsyncGPUReadbackRequest> callback)
+	{
+		m_WrappedCommandBuffer.RequestAsyncReadback(src, callback);
+	}
+
+	public void RequestAsyncReadback(Texture src, int mipIndex, Action<AsyncGPUReadbackRequest> callback)
+	{
+		m_WrappedCommandBuffer.RequestAsyncReadback(src, mipIndex, callback);
+	}
+
+	public void RequestAsyncReadback(Texture src, int mipIndex, TextureFormat dstFormat, Action<AsyncGPUReadbackRequest> callback)
+	{
+		m_WrappedCommandBuffer.RequestAsyncReadback(src, mipIndex, dstFormat, callback);
+	}
+
+	public void RequestAsyncReadback(Texture src, int mipIndex, GraphicsFormat dstFormat, Action<AsyncGPUReadbackRequest> callback)
+	{
+		m_WrappedCommandBuffer.RequestAsyncReadback(src, mipIndex, dstFormat, callback);
+	}
+
+	public void RequestAsyncReadback(Texture src, int mipIndex, int x, int width, int y, int height, int z, int depth, Action<AsyncGPUReadbackRequest> callback)
+	{
+		m_WrappedCommandBuffer.RequestAsyncReadback(src, mipIndex, x, width, y, height, z, depth, callback);
+	}
+
+	public void RequestAsyncReadback(Texture src, int mipIndex, int x, int width, int y, int height, int z, int depth, TextureFormat dstFormat, Action<AsyncGPUReadbackRequest> callback)
+	{
+		m_WrappedCommandBuffer.RequestAsyncReadback(src, mipIndex, x, width, y, height, z, depth, dstFormat, callback);
+	}
+
+	public void RequestAsyncReadback(Texture src, int mipIndex, int x, int width, int y, int height, int z, int depth, GraphicsFormat dstFormat, Action<AsyncGPUReadbackRequest> callback)
+	{
+		m_WrappedCommandBuffer.RequestAsyncReadback(src, mipIndex, x, width, y, height, z, depth, dstFormat, callback);
+	}
+
 	public void RequestAsyncReadbackIntoNativeArray<T>(ref NativeArray<T> output, ComputeBuffer src, Action<AsyncGPUReadbackRequest> callback) where T : struct
 	{
 		m_WrappedCommandBuffer.RequestAsyncReadbackIntoNativeArray(ref output, src, callback);
@@ -105,9 +160,19 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 		m_WrappedCommandBuffer.SetComputeMatrixArrayParam(computeShader, nameID, values);
 	}
 
+	public void SetRayTracingShaderPass(RayTracingShader rayTracingShader, string passName)
+	{
+		m_WrappedCommandBuffer.SetRayTracingShaderPass(rayTracingShader, passName);
+	}
+
 	public void Clear()
 	{
 		m_WrappedCommandBuffer.Clear();
+	}
+
+	public void ClearRandomWriteTargets()
+	{
+		m_WrappedCommandBuffer.ClearRandomWriteTargets();
 	}
 
 	public void SetViewport(Rect pixelRect)
@@ -543,9 +608,19 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 		m_WrappedCommandBuffer.SetComputeIntParams(computeShader, nameID, values);
 	}
 
+	public void SetComputeTextureParam(ComputeShader computeShader, int kernelIndex, string name, RenderTargetIdentifier rt)
+	{
+		m_WrappedCommandBuffer.SetComputeTextureParam(computeShader, kernelIndex, name, rt);
+	}
+
 	public void SetComputeTextureParam(ComputeShader computeShader, int kernelIndex, string name, TextureHandle rt)
 	{
 		m_WrappedCommandBuffer.SetComputeTextureParam(computeShader, kernelIndex, name, rt);
+	}
+
+	public void SetComputeTextureParam(ComputeShader computeShader, int kernelIndex, int nameID, RenderTargetIdentifier rt)
+	{
+		m_WrappedCommandBuffer.SetComputeTextureParam(computeShader, kernelIndex, nameID, rt);
 	}
 
 	public void SetComputeTextureParam(ComputeShader computeShader, int kernelIndex, int nameID, TextureHandle rt)
@@ -553,9 +628,19 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 		m_WrappedCommandBuffer.SetComputeTextureParam(computeShader, kernelIndex, nameID, rt);
 	}
 
+	public void SetComputeTextureParam(ComputeShader computeShader, int kernelIndex, string name, RenderTargetIdentifier rt, int mipLevel)
+	{
+		m_WrappedCommandBuffer.SetComputeTextureParam(computeShader, kernelIndex, name, rt, mipLevel);
+	}
+
 	public void SetComputeTextureParam(ComputeShader computeShader, int kernelIndex, string name, TextureHandle rt, int mipLevel)
 	{
 		m_WrappedCommandBuffer.SetComputeTextureParam(computeShader, kernelIndex, name, rt, mipLevel);
+	}
+
+	public void SetComputeTextureParam(ComputeShader computeShader, int kernelIndex, int nameID, RenderTargetIdentifier rt, int mipLevel)
+	{
+		m_WrappedCommandBuffer.SetComputeTextureParam(computeShader, kernelIndex, nameID, rt, mipLevel);
 	}
 
 	public void SetComputeTextureParam(ComputeShader computeShader, int kernelIndex, int nameID, TextureHandle rt, int mipLevel)
@@ -563,9 +648,19 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 		m_WrappedCommandBuffer.SetComputeTextureParam(computeShader, kernelIndex, nameID, rt, mipLevel);
 	}
 
+	public void SetComputeTextureParam(ComputeShader computeShader, int kernelIndex, string name, RenderTargetIdentifier rt, int mipLevel, RenderTextureSubElement element)
+	{
+		m_WrappedCommandBuffer.SetComputeTextureParam(computeShader, kernelIndex, name, rt, mipLevel, element);
+	}
+
 	public void SetComputeTextureParam(ComputeShader computeShader, int kernelIndex, string name, TextureHandle rt, int mipLevel, RenderTextureSubElement element)
 	{
 		m_WrappedCommandBuffer.SetComputeTextureParam(computeShader, kernelIndex, name, rt, mipLevel, element);
+	}
+
+	public void SetComputeTextureParam(ComputeShader computeShader, int kernelIndex, int nameID, RenderTargetIdentifier rt, int mipLevel, RenderTextureSubElement element)
+	{
+		m_WrappedCommandBuffer.SetComputeTextureParam(computeShader, kernelIndex, nameID, rt, mipLevel, element);
 	}
 
 	public void SetComputeTextureParam(ComputeShader computeShader, int kernelIndex, int nameID, TextureHandle rt, int mipLevel, RenderTextureSubElement element)
@@ -623,6 +718,11 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 		m_WrappedCommandBuffer.SetComputeConstantBufferParam(computeShader, name, buffer, offset, size);
 	}
 
+	public void SetComputeParamsFromMaterial(ComputeShader computeShader, int kernelIndex, Material material)
+	{
+		m_WrappedCommandBuffer.SetComputeParamsFromMaterial(computeShader, kernelIndex, material);
+	}
+
 	public void DispatchCompute(ComputeShader computeShader, int kernelIndex, int threadGroupsX, int threadGroupsY, int threadGroupsZ)
 	{
 		m_WrappedCommandBuffer.DispatchCompute(computeShader, kernelIndex, threadGroupsX, threadGroupsY, threadGroupsZ);
@@ -646,6 +746,11 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 	public void BuildRayTracingAccelerationStructure(RayTracingAccelerationStructure accelerationStructure, Vector3 relativeOrigin)
 	{
 		m_WrappedCommandBuffer.BuildRayTracingAccelerationStructure(accelerationStructure, relativeOrigin);
+	}
+
+	public void BuildRayTracingAccelerationStructure(RayTracingAccelerationStructure accelerationStructure, RayTracingAccelerationStructure.BuildSettings buildSettings)
+	{
+		m_WrappedCommandBuffer.BuildRayTracingAccelerationStructure(accelerationStructure, buildSettings);
 	}
 
 	public void SetRayTracingAccelerationStructure(RayTracingShader rayTracingShader, string name, RayTracingAccelerationStructure rayTracingAccelerationStructure)
@@ -718,9 +823,19 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 		m_WrappedCommandBuffer.SetRayTracingConstantBufferParam(rayTracingShader, name, buffer, offset, size);
 	}
 
+	public void SetRayTracingTextureParam(RayTracingShader rayTracingShader, string name, RenderTargetIdentifier rt)
+	{
+		m_WrappedCommandBuffer.SetRayTracingTextureParam(rayTracingShader, name, rt);
+	}
+
 	public void SetRayTracingTextureParam(RayTracingShader rayTracingShader, string name, TextureHandle rt)
 	{
 		m_WrappedCommandBuffer.SetRayTracingTextureParam(rayTracingShader, name, rt);
+	}
+
+	public void SetRayTracingTextureParam(RayTracingShader rayTracingShader, int nameID, RenderTargetIdentifier rt)
+	{
+		m_WrappedCommandBuffer.SetRayTracingTextureParam(rayTracingShader, nameID, rt);
 	}
 
 	public void SetRayTracingTextureParam(RayTracingShader rayTracingShader, int nameID, TextureHandle rt)
@@ -816,6 +931,16 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 	public void DispatchRays(RayTracingShader rayTracingShader, string rayGenName, GraphicsBuffer argsBuffer, uint argsOffset, Camera camera)
 	{
 		m_WrappedCommandBuffer.DispatchRays(rayTracingShader, rayGenName, argsBuffer, argsOffset, camera);
+	}
+
+	public void GenerateMips(RenderTargetIdentifier rt)
+	{
+		m_WrappedCommandBuffer.GenerateMips(rt);
+	}
+
+	public void GenerateMips(RenderTexture rt)
+	{
+		m_WrappedCommandBuffer.GenerateMips(rt);
 	}
 
 	public void DrawMesh(Mesh mesh, Matrix4x4 matrix, Material material, int submeshIndex, int shaderPass, MaterialPropertyBlock properties)
@@ -1008,6 +1133,31 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 		m_WrappedCommandBuffer.DrawOcclusionMesh(normalizedCamViewport);
 	}
 
+	public void SetRandomWriteTarget(int index, RenderTargetIdentifier rt)
+	{
+		m_WrappedCommandBuffer.SetRandomWriteTarget(index, rt);
+	}
+
+	public void SetRandomWriteTarget(int index, ComputeBuffer buffer, bool preserveCounterValue)
+	{
+		m_WrappedCommandBuffer.SetRandomWriteTarget(index, buffer, preserveCounterValue);
+	}
+
+	public void SetRandomWriteTarget(int index, ComputeBuffer buffer)
+	{
+		m_WrappedCommandBuffer.SetRandomWriteTarget(index, buffer);
+	}
+
+	public void SetRandomWriteTarget(int index, GraphicsBuffer buffer, bool preserveCounterValue)
+	{
+		m_WrappedCommandBuffer.SetRandomWriteTarget(index, buffer, preserveCounterValue);
+	}
+
+	public void SetRandomWriteTarget(int index, GraphicsBuffer buffer)
+	{
+		m_WrappedCommandBuffer.SetRandomWriteTarget(index, buffer);
+	}
+
 	public void CopyCounterValue(ComputeBuffer src, ComputeBuffer dst, uint dstOffsetBytes)
 	{
 		m_WrappedCommandBuffer.CopyCounterValue(src, dst, dstOffsetBytes);
@@ -1026,6 +1176,26 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 	public void CopyCounterValue(GraphicsBuffer src, GraphicsBuffer dst, uint dstOffsetBytes)
 	{
 		m_WrappedCommandBuffer.CopyCounterValue(src, dst, dstOffsetBytes);
+	}
+
+	public void CopyTexture(RenderTargetIdentifier src, RenderTargetIdentifier dst)
+	{
+		m_WrappedCommandBuffer.CopyTexture(src, dst);
+	}
+
+	public void CopyTexture(RenderTargetIdentifier src, int srcElement, RenderTargetIdentifier dst, int dstElement)
+	{
+		m_WrappedCommandBuffer.CopyTexture(src, srcElement, dst, dstElement);
+	}
+
+	public void CopyTexture(RenderTargetIdentifier src, int srcElement, int srcMip, RenderTargetIdentifier dst, int dstElement, int dstMip)
+	{
+		m_WrappedCommandBuffer.CopyTexture(src, srcElement, srcMip, dst, dstElement, dstMip);
+	}
+
+	public void CopyTexture(RenderTargetIdentifier src, int srcElement, int srcMip, int srcX, int srcY, int srcWidth, int srcHeight, RenderTargetIdentifier dst, int dstElement, int dstMip, int dstX, int dstY)
+	{
+		m_WrappedCommandBuffer.CopyTexture(src, srcElement, srcMip, srcX, srcY, srcWidth, srcHeight, dst, dstElement, dstMip, dstX, dstY);
 	}
 
 	public void SetGlobalFloat(string name, float value)
@@ -1108,7 +1278,17 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 		m_WrappedCommandBuffer.SetGlobalTexture(name, value);
 	}
 
+	public void SetGlobalTexture(string name, RenderTargetIdentifier value)
+	{
+		m_WrappedCommandBuffer.SetGlobalTexture(name, value);
+	}
+
 	public void SetGlobalTexture(int nameID, TextureHandle value)
+	{
+		m_WrappedCommandBuffer.SetGlobalTexture(nameID, value);
+	}
+
+	public void SetGlobalTexture(int nameID, RenderTargetIdentifier value)
 	{
 		m_WrappedCommandBuffer.SetGlobalTexture(nameID, value);
 	}
@@ -1118,7 +1298,17 @@ public class UnsafeCommandBuffer : BaseCommandBuffer, IUnsafeCommandBuffer, IBas
 		m_WrappedCommandBuffer.SetGlobalTexture(name, value, element);
 	}
 
+	public void SetGlobalTexture(string name, RenderTargetIdentifier value, RenderTextureSubElement element)
+	{
+		m_WrappedCommandBuffer.SetGlobalTexture(name, value, element);
+	}
+
 	public void SetGlobalTexture(int nameID, TextureHandle value, RenderTextureSubElement element)
+	{
+		m_WrappedCommandBuffer.SetGlobalTexture(nameID, value, element);
+	}
+
+	public void SetGlobalTexture(int nameID, RenderTargetIdentifier value, RenderTextureSubElement element)
 	{
 		m_WrappedCommandBuffer.SetGlobalTexture(nameID, value, element);
 	}

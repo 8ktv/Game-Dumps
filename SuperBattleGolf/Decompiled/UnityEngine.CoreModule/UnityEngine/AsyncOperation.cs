@@ -7,9 +7,9 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
-[RequiredByNativeCode]
 [NativeHeader("Runtime/Export/Scripting/AsyncOperation.bindings.h")]
 [NativeHeader("Runtime/Misc/AsyncOperation.h")]
+[RequiredByNativeCode]
 public class AsyncOperation : YieldInstruction
 {
 	internal static class BindingsMarshaller
@@ -25,7 +25,7 @@ public class AsyncOperation : YieldInstruction
 		}
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEngine.AssetBundleModule" })]
+	[VisibleToOtherModules]
 	internal IntPtr m_Ptr;
 
 	private Action<AsyncOperation> m_completeCallback;
@@ -133,7 +133,7 @@ public class AsyncOperation : YieldInstruction
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[StaticAccessor("AsyncOperationBindings", StaticAccessorType.DoubleColon)]
 	[NativeMethod(IsThreadSafe = true)]
-	private static extern void InternalSetManagedObject(IntPtr ptr, [Unmarshalled] AsyncOperation self);
+	private static extern void InternalSetManagedObject(IntPtr ptr, [UnityMarshalAs(NativeType.ScriptingObjectPtr)] AsyncOperation self);
 
 	public AsyncOperation()
 	{

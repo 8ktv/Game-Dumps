@@ -84,49 +84,6 @@ public struct RaycastResult
 		{
 			return "";
 		}
-		string[] obj = new string[24]
-		{
-			"Name: ",
-			gameObject?.ToString(),
-			"\nmodule: ",
-			module?.ToString(),
-			"\ndistance: ",
-			distance.ToString(),
-			"\nindex: ",
-			index.ToString(),
-			"\ndepth: ",
-			depth.ToString(),
-			"\nworldNormal: ",
-			null,
-			null,
-			null,
-			null,
-			null,
-			null,
-			null,
-			null,
-			null,
-			null,
-			null,
-			null,
-			null
-		};
-		Vector3 vector = worldNormal;
-		obj[11] = vector.ToString();
-		obj[12] = "\nworldPosition: ";
-		vector = worldPosition;
-		obj[13] = vector.ToString();
-		obj[14] = "\nscreenPosition: ";
-		Vector2 vector2 = screenPosition;
-		obj[15] = vector2.ToString();
-		obj[16] = "\nmodule.sortOrderPriority: ";
-		obj[17] = module.sortOrderPriority.ToString();
-		obj[18] = "\nmodule.renderOrderPriority: ";
-		obj[19] = module.renderOrderPriority.ToString();
-		obj[20] = "\nsortingLayer: ";
-		obj[21] = sortingLayer.ToString();
-		obj[22] = "\nsortingOrder: ";
-		obj[23] = sortingOrder.ToString();
-		return string.Concat(obj);
+		return "Name: " + gameObject?.ToString() + "\nmodule: " + module?.ToString() + "\ndistance: " + distance + "\nindex: " + index + "\ndepth: " + depth + "\nworldNormal: " + worldNormal.ToString() + "\nworldPosition: " + worldPosition.ToString() + "\nscreenPosition: " + screenPosition.ToString() + "\nmodule.sortOrderPriority: " + module.sortOrderPriority + "\nmodule.renderOrderPriority: " + module.renderOrderPriority + "\nsortingLayer: " + sortingLayer + "\nsortingOrder: " + sortingOrder;
 	}
 }

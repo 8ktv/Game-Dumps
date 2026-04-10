@@ -9,13 +9,13 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Animations;
 
-[StaticAccessor("AnimatorControllerPlayableBindings", StaticAccessorType.DoubleColon)]
 [RequiredByNativeCode]
+[NativeHeader("Modules/Animation/ScriptBindings/AnimatorControllerPlayable.bindings.h")]
+[NativeHeader("Modules/Animation/ScriptBindings/Animator.bindings.h")]
 [NativeHeader("Modules/Animation/Director/AnimatorControllerPlayable.h")]
 [NativeHeader("Modules/Animation/RuntimeAnimatorController.h")]
-[NativeHeader("Modules/Animation/ScriptBindings/Animator.bindings.h")]
 [NativeHeader("Modules/Animation/AnimatorInfo.h")]
-[NativeHeader("Modules/Animation/ScriptBindings/AnimatorControllerPlayable.bindings.h")]
+[StaticAccessor("AnimatorControllerPlayableBindings", StaticAccessorType.DoubleColon)]
 public struct AnimatorControllerPlayable : IPlayable, IEquatable<AnimatorControllerPlayable>
 {
 	private PlayableHandle m_Handle;
@@ -391,6 +391,11 @@ public struct AnimatorControllerPlayable : IPlayable, IEquatable<AnimatorControl
 		PlayInternal(ref m_Handle, stateNameHash, layer, normalizedTime);
 	}
 
+	public void ResetControllerState([DefaultValue("true")] bool resetParameters = true)
+	{
+		ResetControllerStateInternal(ref m_Handle, resetParameters);
+	}
+
 	public bool HasState(int layerIndex, int stateID)
 	{
 		return HasStateInternal(ref m_Handle, layerIndex, stateID);
@@ -591,6 +596,10 @@ public struct AnimatorControllerPlayable : IPlayable, IEquatable<AnimatorControl
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[NativeThrows]
 	private static extern void PlayInternal(ref PlayableHandle handle, int stateNameHash, int layer, float normalizedTime);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[NativeThrows]
+	private static extern void ResetControllerStateInternal(ref PlayableHandle handle, bool resetParameters);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[NativeThrows]

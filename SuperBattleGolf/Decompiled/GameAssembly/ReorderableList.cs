@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class ReorderableList : MonoBehaviour
@@ -90,10 +90,10 @@ public class ReorderableList : MonoBehaviour
 		{
 			targetIndex = indexOverride;
 		}
-		animateRoutine = StartCoroutine(AnimateRoutine(element));
+		AnimateRoutine(element);
 	}
 
-	private IEnumerator AnimateRoutine(ReorderableListElement element)
+	private async void AnimateRoutine(ReorderableListElement element)
 	{
 		ActivateDummy(element);
 		dummy.SetSiblingIndex(targetIndex);
@@ -101,7 +101,15 @@ public class ReorderableList : MonoBehaviour
 		Vector3 velocity = Vector3.zero;
 		for (float timer = 0.1f; timer > 0f; timer -= Time.deltaTime)
 		{
-			yield return null;
+			await UniTask.Yield();
+			if (this == null)
+			{
+				return;
+			}
+			if (!base.gameObject.activeInHierarchy)
+			{
+				break;
+			}
 			element.transform.position = Vector3.SmoothDamp(element.transform.position, dummy.transform.position, ref velocity, 0.1f);
 		}
 		element.transform.SetParent(contentRoot);
@@ -109,8 +117,11 @@ public class ReorderableList : MonoBehaviour
 		element.enabled = true;
 		dummy.gameObject.SetActive(value: false);
 		dummy.SetAsLastSibling();
-		yield return null;
-		element.InformAssigned();
-		this.OnElementMoved?.Invoke(element);
+		await UniTask.Yield();
+		if (!(this == null))
+		{
+			element.InformAssigned();
+			this.OnElementMoved?.Invoke(element);
+		}
 	}
 }

@@ -1,6 +1,6 @@
 namespace UnityEngine.UIElements;
 
-internal enum AddressMode
+public enum AddressMode
 {
 	Wrap,
 	Clamp,

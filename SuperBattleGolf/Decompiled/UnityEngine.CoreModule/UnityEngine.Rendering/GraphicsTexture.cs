@@ -6,8 +6,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Rendering;
 
-[NativeHeader("Runtime/Export/Graphics/GraphicsTexture.bindings.h")]
 [NativeType("Runtime/Graphics/Texture/GraphicsTexture.h")]
+[NativeHeader("Runtime/Export/Graphics/GraphicsTexture.bindings.h")]
 [UsedByNativeCode]
 public class GraphicsTexture : IDisposable
 {

@@ -12,12 +12,12 @@ using UnityEngine.Internal;
 
 namespace Unity.Collections;
 
-[NativeContainerSupportsMinMaxWriteRestriction]
 [DebuggerTypeProxy(typeof(NativeArrayDebugView<>))]
-[NativeContainerSupportsDeferredConvertListToArray]
-[NativeContainer]
 [DebuggerDisplay("Length = {m_Length}")]
+[NativeContainerSupportsDeferredConvertListToArray]
 [NativeContainerSupportsDeallocateOnJobCompletion]
+[NativeContainerSupportsMinMaxWriteRestriction]
+[NativeContainer]
 public struct NativeArray<T> : IDisposable, IEnumerable<T>, IEnumerable, IEquatable<NativeArray<T>> where T : struct
 {
 	[ExcludeFromDocs]
@@ -79,8 +79,8 @@ public struct NativeArray<T> : IDisposable, IEnumerable<T>, IEnumerable, IEquata
 
 	[NativeContainer]
 	[NativeContainerIsReadOnly]
-	[DebuggerTypeProxy(typeof(NativeArrayReadOnlyDebugView<>))]
 	[DebuggerDisplay("Length = {Length}")]
+	[DebuggerTypeProxy(typeof(NativeArrayReadOnlyDebugView<>))]
 	public struct ReadOnly : IEnumerable<T>, IEnumerable
 	{
 		[ExcludeFromDocs]
@@ -234,8 +234,8 @@ public struct NativeArray<T> : IDisposable, IEnumerable<T>, IEnumerable, IEquata
 		}
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEngine.ContentLoadModule", "UnityEngine.TilemapModule" })]
 	[NativeDisableUnsafePtrRestriction]
+	[VisibleToOtherModules(new string[] { "UnityEngine.ContentLoadModule", "UnityEngine.TilemapModule" })]
 	internal unsafe void* m_Buffer;
 
 	internal int m_Length;
@@ -277,7 +277,16 @@ public struct NativeArray<T> : IDisposable, IEnumerable<T>, IEnumerable, IEquata
 
 	public unsafe NativeArray(int length, Allocator allocator, NativeArrayOptions options = NativeArrayOptions.ClearMemory)
 	{
-		Allocate(length, allocator, out this);
+		Allocate(length, allocator, default(MemoryLabel), out this);
+		if ((options & NativeArrayOptions.ClearMemory) == NativeArrayOptions.ClearMemory)
+		{
+			UnsafeUtility.MemClear(m_Buffer, (long)Length * (long)UnsafeUtility.SizeOf<T>());
+		}
+	}
+
+	public unsafe NativeArray(int length, MemoryLabel label, NativeArrayOptions options = NativeArrayOptions.ClearMemory)
+	{
+		Allocate(length, label.allocator, label, out this);
 		if ((options & NativeArrayOptions.ClearMemory) == NativeArrayOptions.ClearMemory)
 		{
 			UnsafeUtility.MemClear(m_Buffer, (long)Length * (long)UnsafeUtility.SizeOf<T>());
@@ -286,13 +295,25 @@ public struct NativeArray<T> : IDisposable, IEnumerable<T>, IEnumerable, IEquata
 
 	public NativeArray(T[] array, Allocator allocator)
 	{
-		Allocate(array.Length, allocator, out this);
+		Allocate(array.Length, allocator, default(MemoryLabel), out this);
+		Copy(array, this);
+	}
+
+	public NativeArray(T[] array, MemoryLabel label)
+	{
+		Allocate(array.Length, label.allocator, label, out this);
 		Copy(array, this);
 	}
 
 	public NativeArray(NativeArray<T> array, Allocator allocator)
 	{
-		Allocate(array.Length, allocator, out this);
+		Allocate(array.Length, allocator, default(MemoryLabel), out this);
+		Copy(array, 0, this, 0, array.Length);
+	}
+
+	public NativeArray(NativeArray<T> array, MemoryLabel label)
+	{
+		Allocate(array.Length, label.allocator, label, out this);
 		Copy(array, 0, this, 0, array.Length);
 	}
 
@@ -313,17 +334,17 @@ public struct NativeArray<T> : IDisposable, IEnumerable<T>, IEnumerable, IEquata
 		}
 	}
 
-	private unsafe static void Allocate(int length, Allocator allocator, out NativeArray<T> array)
+	private unsafe static void Allocate(int length, Allocator allocator, MemoryLabel label, out NativeArray<T> array)
 	{
 		long size = (long)UnsafeUtility.SizeOf<T>() * (long)length;
 		array = default(NativeArray<T>);
-		array.m_Buffer = UnsafeUtility.MallocTracked(size, UnsafeUtility.AlignOf<T>(), allocator, 0);
+		array.m_Buffer = UnsafeUtility.MallocTracked(size, UnsafeUtility.AlignOf<T>(), allocator, 0, label.pointer);
 		array.m_Length = length;
 		array.m_AllocatorLabel = allocator;
 	}
 
-	[BurstDiscard]
 	[Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS")]
+	[BurstDiscard]
 	internal static void IsUnmanagedAndThrow()
 	{
 		if (!UnsafeUtility.IsUnmanaged<T>())

@@ -5,8 +5,8 @@ using UnityEngine.Scripting.APIUpdating;
 namespace UnityEngine.PlayerLoop;
 
 [StructLayout(LayoutKind.Sequential, Size = 1)]
-[MovedFrom("UnityEngine.Experimental.PlayerLoop")]
 [RequiredByNativeCode]
+[MovedFrom("UnityEngine.Experimental.PlayerLoop")]
 public struct FixedUpdate
 {
 	[StructLayout(LayoutKind.Sequential, Size = 1)]

@@ -4,6 +4,7 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct Scale : IEquatable<Scale>
 {
 	internal class PropertyBag : ContainerPropertyBag<Scale>
@@ -31,8 +32,10 @@ public struct Scale : IEquatable<Scale>
 		}
 	}
 
+	[SerializeField]
 	private Vector3 m_Scale;
 
+	[SerializeField]
 	private bool m_IsNone;
 
 	public Vector3 value

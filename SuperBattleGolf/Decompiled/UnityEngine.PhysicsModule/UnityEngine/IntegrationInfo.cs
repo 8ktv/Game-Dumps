@@ -64,5 +64,19 @@ public struct IntegrationInfo
 		}
 	}
 
+	internal unsafe ushort sDKMajorVersion => m_SdkVersion[0];
+
+	internal unsafe ushort sDKMinorVersion => m_SdkVersion[1];
+
+	internal unsafe ushort sDKPatchVersion => m_SdkVersion[2];
+
+	internal unsafe ushort majorVersion => m_IntegrationVersion[0];
+
+	internal unsafe ushort minorVersion => m_IntegrationVersion[1];
+
+	internal unsafe ushort patchVersion => m_IntegrationVersion[2];
+
 	public bool isFallback => id == 3737844653u;
+
+	internal unsafe bool isExperimental => m_IntegrationVersion[0] < 1;
 }

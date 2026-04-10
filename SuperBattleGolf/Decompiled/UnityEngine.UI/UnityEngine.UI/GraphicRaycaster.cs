@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
+using UnityEngineInternal;
 
 namespace UnityEngine.UI;
 
@@ -152,7 +153,7 @@ public class GraphicRaycaster : BaseRaycaster
 		{
 			float num2 = Screen.width;
 			float num3 = Screen.height;
-			if (num > 0 && num < Display.displays.Length)
+			if (DisplayInternal.IsASecondaryDisplayIndex(num))
 			{
 				num2 = Display.displays[num].systemWidth;
 				num3 = Display.displays[num].systemHeight;

@@ -97,15 +97,52 @@ public sealed class AudioSource : AudioBehaviour
 	{
 		get
 		{
-			return resource as AudioClip;
+			return generatorObject as AudioClip;
 		}
 		set
 		{
-			resource = value;
+			generatorObject = value;
 		}
 	}
 
 	public AudioResource resource
+	{
+		get
+		{
+			return generatorObject as AudioResource;
+		}
+		set
+		{
+			generatorObject = value;
+		}
+	}
+
+	public IAudioGenerator generator
+	{
+		get
+		{
+			return (IAudioGenerator)generatorObject;
+		}
+		set
+		{
+			generatorObject = (Object)value;
+		}
+	}
+
+	public unsafe ProcessorInstance generatorInstance
+	{
+		get
+		{
+			GeneratorInstance.GeneratorHeader* ptr = (GeneratorInstance.GeneratorHeader*)generatorHeader;
+			if (ptr != null)
+			{
+				return new GeneratorInstance(ptr);
+			}
+			return default(ProcessorInstance);
+		}
+	}
+
+	internal unsafe void* generatorHeader
 	{
 		get
 		{
@@ -114,7 +151,20 @@ public sealed class AudioSource : AudioBehaviour
 			{
 				ThrowHelper.ThrowNullReferenceException(this);
 			}
-			return Unmarshal.UnmarshalUnityObject<AudioResource>(get_resource_Injected(intPtr));
+			return get_generatorHeader_Injected(intPtr);
+		}
+	}
+
+	internal Object generatorObject
+	{
+		get
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			return Unmarshal.UnmarshalUnityObject<Object>(get_generatorObject_Injected(intPtr));
 		}
 		set
 		{
@@ -123,7 +173,7 @@ public sealed class AudioSource : AudioBehaviour
 			{
 				ThrowHelper.ThrowNullReferenceException(this);
 			}
-			set_resource_Injected(intPtr, MarshalledUnityObject.Marshal(value));
+			set_generatorObject_Injected(intPtr, MarshalledUnityObject.Marshal(value));
 		}
 	}
 
@@ -688,6 +738,28 @@ public sealed class AudioSource : AudioBehaviour
 		}
 	}
 
+	[Obsolete("AudioSource.generatorDefinition has been deprecated. Use AudioSource.generator instead. (UnityUpgradable) -> generator", true)]
+	public IAudioGenerator generatorDefinition
+	{
+		get
+		{
+			throw new NotImplementedException();
+		}
+		set
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	[Obsolete("AudioSource.generatorHandle has been deprecated. Use AudioSource.generatorInstance instead. (UnityUpgradable) -> generatorInstance", true)]
+	public ProcessorInstance generatorHandle
+	{
+		get
+		{
+			throw new NotImplementedException();
+		}
+	}
+
 	private static float GetPitch([NotNull] AudioSource source)
 	{
 		if ((object)source == null)
@@ -1121,10 +1193,13 @@ public sealed class AudioSource : AudioBehaviour
 	private static extern void set_timeSamples_Injected(IntPtr _unity_self, int value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern IntPtr get_resource_Injected(IntPtr _unity_self);
+	private unsafe static extern void* get_generatorHeader_Injected(IntPtr _unity_self);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void set_resource_Injected(IntPtr _unity_self, IntPtr value);
+	private static extern IntPtr get_generatorObject_Injected(IntPtr _unity_self);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_generatorObject_Injected(IntPtr _unity_self, IntPtr value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern IntPtr get_outputAudioMixerGroup_Injected(IntPtr _unity_self);

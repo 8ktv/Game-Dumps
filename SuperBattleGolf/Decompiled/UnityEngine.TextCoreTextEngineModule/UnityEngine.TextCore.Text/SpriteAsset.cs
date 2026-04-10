@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.Bindings;
 using UnityEngine.Serialization;
 
 namespace UnityEngine.TextCore.Text;
 
-[HelpURL("https://docs.unity3d.com/2023.3/Documentation/Manual/UIE-sprite.html")]
 [ExcludeFromPreset]
+[HelpURL("https://docs.unity3d.com/2023.3/Documentation/Manual/UIE-sprite.html")]
 public class SpriteAsset : TextAsset
 {
 	internal Dictionary<int, int> m_NameLookup;
@@ -15,8 +16,9 @@ public class SpriteAsset : TextAsset
 	[SerializeField]
 	internal FaceInfo m_FaceInfo;
 
-	[SerializeField]
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
 	[FormerlySerializedAs("spriteSheet")]
+	[SerializeField]
 	internal Texture m_SpriteAtlasTexture;
 
 	[SerializeField]
@@ -114,6 +116,11 @@ public class SpriteAsset : TextAsset
 
 	public void UpdateLookupTables()
 	{
+		if (m_SpriteAtlasTexture == null)
+		{
+			Debug.LogWarning("Invalid Sprite Atlas Texture assigned to sprite asset [" + base.name + "]. Cannot update lookup tables.");
+			return;
+		}
 		width = m_SpriteAtlasTexture.width;
 		height = m_SpriteAtlasTexture.height;
 		if (m_GlyphIndexLookup == null)

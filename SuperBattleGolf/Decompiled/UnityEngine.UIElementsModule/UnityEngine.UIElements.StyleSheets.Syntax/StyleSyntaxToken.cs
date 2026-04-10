@@ -6,23 +6,23 @@ internal struct StyleSyntaxToken
 
 	public string text;
 
-	public int number;
+	public float number;
 
 	public StyleSyntaxToken(StyleSyntaxTokenType t)
 	{
 		type = t;
 		text = null;
-		number = 0;
+		number = 0f;
 	}
 
 	public StyleSyntaxToken(StyleSyntaxTokenType type, string text)
 	{
 		this.type = type;
 		this.text = text;
-		number = 0;
+		number = 0f;
 	}
 
-	public StyleSyntaxToken(StyleSyntaxTokenType type, int number)
+	public StyleSyntaxToken(StyleSyntaxTokenType type, float number)
 	{
 		this.type = type;
 		text = null;

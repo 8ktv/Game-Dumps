@@ -31,15 +31,15 @@ public class VrsLut
 	{
 		return new VrsLut
 		{
-			[ShadingRateFragmentSize.FragmentSize1x1] = Color.red,
-			[ShadingRateFragmentSize.FragmentSize1x2] = Color.yellow,
-			[ShadingRateFragmentSize.FragmentSize2x1] = Color.white,
-			[ShadingRateFragmentSize.FragmentSize2x2] = Color.green,
-			[ShadingRateFragmentSize.FragmentSize1x4] = new Color(0.75f, 0.75f, 0f, 1f),
-			[ShadingRateFragmentSize.FragmentSize4x1] = new Color(0f, 0.75f, 0.55f, 1f),
-			[ShadingRateFragmentSize.FragmentSize2x4] = new Color(0.5f, 0f, 0.5f, 1f),
-			[ShadingRateFragmentSize.FragmentSize4x2] = Color.grey,
-			[ShadingRateFragmentSize.FragmentSize4x4] = Color.blue
+			[ShadingRateFragmentSize.FragmentSize1x1] = new Color(0.785f, 0.23f, 0.2f, 1f),
+			[ShadingRateFragmentSize.FragmentSize1x2] = new Color(1f, 0.8f, 0.8f, 1f),
+			[ShadingRateFragmentSize.FragmentSize2x1] = new Color(0.4f, 0.2f, 0.2f, 1f),
+			[ShadingRateFragmentSize.FragmentSize2x2] = new Color(0.51f, 0.8f, 0.6f, 1f),
+			[ShadingRateFragmentSize.FragmentSize1x4] = new Color(0.6f, 0.8f, 1f, 1f),
+			[ShadingRateFragmentSize.FragmentSize4x1] = new Color(0.2f, 0.4f, 0.6f, 1f),
+			[ShadingRateFragmentSize.FragmentSize2x4] = new Color(0.8f, 1f, 0.8f, 1f),
+			[ShadingRateFragmentSize.FragmentSize4x2] = new Color(0.2f, 0.4f, 0.2f, 1f),
+			[ShadingRateFragmentSize.FragmentSize4x4] = new Color(0.125f, 0.22f, 0.36f, 1f)
 		};
 	}
 

@@ -14,16 +14,16 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[UsedByNativeCode]
+[NativeHeader("Modules/ParticleSystem/ScriptBindings/ParticleSystemScriptBindings.h")]
+[NativeHeader("Modules/ParticleSystem/ParticleSystem.h")]
 [NativeHeader("ParticleSystemScriptingClasses.h")]
 [NativeHeader("Modules/ParticleSystem/ParticleSystem.h")]
+[NativeHeader("Modules/ParticleSystem/ScriptBindings/ParticleSystemModulesScriptBindings.h")]
 [NativeHeader("Modules/ParticleSystem/ParticleSystemGeometryJob.h")]
 [NativeHeader("Modules/ParticleSystem/ScriptBindings/ParticleSystemScriptBindings.h")]
-[NativeHeader("ParticleSystemScriptingClasses.h")]
-[NativeHeader("Modules/ParticleSystem/ParticleSystem.h")]
-[NativeHeader("Modules/ParticleSystem/ScriptBindings/ParticleSystemScriptBindings.h")]
-[NativeHeader("Modules/ParticleSystem/ScriptBindings/ParticleSystemModulesScriptBindings.h")]
+[UsedByNativeCode]
 [RequireComponent(typeof(Transform))]
+[NativeHeader("ParticleSystemScriptingClasses.h")]
 public sealed class ParticleSystem : Component
 {
 	public struct MainModule

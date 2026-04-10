@@ -61,13 +61,13 @@ internal static class ProBuilderSnapping
 			Vector3Mask vector3Mask = new Vector3Mask(new Vector3Mask((byte)(1 << i)));
 			Vector3 vector = Vector3.Project(ray.direction * Math.MakeNonZero(distance), vector3Mask * Mathf.Sign(ray.direction[i]));
 			Vector3 val = ray.origin + vector;
-			Plane plane = new Plane(vector3Mask, Snap(val, vector3Mask * snap));
+			Plane plane = new Plane((Vector3)vector3Mask, Snap(val, vector3Mask * snap));
 			if (Mathf.Abs(plane.GetDistanceToPoint(ray.origin)) < 0.0001f)
 			{
 				num = 0f;
 				continue;
 			}
-			if (plane.Raycast(ray2, out var enter) && Mathf.Abs(enter) < Mathf.Abs(num))
+			if (plane.Raycast(ray2, out float enter) && Mathf.Abs(enter) < Mathf.Abs(num))
 			{
 				num = enter;
 			}

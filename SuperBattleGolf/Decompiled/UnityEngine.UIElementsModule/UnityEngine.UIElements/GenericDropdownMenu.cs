@@ -4,7 +4,7 @@ using UnityEngine.Pool;
 
 namespace UnityEngine.UIElements;
 
-public class GenericDropdownMenu : IGenericMenu
+public class GenericDropdownMenu : AbstractGenericMenu
 {
 	internal class MenuItem
 	{
@@ -81,6 +81,12 @@ public class GenericDropdownMenu : IGenericMenu
 
 	public VisualElement contentContainer => m_ScrollView.contentContainer;
 
+	public VisualElement targetElement => m_TargetElement;
+
+	public event Action onOpen;
+
+	public event Action onClose;
+
 	public GenericDropdownMenu()
 	{
 		m_MenuContainer = new VisualElement();
@@ -142,6 +148,8 @@ public class GenericDropdownMenu : IGenericMenu
 				m_TargetElement.Focus();
 			}
 		}
+		this.onClose?.Invoke();
+		contentContainer.userData = null;
 		m_TargetElement = null;
 	}
 
@@ -323,7 +331,7 @@ public class GenericDropdownMenu : IGenericMenu
 		return -1;
 	}
 
-	public void AddItem(string itemName, bool isChecked, Action action)
+	public override void AddItem(string itemName, bool isChecked, Action action)
 	{
 		MenuItem menuItem = AddItem(itemName, isChecked, isEnabled: true);
 		if (menuItem != null)
@@ -332,7 +340,7 @@ public class GenericDropdownMenu : IGenericMenu
 		}
 	}
 
-	public void AddItem(string itemName, bool isChecked, Action<object> action, object data)
+	public override void AddItem(string itemName, bool isChecked, Action<object> action, object data)
 	{
 		MenuItem menuItem = AddItem(itemName, isChecked, isEnabled: true, data);
 		if (menuItem != null)
@@ -341,12 +349,12 @@ public class GenericDropdownMenu : IGenericMenu
 		}
 	}
 
-	public void AddDisabledItem(string itemName, bool isChecked)
+	public override void AddDisabledItem(string itemName, bool isChecked)
 	{
 		AddItem(itemName, isChecked, isEnabled: false);
 	}
 
-	public void AddSeparator(string path)
+	public override void AddSeparator(string path)
 	{
 		VisualElement visualElement = new VisualElement();
 		visualElement.AddToClassList(separatorUssClassName);
@@ -383,7 +391,7 @@ public class GenericDropdownMenu : IGenericMenu
 		visualElement2.Add(visualElement3);
 		if (isChecked)
 		{
-			visualElement.pseudoStates |= PseudoStates.Checked;
+			visualElement.SetCheckedPseudoState(value: true);
 		}
 		Label label = new Label(itemName);
 		label.AddToClassList(labelUssClassName);
@@ -402,27 +410,60 @@ public class GenericDropdownMenu : IGenericMenu
 
 	internal void UpdateItem(string itemName, bool isChecked)
 	{
-		MenuItem menuItem = m_Items.Find((MenuItem x) => x.name == itemName);
-		if (menuItem != null)
-		{
-			if (isChecked)
-			{
-				menuItem.element.pseudoStates |= PseudoStates.Checked;
-			}
-			else
-			{
-				menuItem.element.pseudoStates &= ~PseudoStates.Checked;
-			}
-		}
+		m_Items.Find((MenuItem x) => x.name == itemName)?.element.SetCheckedPseudoState(isChecked);
 	}
 
 	[Obsolete("This version of Dropdown is deprecated. To ensure the dropdown is positioned correctly, please provide a reference to the targetElement.", false)]
 	public void DropDown(Rect position)
 	{
-		DropDown(position, null, anchored: false);
+		DropDown(position, null, DropdownMenuSizeMode.Content);
 	}
 
+	[Obsolete("This version of Dropdown is deprecated. Please use DropDown(Rect position, VisualElement targetElement, DropdownMenuSizeMode dropdownMenuSizeMode).", false)]
 	public void DropDown(Rect position, VisualElement targetElement, bool anchored = false)
+	{
+		DropDown(position, targetElement, anchored ? DropdownMenuSizeMode.Fixed : DropdownMenuSizeMode.Content);
+	}
+
+	[Obsolete("This version of Dropdown is deprecated. Please use DropDown(Rect position, VisualElement targetElement, DropdownMenuSizeMode dropdownMenuSizeMode).", false)]
+	public void DropDown(Rect position, VisualElement targetElement, bool anchored = false, bool fitContentWidthIfAnchored = false)
+	{
+		if (anchored && fitContentWidthIfAnchored)
+		{
+			DropDown(position, targetElement, DropdownMenuSizeMode.Auto);
+		}
+		else if (anchored)
+		{
+			DropDown(position, targetElement, DropdownMenuSizeMode.Fixed);
+		}
+		else
+		{
+			DropDown(position, targetElement, DropdownMenuSizeMode.Content);
+		}
+	}
+
+	public override void DropDown(Rect position, VisualElement targetElement, DropdownMenuSizeMode dropdownMenuSizeMode = DropdownMenuSizeMode.Auto)
+	{
+		bool anchored = false;
+		switch (dropdownMenuSizeMode)
+		{
+		case DropdownMenuSizeMode.Auto:
+			SetFitContentWidth(fit: true);
+			anchored = true;
+			break;
+		case DropdownMenuSizeMode.Fixed:
+			SetFitContentWidth(fit: false);
+			anchored = true;
+			break;
+		case DropdownMenuSizeMode.Content:
+			SetFitContentWidth(fit: false);
+			anchored = false;
+			break;
+		}
+		DoDropDown(position, targetElement, anchored);
+	}
+
+	private void DoDropDown(Rect position, VisualElement targetElement, bool anchored)
 	{
 		if (targetElement == null)
 		{
@@ -431,6 +472,7 @@ public class GenericDropdownMenu : IGenericMenu
 		}
 		m_TargetElement = targetElement;
 		m_TargetElement.RegisterCallback<DetachFromPanelEvent>(OnTargetElementDetachFromPanel);
+		this.onOpen?.Invoke();
 		if (m_TargetElement.panel != null && m_TargetElement.panel.contextType == ContextType.Player)
 		{
 			UIDocument uIDocument = UIDocument.FindRootUIDocument(m_TargetElement);
@@ -471,17 +513,14 @@ public class GenericDropdownMenu : IGenericMenu
 		m_MenuContainer.schedule.Execute(contentContainer.Focus);
 		m_ShownAboveTarget = false;
 		EnsureVisibilityInParent();
-		if (targetElement != null)
-		{
-			targetElement.pseudoStates |= PseudoStates.Active;
-		}
+		targetElement.SetActivePseudoState(value: true);
+		contentContainer.userData = this;
 	}
 
-	public void DropDown(Rect position, VisualElement targetElement, bool anchored = false, bool fitContentWidthIfAnchored = false)
+	private void SetFitContentWidth(bool fit)
 	{
-		m_FitContentWidth = anchored && fitContentWidthIfAnchored;
+		m_FitContentWidth = fit;
 		m_OuterContainer.EnableInClassList(contentWidthUssClassName, m_FitContentWidth);
-		DropDown(position, targetElement, anchored);
 	}
 
 	private void OnTargetElementDetachFromPanel(DetachFromPanelEvent evt)

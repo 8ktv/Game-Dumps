@@ -2,14 +2,10 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using UnityEngine.Bindings;
-using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine.Rendering;
 
-[MovedFrom("UnityEngine.Experimental.Rendering")]
-[NativeHeader("Runtime/Graphics/ShaderScriptBindings.h")]
-[NativeHeader("Runtime/Shaders/RayTracing/RayTracingShader.h")]
-[NativeHeader("Runtime/Graphics/RayTracing/RayTracingAccelerationStructure.h")]
+[RayTracingShaderHelpURL]
 public sealed class RayTracingShader : Object
 {
 	public float maxRecursionDepth
@@ -22,6 +18,44 @@ public sealed class RayTracingShader : Object
 				ThrowHelper.ThrowNullReferenceException(this);
 			}
 			return get_maxRecursionDepth_Injected(intPtr);
+		}
+	}
+
+	public LocalKeywordSpace keywordSpace
+	{
+		get
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			get_keywordSpace_Injected(intPtr, out var ret);
+			return ret;
+		}
+	}
+
+	public string[] shaderKeywords
+	{
+		get
+		{
+			return GetShaderKeywords();
+		}
+		set
+		{
+			SetShaderKeywords(value);
+		}
+	}
+
+	public LocalKeyword[] enabledKeywords
+	{
+		get
+		{
+			return GetEnabledKeywords();
+		}
+		set
+		{
+			SetEnabledKeywords(value);
 		}
 	}
 
@@ -389,6 +423,200 @@ public sealed class RayTracingShader : Object
 		SetGraphicsBufferHandle(nameID, bufferHandle);
 	}
 
+	[FreeFunction("RayTracingShaderScripting::EnableKeyword", HasExplicitThis = true)]
+	public unsafe void EnableKeyword(string keyword)
+	{
+		//The blocks IL_0039 are reachable both inside and outside the pinned region starting at IL_0028. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
+		try
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			ManagedSpanWrapper managedSpanWrapper = default(ManagedSpanWrapper);
+			if (!StringMarshaller.TryMarshalEmptyOrNullString(keyword, ref managedSpanWrapper))
+			{
+				ReadOnlySpan<char> readOnlySpan = MemoryExtensions.AsSpan(keyword);
+				fixed (char* begin = readOnlySpan)
+				{
+					managedSpanWrapper = new ManagedSpanWrapper(begin, readOnlySpan.Length);
+					EnableKeyword_Injected(intPtr, ref managedSpanWrapper);
+					return;
+				}
+			}
+			EnableKeyword_Injected(intPtr, ref managedSpanWrapper);
+		}
+		finally
+		{
+		}
+	}
+
+	[FreeFunction("RayTracingShaderScripting::DisableKeyword", HasExplicitThis = true)]
+	public unsafe void DisableKeyword(string keyword)
+	{
+		//The blocks IL_0039 are reachable both inside and outside the pinned region starting at IL_0028. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
+		try
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			ManagedSpanWrapper managedSpanWrapper = default(ManagedSpanWrapper);
+			if (!StringMarshaller.TryMarshalEmptyOrNullString(keyword, ref managedSpanWrapper))
+			{
+				ReadOnlySpan<char> readOnlySpan = MemoryExtensions.AsSpan(keyword);
+				fixed (char* begin = readOnlySpan)
+				{
+					managedSpanWrapper = new ManagedSpanWrapper(begin, readOnlySpan.Length);
+					DisableKeyword_Injected(intPtr, ref managedSpanWrapper);
+					return;
+				}
+			}
+			DisableKeyword_Injected(intPtr, ref managedSpanWrapper);
+		}
+		finally
+		{
+		}
+	}
+
+	[FreeFunction("RayTracingShaderScripting::IsKeywordEnabled", HasExplicitThis = true)]
+	public unsafe bool IsKeywordEnabled(string keyword)
+	{
+		//The blocks IL_0039 are reachable both inside and outside the pinned region starting at IL_0028. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
+		try
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			ManagedSpanWrapper managedSpanWrapper = default(ManagedSpanWrapper);
+			if (!StringMarshaller.TryMarshalEmptyOrNullString(keyword, ref managedSpanWrapper))
+			{
+				ReadOnlySpan<char> readOnlySpan = MemoryExtensions.AsSpan(keyword);
+				fixed (char* begin = readOnlySpan)
+				{
+					managedSpanWrapper = new ManagedSpanWrapper(begin, readOnlySpan.Length);
+					return IsKeywordEnabled_Injected(intPtr, ref managedSpanWrapper);
+				}
+			}
+			return IsKeywordEnabled_Injected(intPtr, ref managedSpanWrapper);
+		}
+		finally
+		{
+		}
+	}
+
+	[FreeFunction("RayTracingShaderScripting::EnableKeyword", HasExplicitThis = true)]
+	private void EnableLocalKeyword(LocalKeyword keyword)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		EnableLocalKeyword_Injected(intPtr, ref keyword);
+	}
+
+	[FreeFunction("RayTracingShaderScripting::DisableKeyword", HasExplicitThis = true)]
+	private void DisableLocalKeyword(LocalKeyword keyword)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		DisableLocalKeyword_Injected(intPtr, ref keyword);
+	}
+
+	[FreeFunction("RayTracingShaderScripting::SetKeyword", HasExplicitThis = true)]
+	private void SetLocalKeyword(LocalKeyword keyword, bool value)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		SetLocalKeyword_Injected(intPtr, ref keyword, value);
+	}
+
+	[FreeFunction("RayTracingShaderScripting::IsKeywordEnabled", HasExplicitThis = true)]
+	private bool IsLocalKeywordEnabled(LocalKeyword keyword)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return IsLocalKeywordEnabled_Injected(intPtr, ref keyword);
+	}
+
+	public void EnableKeyword(in LocalKeyword keyword)
+	{
+		EnableLocalKeyword(keyword);
+	}
+
+	public void DisableKeyword(in LocalKeyword keyword)
+	{
+		DisableLocalKeyword(keyword);
+	}
+
+	public void SetKeyword(in LocalKeyword keyword, bool value)
+	{
+		SetLocalKeyword(keyword, value);
+	}
+
+	public bool IsKeywordEnabled(in LocalKeyword keyword)
+	{
+		return IsLocalKeywordEnabled(keyword);
+	}
+
+	[FreeFunction("RayTracingShaderScripting::GetShaderKeywords", HasExplicitThis = true)]
+	private string[] GetShaderKeywords()
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return GetShaderKeywords_Injected(intPtr);
+	}
+
+	[FreeFunction("RayTracingShaderScripting::SetShaderKeywords", HasExplicitThis = true)]
+	private void SetShaderKeywords(string[] names)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		SetShaderKeywords_Injected(intPtr, names);
+	}
+
+	[FreeFunction("RayTracingShaderScripting::GetEnabledKeywords", HasExplicitThis = true)]
+	private LocalKeyword[] GetEnabledKeywords()
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return GetEnabledKeywords_Injected(intPtr);
+	}
+
+	[FreeFunction("RayTracingShaderScripting::SetEnabledKeywords", HasExplicitThis = true)]
+	private void SetEnabledKeywords(LocalKeyword[] keywords)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		SetEnabledKeywords_Injected(intPtr, keywords);
+	}
+
 	private RayTracingShader()
 	{
 	}
@@ -562,4 +790,40 @@ public sealed class RayTracingShader : Object
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void DispatchIndirect_Injected(IntPtr _unity_self, ref ManagedSpanWrapper rayGenFunctionName, IntPtr argsBuffer, uint argsOffset, IntPtr camera);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void get_keywordSpace_Injected(IntPtr _unity_self, out LocalKeywordSpace ret);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void EnableKeyword_Injected(IntPtr _unity_self, ref ManagedSpanWrapper keyword);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void DisableKeyword_Injected(IntPtr _unity_self, ref ManagedSpanWrapper keyword);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool IsKeywordEnabled_Injected(IntPtr _unity_self, ref ManagedSpanWrapper keyword);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void EnableLocalKeyword_Injected(IntPtr _unity_self, [In] ref LocalKeyword keyword);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void DisableLocalKeyword_Injected(IntPtr _unity_self, [In] ref LocalKeyword keyword);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void SetLocalKeyword_Injected(IntPtr _unity_self, [In] ref LocalKeyword keyword, bool value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool IsLocalKeywordEnabled_Injected(IntPtr _unity_self, [In] ref LocalKeyword keyword);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern string[] GetShaderKeywords_Injected(IntPtr _unity_self);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void SetShaderKeywords_Injected(IntPtr _unity_self, string[] names);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern LocalKeyword[] GetEnabledKeywords_Injected(IntPtr _unity_self);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void SetEnabledKeywords_Injected(IntPtr _unity_self, LocalKeyword[] keywords);
 }

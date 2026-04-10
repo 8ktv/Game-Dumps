@@ -157,7 +157,7 @@ public static class RTHandles
 		s_DefaultInstance.Initialize(width, height);
 	}
 
-	[Obsolete("useLegacyDynamicResControl is deprecated. Please use SetHardwareDynamicResolutionState() instead.")]
+	[Obsolete("useLegacyDynamicResControl is deprecated. Please use SetHardwareDynamicResolutionState() instead. #from(2023.3)")]
 	public static void Initialize(int width, int height, bool useLegacyDynamicResControl = false)
 	{
 		s_DefaultInstance.Initialize(width, height, useLegacyDynamicResControl);

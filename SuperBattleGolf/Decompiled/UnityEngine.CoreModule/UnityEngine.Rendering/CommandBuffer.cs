@@ -15,11 +15,11 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Rendering;
 
+[UsedByNativeCode]
 [NativeHeader("Runtime/Shaders/ComputeShader.h")]
 [NativeHeader("Runtime/Shaders/RayTracing/RayTracingShader.h")]
-[NativeType("Runtime/Graphics/CommandBuffer/RenderingCommandBuffer.h")]
-[UsedByNativeCode]
 [NativeHeader("Runtime/Export/Graphics/RenderingCommandBuffer.bindings.h")]
+[NativeType("Runtime/Graphics/CommandBuffer/RenderingCommandBuffer.h")]
 public class CommandBuffer : IDisposable
 {
 	internal static class BindingsMarshaller
@@ -2314,6 +2314,17 @@ public class CommandBuffer : IDisposable
 		EnableComputeKeyword_Injected(intPtr, Object.MarshalledUnityObject.Marshal(computeShader), ref keyword);
 	}
 
+	[FreeFunction("RenderingCommandBuffer_Bindings::EnableRayTracingKeyword", HasExplicitThis = true)]
+	private void EnableRayTracingKeyword(RayTracingShader rayTracingShader, LocalKeyword keyword)
+	{
+		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		EnableRayTracingKeyword_Injected(intPtr, Object.MarshalledUnityObject.Marshal(rayTracingShader), ref keyword);
+	}
+
 	public void EnableKeyword(in GlobalKeyword keyword)
 	{
 		EnableGlobalKeyword(keyword);
@@ -2327,6 +2338,11 @@ public class CommandBuffer : IDisposable
 	public void EnableKeyword(ComputeShader computeShader, in LocalKeyword keyword)
 	{
 		EnableComputeKeyword(computeShader, keyword);
+	}
+
+	public void EnableKeyword(RayTracingShader rayTracingShader, in LocalKeyword keyword)
+	{
+		EnableRayTracingKeyword(rayTracingShader, keyword);
 	}
 
 	[FreeFunction("RenderingCommandBuffer_Bindings::DisableShaderKeyword", HasExplicitThis = true)]
@@ -2391,6 +2407,17 @@ public class CommandBuffer : IDisposable
 		DisableComputeKeyword_Injected(intPtr, Object.MarshalledUnityObject.Marshal(computeShader), ref keyword);
 	}
 
+	[FreeFunction("RenderingCommandBuffer_Bindings::DisableRayTracingKeyword", HasExplicitThis = true)]
+	private void DisableRayTracingKeyword(RayTracingShader rayTracingShader, LocalKeyword keyword)
+	{
+		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		DisableRayTracingKeyword_Injected(intPtr, Object.MarshalledUnityObject.Marshal(rayTracingShader), ref keyword);
+	}
+
 	public void DisableKeyword(in GlobalKeyword keyword)
 	{
 		DisableGlobalKeyword(keyword);
@@ -2404,6 +2431,11 @@ public class CommandBuffer : IDisposable
 	public void DisableKeyword(ComputeShader computeShader, in LocalKeyword keyword)
 	{
 		DisableComputeKeyword(computeShader, keyword);
+	}
+
+	public void DisableKeyword(RayTracingShader rayTracingShader, in LocalKeyword keyword)
+	{
+		DisableRayTracingKeyword(rayTracingShader, keyword);
 	}
 
 	[FreeFunction("RenderingCommandBuffer_Bindings::SetShaderKeyword", HasExplicitThis = true)]
@@ -2439,6 +2471,17 @@ public class CommandBuffer : IDisposable
 		SetComputeKeyword_Injected(intPtr, Object.MarshalledUnityObject.Marshal(computeShader), ref keyword, value);
 	}
 
+	[FreeFunction("RenderingCommandBuffer_Bindings::SetRayTracingKeyword", HasExplicitThis = true)]
+	private void SetRayTracingKeyword(RayTracingShader rayTracingShader, LocalKeyword keyword, bool value)
+	{
+		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		SetRayTracingKeyword_Injected(intPtr, Object.MarshalledUnityObject.Marshal(rayTracingShader), ref keyword, value);
+	}
+
 	public void SetKeyword(in GlobalKeyword keyword, bool value)
 	{
 		SetGlobalKeyword(keyword, value);
@@ -2452,6 +2495,11 @@ public class CommandBuffer : IDisposable
 	public void SetKeyword(ComputeShader computeShader, in LocalKeyword keyword, bool value)
 	{
 		SetComputeKeyword(computeShader, keyword, value);
+	}
+
+	public void SetKeyword(RayTracingShader rayTracingShader, in LocalKeyword keyword, bool value)
+	{
+		SetRayTracingKeyword(rayTracingShader, keyword, value);
 	}
 
 	[FreeFunction("RenderingCommandBuffer_Bindings::SetViewMatrix", HasExplicitThis = true, ThrowsException = true)]
@@ -3578,8 +3626,8 @@ public class CommandBuffer : IDisposable
 		InternalSetGraphicsBufferNativeData_Injected(intPtr, intPtr2, data, nativeBufferStartIndex, graphicsBufferStartIndex, count, elemSize);
 	}
 
-	[FreeFunction(Name = "RenderingCommandBuffer_Bindings::InternalSetGraphicsBufferData", HasExplicitThis = true, ThrowsException = true)]
 	[SecurityCritical]
+	[FreeFunction(Name = "RenderingCommandBuffer_Bindings::InternalSetGraphicsBufferData", HasExplicitThis = true, ThrowsException = true)]
 	private void InternalSetGraphicsBufferData([NotNull] GraphicsBuffer buffer, Array data, int managedBufferStartIndex, int graphicsBufferStartIndex, int count, int elemSize)
 	{
 		if (buffer == null)
@@ -5487,6 +5535,9 @@ public class CommandBuffer : IDisposable
 	private static extern void EnableComputeKeyword_Injected(IntPtr _unity_self, IntPtr computeShader, [In] ref LocalKeyword keyword);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void EnableRayTracingKeyword_Injected(IntPtr _unity_self, IntPtr rayTracingShader, [In] ref LocalKeyword keyword);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void DisableShaderKeyword_Injected(IntPtr _unity_self, ref ManagedSpanWrapper keyword);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -5499,6 +5550,9 @@ public class CommandBuffer : IDisposable
 	private static extern void DisableComputeKeyword_Injected(IntPtr _unity_self, IntPtr computeShader, [In] ref LocalKeyword keyword);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void DisableRayTracingKeyword_Injected(IntPtr _unity_self, IntPtr rayTracingShader, [In] ref LocalKeyword keyword);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void SetGlobalKeyword_Injected(IntPtr _unity_self, [In] ref GlobalKeyword keyword, bool value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -5506,6 +5560,9 @@ public class CommandBuffer : IDisposable
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void SetComputeKeyword_Injected(IntPtr _unity_self, IntPtr computeShader, [In] ref LocalKeyword keyword, bool value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void SetRayTracingKeyword_Injected(IntPtr _unity_self, IntPtr rayTracingShader, [In] ref LocalKeyword keyword, bool value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void SetViewMatrix_Injected(IntPtr _unity_self, [In] ref Matrix4x4 view);

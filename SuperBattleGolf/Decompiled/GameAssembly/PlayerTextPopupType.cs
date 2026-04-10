@@ -20,5 +20,6 @@ public enum PlayerTextPopupType
 	ChipIn,
 	Speedrun,
 	Knockout,
-	PenaltyStroke
+	PenaltyStroke,
+	Comeback
 }

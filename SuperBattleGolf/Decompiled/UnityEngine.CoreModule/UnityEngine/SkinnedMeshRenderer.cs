@@ -5,8 +5,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[RequiredByNativeCode]
 [NativeHeader("Runtime/Graphics/Mesh/SkinnedMeshRenderer.h")]
+[RequiredByNativeCode]
 public class SkinnedMeshRenderer : Renderer
 {
 	public SkinQuality quality
@@ -273,6 +273,38 @@ public class SkinnedMeshRenderer : Renderer
 		return (previousVertexBufferImpl_Injected == (IntPtr)0) ? null : GraphicsBuffer.BindingsMarshaller.ConvertToManaged(previousVertexBufferImpl_Injected);
 	}
 
+	[FreeFunction(Name = "SkinnedMeshRendererScripting::SetShaderUserValue", HasExplicitThis = true)]
+	internal void Internal_SetShaderUserValueUInt(uint v)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		Internal_SetShaderUserValueUInt_Injected(intPtr, v);
+	}
+
+	public void SetShaderUserValue(uint v)
+	{
+		Internal_SetShaderUserValueUInt(v);
+	}
+
+	[FreeFunction(Name = "SkinnedMeshRendererScripting::GetShaderUserValue", HasExplicitThis = true)]
+	internal uint Internal_GetShaderUserValueUInt()
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return Internal_GetShaderUserValueUInt_Injected(intPtr);
+	}
+
+	public uint GetShaderUserValue()
+	{
+		return Internal_GetShaderUserValueUInt();
+	}
+
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern SkinQuality get_quality_Injected(IntPtr _unity_self);
 
@@ -335,4 +367,10 @@ public class SkinnedMeshRenderer : Renderer
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void set_vertexBufferTarget_Injected(IntPtr _unity_self, GraphicsBuffer.Target value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void Internal_SetShaderUserValueUInt_Injected(IntPtr _unity_self, uint v);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern uint Internal_GetShaderUserValueUInt_Injected(IntPtr _unity_self);
 }

@@ -11,7 +11,7 @@ namespace UnityEngine.Rendering;
 [NativeHeader("Runtime/Camera/GraphicsSettings.h")]
 public sealed class GraphicsSettings : Object
 {
-	private static Lazy<RenderPipelineGlobalSettings> s_CurrentRenderPipelineGlobalSettings = new Lazy<RenderPipelineGlobalSettings>(() => Internal_GetCurrentRenderPipelineGlobalSettings());
+	private static Lazy<RenderPipelineGlobalSettings> s_CurrentRenderPipelineGlobalSettings = new Lazy<RenderPipelineGlobalSettings>(Internal_GetCurrentRenderPipelineGlobalSettings);
 
 	public static extern TransparencySortMode transparencySortMode
 	{
@@ -156,6 +156,7 @@ public sealed class GraphicsSettings : Object
 		}
 		set
 		{
+			ValidateSetRenderPipelineAsset(value);
 			INTERNAL_defaultRenderPipeline = value;
 		}
 	}
@@ -245,8 +246,8 @@ public sealed class GraphicsSettings : Object
 		return Unmarshal.UnmarshalUnityObject<Shader>(GetCustomShader_Injected(type));
 	}
 
-	[VisibleToOtherModules]
 	[RequiredByNativeCode]
+	[VisibleToOtherModules]
 	internal static Shader GetDefaultShader(DefaultShaderType type)
 	{
 		RenderPipelineAsset renderPipelineAsset = currentRenderPipeline;
@@ -277,8 +278,8 @@ public sealed class GraphicsSettings : Object
 		return result;
 	}
 
-	[RequiredByNativeCode]
 	[VisibleToOtherModules]
+	[RequiredByNativeCode]
 	internal static Material GetDefaultMaterial(DefaultMaterialType type)
 	{
 		RenderPipelineAsset renderPipelineAsset = currentRenderPipeline;
@@ -457,6 +458,34 @@ public sealed class GraphicsSettings : Object
 			result = Internal_GetSettingsForRenderPipeline(currentRenderPipeline.pipelineTypeFullName) as RenderPipelineGlobalSettings;
 		}
 		return result;
+	}
+
+	internal static void ValidateSetRenderPipelineAsset(RenderPipelineAsset newRenderPipelineAsset)
+	{
+		if (!(newRenderPipelineAsset == null) && newRenderPipelineAsset.requiresCompatibleRenderPipelineGlobalSettings)
+		{
+			if (!TryGetCurrentRenderPipelineGlobalSettings(out var asset))
+			{
+				throw new InvalidOperationException("Cannot set " + newRenderPipelineAsset.name + " Render Pipeline Asset when there is no current RenderPipelineGlobalSettings set in GraphicsSettings. Make sure your project has one when you build or use TrySetCurrentRenderPipelineGlobalSettings to set it in Player before setting Render Pipeline asset.");
+			}
+			Type type = newRenderPipelineAsset.GetType();
+			if (!SupportedOnRenderPipelineAttribute.IsTypeSupportedOnRenderPipeline(asset.GetType(), type))
+			{
+				throw new InvalidOperationException("Cannot set " + newRenderPipelineAsset.name + " Render Pipeline Asset of type " + type.Name + " when the current RenderPipelineGlobalSettings is of type " + asset.GetType().Name + ". Make sure your project has Render Pipeline Global Settings for " + newRenderPipelineAsset.name + " render pipeline when you build or use TrySetCurrentRenderPipelineGlobalSettings to set it in Player before setting Render Pipeline asset.");
+			}
+		}
+	}
+
+	public static bool TrySetCurrentRenderPipelineGlobalSettings(RenderPipelineGlobalSettings asset)
+	{
+		if (asset == null)
+		{
+			return false;
+		}
+		currentRenderPipelineGlobalSettings = asset;
+		s_CurrentRenderPipelineGlobalSettings = new Lazy<RenderPipelineGlobalSettings>(currentRenderPipelineGlobalSettings);
+		RenderPipelineManager.CleanupRenderPipeline();
+		return true;
 	}
 
 	public static bool TryGetCurrentRenderPipelineGlobalSettings(out RenderPipelineGlobalSettings asset)

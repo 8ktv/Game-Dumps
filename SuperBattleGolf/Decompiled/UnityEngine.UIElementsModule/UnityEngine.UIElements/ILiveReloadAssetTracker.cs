@@ -10,6 +10,8 @@ internal interface ILiveReloadAssetTracker<T> where T : ScriptableObject
 
 	bool IsTrackingAsset(T asset);
 
+	bool IsTrackingAsset(string assetPath);
+
 	bool IsTrackingAssets();
 
 	bool CheckTrackedAssetsDirty();

@@ -99,8 +99,8 @@ public enum GraphicsFormat
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	RGB_DXT1_SRGB = 96,
 	RGBA_DXT1_SRGB = 96,
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Enum member GraphicsFormat.RGB_DXT1_UNorm has been deprecated. Use GraphicsFormat.RGBA_DXT1_UNorm instead (UnityUpgradable) -> RGBA_DXT1_UNorm", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	RGB_DXT1_UNorm = 97,
 	RGBA_DXT1_UNorm = 97,
 	RGBA_DXT3_SRGB = 98,
@@ -118,26 +118,26 @@ public enum GraphicsFormat
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	RGB_PVRTC_2Bpp_SRGB = 110,
-	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	RGB_PVRTC_2Bpp_UNorm = 111,
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	RGB_PVRTC_4Bpp_SRGB = 112,
-	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	RGB_PVRTC_4Bpp_UNorm = 113,
-	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	RGBA_PVRTC_2Bpp_SRGB = 114,
 	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	RGBA_PVRTC_2Bpp_UNorm = 115,
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	RGBA_PVRTC_4Bpp_SRGB = 116,
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	RGBA_PVRTC_4Bpp_UNorm = 117,
 	RGB_ETC_UNorm = 118,
 	RGB_ETC2_SRGB = 119,

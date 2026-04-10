@@ -60,10 +60,9 @@ internal class Utility
 
 	public static event Action FlushPendingResources;
 
-	public unsafe static void SetVectorArray<T>(MaterialPropertyBlock props, int name, NativeSlice<T> vector4s) where T : struct
+	public static void SetVectorArray(IntPtr shaderPropertySheet, int nameID, Vector4[] vector4s)
 	{
-		int count = vector4s.Length * vector4s.Stride / 16;
-		SetVectorArray(props, name, new IntPtr(vector4s.GetUnsafePtr()), count);
+		SetVectorArray(shaderPropertySheet, nameID, vector4s, vector4s.Length);
 	}
 
 	[RequiredByNativeCode]
@@ -100,9 +99,14 @@ internal class Utility
 	private static extern void UpdateBufferRanges(IntPtr buffer, IntPtr ranges, int rangeCount, int writeRangeStart, int writeRangeEnd);
 
 	[ThreadSafe]
-	private static void SetVectorArray(MaterialPropertyBlock props, int name, IntPtr vector4s, int count)
+	private unsafe static void SetVectorArray(IntPtr shaderPropertySheet, int name, Vector4[] values, int count)
 	{
-		SetVectorArray_Injected((props == null) ? ((IntPtr)0) : MaterialPropertyBlock.BindingsMarshaller.ConvertToNative(props), name, vector4s, count);
+		Span<Vector4> span = new Span<Vector4>(values);
+		fixed (Vector4* begin = span)
+		{
+			ManagedSpanWrapper values2 = new ManagedSpanWrapper(begin, span.Length);
+			SetVectorArray_Injected(shaderPropertySheet, name, ref values2, count);
+		}
 	}
 
 	[ThreadSafe]
@@ -122,11 +126,27 @@ internal class Utility
 	[ThreadSafe]
 	public unsafe static extern void DrawRanges(IntPtr ib, IntPtr* vertexStreams, int streamCount, IntPtr ranges, int rangeCount, IntPtr vertexDecl);
 
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[ThreadSafe]
+	public static extern IntPtr AllocateShaderPropertySheet();
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[ThreadSafe]
+	public static extern void SetAllTextures(IntPtr shaderPropertySheet, IntPtr textureNames, IntPtr texturePtrs, int count);
+
 	[ThreadSafe]
 	public static void SetPropertyBlock(MaterialPropertyBlock props)
 	{
 		SetPropertyBlock_Injected((props == null) ? ((IntPtr)0) : MaterialPropertyBlock.BindingsMarshaller.ConvertToNative(props));
 	}
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[ThreadSafe]
+	public static extern void ApplyShaderPropertySheet(IntPtr shaderPropertySheet);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[ThreadSafe]
+	public static extern void ReleasePropertySheet(IntPtr shaderPropertySheet);
 
 	[ThreadSafe]
 	public static void SetScissorRect(RectInt scissorRect)
@@ -209,7 +229,7 @@ internal class Utility
 	public static extern bool DebugIsMainThread();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void SetVectorArray_Injected(IntPtr props, int name, IntPtr vector4s, int count);
+	private static extern void SetVectorArray_Injected(IntPtr shaderPropertySheet, int name, ref ManagedSpanWrapper values, int count);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern IntPtr GetVertexDeclaration_Injected(ref ManagedSpanWrapper vertexAttributes);

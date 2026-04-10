@@ -9,12 +9,12 @@ public class UnsignedLongField : TextValueField<ulong>
 {
 	[Serializable]
 	[ExcludeFromDocs]
-	public new class UxmlSerializedData : TextInputBaseField<ulong>.UxmlSerializedData
+	public new class UxmlSerializedData : TextValueField<ulong>.UxmlSerializedData
 	{
 		[Conditional("UNITY_EDITOR")]
 		public new static void Register()
 		{
-			TextInputBaseField<ulong>.UxmlSerializedData.Register();
+			TextValueField<ulong>.UxmlSerializedData.Register();
 		}
 
 		public override object CreateInstance()
@@ -37,7 +37,7 @@ public class UnsignedLongField : TextValueField<ulong>
 	{
 		private UnsignedLongField parentUnsignedLongField => (UnsignedLongField)base.parent;
 
-		protected override string allowedCharacters => UINumericFieldsUtils.k_AllowedCharactersForInt;
+		protected override string allowedCharacters => parentUnsignedLongField.supportExpressions ? UINumericFieldsUtils.k_AllowedCharactersForInt : UINumericFieldsUtils.k_AllowedCharactersForUInt_NoExpressions;
 
 		internal UnsignedLongInput()
 		{

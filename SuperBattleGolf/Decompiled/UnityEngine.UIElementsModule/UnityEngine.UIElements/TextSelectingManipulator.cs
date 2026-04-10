@@ -25,8 +25,6 @@ internal class TextSelectingManipulator
 
 	private long m_LastMouseDownTimeStamp = 0L;
 
-	private readonly Event m_ImguiEvent = new Event();
-
 	internal bool isClicking
 	{
 		get
@@ -128,7 +126,7 @@ internal class TextSelectingManipulator
 	{
 		if (evt is BlurEvent)
 		{
-			m_TextElement.uitkTextHandle.RemoveTextInfoFromPermanentCache();
+			m_TextElement.uitkTextHandle.RemoveFromPermanentCache();
 		}
 		else if ((!(evt is PointerMoveEvent) && !(evt is MouseMoveEvent)) || isClicking)
 		{
@@ -192,7 +190,7 @@ internal class TextSelectingManipulator
 	private void OnFocusEvent()
 	{
 		selectAllOnMouseUp = false;
-		if (isClicking || (m_TextElement.panel.contextType == ContextType.Editor && (Event.current == null || Event.current.type == EventType.Ignore)))
+		if (isClicking)
 		{
 			selectAllOnMouseUp = m_TextElement.selection.selectAllOnMouseUp;
 		}
@@ -206,13 +204,9 @@ internal class TextSelectingManipulator
 
 	private void OnKeyDown(KeyDownEvent evt)
 	{
-		if (m_TextElement.hasFocus)
+		if (m_TextElement.hasFocus && m_SelectingUtilities.HandleKeyEvent(evt.keyCode, evt.modifiers))
 		{
-			evt.GetEquivalentImguiEvent(m_ImguiEvent);
-			if (m_SelectingUtilities.HandleKeyEvent(m_ImguiEvent))
-			{
-				evt.StopPropagation();
-			}
+			evt.StopPropagation();
 		}
 	}
 

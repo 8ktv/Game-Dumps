@@ -266,12 +266,9 @@ public struct DataStreamReader
 		return ReadRawBitsInternal(numbits);
 	}
 
-	public unsafe ulong ReadPackedULong(in StreamCompressionModel model)
+	public ulong ReadPackedULong(in StreamCompressionModel model)
 	{
-		ulong result = default(ulong);
-		*(uint*)(&result) = ReadPackedUInt(in model);
-		((int*)(&result))[1] = (int)ReadPackedUInt(in model);
-		return result;
+		return ReadPackedUInt(in model) | ((ulong)ReadPackedUInt(in model) << 32);
 	}
 
 	public int ReadPackedInt(in StreamCompressionModel model)

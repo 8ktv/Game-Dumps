@@ -12,8 +12,8 @@ public class TextField : TextInputBaseField<string>
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : TextInputBaseField<string>.UxmlSerializedData, IUxmlSerializedDataCustomAttributeHandler
 	{
-		[MultilineDecorator]
 		[SerializeField]
+		[MultilineDecorator]
 		private bool multiline;
 
 		[HideInInspector]

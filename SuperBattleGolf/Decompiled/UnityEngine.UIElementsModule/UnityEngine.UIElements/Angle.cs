@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Unity.Properties;
+using UnityEngine.UIElements.StyleSheets;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct Angle : IEquatable<Angle>
 {
 	private enum Unit
@@ -58,8 +61,30 @@ public struct Angle : IEquatable<Angle>
 		}
 	}
 
+	private static readonly Dictionary<string, AngleUnit> s_AngleUnitLookup = new Dictionary<string, AngleUnit>(StringComparer.OrdinalIgnoreCase)
+	{
+		{
+			"deg",
+			AngleUnit.Degree
+		},
+		{
+			"rad",
+			AngleUnit.Radian
+		},
+		{
+			"grad",
+			AngleUnit.Gradian
+		},
+		{
+			"turn",
+			AngleUnit.Turn
+		}
+	};
+
+	[SerializeField]
 	private float m_Value;
 
+	[SerializeField]
 	private Unit m_Unit;
 
 	public float value
@@ -257,8 +282,61 @@ public struct Angle : IEquatable<Angle>
 			break;
 		case Unit.None:
 			text = "";
+			text2 = "none";
 			break;
 		}
 		return text + text2;
+	}
+
+	internal static bool TryParseString(string str, out Angle angle)
+	{
+		angle = default(Angle);
+		if (string.IsNullOrEmpty(str))
+		{
+			return false;
+		}
+		ReadOnlySpan<char> span = MemoryExtensions.AsSpan(str).Trim();
+		if (MemoryExtensions.Equals(span, "none", StringComparison.OrdinalIgnoreCase))
+		{
+			angle = None();
+			return true;
+		}
+		int num = 0;
+		int num2 = -1;
+		for (int i = 0; i < span.Length; i++)
+		{
+			char c = span[i];
+			if (char.IsNumber(c) || c == '.' || c == '-')
+			{
+				num++;
+				continue;
+			}
+			if (char.IsLetter(c))
+			{
+				num2 = i;
+				break;
+			}
+			return false;
+		}
+		ReadOnlySpan<char> floatStr = span.Slice(0, num);
+		string text = ((num2 > 0) ? span.Slice(num2, span.Length - num2).ToString() : "deg");
+		if (StylePropertyUtil.TryParseFloat(floatStr, out var num3))
+		{
+			angle.value = num3;
+		}
+		if (s_AngleUnitLookup.TryGetValue(text, out var angleUnit))
+		{
+			angle.unit = angleUnit;
+		}
+		else
+		{
+			if (!text.Equals("none", StringComparison.OrdinalIgnoreCase))
+			{
+				return false;
+			}
+			angle.unit = AngleUnit.Degree;
+			angle.value = 0f;
+		}
+		return true;
 	}
 }

@@ -32,6 +32,8 @@ internal struct RenderersParameters
 
 		public static readonly int unity_WorldBoundingSphere;
 
+		public static readonly int unity_RendererUserValuesPropertyEntry;
+
 		public static readonly int[] DOTS_ST_WindParams;
 
 		public static readonly int[] DOTS_ST_WindHistoryParams;
@@ -47,6 +49,7 @@ internal struct RenderersParameters
 			unity_MatrixPreviousM = Shader.PropertyToID("unity_MatrixPreviousM");
 			unity_MatrixPreviousMI = Shader.PropertyToID("unity_MatrixPreviousMI");
 			unity_WorldBoundingSphere = Shader.PropertyToID("unity_WorldBoundingSphere");
+			unity_RendererUserValuesPropertyEntry = Shader.PropertyToID("unity_RendererUserValuesPropertyEntry");
 			DOTS_ST_WindParams = new int[16];
 			DOTS_ST_WindHistoryParams = new int[16];
 			for (int i = 0; i < 16; i++)
@@ -82,6 +85,8 @@ internal struct RenderersParameters
 
 	public ParamInfo shCoefficients;
 
+	public ParamInfo rendererUserValues;
+
 	public ParamInfo boundingSphere;
 
 	public ParamInfo[] windParams;
@@ -99,6 +104,7 @@ internal struct RenderersParameters
 		gPUInstanceDataBufferBuilder.AddComponent<PackedMatrix>(ParamNames.unity_WorldToObject, isOverriden: true, isPerInstance: true, InstanceType.MeshRenderer);
 		gPUInstanceDataBufferBuilder.AddComponent<PackedMatrix>(ParamNames.unity_MatrixPreviousM, isOverriden: true, isPerInstance: true, InstanceType.MeshRenderer);
 		gPUInstanceDataBufferBuilder.AddComponent<PackedMatrix>(ParamNames.unity_MatrixPreviousMI, isOverriden: true, isPerInstance: true, InstanceType.MeshRenderer);
+		gPUInstanceDataBufferBuilder.AddComponent<uint>(ParamNames.unity_RendererUserValuesPropertyEntry, isOverriden: true, isPerInstance: true, InstanceType.MeshRenderer);
 		if ((flags & Flags.UseBoundingSphereParameter) != Flags.None)
 		{
 			gPUInstanceDataBufferBuilder.AddComponent<Vector4>(ParamNames.unity_WorldBoundingSphere, isOverriden: true, isPerInstance: true, InstanceType.MeshRenderer);
@@ -122,6 +128,7 @@ internal struct RenderersParameters
 		matrixPreviousM = GetParamInfo(in instanceDataBuffer, ParamNames.unity_MatrixPreviousM);
 		matrixPreviousMI = GetParamInfo(in instanceDataBuffer, ParamNames.unity_MatrixPreviousMI);
 		shCoefficients = GetParamInfo(in instanceDataBuffer, ParamNames.unity_SHCoefficients);
+		rendererUserValues = GetParamInfo(in instanceDataBuffer, ParamNames.unity_RendererUserValuesPropertyEntry);
 		boundingSphere = GetParamInfo(in instanceDataBuffer, ParamNames.unity_WorldBoundingSphere, assertOnFail: false);
 		windParams = new ParamInfo[16];
 		windHistoryParams = new ParamInfo[16];

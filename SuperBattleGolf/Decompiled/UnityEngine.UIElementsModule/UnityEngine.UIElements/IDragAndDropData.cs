@@ -8,6 +8,8 @@ internal interface IDragAndDropData
 
 	IEnumerable<Object> unityObjectReferences { get; }
 
+	IReadOnlyList<EntityId> entityIds { get; }
+
 	string[] paths { get; set; }
 
 	object GetGenericData(string key);

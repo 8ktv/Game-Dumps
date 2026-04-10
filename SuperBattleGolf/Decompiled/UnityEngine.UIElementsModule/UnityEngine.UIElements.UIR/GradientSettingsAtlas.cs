@@ -194,7 +194,7 @@ internal class GradientSettingsAtlas : IDisposable
 	{
 		if (!(m_Atlas != null))
 		{
-			m_Atlas = new Texture2D(m_ElemWidth, m_Length, TextureFormat.ARGB32, 0, linear: true)
+			m_Atlas = new Texture2D(m_ElemWidth, m_Length, TextureFormat.ARGB32, 1, linear: true)
 			{
 				hideFlags = HideFlags.HideAndDontSave,
 				name = "GradientSettings " + s_TextureCounter++,

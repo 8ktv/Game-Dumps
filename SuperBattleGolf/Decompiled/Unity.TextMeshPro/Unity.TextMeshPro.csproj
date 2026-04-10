@@ -29,6 +29,9 @@
     <Reference Include="UnityEngine.IMGUIModule">
       <HintPath>UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.InternalAPIEngineBridge.004">
+      <HintPath>Unity.InternalAPIEngineBridge.004.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>UnityEngine.InputLegacyModule.dll</HintPath>
     </Reference>

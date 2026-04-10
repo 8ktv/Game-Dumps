@@ -29,6 +29,8 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 
 	public Toggle muteToggle;
 
+	public Image muteHighlight;
+
 	public ControllerSelectable muteSelectable;
 
 	public Button kickButton;
@@ -39,9 +41,17 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 
 	public Sprite unmutedSprite;
 
+	public Sprite mutedHighlightSprite;
+
+	public Sprite unmuteHighlightSprite;
+
 	public RectTransform slideOut1;
 
 	public RectTransform slideOut2;
+
+	public GameObject voiceChatIndicator;
+
+	public VoiceChatVfx voiceChatVfx;
 
 	private bool isAnySelectableSelected;
 
@@ -56,6 +66,14 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 	private float maxSlideout2SlideAmount;
 
 	private bool wasAssignedLocalPlayer;
+
+	private CourseManager.PlayerState playerState;
+
+	private double activeTimeSeconds;
+
+	private float activeTimeUpdateTimer;
+
+	private bool shouldUpdateActiveTime;
 
 	public ulong CurrentPlayerGuid { get; private set; }
 
@@ -75,6 +93,7 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 		muteSelectable.IsSelectedChanged += OnAnySelectableIsSelectedChanged;
 		kickSelectable.IsSelectedChanged += OnAnySelectableIsSelectedChanged;
 		InputManager.SwitchedInputDeviceType += OnSwitchedInputDeviceType;
+		SingletonBehaviour<PauseMenu>.Instance.playerActiveTimeTooltip.HoverChanged += OnHoverChanged;
 	}
 
 	private void OnDisable()
@@ -94,6 +113,37 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 			GameSettings.AudioSettings.MicInputVolumeChanged -= OnMicInputVolumeChanged;
 		}
 		InputManager.SwitchedInputDeviceType -= OnSwitchedInputDeviceType;
+		if (SingletonBehaviour<PauseMenu>.Instance != null)
+		{
+			SingletonBehaviour<PauseMenu>.Instance.playerActiveTimeTooltip.HoverChanged -= OnHoverChanged;
+		}
+	}
+
+	private void Update()
+	{
+		PlayerInfo playerInfo;
+		bool flag = GameManager.TryFindPlayerByGuid(CurrentPlayerGuid, out playerInfo) && playerInfo.VoiceChat.voiceNetworker.IsTalking;
+		voiceChatIndicator.SetActive(flag);
+		voiceChatVfx.SetPlaying(flag);
+	}
+
+	private void LateUpdate()
+	{
+		if (shouldUpdateActiveTime)
+		{
+			UpdateActiveTime(force: false);
+		}
+	}
+
+	private void UpdateActiveTime(bool force)
+	{
+		activeTimeSeconds = NetworkTime.time - playerState.joinTimestamp;
+		activeTimeUpdateTimer += Time.deltaTime;
+		if (activeTimeUpdateTimer >= 1f || force)
+		{
+			activeTimeUpdateTimer = 0f;
+			SingletonBehaviour<PauseMenu>.Instance.playerActiveTimeTooltip.OverrideText(playerName.rectTransform, GetActiveTimeTooltip());
+		}
 	}
 
 	private void UpdateMutedToggle(bool isOn)
@@ -105,13 +155,16 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 	private void UpdateMutedToggleSprite()
 	{
 		muteToggle.GetComponent<Image>().sprite = (muteToggle.isOn ? mutedSprite : unmutedSprite);
+		muteHighlight.sprite = (muteToggle.isOn ? mutedHighlightSprite : unmuteHighlightSprite);
 	}
 
 	public void AssignPlayer(CourseManager.PlayerState playerState)
 	{
+		this.playerState = playerState;
 		if (CurrentPlayerGuid == playerState.playerGuid)
 		{
 			RefreshMutedToggle();
+			UpdateTooltips();
 			return;
 		}
 		if (wasAssignedLocalPlayer)
@@ -140,16 +193,9 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 			}, SliderOption.RemapValueSliderValueMiddleLinear(PlayerVoiceChat.GetPlayerStatus(CurrentPlayerGuid).volume, 0f, 3f, 1f));
 		}
 		RefreshMutedToggle();
-		if (NetworkServer.active)
-		{
-			kickButton.onClick.RemoveAllListeners();
-			kickButton.onClick.AddListener(KickPlayer);
-			kickButton.gameObject.SetActive(!IsLocalPlayer);
-		}
-		else
-		{
-			kickButton.gameObject.SetActive(value: false);
-		}
+		kickButton.gameObject.SetActive(value: true);
+		kickButton.interactable = !IsLocalPlayer && !playerState.isHost && VoteKickManager.CanKickOrVotekick;
+		UpdateTooltips();
 		leaderIcon.SetActive(playerState.isHost);
 		void OnSetOwnVolume()
 		{
@@ -175,6 +221,75 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 			UpdateMutedToggleSprite();
 			muteToggle.onValueChanged.AddListener(UpdateMutedToggle);
 		}
+		void UpdateHostTooltip()
+		{
+			if (playerState.isHost)
+			{
+				SingletonBehaviour<PauseMenu>.Instance.tooltip.DeregisterTooltip(leaderIcon.GetComponent<RectTransform>());
+				string pAUSE_Tooltip_Host = Localization.UI.PAUSE_Tooltip_Host;
+				if (!string.IsNullOrEmpty(pAUSE_Tooltip_Host))
+				{
+					SingletonBehaviour<PauseMenu>.Instance.tooltip.RegisterTooltip(leaderIcon.GetComponent<RectTransform>(), pAUSE_Tooltip_Host);
+				}
+			}
+		}
+		void UpdateKickTooltip()
+		{
+			SingletonBehaviour<PauseMenu>.Instance.warningTooltip.DeregisterTooltip(kickButton.image.rectTransform);
+			string text = (IsLocalPlayer ? Localization.UI.MATCHSETUP_Tooltip_CantKickSelf : (playerState.isHost ? Localization.UI.MATCHSETUP_Tooltip_CantKickHost : (VoteKickManager.CanVotekick ? Localization.UI.MATCHSETUP_Tooltip_Votekick : ((!VoteKickManager.CanKick) ? string.Empty : Localization.UI.MATCHSETUP_Tooltip_Kick))));
+			if (!string.IsNullOrEmpty(text))
+			{
+				SingletonBehaviour<PauseMenu>.Instance.warningTooltip.RegisterTooltip(kickButton.image.rectTransform, text);
+			}
+			kickButton.onClick.RemoveAllListeners();
+			if (VoteKickManager.CanKickOrVotekick)
+			{
+				kickButton.onClick.AddListener(KickPlayer);
+			}
+		}
+		void UpdateMuteTooltip()
+		{
+			SingletonBehaviour<PauseMenu>.Instance.warningTooltip.DeregisterTooltip(muteToggle.GetComponent<RectTransform>());
+			string text = ((!IsLocalPlayer) ? Localization.UI.PAUSE_Tooltip_Mute : Localization.UI.PAUSE_Tooltip_MuteSelf);
+			if (!string.IsNullOrEmpty(text))
+			{
+				SingletonBehaviour<PauseMenu>.Instance.warningTooltip.RegisterTooltip(muteToggle.GetComponent<RectTransform>(), text);
+			}
+		}
+		void UpdateTooltips()
+		{
+			UpdateKickTooltip();
+			UpdateMuteTooltip();
+			UpdateHostTooltip();
+			UpdateVoiceVolumeTooltip();
+			UpdateActiveTimeTooltip();
+		}
+		void UpdateVoiceVolumeTooltip()
+		{
+			SingletonBehaviour<PauseMenu>.Instance.tooltip.DeregisterTooltip(volumeSlider.GetComponent<RectTransform>());
+			string pAUSE_Tooltip_VoiceChatVolume = Localization.UI.PAUSE_Tooltip_VoiceChatVolume;
+			if (!string.IsNullOrEmpty(pAUSE_Tooltip_VoiceChatVolume))
+			{
+				SingletonBehaviour<PauseMenu>.Instance.tooltip.RegisterTooltip(volumeSlider.GetComponent<RectTransform>(), pAUSE_Tooltip_VoiceChatVolume);
+			}
+		}
+	}
+
+	private void UpdateActiveTimeTooltip()
+	{
+		SingletonBehaviour<PauseMenu>.Instance.playerActiveTimeTooltip.DeregisterTooltip(playerName.rectTransform);
+		string activeTimeTooltip = GetActiveTimeTooltip();
+		if (!string.IsNullOrEmpty(activeTimeTooltip))
+		{
+			SingletonBehaviour<PauseMenu>.Instance.playerActiveTimeTooltip.RegisterTooltip(playerName.rectTransform, activeTimeTooltip);
+		}
+	}
+
+	private string GetActiveTimeTooltip()
+	{
+		string arg = Mathf.FloorToInt((float)(activeTimeSeconds / 60.0)).ToString("D2");
+		string arg2 = Mathf.FloorToInt((float)(activeTimeSeconds % 60.0)).ToString("D2");
+		return string.Format(Localization.UI.PAUSE_Tooltip_ActiveTime, arg, arg2);
 	}
 
 	public void SetVerticalNavigationTarget(PauseMenuPlayerEntry targetEntry, bool isUp)
@@ -250,20 +365,17 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 
 	private void KickPlayer()
 	{
-		if (!NetworkServer.active || IsLocalPlayer)
+		if (VoteKickManager.CanKickOrVotekick && !IsLocalPlayer)
 		{
-			return;
+			if (!GameManager.TryFindPlayerByGuid(CurrentPlayerGuid, out var playerInfo))
+			{
+				Debug.LogError("Invalid player guid on pause menu player entry");
+			}
+			else
+			{
+				VoteKickManager.BeginKick(playerInfo);
+			}
 		}
-		if (!GameManager.TryFindPlayerByGuid(CurrentPlayerGuid, out var playerInfo))
-		{
-			Debug.LogError("Invalid player guid on pause menu player entry");
-			return;
-		}
-		FullScreenMessage.Show(string.Format(Localization.UI.MATCHSETUP_KickPlayer, playerInfo.PlayerId.PlayerNameNoRichText), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Yes, delegate
-		{
-			BNetworkManager.singleton.ServerKickConnection(playerInfo.connectionToClient);
-			FullScreenMessage.Hide();
-		}), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Cancel, FullScreenMessage.Hide));
 	}
 
 	private void UpdateAreSlideoutsExtended()
@@ -332,6 +444,12 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 	private void OnSwitchedInputDeviceType()
 	{
 		UpdateAreSlideoutsExtended();
+	}
+
+	private void OnHoverChanged(bool isHovering)
+	{
+		shouldUpdateActiveTime = isHovering;
+		UpdateActiveTime(force: true);
 	}
 
 	private float GetSlideAmount(RectTransform slideout)

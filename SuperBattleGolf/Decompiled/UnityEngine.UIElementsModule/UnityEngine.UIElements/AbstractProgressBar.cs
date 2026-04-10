@@ -15,16 +15,16 @@ public abstract class AbstractProgressBar : BindableElement, INotifyValueChanged
 		[SerializeField]
 		private float lowValue;
 
+		[UxmlIgnore]
 		[SerializeField]
 		[HideInInspector]
-		[UxmlIgnore]
 		private UxmlAttributeFlags lowValue_UxmlAttributeFlags;
 
 		[SerializeField]
 		private float highValue;
 
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		[HideInInspector]
 		private UxmlAttributeFlags highValue_UxmlAttributeFlags;
 
@@ -39,8 +39,8 @@ public abstract class AbstractProgressBar : BindableElement, INotifyValueChanged
 		[SerializeField]
 		private string title;
 
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
 		[HideInInspector]
 		private UxmlAttributeFlags title_UxmlAttributeFlags;
 

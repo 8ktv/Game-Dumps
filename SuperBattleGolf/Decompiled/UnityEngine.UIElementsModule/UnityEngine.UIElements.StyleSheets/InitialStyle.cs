@@ -12,6 +12,8 @@ internal static class InitialStyle
 
 	public static Align alignSelf => s_InitialStyle.layoutData.Read().alignSelf;
 
+	public static Ratio aspectRatio => s_InitialStyle.layoutData.Read().aspectRatio;
+
 	public static Color backgroundColor => s_InitialStyle.visualData.Read().backgroundColor;
 
 	public static Background backgroundImage => s_InitialStyle.visualData.Read().backgroundImage;
@@ -55,6 +57,8 @@ internal static class InitialStyle
 	public static Cursor cursor => s_InitialStyle.rareData.Read().cursor;
 
 	public static DisplayStyle display => s_InitialStyle.layoutData.Read().display;
+
+	public static List<FilterFunction> filter => s_InitialStyle.visualData.Read().filter;
 
 	public static Length flexBasis => s_InitialStyle.layoutData.Read().flexBasis;
 
@@ -140,6 +144,8 @@ internal static class InitialStyle
 
 	public static FontStyle unityFontStyleAndWeight => s_InitialStyle.inheritedData.Read().unityFontStyleAndWeight;
 
+	public static MaterialDefinition unityMaterial => s_InitialStyle.inheritedData.Read().unityMaterial;
+
 	public static OverflowClipBox unityOverflowClipBox => s_InitialStyle.rareData.Read().unityOverflowClipBox;
 
 	public static Length unityParagraphSpacing => s_InitialStyle.inheritedData.Read().unityParagraphSpacing;
@@ -158,7 +164,7 @@ internal static class InitialStyle
 
 	public static TextAnchor unityTextAlign => s_InitialStyle.inheritedData.Read().unityTextAlign;
 
-	public static TextAutoSize unityTextAutoSize => s_InitialStyle.rareData.Read().unityTextAutoSize;
+	public static TextAutoSize unityTextAutoSize => s_InitialStyle.inheritedData.Read().unityTextAutoSize;
 
 	public static TextGeneratorType unityTextGenerator => s_InitialStyle.inheritedData.Read().unityTextGenerator;
 
@@ -192,6 +198,7 @@ internal static class InitialStyle
 		s_InitialStyle.layoutData.Write().alignContent = Align.FlexStart;
 		s_InitialStyle.layoutData.Write().alignItems = Align.Stretch;
 		s_InitialStyle.layoutData.Write().alignSelf = Align.Auto;
+		s_InitialStyle.layoutData.Write().aspectRatio = StyleKeyword.Auto.ToStyleRatio();
 		s_InitialStyle.visualData.Write().backgroundColor = Color.clear;
 		s_InitialStyle.visualData.Write().backgroundImage = default(Background);
 		s_InitialStyle.visualData.Write().backgroundPositionX = BackgroundPosition.Initial();
@@ -214,6 +221,7 @@ internal static class InitialStyle
 		s_InitialStyle.inheritedData.Write().color = Color.black;
 		s_InitialStyle.rareData.Write().cursor = default(Cursor);
 		s_InitialStyle.layoutData.Write().display = DisplayStyle.Flex;
+		s_InitialStyle.visualData.Write().filter = new List<FilterFunction>();
 		s_InitialStyle.layoutData.Write().flexBasis = StyleKeyword.Auto.ToLength();
 		s_InitialStyle.layoutData.Write().flexDirection = FlexDirection.Column;
 		s_InitialStyle.layoutData.Write().flexGrow = 0f;
@@ -256,6 +264,7 @@ internal static class InitialStyle
 		s_InitialStyle.inheritedData.Write().unityFont = null;
 		s_InitialStyle.inheritedData.Write().unityFontDefinition = default(FontDefinition);
 		s_InitialStyle.inheritedData.Write().unityFontStyleAndWeight = FontStyle.Normal;
+		s_InitialStyle.inheritedData.Write().unityMaterial = default(MaterialDefinition);
 		s_InitialStyle.rareData.Write().unityOverflowClipBox = OverflowClipBox.PaddingBox;
 		s_InitialStyle.inheritedData.Write().unityParagraphSpacing = 0f;
 		s_InitialStyle.rareData.Write().unitySliceBottom = 0;
@@ -265,7 +274,7 @@ internal static class InitialStyle
 		s_InitialStyle.rareData.Write().unitySliceTop = 0;
 		s_InitialStyle.rareData.Write().unitySliceType = SliceType.Sliced;
 		s_InitialStyle.inheritedData.Write().unityTextAlign = TextAnchor.UpperLeft;
-		s_InitialStyle.rareData.Write().unityTextAutoSize = StyleKeyword.None.ToTextAutoSize();
+		s_InitialStyle.inheritedData.Write().unityTextAutoSize = StyleKeyword.None.ToTextAutoSize();
 		s_InitialStyle.inheritedData.Write().unityTextGenerator = TextGeneratorType.Standard;
 		s_InitialStyle.inheritedData.Write().unityTextOutlineColor = Color.clear;
 		s_InitialStyle.inheritedData.Write().unityTextOutlineWidth = 0f;

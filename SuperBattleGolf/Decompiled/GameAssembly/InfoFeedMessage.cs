@@ -69,12 +69,21 @@ public class InfoFeedMessage : MonoBehaviour
 
 	private void RefreshMessage(bool fromInitialization)
 	{
-		if (messageData is InfoFeed.GenericMessageData genericMessageData)
+		if (messageData is InfoFeed.EliminationMessaqeData eliminationMessageData)
 		{
-			if (fromInitialization)
-			{
-				RefreshGenericMessage(genericMessageData);
-			}
+			RefreshEliminationMessage(eliminationMessageData);
+		}
+		else if (messageData is InfoFeed.SelfEliminationMessageData eliminationMessageData2)
+		{
+			RefreshSelfEliminationMessage(eliminationMessageData2);
+		}
+		else if (messageData is InfoFeed.KnockoutMessageData eliminationMessageData3)
+		{
+			RefreshKnockoutMessage(eliminationMessageData3);
+		}
+		else if (messageData is InfoFeed.SelfKnockoutMessageData eliminationMessageData4)
+		{
+			RefreshSelfKnockoutMessage(eliminationMessageData4);
 		}
 		else if (messageData is InfoFeed.FinishedHoleMessageData finishedHoleMessageData)
 		{
@@ -104,9 +113,22 @@ public class InfoFeedMessage : MonoBehaviour
 		{
 			RefreshRevengeMessage(revengeMessageData);
 		}
+		else if (messageData is InfoFeed.ComebackMessageData comebackMessageData)
+		{
+			RefreshComebackMessage(comebackMessageData);
+		}
 		else
 		{
 			Debug.LogError($"Invalid info feed message data type: {messageData.GetType()}", base.gameObject);
+		}
+		static string GetCurrentLocalizedChippedInString()
+		{
+			return GameSettings.All.General.DistanceUnits switch
+			{
+				GameSettings.GeneralSettings.DistanceUnit.Meters => Localization.UI.INFO_FEED_ChipIn, 
+				GameSettings.GeneralSettings.DistanceUnit.Yards => Localization.UI.INFO_FEED_ChipIn_Yards, 
+				_ => Localization.UI.INFO_FEED_ChipIn, 
+			};
 		}
 		void OnRefreshedMessage()
 		{
@@ -114,8 +136,19 @@ public class InfoFeedMessage : MonoBehaviour
 		}
 		void RefreshChipInMessage(InfoFeed.ChipInMessageData chipInMessageData2)
 		{
-			string text = string.Format(Localization.UI.INFO_FEED_ChipIn, BMath.FloorToInt(chipInMessageData2.distance));
-			string text2 = InfoFeed.ColorizePlayerName(chipInMessageData2.playerName, InfoFeed.Player0Color) + " " + text;
+			string text = string.Format(GetCurrentLocalizedChippedInString(), GameSettings.All.General.GetDistanceInCurrentUnits(chipInMessageData2.distance));
+			string text2 = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(chipInMessageData2.playerGuid), InfoFeed.Player0Color) + " " + text;
+			preIconText.gameObject.SetActive(value: true);
+			preIconText.text = text2;
+			icon1.gameObject.SetActive(value: false);
+			icon2.gameObject.SetActive(value: false);
+			postIconText.gameObject.SetActive(value: false);
+			OnRefreshedMessage();
+		}
+		void RefreshComebackMessage(InfoFeed.ComebackMessageData comebackMessageData2)
+		{
+			string text = string.Format(Localization.UI.INFO_FEED_Comeback, comebackMessageData2.comebackBonus);
+			string text2 = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(comebackMessageData2.playerGuid), InfoFeed.Player0Color) + " " + text;
 			preIconText.gameObject.SetActive(value: true);
 			preIconText.text = text2;
 			icon1.gameObject.SetActive(value: false);
@@ -125,7 +158,10 @@ public class InfoFeedMessage : MonoBehaviour
 		}
 		void RefreshDominatingMessage(InfoFeed.DominatingMessageData dominatingMessageData2)
 		{
-			string text = string.Format(GameManager.UiSettings.ApplyColorTag(Localization.UI.DOMINATION_IsDominating, TextHighlight.Red), dominatingMessageData2.dominatingPlayerName, dominatingMessageData2.dominatedPlayerName);
+			string format = GameManager.UiSettings.ApplyColorTag(Localization.UI.DOMINATION_IsDominating, TextHighlight.Red);
+			string arg = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(dominatingMessageData2.dominatedPlayerGuid), InfoFeed.Player1Color);
+			string arg2 = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(dominatingMessageData2.dominatingPlayerGuid), InfoFeed.Player0Color);
+			string text = string.Format(format, arg2, arg);
 			preIconText.gameObject.SetActive(value: true);
 			preIconText.text = text;
 			icon1.gameObject.SetActive(value: false);
@@ -133,9 +169,18 @@ public class InfoFeedMessage : MonoBehaviour
 			postIconText.gameObject.SetActive(value: false);
 			OnRefreshedMessage();
 		}
+		void RefreshEliminationMessage(InfoFeed.EliminationMessaqeData eliminationMessaqeData)
+		{
+			if (fromInitialization)
+			{
+				string preIconTextStr = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(eliminationMessaqeData.responsiblePlayer), InfoFeed.Player0Color);
+				string postIconTextStr = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(eliminationMessaqeData.knockedOutPlayer), InfoFeed.Player1Color);
+				RefreshGenericMessage(preIconTextStr, postIconTextStr, eliminationMessaqeData.icon, InfoFeedIconType.Elimination);
+			}
+		}
 		void RefreshFinishedHoleMessage(InfoFeed.FinishedHoleMessageData finishedHoleMessageData2)
 		{
-			string arg = InfoFeed.ColorizePlayerName(finishedHoleMessageData2.playerName, InfoFeed.Player0Color);
+			string arg = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(finishedHoleMessageData2.playerGuid), InfoFeed.Player0Color);
 			string text = ((finishedHoleMessageData2.displayPlacement > 8) ? string.Format(LocalizationManager.GetString(StringTable.UI, "INFO_FEED_FinishedHigh"), arg, finishedHoleMessageData2.displayPlacement) : string.Format(LocalizationManager.GetString(StringTable.UI, $"INFO_FEED_Finished{finishedHoleMessageData2.displayPlacement}"), arg));
 			preIconText.gameObject.SetActive(value: true);
 			preIconText.text = text;
@@ -144,51 +189,63 @@ public class InfoFeedMessage : MonoBehaviour
 			postIconText.gameObject.SetActive(value: false);
 			OnRefreshedMessage();
 		}
-		void RefreshGenericMessage(InfoFeed.GenericMessageData genericMessageData2)
+		void RefreshGenericMessage(string preIconTextStr, string postIconTextStr, InfoFeedIconType iconType1, InfoFeedIconType iconType2)
 		{
-			bool flag = !string.IsNullOrEmpty(genericMessageData2.preIconText);
+			bool flag = !string.IsNullOrEmpty(preIconTextStr);
 			preIconText.gameObject.SetActive(flag);
 			if (flag)
 			{
-				preIconText.text = genericMessageData2.preIconText;
+				preIconText.text = preIconTextStr;
 			}
-			bool flag2 = genericMessageData2.icon1 != InfoFeedIconSettings.Type.None;
+			bool flag2 = iconType1 != InfoFeedIconType.None;
 			icon1.gameObject.SetActive(flag2);
 			if (flag2)
 			{
-				if (InfoFeed.IconSettings.TryGetIcon(genericMessageData2.icon1, out var icon))
+				if (InfoFeed.IconSettings.TryGetIcon(iconType1, out var icon))
 				{
 					SetIcon(icon1, icon);
 				}
 				else
 				{
-					Debug.LogError($"Attempted to display an info feed message icon of type {genericMessageData2.icon1}, but it doesn't exist", base.gameObject);
+					Debug.LogError($"Attempted to display an info feed message icon of type {iconType1}, but it doesn't exist", base.gameObject);
 				}
 			}
-			bool flag3 = genericMessageData2.icon2 != InfoFeedIconSettings.Type.None;
+			bool flag3 = iconType2 != InfoFeedIconType.None;
 			this.icon2.gameObject.SetActive(flag3);
 			if (flag3)
 			{
-				if (InfoFeed.IconSettings.TryGetIcon(genericMessageData2.icon2, out var icon2))
+				if (InfoFeed.IconSettings.TryGetIcon(iconType2, out var icon2))
 				{
 					SetIcon(this.icon2, icon2);
 				}
 				else
 				{
-					Debug.LogError($"Attempted to display an info feed message icon of type {genericMessageData2.icon2}, but it doesn't exist", base.gameObject);
+					Debug.LogError($"Attempted to display an info feed message icon of type {iconType2}, but it doesn't exist", base.gameObject);
 				}
 			}
-			bool flag4 = !string.IsNullOrEmpty(genericMessageData2.postIconText);
+			bool flag4 = !string.IsNullOrEmpty(postIconTextStr);
 			postIconText.gameObject.SetActive(flag4);
 			if (flag4)
 			{
-				postIconText.text = genericMessageData2.postIconText;
+				postIconText.text = postIconTextStr;
 			}
 			OnRefreshedMessage();
 		}
+		void RefreshKnockoutMessage(InfoFeed.KnockoutMessageData knockoutMessageData)
+		{
+			if (fromInitialization)
+			{
+				string preIconTextStr = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(knockoutMessageData.responsiblePlayer), InfoFeed.Player0Color);
+				string postIconTextStr = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(knockoutMessageData.knockedOutPlayer), InfoFeed.Player1Color);
+				RefreshGenericMessage(preIconTextStr, postIconTextStr, knockoutMessageData.icon, InfoFeedIconType.None);
+			}
+		}
 		void RefreshRevengeMessage(InfoFeed.RevengeMessageData revengeMessageData2)
 		{
-			string text = string.Format(GameManager.UiSettings.ApplyColorTag(Localization.UI.DOMINATION_GotRevenge, TextHighlight.Red), revengeMessageData2.previouslyDominatedPlayerName, revengeMessageData2.previouslyDominatingPlayerName);
+			string format = GameManager.UiSettings.ApplyColorTag(Localization.UI.DOMINATION_GotRevenge, TextHighlight.Red);
+			string arg = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(revengeMessageData2.previouslyDominatedPlayerGuid), InfoFeed.Player0Color);
+			string arg2 = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(revengeMessageData2.previouslyDominatingPlayerGuid), InfoFeed.Player1Color);
+			string text = string.Format(format, arg, arg2);
 			preIconText.gameObject.SetActive(value: true);
 			preIconText.text = text;
 			icon1.gameObject.SetActive(value: false);
@@ -198,7 +255,7 @@ public class InfoFeedMessage : MonoBehaviour
 		}
 		void RefreshScoredOnDrivingRangeMessage(InfoFeed.ScoredOnDrivingRangeMessageData scoredOnDrivingRangeMessageData2)
 		{
-			string text = string.Format(LocalizationManager.GetString(StringTable.UI, "INFO_FEED_ScoredOnDrivingRange"), GameManager.RichTextNoParse(scoredOnDrivingRangeMessageData2.playerName));
+			string text = string.Format(LocalizationManager.GetString(StringTable.UI, "INFO_FEED_ScoredOnDrivingRange"), GameManager.RichTextNoParse(CourseManager.GetPlayerName(scoredOnDrivingRangeMessageData2.playerGuid)));
 			preIconText.gameObject.SetActive(value: true);
 			preIconText.text = text;
 			icon1.gameObject.SetActive(value: false);
@@ -206,11 +263,27 @@ public class InfoFeedMessage : MonoBehaviour
 			postIconText.gameObject.SetActive(value: false);
 			OnRefreshedMessage();
 		}
+		void RefreshSelfEliminationMessage(InfoFeed.SelfEliminationMessageData selfEliminationMessageData)
+		{
+			if (fromInitialization)
+			{
+				string preIconTextStr = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(selfEliminationMessageData.playerGuid), InfoFeed.Player1Color);
+				RefreshGenericMessage(preIconTextStr, string.Empty, selfEliminationMessageData.icon, InfoFeedIconType.Elimination);
+			}
+		}
+		void RefreshSelfKnockoutMessage(InfoFeed.SelfKnockoutMessageData selfKnockoutMessageData)
+		{
+			if (fromInitialization)
+			{
+				string preIconTextStr = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(selfKnockoutMessageData.playerGuid), InfoFeed.Player1Color);
+				RefreshGenericMessage(preIconTextStr, string.Empty, selfKnockoutMessageData.icon, InfoFeedIconType.None);
+			}
+		}
 		void RefreshSpeedrunMessage(InfoFeed.SpeedrunMessageData speedrunMessageData2)
 		{
 			string arg = speedrunMessageData2.time.ToString("0.0");
 			string text = string.Format(Localization.UI.INFO_FEED_Speedrun, arg);
-			string text2 = InfoFeed.ColorizePlayerName(speedrunMessageData2.playerName, InfoFeed.Player0Color) + " " + text;
+			string text2 = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(speedrunMessageData2.playerGuid), InfoFeed.Player0Color) + " " + text;
 			preIconText.gameObject.SetActive(value: true);
 			preIconText.text = text2;
 			icon1.gameObject.SetActive(value: false);
@@ -221,7 +294,7 @@ public class InfoFeedMessage : MonoBehaviour
 		void RefreshStrokesMessage(InfoFeed.StrokesMessageData strokesMessageData2)
 		{
 			string text = LocalizationManager.GetString(StringTable.UI, $"INFO_FEED_{strokesMessageData2.strokesUnderParType}");
-			string text2 = InfoFeed.ColorizePlayerName(strokesMessageData2.playerName, InfoFeed.Player0Color) + " " + text;
+			string text2 = InfoFeed.ColorizePlayerName(CourseManager.GetPlayerName(strokesMessageData2.playerGuid), InfoFeed.Player0Color) + " " + text;
 			if (strokesMessageData2.strokesUnderParType != StrokesUnderParType.HoleInOne)
 			{
 				text2 += string.Format(" ({0}{1})", (strokesMessageData2.strokesUnderPar == 0) ? string.Empty : "-", strokesMessageData2.strokesUnderPar);

@@ -5,11 +5,11 @@ namespace UnityEngine.Rendering.RenderGraphModule;
 
 [DebuggerDisplay("Buffer ({handle.index})")]
 [MovedFrom(true, "UnityEngine.Experimental.Rendering.RenderGraphModule", "UnityEngine.Rendering.RenderGraphModule", null)]
-public struct BufferHandle
+public readonly struct BufferHandle
 {
 	private static BufferHandle s_NullHandle;
 
-	internal ResourceHandle handle;
+	internal readonly ResourceHandle handle;
 
 	public static BufferHandle nullHandle => s_NullHandle;
 

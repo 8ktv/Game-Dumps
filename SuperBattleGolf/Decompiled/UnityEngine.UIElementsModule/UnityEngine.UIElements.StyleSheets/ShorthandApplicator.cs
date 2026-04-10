@@ -239,7 +239,7 @@ internal static class ShorthandApplicator
 			}
 			break;
 		case 2:
-			if ((value.handle.valueType == StyleValueType.Dimension || value.handle.valueType == StyleValueType.Float) && (value.handle.valueType == StyleValueType.Dimension || value.handle.valueType == StyleValueType.Float))
+			if ((value.handle.valueType == StyleValueType.Dimension || value.handle.valueType == StyleValueType.Float) && (stylePropertyValue.handle.valueType == StyleValueType.Dimension || stylePropertyValue.handle.valueType == StyleValueType.Float))
 			{
 				backgroundPositionX = new BackgroundPosition(BackgroundPositionKeyword.Left, value.sheet.ReadDimension(value.handle).ToLength());
 				backgroundPositionY = new BackgroundPosition(BackgroundPositionKeyword.Top, stylePropertyValue.sheet.ReadDimension(stylePropertyValue.handle).ToLength());

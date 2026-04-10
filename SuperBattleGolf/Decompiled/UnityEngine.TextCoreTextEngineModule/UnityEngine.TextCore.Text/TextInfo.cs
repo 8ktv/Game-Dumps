@@ -35,17 +35,7 @@ internal class TextInfo
 
 	public MeshInfo[] meshInfo;
 
-	public double lastTimeInCache;
-
-	public Action removedFromCache;
-
 	public bool hasMultipleColors = false;
-
-	public void RemoveFromCache()
-	{
-		removedFromCache?.Invoke();
-		removedFromCache = null;
-	}
 
 	public TextInfo()
 	{

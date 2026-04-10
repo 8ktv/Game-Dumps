@@ -25,7 +25,8 @@ public class VolumeComponent : ScriptableObject
 
 	private ReadOnlyCollection<VolumeParameter> m_ParameterReadOnlyCollection;
 
-	public string displayName { get; protected set; } = "";
+	[Obsolete("Use DisplayInfo attribute to define a display name instead. #from(6000.3)", false)]
+	public string displayName { get; protected set; }
 
 	public ReadOnlyCollection<VolumeParameter> parameters => m_ParameterReadOnlyCollection ?? (m_ParameterReadOnlyCollection = new ReadOnlyCollection<VolumeParameter>(parameterList));
 

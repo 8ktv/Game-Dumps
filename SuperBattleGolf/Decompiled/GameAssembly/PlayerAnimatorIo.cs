@@ -112,6 +112,10 @@ public class PlayerAnimatorIo : NetworkBehaviour
 
 	private static readonly int knockoutReoveryTypeHash = Animator.StringToHash("Knockout recovery type");
 
+	private static readonly int freezeHash = Animator.StringToHash("Freeze");
+
+	private static readonly int isFrozenHash = Animator.StringToHash("Is frozen");
+
 	public static readonly int startDrowningHash = Animator.StringToHash("Start drowning");
 
 	public static readonly int isDrowningHash = Animator.StringToHash("Is drowning");
@@ -223,7 +227,7 @@ public class PlayerAnimatorIo : NetworkBehaviour
 	private void Update()
 	{
 		ProcessFootstepValues();
-		UpdateAimingAngle();
+		UpdateAimingAngle(instant: false);
 		void ProcessFootstepValues()
 		{
 			if (previousLeftFootLeadingValue <= 0.5f && leftFootLeading > 0.5f)
@@ -262,44 +266,6 @@ public class PlayerAnimatorIo : NetworkBehaviour
 				animator.SetFloat(leadingFootFloatHash, (float)currentLeadingFoot);
 			}
 		}
-		void UpdateAimingAngle()
-		{
-			if (base.isLocalPlayer && playerInfo.Inventory.IsAimingItem && (!playerInfo.Inventory.IsUsingItemAtAll || playerInfo.Inventory.GetEffectivelyEquippedItem() == ItemType.ElephantGun))
-			{
-				float maxDistance;
-				int layerMask;
-				if (playerInfo.NetworkedEquippedItem == ItemType.DuelingPistol)
-				{
-					maxDistance = GameManager.ItemSettings.DuelingPistolMaxAimingDistance;
-					layerMask = GameManager.LayerSettings.GunHittablesMask;
-				}
-				else if (playerInfo.NetworkedEquippedItem == ItemType.ElephantGun)
-				{
-					maxDistance = GameManager.ItemSettings.ElephantGunMaxAimingDistance;
-					layerMask = GameManager.LayerSettings.GunHittablesMask;
-				}
-				else
-				{
-					if (playerInfo.NetworkedEquippedItem != ItemType.RocketLauncher)
-					{
-						return;
-					}
-					maxDistance = GameManager.ItemSettings.RocketLauncherMaxAimingDistance;
-					layerMask = GameManager.LayerSettings.RocketHittablesMask;
-				}
-				Vector3 position = playerInfo.NeckBone.position;
-				float localYaw;
-				Vector3 vector = playerInfo.Inventory.GetFirearmAimPoint(maxDistance, layerMask, out localYaw) - position;
-				float num = animator.GetFloat(itemAimPitchHash);
-				float pitchDeg = vector.GetPitchDeg();
-				SetItemAimPitch(BMath.LerpClamped(num, pitchDeg, 16f * Time.deltaTime));
-				NetworkaimingYawOffset = (vector.GetYawDeg() - base.transform.forward.GetYawDeg()).WrapAngleDeg();
-				if (playerInfo.NetworkedEquippedItem == ItemType.ElephantGun && playerInfo.Inventory.IsUsingItemAtAll)
-				{
-					NetworkaimingYawOffset = BMath.Clamp(aimingYawOffset, 0f - GameManager.ItemSettings.ElephantGunShotDiveMaxAimYaw, GameManager.ItemSettings.ElephantGunShotDiveMaxAimYaw);
-				}
-			}
-		}
 	}
 
 	private void OnAnimatorMove()
@@ -318,6 +284,65 @@ public class PlayerAnimatorIo : NetworkBehaviour
 		}
 	}
 
+	public void UpdateAimingAngleInstantly()
+	{
+		UpdateAimingAngle(instant: true);
+	}
+
+	private void UpdateAimingAngle(bool instant)
+	{
+		if (base.isLocalPlayer && (playerInfo.Inventory.IsAimingItem || playerInfo.Inventory.IsUsingItemAtAll))
+		{
+			float maxDistance;
+			int layerMask;
+			switch (playerInfo.NetworkedEquippedItem)
+			{
+			default:
+				return;
+			case ItemType.DuelingPistol:
+				maxDistance = GameManager.ItemSettings.DuelingPistolMaxAimingDistance;
+				layerMask = GameManager.LayerSettings.GunHittablesMask;
+				break;
+			case ItemType.ElephantGun:
+				maxDistance = GameManager.ItemSettings.ElephantGunMaxAimingDistance;
+				layerMask = GameManager.LayerSettings.GunHittablesMask;
+				break;
+			case ItemType.RocketLauncher:
+				maxDistance = GameManager.ItemSettings.RocketLauncherMaxAimingDistance;
+				layerMask = GameManager.LayerSettings.RocketHittablesMask;
+				break;
+			case ItemType.FreezeBomb:
+			{
+				playerInfo.Inventory.GetFreezeBombAimDirection(out var pitch);
+				SmoothAndSetItemAimPitch(pitch);
+				return;
+			}
+			}
+			Vector3 position = playerInfo.NeckBone.position;
+			float localYaw;
+			Vector3 vector = playerInfo.Inventory.GetFirearmAimPoint(maxDistance, layerMask, out localYaw) - position;
+			float pitchDeg = vector.GetPitchDeg();
+			if (instant)
+			{
+				SetItemAimPitch(pitchDeg);
+			}
+			else
+			{
+				SmoothAndSetItemAimPitch(vector.GetPitchDeg());
+			}
+			NetworkaimingYawOffset = (vector.GetYawDeg() - base.transform.forward.GetYawDeg()).WrapAngleDeg();
+			if (playerInfo.NetworkedEquippedItem == ItemType.ElephantGun && playerInfo.Inventory.IsUsingItemAtAll)
+			{
+				NetworkaimingYawOffset = BMath.Clamp(aimingYawOffset, 0f - GameManager.ItemSettings.ElephantGunShotDiveMaxAimYaw, GameManager.ItemSettings.ElephantGunShotDiveMaxAimYaw);
+			}
+		}
+		void SmoothAndSetItemAimPitch(float targetPitch)
+		{
+			float itemAimPitch = BMath.LerpClamped(animator.GetFloat(itemAimPitchHash), targetPitch, 16f * Time.deltaTime);
+			SetItemAimPitch(itemAimPitch);
+		}
+	}
+
 	public void SetMovementInput(float magnitude, Vector3 localSmoothed)
 	{
 		animator.SetFloat(rawInputMagnitudeHash, magnitude);
@@ -333,6 +358,11 @@ public class PlayerAnimatorIo : NetworkBehaviour
 		animator.SetFloat(horizontalSpeedHash, magnitude);
 		animator.SetFloat(smoothedHorizontalSpeedHash, smoothedHorizontalSpeed);
 		animator.SetFloat(movementLocalYawHash, localVelocity.GetYawDeg());
+	}
+
+	public void SetAnimationSpeedLocalOnly(float speed)
+	{
+		animator.speed = speed;
 	}
 
 	public void SetIsGrounded(bool grounded)
@@ -484,6 +514,15 @@ public class PlayerAnimatorIo : NetworkBehaviour
 		animator.SetBool(isKnockedOutHash, value: false);
 	}
 
+	public void SetIsFrozen(bool isFrozen)
+	{
+		if (isFrozen)
+		{
+			networkAnimator.SetTrigger(freezeHash);
+		}
+		animator.SetBool(isFrozenHash, isFrozen);
+	}
+
 	public void SetIsDrowning(bool isDrowning)
 	{
 		if (isDrowning)
@@ -630,7 +669,7 @@ public class PlayerAnimatorIo : NetworkBehaviour
 				return true;
 			}
 			ItemType integer = (ItemType)animator.GetInteger(equippedItemHash);
-			if (integer != ItemType.None && integer != ItemType.SpringBoots)
+			if (integer != ItemType.None && integer != ItemType.SpringBoots && integer != ItemType.RocketDriver)
 			{
 				if (playerInfo.IsPlayingEmote)
 				{

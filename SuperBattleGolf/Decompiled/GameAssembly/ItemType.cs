@@ -10,5 +10,7 @@ public enum ItemType
 	RocketLauncher,
 	Landmine,
 	Electromagnet,
-	OrbitalLaser
+	OrbitalLaser,
+	RocketDriver,
+	FreezeBomb
 }

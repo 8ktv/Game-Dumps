@@ -5,8 +5,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Rendering;
 
-[NativeHeader("Runtime/Graphics/ShaderScriptBindings.h")]
 [UsedByNativeCode]
+[NativeHeader("Runtime/Graphics/ShaderScriptBindings.h")]
 [NativeHeader("Runtime/Shaders/Keywords/KeywordSpaceScriptBindings.h")]
 public struct ShaderKeyword
 {

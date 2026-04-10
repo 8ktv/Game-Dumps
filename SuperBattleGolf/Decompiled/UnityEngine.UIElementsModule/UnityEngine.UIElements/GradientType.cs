@@ -1,6 +1,6 @@
 namespace UnityEngine.UIElements;
 
-internal enum GradientType
+public enum GradientType
 {
 	Linear,
 	Radial

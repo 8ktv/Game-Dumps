@@ -32,6 +32,7 @@ internal class __JobReflectionRegistrationOutput__15695277335665486751
 			IJobParallelForExtensions.EarlyJobInit<PlayerOcclusionManager.UpdateOcclusion>();
 			IJobParallelForExtensions.EarlyJobInit<TerrainGrassRenderer.GetValidTilesJob>();
 			IJobParallelForDeferExtensions.EarlyJobInit<TerrainGrassRenderer.GenerateBatchJob>();
+			IJobParallelForExtensions.EarlyJobInit<AmbientVfxManager.AmbientVfxDistanceJob>();
 			IJobParallelForExtensions.EarlyJobInit<CalculateFirstGroundHitDistancesJob>();
 			IJobParallelForExtensions.EarlyJobInit<CalculateGroundRollStopDistancesJob>();
 			IJobExtensions.EarlyJobInit<ProcessDistanceEstimationsJob>();

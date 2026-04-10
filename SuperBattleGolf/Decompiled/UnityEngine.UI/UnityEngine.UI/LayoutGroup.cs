@@ -142,6 +142,7 @@ public abstract class LayoutGroup : UIBehaviour, ILayoutElement, ILayoutGroup, I
 	protected override void OnEnable()
 	{
 		base.OnEnable();
+		rectTransform.sendChildDimensionsChange = true;
 		SetDirty();
 	}
 
@@ -149,6 +150,7 @@ public abstract class LayoutGroup : UIBehaviour, ILayoutElement, ILayoutGroup, I
 	{
 		m_Tracker.Clear();
 		LayoutRebuilder.MarkLayoutForRebuild(rectTransform);
+		rectTransform.sendChildDimensionsChange = false;
 		base.OnDisable();
 	}
 
@@ -253,6 +255,14 @@ public abstract class LayoutGroup : UIBehaviour, ILayoutElement, ILayoutGroup, I
 	protected virtual void OnTransformChildrenChanged()
 	{
 		SetDirty();
+	}
+
+	protected virtual void OnChildRectTransformDimensionsChange()
+	{
+		if (!CanvasUpdateRegistry.IsRebuildingLayout())
+		{
+			SetDirty();
+		}
 	}
 
 	protected void SetProperty<T>(ref T currentValue, T newValue)

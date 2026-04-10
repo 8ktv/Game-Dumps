@@ -171,7 +171,7 @@ public struct NativeParallelHashMap<TKey, TValue> : INativeDisposable, IDisposab
 			return m_Writer.TryAdd(key, item);
 		}
 
-		internal bool TryAdd(TKey key, TValue item, int threadIndexOverride)
+		public bool TryAdd(TKey key, TValue item, int threadIndexOverride)
 		{
 			return m_Writer.TryAdd(key, item, threadIndexOverride);
 		}

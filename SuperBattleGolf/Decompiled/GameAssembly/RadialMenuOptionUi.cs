@@ -156,7 +156,9 @@ public class RadialMenuOptionUi : MonoBehaviour
 		if (updateSize)
 		{
 			Vector2 vector2 = new Vector2(BMath.Cos(angle2), BMath.Sin(angle2)) * currentIconRadius;
-			float num = (vector - vector2).magnitude * 1.4142135f;
+			float a = (vector - vector2).magnitude * 1.4142135f;
+			float b = RadialMenu.OptionSettings.DefaultThickness * RadialMenu.Size * 0.70710677f;
+			float num = BMath.Min(a, b);
 			icon.rectTransform.sizeDelta = Vector2.one * num;
 		}
 	}

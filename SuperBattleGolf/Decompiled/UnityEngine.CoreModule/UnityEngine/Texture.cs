@@ -7,9 +7,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
+[NativeHeader("Runtime/Streaming/TextureStreamingManager.h")]
 [UsedByNativeCode]
 [NativeHeader("Runtime/Graphics/Texture.h")]
-[NativeHeader("Runtime/Streaming/TextureStreamingManager.h")]
 public class Texture : Object
 {
 	public static readonly int GenerateAllMips = -1;
@@ -24,8 +24,8 @@ public class Texture : Object
 		set;
 	}
 
-	[Obsolete("globalMipmapLimit is not supported. Use QualitySettings.globalTextureMipmapLimit or Mipmap Limit Groups instead.", false)]
 	[NativeProperty("ActiveGlobalMipmapLimit")]
+	[Obsolete("globalMipmapLimit is not supported. Use QualitySettings.globalTextureMipmapLimit or Mipmap Limit Groups instead.", false)]
 	public static extern int globalMipmapLimit
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]

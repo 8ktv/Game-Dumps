@@ -7,10 +7,10 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Animations;
 
+[NativeHeader("Modules/Animation/ScriptBindings/AnimationClipPlayable.bindings.h")]
 [RequiredByNativeCode]
 [StaticAccessor("AnimationClipPlayableBindings", StaticAccessorType.DoubleColon)]
 [NativeHeader("Modules/Animation/Director/AnimationClipPlayable.h")]
-[NativeHeader("Modules/Animation/ScriptBindings/AnimationClipPlayable.bindings.h")]
 public struct AnimationClipPlayable : IPlayable, IEquatable<AnimationClipPlayable>
 {
 	private PlayableHandle m_Handle;

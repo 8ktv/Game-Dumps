@@ -8,8 +8,8 @@ using UnityEngine.Scripting;
 namespace UnityEngine.Experimental.U2D;
 
 [StructLayout(LayoutKind.Sequential)]
-[RequiredByNativeCode]
 [NativeHeader("Runtime/2D/Renderer/SpriteRendererGroup.h")]
+[RequiredByNativeCode]
 internal class SpriteRendererGroup
 {
 	public unsafe static void AddRenderers(NativeArray<SpriteIntermediateRendererInfo> renderers)

@@ -6,8 +6,8 @@ using UnityEngine.Bindings;
 namespace UnityEngine.Rendering;
 
 [NativeHeader("Runtime/Graphics/MachineLearning/MachineLearningOperator.h")]
-[NativeHeader("Runtime/Graphics/MachineLearning/MachineLearningContext.h")]
 [NativeHeader("Runtime/Graphics/MachineLearning/MachineLearningOperatorAttributes.h")]
+[NativeHeader("Runtime/Graphics/MachineLearning/MachineLearningContext.h")]
 public class MachineLearningContext : IDisposable
 {
 	internal static class BindingsMarshaller

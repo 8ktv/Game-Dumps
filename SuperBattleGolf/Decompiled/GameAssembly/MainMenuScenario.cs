@@ -12,6 +12,8 @@ public class MainMenuScenario : MonoBehaviour
 	[SerializeField]
 	private Transform cameraPointB;
 
+	public Transform CameraTransform => cameraTransform;
+
 	public async UniTask Playing(float duration)
 	{
 		if (!cameraTransform || !cameraPointA || !cameraPointB)

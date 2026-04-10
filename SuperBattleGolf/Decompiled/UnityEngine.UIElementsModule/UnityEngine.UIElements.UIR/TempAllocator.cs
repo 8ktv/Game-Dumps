@@ -28,6 +28,8 @@ internal class TempAllocator<T> : IDisposable where T : struct
 		public int used;
 	}
 
+	private static readonly MemoryLabel k_MemoryLabel = new MemoryLabel("UIElements", "Renderer.TempAllocator");
+
 	private readonly int m_ExcessMinCapacity;
 
 	private readonly int m_ExcessMaxCapacity;
@@ -49,7 +51,7 @@ internal class TempAllocator<T> : IDisposable where T : struct
 		m_ExcessMaxCapacity = excessMaxCapacity;
 		m_NextExcessSize = m_ExcessMinCapacity;
 		m_Pool = default(Page);
-		m_Pool.array = new NativeArray<T>(poolCapacity, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+		m_Pool.array = new NativeArray<T>(poolCapacity, k_MemoryLabel, NativeArrayOptions.UninitializedMemory);
 		m_Excess = new List<Page>(8);
 	}
 

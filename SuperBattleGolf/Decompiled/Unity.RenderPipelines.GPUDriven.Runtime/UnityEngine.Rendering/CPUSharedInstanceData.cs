@@ -12,11 +12,11 @@ internal struct CPUSharedInstanceData : IDisposable
 
 		public readonly NativeArray<SharedInstanceHandle>.ReadOnly instances;
 
-		public readonly NativeArray<int>.ReadOnly rendererGroupIDs;
+		public readonly NativeArray<EntityId>.ReadOnly rendererGroupIDs;
 
-		public readonly NativeArray<SmallIntegerArray>.ReadOnly materialIDArrays;
+		public readonly NativeArray<SmallEntityIdArray>.ReadOnly materialIDArrays;
 
-		public readonly NativeArray<int>.ReadOnly meshIDs;
+		public readonly NativeArray<EntityId>.ReadOnly meshIDs;
 
 		public readonly NativeArray<AABB>.ReadOnly localAABBs;
 
@@ -101,11 +101,11 @@ internal struct CPUSharedInstanceData : IDisposable
 
 	public NativeArray<SharedInstanceHandle> instances;
 
-	public NativeArray<int> rendererGroupIDs;
+	public NativeArray<EntityId> rendererGroupIDs;
 
-	public NativeArray<SmallIntegerArray> materialIDArrays;
+	public NativeArray<SmallEntityIdArray> materialIDArrays;
 
-	public NativeArray<int> meshIDs;
+	public NativeArray<EntityId> meshIDs;
 
 	public NativeArray<AABB> localAABBs;
 
@@ -152,9 +152,9 @@ internal struct CPUSharedInstanceData : IDisposable
 		m_InstanceIndices = new NativeList<int>(Allocator.Persistent);
 		instances = new NativeArray<SharedInstanceHandle>(instancesCapacity, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
 		instances.FillArray(in SharedInstanceHandle.Invalid);
-		rendererGroupIDs = new NativeArray<int>(instancesCapacity, Allocator.Persistent);
-		materialIDArrays = new NativeArray<SmallIntegerArray>(instancesCapacity, Allocator.Persistent);
-		meshIDs = new NativeArray<int>(instancesCapacity, Allocator.Persistent);
+		rendererGroupIDs = new NativeArray<EntityId>(instancesCapacity, Allocator.Persistent);
+		materialIDArrays = new NativeArray<SmallEntityIdArray>(instancesCapacity, Allocator.Persistent);
+		meshIDs = new NativeArray<EntityId>(instancesCapacity, Allocator.Persistent);
 		localAABBs = new NativeArray<AABB>(instancesCapacity, Allocator.Persistent);
 		flags = new NativeArray<CPUSharedInstanceFlags>(instancesCapacity, Allocator.Persistent);
 		lodGroupAndMasks = new NativeArray<uint>(instancesCapacity, Allocator.Persistent);
@@ -170,7 +170,7 @@ internal struct CPUSharedInstanceData : IDisposable
 		m_InstanceIndices.Dispose();
 		instances.Dispose();
 		rendererGroupIDs.Dispose();
-		foreach (SmallIntegerArray materialIDArray in materialIDArrays)
+		foreach (SmallEntityIdArray materialIDArray in materialIDArrays)
 		{
 			materialIDArray.Dispose();
 		}
@@ -190,7 +190,7 @@ internal struct CPUSharedInstanceData : IDisposable
 		instances.FillArray(in SharedInstanceHandle.Invalid, instancesCapacity);
 		ArrayExtensions.ResizeArray(ref rendererGroupIDs, newCapacity);
 		ArrayExtensions.ResizeArray(ref materialIDArrays, newCapacity);
-		ArrayExtensions.FillArray(ref materialIDArrays, default(SmallIntegerArray), instancesCapacity);
+		ArrayExtensions.FillArray(ref materialIDArrays, default(SmallEntityIdArray), instancesCapacity);
 		ArrayExtensions.ResizeArray(ref meshIDs, newCapacity);
 		ArrayExtensions.ResizeArray(ref localAABBs, newCapacity);
 		ArrayExtensions.ResizeArray(ref flags, newCapacity);
@@ -308,7 +308,7 @@ internal struct CPUSharedInstanceData : IDisposable
 		rendererGroupIDs[num] = rendererGroupIDs[index];
 		materialIDArrays[num].Dispose();
 		materialIDArrays[num] = materialIDArrays[index];
-		materialIDArrays[index] = default(SmallIntegerArray);
+		materialIDArrays[index] = default(SmallEntityIdArray);
 		meshIDs[num] = meshIDs[index];
 		localAABBs[num] = localAABBs[index];
 		flags[num] = flags[index];
@@ -356,9 +356,9 @@ internal struct CPUSharedInstanceData : IDisposable
 		return refCounts[SharedInstanceToIndex(instance)];
 	}
 
-	public unsafe ref SmallIntegerArray Get_MaterialIDs(SharedInstanceHandle instance)
+	public unsafe ref SmallEntityIdArray Get_MaterialIDs(SharedInstanceHandle instance)
 	{
-		return ref UnsafeUtility.ArrayElementAsRef<SmallIntegerArray>(materialIDArrays.GetUnsafePtr(), SharedInstanceToIndex(instance));
+		return ref UnsafeUtility.ArrayElementAsRef<SmallEntityIdArray>(materialIDArrays.GetUnsafePtr(), SharedInstanceToIndex(instance));
 	}
 
 	public void Set_RendererGroupID(SharedInstanceHandle instance, int rendererGroupID)
@@ -396,14 +396,14 @@ internal struct CPUSharedInstanceData : IDisposable
 		refCounts[SharedInstanceToIndex(instance)] = refCount;
 	}
 
-	public void Set_MaterialIDs(SharedInstanceHandle instance, in SmallIntegerArray materialIDs)
+	public void Set_MaterialIDs(SharedInstanceHandle instance, in SmallEntityIdArray materialIDs)
 	{
 		int index = SharedInstanceToIndex(instance);
 		materialIDArrays[index].Dispose();
 		materialIDArrays[index] = materialIDs;
 	}
 
-	public void Set(SharedInstanceHandle instance, int rendererGroupID, in SmallIntegerArray materialIDs, int meshID, in AABB localAABB, TransformUpdateFlags transformUpdateFlags, InstanceFlags instanceFlags, uint lodGroupAndMask, GPUDrivenMeshLodInfo meshLodInfo, int gameObjectLayer, int refCount)
+	public void Set(SharedInstanceHandle instance, EntityId rendererGroupID, in SmallEntityIdArray materialIDs, int meshID, in AABB localAABB, TransformUpdateFlags transformUpdateFlags, InstanceFlags instanceFlags, uint lodGroupAndMask, GPUDrivenMeshLodInfo meshLodInfo, int gameObjectLayer, int refCount)
 	{
 		int index = SharedInstanceToIndex(instance);
 		rendererGroupIDs[index] = rendererGroupID;
@@ -424,7 +424,7 @@ internal struct CPUSharedInstanceData : IDisposable
 
 	public void SetDefault(SharedInstanceHandle instance)
 	{
-		Set(instance, 0, default(SmallIntegerArray), 0, default(AABB), TransformUpdateFlags.None, InstanceFlags.None, uint.MaxValue, default(GPUDrivenMeshLodInfo), 0, 0);
+		Set(instance, EntityId.None, default(SmallEntityIdArray), 0, default(AABB), TransformUpdateFlags.None, InstanceFlags.None, uint.MaxValue, default(GPUDrivenMeshLodInfo), 0, 0);
 	}
 
 	public ReadOnly AsReadOnly()

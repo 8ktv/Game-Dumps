@@ -1,24 +1,27 @@
-using System.Collections.Generic;
+using System;
 using UnityEngine.Bindings;
 
 namespace UnityEngine.TextCore.Text;
 
-[NativeHeader("Modules/TextCoreTextEngine/Native/ATGMeshInfo.h")]
 [VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+[NativeHeader("Modules/TextCoreTextEngine/Native/ATGMeshInfo.h")]
 internal struct ATGMeshInfo
 {
-	public NativeTextElementInfo[] textElementInfos;
+	private IntPtr m_TextElementInfosPtr;
 
-	public int fontAssetId;
+	private int m_TextElementCount;
 
-	public int textElementCount;
+	public int textAssetId;
 
-	[Ignore]
-	public FontAsset fontAsset;
-
-	[Ignore]
-	public List<List<int>> textElementInfoIndicesByAtlas;
-
-	[Ignore]
-	public bool hasMultipleColors;
+	public unsafe Span<NativeTextElementInfo> textElementInfos
+	{
+		get
+		{
+			if (m_TextElementInfosPtr == IntPtr.Zero || m_TextElementCount == 0)
+			{
+				return default(Span<NativeTextElementInfo>);
+			}
+			return new Span<NativeTextElementInfo>(m_TextElementInfosPtr.ToPointer(), m_TextElementCount);
+		}
+	}
 }

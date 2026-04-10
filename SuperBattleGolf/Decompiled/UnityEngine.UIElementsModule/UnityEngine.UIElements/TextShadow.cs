@@ -3,6 +3,7 @@ using Unity.Properties;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct TextShadow : IEquatable<TextShadow>
 {
 	internal class PropertyBag : ContainerPropertyBag<TextShadow>

@@ -4,10 +4,10 @@ using UnityEngine.Internal;
 
 namespace UnityEngine;
 
-[Obsolete("GUIElement has been removed. Consider using https://docs.unity3d.com/ScriptReference/UIElements.Image.html, https://docs.unity3d.com/ScriptReference/UIElements.TextElement.html or TextMeshPro instead.", true)]
 [ExcludeFromPreset]
-[EditorBrowsable(EditorBrowsableState.Never)]
+[Obsolete("GUIElement has been removed. Consider using https://docs.unity3d.com/ScriptReference/UIElements.Image.html, https://docs.unity3d.com/ScriptReference/UIElements.TextElement.html or TextMeshPro instead.", true)]
 [ExcludeFromObjectFactory]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class GUIElement
 {
 	private static void FeatureRemoved()

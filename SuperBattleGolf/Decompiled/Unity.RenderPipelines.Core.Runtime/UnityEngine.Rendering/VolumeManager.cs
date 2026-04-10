@@ -36,7 +36,7 @@ public sealed class VolumeManager
 
 	public VolumeStack stack { get; set; }
 
-	[Obsolete("Please use baseComponentTypeArray instead.")]
+	[Obsolete("Please use baseComponentTypeArray instead. #from(2021.2)")]
 	public IEnumerable<Type> baseComponentTypes => baseComponentTypeArray;
 
 	public Type[] baseComponentTypeArray
@@ -63,7 +63,7 @@ public sealed class VolumeManager
 
 	public bool isInitialized { get; private set; }
 
-	[Obsolete("Please use the Register without a given layer index #from(6000.0)", false)]
+	[Obsolete("Please use the Register without a given layer index. #from(6000.0)")]
 	public void Register(Volume volume, int layer)
 	{
 		if (volume.gameObject.layer != layer)
@@ -73,7 +73,7 @@ public sealed class VolumeManager
 		Register(volume);
 	}
 
-	[Obsolete("Please use the Register without a given layer index #from(6000.0)", false)]
+	[Obsolete("Please use the Register without a given layer index. #from(6000.0)")]
 	public void Unregister(Volume volume, int layer)
 	{
 		if (volume.gameObject.layer != layer)

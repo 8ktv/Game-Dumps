@@ -3,8 +3,8 @@ using UnityEngine.Scripting;
 
 namespace Unity.IO.LowLevel.Unsafe;
 
-[RequiredByNativeCode]
 [NativeConditional("ENABLE_PROFILER")]
+[RequiredByNativeCode]
 public struct AsyncReadManagerRequestMetric
 {
 	[NativeName("assetName")]

@@ -35,9 +35,6 @@
     <Reference Include="UnityEngine.JSONSerializeModule">
       <HintPath>UnityEngine.JSONSerializeModule.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine.VRModule">
-      <HintPath>UnityEngine.VRModule.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.UIElementsModule">
       <HintPath>UnityEngine.UIElementsModule.dll</HintPath>
     </Reference>

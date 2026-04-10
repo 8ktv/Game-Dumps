@@ -30,6 +30,7 @@ internal class DefaultElementBuilder : BaseElementBuilder
 			MeshGenerator.RectangleParams rectParams = new MeshGenerator.RectangleParams
 			{
 				rect = visualElement.rect,
+				uv = new Rect(0f, 0f, 1f, 1f),
 				color = backgroundColor,
 				colorPage = ColorPage.Init(m_RenderTreeManager, renderData.backgroundColorID),
 				playmodeTintColor = visualElement.playModeTintColor

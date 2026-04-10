@@ -45,6 +45,12 @@ public class CameraGameplaySettings : ScriptableObject
 	[field: SerializeField]
 	public ScreenshakeSettings OrbitalLaserScreenshakeSettings { get; private set; }
 
+	[field: SerializeField]
+	public ScreenshakeSettings FreezeBombShotScreenshakeSettings { get; private set; }
+
+	[field: SerializeField]
+	public ScreenshakeSettings FreezeBombExplosionScreenshakeSettings { get; private set; }
+
 	public float RocketExplosionImpactFrameDistanceSquared { get; private set; }
 
 	public float LandmineImpactFrameDistanceSquared { get; private set; }

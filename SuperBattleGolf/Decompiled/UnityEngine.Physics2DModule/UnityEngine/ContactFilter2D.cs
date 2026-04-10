@@ -9,9 +9,9 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [Serializable]
-[NativeClass("ContactFilter", "struct ContactFilter;")]
 [RequiredByNativeCode(Optional = true, GenerateProxy = true)]
 [NativeHeader("Modules/Physics2D/Public/Collider2D.h")]
+[NativeClass("ContactFilter", "struct ContactFilter;")]
 public struct ContactFilter2D
 {
 	private static ContactFilter2D _noFilter = new ContactFilter2D
@@ -161,8 +161,8 @@ public struct ContactFilter2D
 		return result;
 	}
 
-	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	[Obsolete("ContactFilter2D.NoFilter method has been deprecated. Please use the static ContactFilter2D.noFilter property.", false)]
 	public ContactFilter2D NoFilter()
 	{

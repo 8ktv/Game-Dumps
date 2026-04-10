@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using UnityEngine.Experimental.Rendering;
@@ -63,30 +62,30 @@ public static class CoreUtils
 		new Vector3(0f, 1f, 0f)
 	};
 
-	private const string obsoletePriorityMessage = "Use CoreUtils.Priorities instead";
+	private const string obsoletePriorityMessage = "Use CoreUtils.Priorities instead. #from(2021.2)";
 
-	[Obsolete("Use CoreUtils.Priorities instead", false)]
+	[Obsolete("Use CoreUtils.Priorities instead. #from(2021.2)")]
 	public const int editMenuPriority1 = 320;
 
-	[Obsolete("Use CoreUtils.Priorities instead", false)]
+	[Obsolete("Use CoreUtils.Priorities instead. #from(2021.2)")]
 	public const int editMenuPriority2 = 331;
 
-	[Obsolete("Use CoreUtils.Priorities instead", false)]
+	[Obsolete("Use CoreUtils.Priorities instead. #from(2021.2)")]
 	public const int editMenuPriority3 = 342;
 
-	[Obsolete("Use CoreUtils.Priorities instead", false)]
+	[Obsolete("Use CoreUtils.Priorities instead. #from(2021.2)")]
 	public const int editMenuPriority4 = 353;
 
-	[Obsolete("Use CoreUtils.Priorities instead", false)]
+	[Obsolete("Use CoreUtils.Priorities instead. #from(2021.2)")]
 	public const int assetCreateMenuPriority1 = 230;
 
-	[Obsolete("Use CoreUtils.Priorities instead", false)]
+	[Obsolete("Use CoreUtils.Priorities instead. #from(2021.2)")]
 	public const int assetCreateMenuPriority2 = 241;
 
-	[Obsolete("Use CoreUtils.Priorities instead", false)]
+	[Obsolete("Use CoreUtils.Priorities instead. #from(2021.2)")]
 	public const int assetCreateMenuPriority3 = 300;
 
-	[Obsolete("Use CoreUtils.Priorities instead", false)]
+	[Obsolete("Use CoreUtils.Priorities instead. #from(2021.2)")]
 	public const int gameObjectMenuPriority = 10;
 
 	private static Cubemap m_BlackCubeTexture;
@@ -105,7 +104,7 @@ public static class CoreUtils
 
 	internal static Texture3D m_WhiteVolumeTexture;
 
-	private static IEnumerable<Type> m_AssemblyTypes;
+	private static IEnumerable<Type> s_AssemblyTypes;
 
 	public static Cubemap blackCubeTexture
 	{
@@ -376,6 +375,11 @@ public static class CoreUtils
 		depthSlice = FixupDepthSlice(depthSlice, buffer);
 		cmd.SetRenderTarget(buffer.nameID, miplevel, cubemapFace, depthSlice);
 		SetViewportAndClear(cmd, buffer, clearFlag, clearColor);
+	}
+
+	public static void SetRenderTarget(ComputeCommandBuffer cmd, RTHandle buffer, ClearFlag clearFlag, Color clearColor, int miplevel = 0, CubemapFace cubemapFace = CubemapFace.Unknown, int depthSlice = -1)
+	{
+		SetRenderTarget(cmd.m_WrappedCommandBuffer, buffer, clearFlag, clearColor, miplevel, cubemapFace, depthSlice);
 	}
 
 	public static void SetRenderTarget(CommandBuffer cmd, RTHandle buffer, ClearFlag clearFlag = ClearFlag.None, int miplevel = 0, CubemapFace cubemapFace = CubemapFace.Unknown, int depthSlice = -1)
@@ -704,29 +708,38 @@ public static class CoreUtils
 
 	public static IEnumerable<Type> GetAllAssemblyTypes()
 	{
-		if (m_AssemblyTypes == null)
+		if (s_AssemblyTypes != null)
 		{
-			m_AssemblyTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(delegate(Assembly t)
-			{
-				Type[] result = new Type[0];
-				try
-				{
-					result = t.GetTypes();
-				}
-				catch
-				{
-				}
-				return result;
-			});
+			return s_AssemblyTypes;
 		}
-		return m_AssemblyTypes;
+		List<Type> list = new List<Type>();
+		Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+		foreach (Assembly assembly in assemblies)
+		{
+			try
+			{
+				list.AddRange(assembly.GetTypes());
+			}
+			catch (Exception)
+			{
+			}
+		}
+		s_AssemblyTypes = list;
+		return s_AssemblyTypes;
 	}
 
 	public static IEnumerable<Type> GetAllTypesDerivedFrom<T>()
 	{
-		return from t in GetAllAssemblyTypes()
-			where t.IsSubclassOf(typeof(T))
-			select t;
+		List<Type> list = new List<Type>();
+		Type typeFromHandle = typeof(T);
+		foreach (Type allAssemblyType in GetAllAssemblyTypes())
+		{
+			if (allAssemblyType.IsSubclassOf(typeFromHandle))
+			{
+				list.Add(allAssemblyType);
+			}
+		}
+		return list;
 	}
 
 	public static void SafeRelease(GraphicsBuffer buffer)
@@ -799,7 +812,18 @@ public static class CoreUtils
 		return false;
 	}
 
+	[Obsolete("Use DrawRendererList(CommandBuffer cmd, UnityEngine.Rendering.RendererList rendererList) instead. #from(6000.3) (UnityUpgradable) -> !0")]
 	public static void DrawRendererList(ScriptableRenderContext renderContext, CommandBuffer cmd, RendererList rendererList)
+	{
+		cmd.DrawRendererList(rendererList);
+	}
+
+	public static void DrawRendererList(CommandBuffer cmd, RendererList rendererList)
+	{
+		cmd.DrawRendererList(rendererList);
+	}
+
+	public static void DrawRendererList(IRasterCommandBuffer cmd, RendererList rendererList)
 	{
 		cmd.DrawRendererList(rendererList);
 	}
@@ -849,7 +873,8 @@ public static class CoreUtils
 
 	public static T GetLastEnumValue<T>() where T : Enum
 	{
-		return typeof(T).GetEnumValues().Cast<T>().Last();
+		Array values = Enum.GetValues(typeof(T));
+		return (T)values.GetValue(values.Length - 1);
 	}
 
 	internal static string GetCorePath()
@@ -888,5 +913,30 @@ public static class CoreUtils
 	public static DepthBits GetDefaultDepthBufferBits()
 	{
 		return DepthBits.Depth32;
+	}
+
+	public static bool IsScreenFullyCoveredByCameras(List<Camera> cameras)
+	{
+		if (cameras == null || cameras.Count == 0)
+		{
+			return false;
+		}
+		bool flag = false;
+		List<Rect> value;
+		using (ListPool<Rect>.Get(out value))
+		{
+			foreach (Camera camera in cameras)
+			{
+				if (!(camera.targetTexture != null) && camera.cameraType == CameraType.Game)
+				{
+					if (Mathf.Approximately(camera.rect.xMin, 0f) && Mathf.Approximately(camera.rect.yMin, 0f) && camera.rect.width >= (float)Screen.width && camera.rect.height >= (float)Screen.height)
+					{
+						return true;
+					}
+					value.Add(camera.rect);
+				}
+			}
+			return Mathf.Approximately(SweepLineRectUtils.CalculateRectUnionArea(value), 1f);
+		}
 	}
 }

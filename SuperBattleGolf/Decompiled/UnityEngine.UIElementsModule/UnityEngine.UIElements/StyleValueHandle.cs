@@ -10,8 +10,8 @@ internal struct StyleValueHandle : IEquatable<StyleValueHandle>
 	[SerializeField]
 	private StyleValueType m_ValueType;
 
-	[SerializeField]
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	[SerializeField]
 	internal int valueIndex;
 
 	public StyleValueType valueType

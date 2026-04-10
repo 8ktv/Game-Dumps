@@ -7,8 +7,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.Animations;
 
-[NativeHeader("Modules/Animation/ScriptBindings/GenericBinding.bindings.h")]
 [StaticAccessor("UnityEngine::Animation::GenericBindingUtility", StaticAccessorType.DoubleColon)]
+[NativeHeader("Modules/Animation/ScriptBindings/GenericBinding.bindings.h")]
 public static class GenericBindingUtility
 {
 	public static bool CreateGenericBinding(Object targetObject, string property, GameObject root, bool isObjectReference, out GenericBinding genericBinding)

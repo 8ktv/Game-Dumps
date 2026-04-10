@@ -6,11 +6,11 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Audio;
 
-[NativeHeader("Modules/Audio/Public/Director/AudioMixerPlayable.h")]
 [NativeHeader("Runtime/Director/Core/HPlayable.h")]
 [StaticAccessor("AudioMixerPlayableBindings", StaticAccessorType.DoubleColon)]
-[NativeHeader("Modules/Audio/Public/ScriptBindings/AudioMixerPlayable.bindings.h")]
 [RequiredByNativeCode]
+[NativeHeader("Modules/Audio/Public/Director/AudioMixerPlayable.h")]
+[NativeHeader("Modules/Audio/Public/ScriptBindings/AudioMixerPlayable.bindings.h")]
 public struct AudioMixerPlayable : IPlayable, IEquatable<AudioMixerPlayable>
 {
 	private PlayableHandle m_Handle;

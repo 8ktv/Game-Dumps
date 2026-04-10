@@ -5,8 +5,8 @@ using UnityEngine.Scripting.APIUpdating;
 namespace UnityEngine.PlayerLoop;
 
 [StructLayout(LayoutKind.Sequential, Size = 1)]
-[RequiredByNativeCode]
 [MovedFrom("UnityEngine.Experimental.PlayerLoop")]
+[RequiredByNativeCode]
 public struct PreLateUpdate
 {
 	[StructLayout(LayoutKind.Sequential, Size = 1)]

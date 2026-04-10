@@ -13,12 +13,12 @@ public class SortColumnDescriptions : ICollection<SortColumnDescription>, IEnume
 	[ExcludeFromDocs]
 	public class UxmlSerializedData : UnityEngine.UIElements.UxmlSerializedData
 	{
-		[SerializeReference]
 		[UxmlObjectReference]
+		[SerializeReference]
 		private List<SortColumnDescription.UxmlSerializedData> sortColumnDescriptions;
 
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		[SerializeField]
 		private UxmlAttributeFlags sortColumnDescriptions_UxmlAttributeFlags;
 

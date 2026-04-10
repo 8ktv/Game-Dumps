@@ -7,4 +7,6 @@ public struct ImportResourceParams
 	public Color clearColor;
 
 	public bool discardOnLastUse;
+
+	public TextureUVOrigin textureUVOrigin;
 }

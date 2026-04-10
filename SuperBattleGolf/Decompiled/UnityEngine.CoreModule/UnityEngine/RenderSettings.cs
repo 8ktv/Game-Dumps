@@ -6,9 +6,9 @@ using UnityEngine.Rendering;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Graphics/QualitySettingsTypes.h")]
 [NativeHeader("Runtime/Camera/RenderSettings.h")]
 [StaticAccessor("GetRenderSettings()", StaticAccessorType.Dot)]
+[NativeHeader("Runtime/Graphics/QualitySettingsTypes.h")]
 public sealed class RenderSettings : Object
 {
 	[Obsolete("Use RenderSettings.ambientIntensity instead (UnityUpgradable) -> ambientIntensity", false)]
@@ -292,6 +292,31 @@ public sealed class RenderSettings : Object
 		set;
 	}
 
+	[NativeProperty("DefaultSpotCookie")]
+	internal static Texture2D spotCookieTexture
+	{
+		get
+		{
+			return Unmarshal.UnmarshalUnityObject<Texture2D>(get_spotCookieTexture_Injected());
+		}
+		set
+		{
+			set_spotCookieTexture_Injected(MarshalledUnityObject.Marshal(value));
+		}
+	}
+
+	internal static Texture2D haloTexture
+	{
+		get
+		{
+			return Unmarshal.UnmarshalUnityObject<Texture2D>(get_haloTexture_Injected());
+		}
+		set
+		{
+			set_haloTexture_Injected(MarshalledUnityObject.Marshal(value));
+		}
+	}
+
 	private RenderSettings()
 	{
 	}
@@ -371,4 +396,16 @@ public sealed class RenderSettings : Object
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern IntPtr GetRenderSettings_Injected();
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern IntPtr get_spotCookieTexture_Injected();
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_spotCookieTexture_Injected(IntPtr value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern IntPtr get_haloTexture_Injected();
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_haloTexture_Injected(IntPtr value);
 }

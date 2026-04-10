@@ -92,6 +92,8 @@ public class DevConsoleGui : SingletonBehaviour<DevConsoleGui>
 
 	private bool shownWelcomeMessage;
 
+	private bool isEnabled = true;
+
 	public static bool Active { get; private set; }
 
 	public static event Action Activated;
@@ -113,6 +115,20 @@ public class DevConsoleGui : SingletonBehaviour<DevConsoleGui>
 		}
 	}
 
+	public static void SetEnabled(bool isEnabled)
+	{
+		SingletonBehaviour<DevConsoleGui>.Instance.SetEnabledInternal(isEnabled);
+	}
+
+	private void SetEnabledInternal(bool isEnabled)
+	{
+		if (this.isEnabled != isEnabled)
+		{
+			this.isEnabled = isEnabled;
+			SingletonBehaviour<DevConsoleGui>.Instance.gameObject.SetActive(isEnabled);
+		}
+	}
+
 	private void OnEnable()
 	{
 		Application.logMessageReceived += HandleLog;
@@ -126,6 +142,10 @@ public class DevConsoleGui : SingletonBehaviour<DevConsoleGui>
 	private void OnDisable()
 	{
 		Application.logMessageReceived -= HandleLog;
+		if (Active)
+		{
+			Deactivate();
+		}
 	}
 
 	private void Update()
@@ -262,17 +282,20 @@ public class DevConsoleGui : SingletonBehaviour<DevConsoleGui>
 
 	private void Activate()
 	{
-		Active = true;
-		currentInput = string.Empty;
-		acquireFocus = true;
-		autoCompleteSelectedIndex = -1;
-		previousCommandSelected = -1;
-		GUI.FocusControl(string.Empty);
-		if (EventSystem.current != null)
+		if (isEnabled)
 		{
-			EventSystem.current.SetSelectedGameObject(null);
+			Active = true;
+			currentInput = string.Empty;
+			acquireFocus = true;
+			autoCompleteSelectedIndex = -1;
+			previousCommandSelected = -1;
+			GUI.FocusControl(string.Empty);
+			if (EventSystem.current != null)
+			{
+				EventSystem.current.SetSelectedGameObject(null);
+			}
+			DevConsoleGui.Activated?.Invoke();
 		}
-		DevConsoleGui.Activated?.Invoke();
 	}
 
 	private void Deactivate()

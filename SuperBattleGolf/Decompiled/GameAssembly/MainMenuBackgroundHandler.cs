@@ -8,6 +8,9 @@ public class MainMenuBackgroundHandler : MonoBehaviour
 	private List<MainMenuScenario> scenarios;
 
 	[SerializeField]
+	private ParticleSystem courseAmbientVfxContainer;
+
+	[SerializeField]
 	private float interval = 6f;
 
 	[SerializeField]
@@ -30,6 +33,13 @@ public class MainMenuBackgroundHandler : MonoBehaviour
 		for (int i = 0; i < scenarios.Count; i++)
 		{
 			scenarios[i].SetActive(i == index);
+			if (i == index && courseAmbientVfxContainer != null)
+			{
+				courseAmbientVfxContainer.transform.parent = scenarios[i].CameraTransform;
+				courseAmbientVfxContainer.transform.localPosition = Vector3.zero;
+				courseAmbientVfxContainer.transform.rotation = Quaternion.identity;
+				courseAmbientVfxContainer.Play();
+			}
 		}
 	}
 

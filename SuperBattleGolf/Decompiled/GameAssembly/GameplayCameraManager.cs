@@ -3,13 +3,15 @@ using UnityEngine;
 
 public class GameplayCameraManager : SingletonBehaviour<GameplayCameraManager>
 {
-	private Vector3 swingAimCameraTrackingOffset;
+	private bool isInAimCamera;
 
-	private float swingAimCameraDistanceAddition;
+	private Vector3 aimCameraTrackingOffset;
+
+	private float aimCameraDistanceAddition;
 
 	private float swingChargeCameraDistanceAddition;
 
-	private Coroutine swingAimCameraOffsetRoutine;
+	private Coroutine aimCameraOffsetRoutine;
 
 	private Coroutine swingChargeCameraOffsetRoutine;
 
@@ -114,19 +116,11 @@ public class GameplayCameraManager : SingletonBehaviour<GameplayCameraManager>
 		}
 	}
 
-	public static void EnterSwingAimCamera()
+	public static void UpdateAimCamera()
 	{
 		if (SingletonBehaviour<GameplayCameraManager>.HasInstance)
 		{
-			SingletonBehaviour<GameplayCameraManager>.Instance.EnterSwingAimCameraInternal();
-		}
-	}
-
-	public static void ExitSwingAimCamera()
-	{
-		if (SingletonBehaviour<GameplayCameraManager>.HasInstance)
-		{
-			SingletonBehaviour<GameplayCameraManager>.Instance.ExitSwingAimCameraInternal();
+			SingletonBehaviour<GameplayCameraManager>.Instance.UpdateAimCameraInternal();
 		}
 	}
 
@@ -159,10 +153,10 @@ public class GameplayCameraManager : SingletonBehaviour<GameplayCameraManager>
 	{
 		if (GameManager.LocalPlayerAsGolfer != null && GameManager.LocalPlayerAsGolfer.IsChargingSwing)
 		{
-			swingChargeCameraDistanceAddition = BMath.LerpClamped(0f, GameManager.CameraGameplaySettings.MaxSwingChargeDistanceAddition, GameManager.LocalPlayerAsGolfer.SwingNormalizedPower);
+			swingChargeCameraDistanceAddition = BMath.LerpClamped(0f, GameManager.CameraGameplaySettings.MaxSwingChargeDistanceAddition, GameManager.LocalPlayerAsGolfer.SwingNormalizedCharge);
 			if (CameraModuleController.TryGetOrbitModule(out var orbitModule))
 			{
-				orbitModule.SetDistanceAddition(swingAimCameraDistanceAddition + swingChargeCameraDistanceAddition);
+				orbitModule.SetDistanceAddition(aimCameraDistanceAddition + swingChargeCameraDistanceAddition);
 			}
 		}
 	}
@@ -219,22 +213,53 @@ public class GameplayCameraManager : SingletonBehaviour<GameplayCameraManager>
 		}
 	}
 
-	private void EnterSwingAimCameraInternal()
+	private void UpdateAimCameraInternal()
 	{
-		if (swingAimCameraOffsetRoutine != null)
+		bool flag = isInAimCamera;
+		isInAimCamera = ShouldBeInAimCamera();
+		if (isInAimCamera != flag)
 		{
-			StopCoroutine(swingAimCameraOffsetRoutine);
+			if (isInAimCamera)
+			{
+				EnterAimCameraInternal();
+			}
+			else
+			{
+				ExitAimCameraInternal();
+			}
 		}
-		swingAimCameraOffsetRoutine = StartCoroutine(SwingAimCameraOffsetRoutine(isAimingSwing: true));
-	}
-
-	private void ExitSwingAimCameraInternal()
-	{
-		if (swingAimCameraOffsetRoutine != null)
+		void EnterAimCameraInternal()
 		{
-			StopCoroutine(swingAimCameraOffsetRoutine);
+			if (aimCameraOffsetRoutine != null)
+			{
+				StopCoroutine(aimCameraOffsetRoutine);
+			}
+			aimCameraOffsetRoutine = StartCoroutine(AimCameraOffsetRoutine(isAimingSwing: true));
 		}
-		swingAimCameraOffsetRoutine = StartCoroutine(SwingAimCameraOffsetRoutine(isAimingSwing: false));
+		void ExitAimCameraInternal()
+		{
+			if (aimCameraOffsetRoutine != null)
+			{
+				StopCoroutine(aimCameraOffsetRoutine);
+			}
+			aimCameraOffsetRoutine = StartCoroutine(AimCameraOffsetRoutine(isAimingSwing: false));
+		}
+		static bool ShouldBeInAimCamera()
+		{
+			if (GameManager.LocalPlayerInfo == null)
+			{
+				return false;
+			}
+			if (GameManager.LocalPlayerAsGolfer.IsAimingSwing)
+			{
+				return true;
+			}
+			if (GameManager.LocalPlayerInventory.IsAimingItem)
+			{
+				return true;
+			}
+			return false;
+		}
 	}
 
 	private void StartSwingChargeInternal()
@@ -316,13 +341,13 @@ public class GameplayCameraManager : SingletonBehaviour<GameplayCameraManager>
 		}
 	}
 
-	private IEnumerator SwingAimCameraOffsetRoutine(bool isAimingSwing)
+	private IEnumerator AimCameraOffsetRoutine(bool isAimingSwing)
 	{
 		if (CameraModuleController.TryGetOrbitModule(out var orbitCamera))
 		{
 			orbitCamera.SetUseHorizontalTrackingSpeedForVertical(shouldUse: true);
-			Vector3 initialTrackingOffset = swingAimCameraTrackingOffset;
-			float initialDistanceAddition = swingAimCameraDistanceAddition;
+			Vector3 initialTrackingOffset = aimCameraTrackingOffset;
+			float initialDistanceAddition = aimCameraDistanceAddition;
 			float duration;
 			Vector3 targetTrackingOffset;
 			float targetDistanceAddition;
@@ -345,15 +370,15 @@ public class GameplayCameraManager : SingletonBehaviour<GameplayCameraManager>
 				time += Time.deltaTime;
 				float t = time / duration;
 				float t2 = (isAimingSwing ? BMath.EaseOut(t) : BMath.EaseIn(t));
-				swingAimCameraTrackingOffset = Vector3.LerpUnclamped(initialTrackingOffset, targetTrackingOffset, t2);
-				orbitCamera.SetCameraSpaceTrackingOffset(swingAimCameraTrackingOffset);
-				swingAimCameraDistanceAddition = BMath.Lerp(initialDistanceAddition, targetDistanceAddition, t2);
-				orbitCamera.SetDistanceAddition(swingAimCameraDistanceAddition + swingChargeCameraDistanceAddition);
+				aimCameraTrackingOffset = Vector3.LerpUnclamped(initialTrackingOffset, targetTrackingOffset, t2);
+				orbitCamera.SetCameraSpaceTrackingOffset(aimCameraTrackingOffset);
+				aimCameraDistanceAddition = BMath.Lerp(initialDistanceAddition, targetDistanceAddition, t2);
+				orbitCamera.SetDistanceAddition(aimCameraDistanceAddition + swingChargeCameraDistanceAddition);
 			}
-			swingAimCameraTrackingOffset = targetTrackingOffset;
-			orbitCamera.SetCameraSpaceTrackingOffset(swingAimCameraTrackingOffset);
-			swingAimCameraDistanceAddition = targetDistanceAddition;
-			orbitCamera.SetDistanceAddition(swingAimCameraDistanceAddition + swingChargeCameraDistanceAddition);
+			aimCameraTrackingOffset = targetTrackingOffset;
+			orbitCamera.SetCameraSpaceTrackingOffset(aimCameraTrackingOffset);
+			aimCameraDistanceAddition = targetDistanceAddition;
+			orbitCamera.SetDistanceAddition(aimCameraDistanceAddition + swingChargeCameraDistanceAddition);
 			yield return new WaitForSeconds(0.3f);
 			orbitCamera.SetUseHorizontalTrackingSpeedForVertical(shouldUse: false);
 		}
@@ -371,10 +396,10 @@ public class GameplayCameraManager : SingletonBehaviour<GameplayCameraManager>
 				time += Time.deltaTime;
 				float t = time / GameManager.CameraGameplaySettings.SwingChargeDistanceAdditionReleaseDuration;
 				swingChargeCameraDistanceAddition = BMath.Lerp(initialDistanceAddition, 0f, BMath.EaseOut(t));
-				orbitCamera.SetDistanceAddition(swingAimCameraDistanceAddition + swingChargeCameraDistanceAddition);
+				orbitCamera.SetDistanceAddition(aimCameraDistanceAddition + swingChargeCameraDistanceAddition);
 			}
 			swingChargeCameraDistanceAddition = 0f;
-			orbitCamera.SetDistanceAddition(swingAimCameraDistanceAddition + swingChargeCameraDistanceAddition);
+			orbitCamera.SetDistanceAddition(aimCameraDistanceAddition + swingChargeCameraDistanceAddition);
 		}
 	}
 

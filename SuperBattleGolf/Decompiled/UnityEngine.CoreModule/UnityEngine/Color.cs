@@ -6,9 +6,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeClass("ColorRGBAf")]
 [RequiredByNativeCode(Optional = true, GenerateProxy = true)]
 [NativeHeader("Runtime/Math/Color.h")]
+[NativeClass("ColorRGBAf")]
 public struct Color : IEquatable<Color>, IFormattable
 {
 	public float r;
@@ -19,7 +19,7 @@ public struct Color : IEquatable<Color>, IFormattable
 
 	public float a;
 
-	public float grayscale
+	public readonly float grayscale
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
@@ -28,15 +28,27 @@ public struct Color : IEquatable<Color>, IFormattable
 		}
 	}
 
-	public Color linear => new Color(Mathf.GammaToLinearSpace(r), Mathf.GammaToLinearSpace(g), Mathf.GammaToLinearSpace(b), a);
+	public readonly Color linear => new Color
+	{
+		r = Mathf.GammaToLinearSpace(r),
+		g = Mathf.GammaToLinearSpace(g),
+		b = Mathf.GammaToLinearSpace(b),
+		a = a
+	};
 
-	public Color gamma => new Color(Mathf.LinearToGammaSpace(r), Mathf.LinearToGammaSpace(g), Mathf.LinearToGammaSpace(b), a);
+	public readonly Color gamma => new Color
+	{
+		r = Mathf.LinearToGammaSpace(r),
+		g = Mathf.LinearToGammaSpace(g),
+		b = Mathf.LinearToGammaSpace(b),
+		a = a
+	};
 
-	public float maxColorComponent => Mathf.Max(Mathf.Max(r, g), b);
+	public readonly float maxColorComponent => Mathf.Max(Mathf.Max(r, g), b);
 
 	public float this[int index]
 	{
-		get
+		readonly get
 		{
 			return index switch
 			{
@@ -1485,19 +1497,19 @@ public struct Color : IEquatable<Color>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override string ToString()
+	public override readonly string ToString()
 	{
 		return ToString(null, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format)
+	public readonly string ToString(string format)
 	{
 		return ToString(format, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format, IFormatProvider formatProvider)
+	public readonly string ToString(string format, IFormatProvider formatProvider)
 	{
 		if (string.IsNullOrEmpty(format))
 		{
@@ -1510,58 +1522,115 @@ public struct Color : IEquatable<Color>, IFormattable
 		return $"RGBA({r.ToString(format, formatProvider)}, {g.ToString(format, formatProvider)}, {b.ToString(format, formatProvider)}, {a.ToString(format, formatProvider)})";
 	}
 
-	public override int GetHashCode()
+	public override readonly int GetHashCode()
 	{
-		return ((Vector4)this/*cast due to .constrained prefix*/).GetHashCode();
+		return r.GetHashCode() ^ (g.GetHashCode() << 2) ^ (b.GetHashCode() >> 2) ^ (a.GetHashCode() >> 1);
 	}
 
-	public override bool Equals(object other)
+	public override readonly bool Equals(object other)
 	{
 		if (other is Color other2)
 		{
-			return Equals(other2);
+			return Equals(in other2);
 		}
 		return false;
 	}
 
-	public bool Equals(Color other)
+	public readonly bool Equals(Color other)
+	{
+		return r.Equals(other.r) && g.Equals(other.g) && b.Equals(other.b) && a.Equals(other.a);
+	}
+
+	public readonly bool Equals(in Color other)
 	{
 		return r.Equals(other.r) && g.Equals(other.g) && b.Equals(other.b) && a.Equals(other.a);
 	}
 
 	public static Color operator +(Color a, Color b)
 	{
-		return new Color(a.r + b.r, a.g + b.g, a.b + b.b, a.a + b.a);
+		return new Color
+		{
+			r = a.r + b.r,
+			g = a.g + b.g,
+			b = a.b + b.b,
+			a = a.a + b.a
+		};
 	}
 
 	public static Color operator -(Color a, Color b)
 	{
-		return new Color(a.r - b.r, a.g - b.g, a.b - b.b, a.a - b.a);
+		return new Color
+		{
+			r = a.r - b.r,
+			g = a.g - b.g,
+			b = a.b - b.b,
+			a = a.a - b.a
+		};
 	}
 
 	public static Color operator *(Color a, Color b)
 	{
-		return new Color(a.r * b.r, a.g * b.g, a.b * b.b, a.a * b.a);
+		return new Color
+		{
+			r = a.r * b.r,
+			g = a.g * b.g,
+			b = a.b * b.b,
+			a = a.a * b.a
+		};
+	}
+
+	public static Color operator *(Color a, Vector4 b)
+	{
+		return new Color
+		{
+			r = a.r * b.x,
+			g = a.g * b.y,
+			b = a.b * b.z,
+			a = a.a * b.w
+		};
 	}
 
 	public static Color operator *(Color a, float b)
 	{
-		return new Color(a.r * b, a.g * b, a.b * b, a.a * b);
+		return new Color
+		{
+			r = a.r * b,
+			g = a.g * b,
+			b = a.b * b,
+			a = a.a * b
+		};
 	}
 
 	public static Color operator *(float b, Color a)
 	{
-		return new Color(a.r * b, a.g * b, a.b * b, a.a * b);
+		return new Color
+		{
+			r = a.r * b,
+			g = a.g * b,
+			b = a.b * b,
+			a = a.a * b
+		};
 	}
 
 	public static Color operator /(Color a, float b)
 	{
-		return new Color(a.r / b, a.g / b, a.b / b, a.a / b);
+		return new Color
+		{
+			r = a.r / b,
+			g = a.g / b,
+			b = a.b / b,
+			a = a.a / b
+		};
 	}
 
 	public static bool operator ==(Color lhs, Color rhs)
 	{
-		return (Vector4)lhs == (Vector4)rhs;
+		float num = lhs.r - rhs.r;
+		float num2 = lhs.g - rhs.g;
+		float num3 = lhs.b - rhs.b;
+		float num4 = lhs.a - rhs.a;
+		float num5 = num * num + num2 * num2 + num3 * num3 + num4 * num4;
+		return num5 < 9.9999994E-11f;
 	}
 
 	public static bool operator !=(Color lhs, Color rhs)
@@ -1572,41 +1641,133 @@ public struct Color : IEquatable<Color>, IFormattable
 	public static Color Lerp(Color a, Color b, float t)
 	{
 		t = Mathf.Clamp01(t);
-		return new Color(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t, a.a + (b.a - a.a) * t);
+		return new Color
+		{
+			r = a.r + (b.r - a.r) * t,
+			g = a.g + (b.g - a.g) * t,
+			b = a.b + (b.b - a.b) * t,
+			a = a.a + (b.a - a.a) * t
+		};
+	}
+
+	public static Color Lerp(in Color a, in Color b, float t)
+	{
+		t = Mathf.Clamp01(t);
+		return new Color
+		{
+			r = a.r + (b.r - a.r) * t,
+			g = a.g + (b.g - a.g) * t,
+			b = a.b + (b.b - a.b) * t,
+			a = a.a + (b.a - a.a) * t
+		};
 	}
 
 	public static Color LerpUnclamped(Color a, Color b, float t)
 	{
-		return new Color(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t, a.a + (b.a - a.a) * t);
+		return new Color
+		{
+			r = a.r + (b.r - a.r) * t,
+			g = a.g + (b.g - a.g) * t,
+			b = a.b + (b.b - a.b) * t,
+			a = a.a + (b.a - a.a) * t
+		};
+	}
+
+	public static Color LerpUnclamped(in Color a, in Color b, float t)
+	{
+		return new Color
+		{
+			r = a.r + (b.r - a.r) * t,
+			g = a.g + (b.g - a.g) * t,
+			b = a.b + (b.b - a.b) * t,
+			a = a.a + (b.a - a.a) * t
+		};
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
-	internal Color RGBMultiplied(float multiplier)
+	internal readonly Color RGBMultiplied(float multiplier)
 	{
-		return new Color(r * multiplier, g * multiplier, b * multiplier, a);
+		return new Color
+		{
+			r = r * multiplier,
+			g = g * multiplier,
+			b = b * multiplier,
+			a = a
+		};
 	}
 
-	internal Color AlphaMultiplied(float multiplier)
+	internal readonly Color AlphaMultiplied(float multiplier)
 	{
-		return new Color(r, g, b, a * multiplier);
+		return new Color
+		{
+			r = r,
+			g = g,
+			b = b,
+			a = a * multiplier
+		};
 	}
 
-	internal Color RGBMultiplied(Color multiplier)
+	internal readonly Color RGBMultiplied(Color multiplier)
 	{
-		return new Color(r * multiplier.r, g * multiplier.g, b * multiplier.b, a);
+		return new Color
+		{
+			r = r * multiplier.r,
+			g = g * multiplier.g,
+			b = b * multiplier.b,
+			a = a
+		};
+	}
+
+	internal readonly Color RGBMultiplied(in Color multiplier)
+	{
+		return new Color
+		{
+			r = r * multiplier.r,
+			g = g * multiplier.g,
+			b = b * multiplier.b,
+			a = a
+		};
 	}
 
 	public static implicit operator Vector4(Color c)
 	{
-		return new Vector4(c.r, c.g, c.b, c.a);
+		return new Vector4
+		{
+			x = c.r,
+			y = c.g,
+			z = c.b,
+			w = c.a
+		};
 	}
 
 	public static implicit operator Color(Vector4 v)
 	{
-		return new Color(v.x, v.y, v.z, v.w);
+		return new Color
+		{
+			r = v.x,
+			g = v.y,
+			b = v.z,
+			a = v.w
+		};
 	}
 
 	public static void RGBToHSV(Color rgbColor, out float H, out float S, out float V)
+	{
+		if (rgbColor.b > rgbColor.g && rgbColor.b > rgbColor.r)
+		{
+			RGBToHSVHelper(4f, rgbColor.b, rgbColor.r, rgbColor.g, out H, out S, out V);
+		}
+		else if (rgbColor.g > rgbColor.r)
+		{
+			RGBToHSVHelper(2f, rgbColor.g, rgbColor.b, rgbColor.r, out H, out S, out V);
+		}
+		else
+		{
+			RGBToHSVHelper(0f, rgbColor.r, rgbColor.g, rgbColor.b, out H, out S, out V);
+		}
+	}
+
+	public static void RGBToHSV(in Color rgbColor, out float H, out float S, out float V)
 	{
 		if (rgbColor.b > rgbColor.g && rgbColor.b > rgbColor.r)
 		{
@@ -1679,7 +1840,7 @@ public struct Color : IEquatable<Color>, IFormattable
 			result.g = 0f;
 			result.b = 0f;
 			float num = H * 6f;
-			int num2 = (int)Mathf.Floor(num);
+			int num2 = Mathf.FloorToInt(num);
 			float num3 = num - (float)num2;
 			float num4 = V * (1f - S);
 			float num5 = V * (1f - S * num3);
@@ -1729,9 +1890,9 @@ public struct Color : IEquatable<Color>, IFormattable
 			}
 			if (!hdr)
 			{
-				result.r = Mathf.Clamp(result.r, 0f, 1f);
-				result.g = Mathf.Clamp(result.g, 0f, 1f);
-				result.b = Mathf.Clamp(result.b, 0f, 1f);
+				result.r = Mathf.Clamp01(result.r);
+				result.g = Mathf.Clamp01(result.g);
+				result.b = Mathf.Clamp01(result.b);
 			}
 		}
 		return result;

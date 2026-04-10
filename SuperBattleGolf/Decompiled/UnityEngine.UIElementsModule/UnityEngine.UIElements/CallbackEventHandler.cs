@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using UnityEngine.Bindings;
 
 namespace UnityEngine.UIElements;
 
@@ -91,6 +92,7 @@ public abstract class CallbackEventHandler : IEventHandler
 
 	public abstract void SendEvent(EventBase e);
 
+	[VisibleToOtherModules(new string[] { "UnityEngine.HierarchyModule" })]
 	internal abstract void SendEvent(EventBase e, DispatchMode dispatchMode);
 
 	internal abstract void HandleEvent(EventBase e);
@@ -113,8 +115,8 @@ public abstract class CallbackEventHandler : IEventHandler
 		return m_CallbackRegistry != null && m_CallbackRegistry.HasBubbleHandlers();
 	}
 
-	[Obsolete("Use HandleEventBubbleUp. Before proceeding, make sure you understand the latest changes to UIToolkit event propagation rules by visiting Unity's manual page https://docs.unity3d.com/Manual/UIE-Events-Dispatching.html")]
 	[EventInterest(EventInterestOptions.Inherit)]
+	[Obsolete("Use HandleEventBubbleUp. Before proceeding, make sure you understand the latest changes to UIToolkit event propagation rules by visiting Unity's manual page https://docs.unity3d.com/Manual/UIE-Events-Dispatching.html")]
 	protected virtual void ExecuteDefaultActionAtTarget(EventBase evt)
 	{
 	}
@@ -157,14 +159,14 @@ public abstract class CallbackEventHandler : IEventHandler
 	{
 	}
 
-	[EventInterest(EventInterestOptions.Inherit)]
 	[Obsolete("Use HandleEventBubbleUpDisabled.")]
+	[EventInterest(EventInterestOptions.Inherit)]
 	internal virtual void ExecuteDefaultActionDisabledAtTarget(EventBase evt)
 	{
 	}
 
-	[EventInterest(EventInterestOptions.Inherit)]
 	[Obsolete("Use HandleEventBubbleUpDisabled.")]
+	[EventInterest(EventInterestOptions.Inherit)]
 	internal virtual void ExecuteDefaultActionDisabled(EventBase evt)
 	{
 	}

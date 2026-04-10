@@ -44,7 +44,7 @@ public class TextAsset : Object
 
 	public byte[] bytes
 	{
-		[return: Unmarshalled]
+		[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 		get
 		{
 			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -67,7 +67,7 @@ public class TextAsset : Object
 
 	public long dataSize => GetDataSize();
 
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	private byte[] GetPreviewBytes(int maxByteCount)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);

@@ -3,8 +3,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Animations;
 
-[RequiredByNativeCode]
 [AttributeUsage(AttributeTargets.Field)]
+[RequiredByNativeCode]
 public class DiscreteEvaluationAttribute : Attribute
 {
 }

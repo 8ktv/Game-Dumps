@@ -26,7 +26,9 @@ public class TeeOffCountdown : SingletonNetworkBehaviour<TeeOffCountdown>
 
 	private Coroutine hideRoutine;
 
-	private static readonly int popHash;
+	private static readonly int countHash;
+
+	private static readonly int messageHash;
 
 	public Action<bool, bool> _Mirror_SyncVarHookDelegate_isVisible;
 
@@ -174,7 +176,7 @@ public class TeeOffCountdown : SingletonNetworkBehaviour<TeeOffCountdown>
 
 	private void Pop()
 	{
-		animator.SetTrigger(popHash);
+		animator.SetTrigger(countHash);
 	}
 
 	private void OnIsVisibleChanged(bool wasVisible, bool isVisible)
@@ -209,7 +211,8 @@ public class TeeOffCountdown : SingletonNetworkBehaviour<TeeOffCountdown>
 
 	static TeeOffCountdown()
 	{
-		popHash = Animator.StringToHash("Pop");
+		countHash = Animator.StringToHash("count");
+		messageHash = Animator.StringToHash("message");
 		RemoteProcedureCalls.RegisterRpc(typeof(TeeOffCountdown), "System.Void TeeOffCountdown::RpcPlayAnnouncerLine(System.Int32)", InvokeUserCode_RpcPlayAnnouncerLine__Int32);
 	}
 

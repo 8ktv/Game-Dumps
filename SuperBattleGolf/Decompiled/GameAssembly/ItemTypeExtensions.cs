@@ -24,6 +24,9 @@ public static class ItemTypeExtensions
 			}
 			eliminationReason = EliminationReason.None;
 			return false;
+		case ItemType.RocketDriver:
+			eliminationReason = EliminationReason.RocketDriverSwing;
+			return true;
 		default:
 			eliminationReason = EliminationReason.None;
 			return false;

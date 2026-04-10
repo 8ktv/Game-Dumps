@@ -14,6 +14,13 @@ public class ConstantBuffer
 		instance.SetGlobal(cmd, shaderId);
 	}
 
+	public static void PushGlobal<CBType>(BaseCommandBuffer cmd, in CBType data, int shaderId) where CBType : struct
+	{
+		ConstantBufferSingleton<CBType> instance = ConstantBufferSingleton<CBType>.instance;
+		instance.UpdateData(cmd, in data);
+		instance.SetGlobal(cmd, shaderId);
+	}
+
 	public static void PushGlobal<CBType>(in CBType data, int shaderId) where CBType : struct
 	{
 		ConstantBufferSingleton<CBType> instance = ConstantBufferSingleton<CBType>.instance;
@@ -28,6 +35,13 @@ public class ConstantBuffer
 		instance.Set(cmd, cs, shaderId);
 	}
 
+	public static void Push<CBType>(IComputeCommandBuffer cmd, in CBType data, ComputeShader cs, int shaderId) where CBType : struct
+	{
+		ConstantBufferSingleton<CBType> instance = ConstantBufferSingleton<CBType>.instance;
+		instance.UpdateData(cmd as BaseCommandBuffer, in data);
+		instance.Set(cmd, cs, shaderId);
+	}
+
 	public static void Push<CBType>(in CBType data, ComputeShader cs, int shaderId) where CBType : struct
 	{
 		ConstantBufferSingleton<CBType> instance = ConstantBufferSingleton<CBType>.instance;
@@ -36,6 +50,13 @@ public class ConstantBuffer
 	}
 
 	public static void Push<CBType>(CommandBuffer cmd, in CBType data, Material mat, int shaderId) where CBType : struct
+	{
+		ConstantBufferSingleton<CBType> instance = ConstantBufferSingleton<CBType>.instance;
+		instance.UpdateData(cmd, in data);
+		instance.Set(mat, shaderId);
+	}
+
+	public static void Push<CBType>(BaseCommandBuffer cmd, in CBType data, Material mat, int shaderId) where CBType : struct
 	{
 		ConstantBufferSingleton<CBType> instance = ConstantBufferSingleton<CBType>.instance;
 		instance.UpdateData(cmd, in data);
@@ -54,6 +75,11 @@ public class ConstantBuffer
 		ConstantBufferSingleton<CBType>.instance.UpdateData(cmd, in data);
 	}
 
+	public static void UpdateData<CBType>(BaseCommandBuffer cmd, in CBType data) where CBType : struct
+	{
+		ConstantBufferSingleton<CBType>.instance.UpdateData(cmd, in data);
+	}
+
 	public static void UpdateData<CBType>(in CBType data) where CBType : struct
 	{
 		ConstantBufferSingleton<CBType>.instance.UpdateData(in data);
@@ -64,12 +90,22 @@ public class ConstantBuffer
 		ConstantBufferSingleton<CBType>.instance.SetGlobal(cmd, shaderId);
 	}
 
+	public static void SetGlobal<CBType>(BaseCommandBuffer cmd, int shaderId) where CBType : struct
+	{
+		ConstantBufferSingleton<CBType>.instance.SetGlobal(cmd, shaderId);
+	}
+
 	public static void SetGlobal<CBType>(int shaderId) where CBType : struct
 	{
 		ConstantBufferSingleton<CBType>.instance.SetGlobal(shaderId);
 	}
 
 	public static void Set<CBType>(CommandBuffer cmd, ComputeShader cs, int shaderId) where CBType : struct
+	{
+		ConstantBufferSingleton<CBType>.instance.Set(cmd, cs, shaderId);
+	}
+
+	public static void Set<CBType>(IComputeCommandBuffer cmd, ComputeShader cs, int shaderId) where CBType : struct
 	{
 		ConstantBufferSingleton<CBType>.instance.Set(cmd, cs, shaderId);
 	}
@@ -117,6 +153,11 @@ public class ConstantBuffer<CBType> : ConstantBufferBase where CBType : struct
 		cmd.SetBufferData(m_GPUConstantBuffer, m_Data);
 	}
 
+	public void UpdateData(BaseCommandBuffer cmd, in CBType data)
+	{
+		UpdateData(cmd.m_WrappedCommandBuffer, in data);
+	}
+
 	public void UpdateData(in CBType data)
 	{
 		m_Data[0] = data;
@@ -129,6 +170,11 @@ public class ConstantBuffer<CBType> : ConstantBufferBase where CBType : struct
 		cmd.SetGlobalConstantBuffer(m_GPUConstantBuffer, shaderId, 0, m_GPUConstantBuffer.stride);
 	}
 
+	public void SetGlobal(BaseCommandBuffer cmd, int shaderId)
+	{
+		SetGlobal(cmd.m_WrappedCommandBuffer, shaderId);
+	}
+
 	public void SetGlobal(int shaderId)
 	{
 		m_GlobalBindings.Add(shaderId);
@@ -136,6 +182,11 @@ public class ConstantBuffer<CBType> : ConstantBufferBase where CBType : struct
 	}
 
 	public void Set(CommandBuffer cmd, ComputeShader cs, int shaderId)
+	{
+		cmd.SetComputeConstantBufferParam(cs, shaderId, m_GPUConstantBuffer, 0, m_GPUConstantBuffer.stride);
+	}
+
+	public void Set(IComputeCommandBuffer cmd, ComputeShader cs, int shaderId)
 	{
 		cmd.SetComputeConstantBufferParam(cs, shaderId, m_GPUConstantBuffer, 0, m_GPUConstantBuffer.stride);
 	}
@@ -156,6 +207,12 @@ public class ConstantBuffer<CBType> : ConstantBufferBase where CBType : struct
 	}
 
 	public void PushGlobal(CommandBuffer cmd, in CBType data, int shaderId)
+	{
+		UpdateData(cmd, in data);
+		SetGlobal(cmd, shaderId);
+	}
+
+	public void PushGlobal(BaseCommandBuffer cmd, in CBType data, int shaderId)
 	{
 		UpdateData(cmd, in data);
 		SetGlobal(cmd, shaderId);

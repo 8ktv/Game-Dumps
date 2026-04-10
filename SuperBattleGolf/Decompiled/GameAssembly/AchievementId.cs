@@ -33,5 +33,15 @@ public enum AchievementId
 	SnailsPace,
 	SweetMoves,
 	UnderwaterExpedition,
-	WalkThePlank
+	WalkThePlank,
+	TigerInTheWoods,
+	Berserker,
+	Explorer,
+	NowThatsSoldiering,
+	TargetRichEnvironment,
+	ThereCanBeOnlyOne,
+	Caffeinated,
+	OneTrueKing,
+	IceToSeeYou,
+	RocketPirouette
 }

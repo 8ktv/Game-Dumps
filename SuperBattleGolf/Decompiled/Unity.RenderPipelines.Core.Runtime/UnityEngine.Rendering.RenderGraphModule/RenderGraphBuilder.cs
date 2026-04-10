@@ -5,6 +5,7 @@ using UnityEngine.Scripting.APIUpdating;
 namespace UnityEngine.Rendering.RenderGraphModule;
 
 [MovedFrom(true, "UnityEngine.Experimental.Rendering.RenderGraphModule", "UnityEngine.Rendering.RenderGraphModule", null)]
+[Obsolete("RenderGraphBuilder is deprecated, use IComputeRenderGraphBuilder/IRasterRenderGraphBuilder/IUnsafeRenderGraphBuilder instead.")]
 public struct RenderGraphBuilder : IDisposable
 {
 	private RenderGraphPass m_RenderPass;
@@ -77,8 +78,8 @@ public struct RenderGraphBuilder : IDisposable
 
 	public TextureHandle CreateTransientTexture(in TextureHandle texture)
 	{
-		TextureDesc desc = m_Resources.GetTextureResourceDesc(in texture.handle);
-		TextureHandle result = m_Resources.CreateTexture(in desc, m_RenderPass.index);
+		ref readonly TextureDesc textureResourceDesc = ref m_Resources.GetTextureResourceDesc(in texture.handle);
+		TextureHandle result = m_Resources.CreateTexture(in textureResourceDesc, m_RenderPass.index);
 		m_RenderPass.AddTransientResource(in result.handle);
 		return result;
 	}
@@ -127,8 +128,8 @@ public struct RenderGraphBuilder : IDisposable
 
 	public BufferHandle CreateTransientBuffer(in BufferHandle graphicsbuffer)
 	{
-		BufferDesc desc = m_Resources.GetBufferResourceDesc(in graphicsbuffer.handle);
-		BufferHandle result = m_Resources.CreateBuffer(in desc, m_RenderPass.index);
+		ref readonly BufferDesc bufferResourceDesc = ref m_Resources.GetBufferResourceDesc(in graphicsbuffer.handle);
+		BufferHandle result = m_Resources.CreateBuffer(in bufferResourceDesc, m_RenderPass.index);
 		m_RenderPass.AddTransientResource(in result.handle);
 		return result;
 	}

@@ -83,11 +83,11 @@ public class Clickable : PointerManipulator
 			if (ContainsPointer(m_ActivePointerId) && (base.target.enabledInHierarchy || acceptClicksIfDisabled))
 			{
 				Invoke(null);
-				base.target.pseudoStates |= PseudoStates.Active;
+				base.target.SetActivePseudoState(value: true);
 			}
 			else
 			{
-				base.target.pseudoStates &= ~PseudoStates.Active;
+				base.target.SetActivePseudoState(value: false);
 			}
 		}
 	}
@@ -197,7 +197,7 @@ public class Clickable : PointerManipulator
 
 	internal void SimulateSingleClick(EventBase evt, int delayMs = 100)
 	{
-		base.target.pseudoStates |= PseudoStates.Active;
+		base.target.SetActivePseudoState(value: true);
 		m_PendingActivePseudoStateReset = base.target.schedule.Execute(ResetActivePseudoState);
 		m_PendingActivePseudoStateReset.ExecuteLater(delayMs);
 		Invoke(evt);
@@ -207,7 +207,7 @@ public class Clickable : PointerManipulator
 	{
 		if (m_PendingActivePseudoStateReset != null)
 		{
-			base.target.pseudoStates &= ~PseudoStates.Active;
+			base.target.SetActivePseudoState(value: false);
 			m_PendingActivePseudoStateReset = null;
 		}
 	}
@@ -237,7 +237,7 @@ public class Clickable : PointerManipulator
 				m_Repeater.ExecuteLater(m_Delay);
 			}
 		}
-		base.target.pseudoStates |= PseudoStates.Active;
+		base.target.SetActivePseudoState(value: true);
 		evt.StopImmediatePropagation();
 	}
 
@@ -246,11 +246,11 @@ public class Clickable : PointerManipulator
 		lastMousePosition = localPosition;
 		if (ContainsPointer(m_ActivePointerId))
 		{
-			base.target.pseudoStates |= PseudoStates.Active;
+			base.target.SetActivePseudoState(value: true);
 		}
 		else
 		{
-			base.target.pseudoStates &= ~PseudoStates.Active;
+			base.target.SetActivePseudoState(value: false);
 		}
 		evt.StopPropagation();
 	}
@@ -264,7 +264,7 @@ public class Clickable : PointerManipulator
 		{
 			base.target.panel.ProcessPointerCapture(pointerId);
 		}
-		base.target.pseudoStates &= ~PseudoStates.Active;
+		base.target.SetActivePseudoState(value: false);
 		if (IsRepeatable())
 		{
 			m_Repeater?.Pause();
@@ -285,7 +285,7 @@ public class Clickable : PointerManipulator
 		{
 			base.target.panel.ProcessPointerCapture(pointerId);
 		}
-		base.target.pseudoStates &= ~PseudoStates.Active;
+		base.target.SetActivePseudoState(value: false);
 		if (IsRepeatable())
 		{
 			m_Repeater?.Pause();

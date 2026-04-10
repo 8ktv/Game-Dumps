@@ -164,8 +164,8 @@ public static class Screen
 		});
 	}
 
-	[Obsolete("SetResolution(int, int, bool, int) is obsolete. Use SetResolution(int, int, FullScreenMode, RefreshRate) instead.")]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("SetResolution(int, int, bool, int) is obsolete. Use SetResolution(int, int, FullScreenMode, RefreshRate) instead.")]
 	public static void SetResolution(int width, int height, bool fullscreen, [UnityEngine.Internal.DefaultValue("0")] int preferredRefreshRate)
 	{
 		if (preferredRefreshRate < 0)

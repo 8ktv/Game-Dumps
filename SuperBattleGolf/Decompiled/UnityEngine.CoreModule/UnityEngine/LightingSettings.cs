@@ -78,6 +78,28 @@ public sealed class LightingSettings : Object
 		}
 	}
 
+	internal bool usingShadowmask
+	{
+		get
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			return get_usingShadowmask_Injected(intPtr);
+		}
+		set
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			set_usingShadowmask_Injected(intPtr, value);
+		}
+	}
+
 	[RequiredByNativeCode]
 	internal void LightingSettingsDontStripMe()
 	{
@@ -90,6 +112,15 @@ public sealed class LightingSettings : Object
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void Internal_Create([Writable] LightingSettings self);
+
+	[FreeFunction("GetLightingSettingsPtr")]
+	internal static LightingSettings GetActiveSettings()
+	{
+		return Unmarshal.UnmarshalUnityObject<LightingSettings>(GetActiveSettings_Injected());
+	}
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern IntPtr GetActiveSettings_Injected();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern bool get_bakedGI_Injected(IntPtr _unity_self);
@@ -108,4 +139,10 @@ public sealed class LightingSettings : Object
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void set_realtimeEnvironmentLighting_Injected(IntPtr _unity_self, bool value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool get_usingShadowmask_Injected(IntPtr _unity_self);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_usingShadowmask_Injected(IntPtr _unity_self, bool value);
 }

@@ -47,5 +47,8 @@
     <Reference Include="UnityEngine.TextRenderingModule">
       <HintPath>UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule">
+      <HintPath>UnityEngine.JSONSerializeModule.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

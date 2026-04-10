@@ -12,11 +12,11 @@ public sealed class LightmapSettings : Object
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		[FreeFunction]
-		[return: Unmarshalled]
+		[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 		get;
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		[FreeFunction(ThrowsException = true)]
-		[param: Unmarshalled]
+		[param: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 		set;
 	}
 
@@ -35,8 +35,8 @@ public sealed class LightmapSettings : Object
 		{
 			return Unmarshal.UnmarshalUnityObject<LightProbes>(get_lightProbes_Injected());
 		}
-		[NativeName("SetLightProbes")]
 		[FreeFunction]
+		[NativeName("SetLightProbes")]
 		set
 		{
 			set_lightProbes_Injected(MarshalledUnityObject.Marshal(value));

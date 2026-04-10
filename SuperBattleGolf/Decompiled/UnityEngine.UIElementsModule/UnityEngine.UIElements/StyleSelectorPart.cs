@@ -104,6 +104,7 @@ internal struct StyleSelectorPart
 	{
 		return new StyleSelectorPart
 		{
+			m_Value = "*",
 			m_Type = StyleSelectorType.Wildcard
 		};
 	}

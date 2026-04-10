@@ -10,13 +10,13 @@ public class Toggle : BaseBoolField
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : BaseBoolField.UxmlSerializedData
 	{
-		[SerializeField]
 		[MultilineTextField]
+		[SerializeField]
 		private string text;
 
 		[SerializeField]
-		[UxmlIgnore]
 		[HideInInspector]
+		[UxmlIgnore]
 		private UxmlAttributeFlags text_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -103,21 +103,15 @@ public class Toggle : BaseBoolField
 	{
 		if (base.showMixedValue)
 		{
-			base.visualInput.pseudoStates &= ~PseudoStates.Checked;
-			base.pseudoStates &= ~PseudoStates.Checked;
+			base.visualInput.SetCheckedPseudoState(value: false);
+			SetCheckedPseudoState(value: false);
 			m_CheckMark.AddToClassList(mixedValuesUssClassName);
-			return;
-		}
-		m_CheckMark.RemoveFromClassList(mixedValuesUssClassName);
-		if (value)
-		{
-			base.visualInput.pseudoStates |= PseudoStates.Checked;
-			base.pseudoStates |= PseudoStates.Checked;
 		}
 		else
 		{
-			base.visualInput.pseudoStates &= ~PseudoStates.Checked;
-			base.pseudoStates &= ~PseudoStates.Checked;
+			m_CheckMark.RemoveFromClassList(mixedValuesUssClassName);
+			base.visualInput.SetCheckedPseudoState(value);
+			SetCheckedPseudoState(value);
 		}
 	}
 }

@@ -15,6 +15,8 @@ internal class UITKTextHandle : TextHandle
 
 	internal Color atgHyperlinkColor = Color.blue;
 
+	private bool uvsAreGenerated = false;
+
 	private static TextLib s_TextLib;
 
 	internal TextEventHandler m_TextEventHandler;
@@ -22,8 +24,6 @@ internal class UITKTextHandle : TextHandle
 	protected TextElement m_TextElement;
 
 	internal static readonly float k_MinPadding = 6f;
-
-	private bool wasAdvancedTextEnabledForElement;
 
 	private List<(int, RichTextTagParser.TagType, string)> Links => m_Links ?? (m_Links = new List<(int, RichTextTagParser.TagType, string)>());
 
@@ -43,28 +43,41 @@ internal class UITKTextHandle : TextHandle
 
 	internal float RoundedWidth { get; set; }
 
-	internal Vector2 ATGMeasuredSizes { get; set; }
+	internal float? ATGMeasuredWidth { get; set; }
 
-	internal Vector2 ATGRoundedSizes { get; set; }
+	internal float ATGRoundedWidth { get; set; }
 
 	public override bool IsPlaceholder => base.useAdvancedText ? m_TextElement.showPlaceholderText : base.IsPlaceholder;
 
-	private void ComputeNativeTextSize(in RenderedText textToMeasure, float width, float height, float? fontsize = null)
+	private void ComputeNativeTextSize(in string textToMeasure, float width, VisualElement.MeasureMode widthMode, float height, VisualElement.MeasureMode heightMode, float? fontsize = null)
 	{
-		if (ConvertUssToNativeTextGenerationSettings(fontsize))
+		if (ConvertUssToNativeTextGenerationSettings(textToMeasure, fontsize))
 		{
-			nativeSettings.text = ((textToMeasure.valueLength > 0) ? textToMeasure.CreateString() : "\u200b");
-			nativeSettings.screenWidth = (float.IsNaN(width) ? (-1) : ((int)(width * 64f)));
-			nativeSettings.screenHeight = (float.IsNaN(height) ? (-1) : ((int)(height * 64f)));
-			if (m_TextElement.enableRichText && !string.IsNullOrEmpty(nativeSettings.text))
+			if (string.IsNullOrEmpty(nativeSettings.text) && m_TextElement.isInputField)
 			{
-				RichTextTagParser.CreateTextGenerationSettingsArray(ref nativeSettings, Links, atgHyperlinkColor);
+				nativeSettings.text = "\u200b";
+			}
+			if (widthMode == VisualElement.MeasureMode.Undefined || float.IsNaN(width) || float.IsNegative(width))
+			{
+				nativeSettings.screenWidth = -1;
 			}
 			else
 			{
-				nativeSettings.textSpans = null;
+				nativeSettings.screenWidth = (int)(width * 64f);
 			}
-			pixelPreferedSize = textLib.MeasureText(nativeSettings, IntPtr.Zero);
+			if (heightMode == VisualElement.MeasureMode.Undefined || float.IsNaN(height) || float.IsNegative(height))
+			{
+				nativeSettings.screenHeight = -1;
+			}
+			else
+			{
+				nativeSettings.screenHeight = (int)(height * 64f);
+			}
+			if (base.textGenerationInfo == IntPtr.Zero)
+			{
+				base.textGenerationInfo = TextGenerationInfo.Create(base.IsCachedPermanent);
+			}
+			pixelPreferedSize = textLib.MeasureText(nativeSettings, base.textGenerationInfo);
 		}
 	}
 
@@ -74,23 +87,24 @@ internal class UITKTextHandle : TextHandle
 		{
 			return (default(NativeTextInfo), false);
 		}
-		if (m_TextElement.enableRichText && !string.IsNullOrEmpty(nativeSettings.text))
+		if (nativeSettings.hasLink)
 		{
-			RichTextTagParser.CreateTextGenerationSettingsArray(ref nativeSettings, Links, atgHyperlinkColor);
-		}
-		else
-		{
-			nativeSettings.textSpans = null;
-		}
-		if (nativeSettings.hasLink && textGenerationInfo == IntPtr.Zero)
-		{
-			textGenerationInfo = TextGenerationInfo.Create();
+			m_TextElement.uitkTextHandle.CacheTextGenerationInfo();
 			if (m_ATGTextEventHandler == null)
 			{
 				m_ATGTextEventHandler = new ATGTextEventHandler(m_TextElement);
 			}
 		}
-		NativeTextInfo item = textLib.GenerateText(nativeSettings, textGenerationInfo);
+		if (base.textGenerationInfo == IntPtr.Zero)
+		{
+			base.textGenerationInfo = TextGenerationInfo.Create(base.IsCachedPermanent);
+		}
+		bool wasCached = false;
+		NativeTextInfo item = textLib.GenerateText(nativeSettings, base.textGenerationInfo, ref wasCached);
+		if (!wasCached)
+		{
+			uvsAreGenerated = false;
+		}
 		m_IsElided = item.isElided;
 		return (item, true);
 	}
@@ -101,15 +115,39 @@ internal class UITKTextHandle : TextHandle
 		{
 			Debug.LogError("CacheTextGenerationInfo should only be called for ATG.");
 		}
-		else if (textGenerationInfo == IntPtr.Zero)
+		else if (!m_TextHandleFlags.HasFlag(TextHandleFlags.IsCachedPermanentATG))
 		{
-			textGenerationInfo = TextGenerationInfo.Create();
+			if (base.textGenerationInfo != IntPtr.Zero)
+			{
+				TextGenerationInfo.Destroy(base.textGenerationInfo);
+				base.textGenerationInfo = IntPtr.Zero;
+			}
+			base.IsCachedPermanentATG = true;
+			base.textGenerationInfo = TextGenerationInfo.Create(base.IsCachedPermanent);
 		}
 	}
 
-	public void ProcessMeshInfos(NativeTextInfo textInfo)
+	public void ShapeText()
 	{
-		textLib.ProcessMeshInfos(textInfo, nativeSettings);
+		if (ConvertUssToNativeTextGenerationSettings())
+		{
+			if (base.textGenerationInfo == IntPtr.Zero)
+			{
+				base.textGenerationInfo = TextGenerationInfo.Create(base.IsCachedPermanent);
+			}
+			textLib.ShapeText(nativeSettings, base.textGenerationInfo);
+		}
+	}
+
+	public void ProcessMeshInfos(NativeTextInfo textInfo, ref List<List<List<int>>> textElementIndicesByMesh, ref List<bool> hasMultipleColorsByMesh)
+	{
+		textLib.ProcessMeshInfos(textInfo, nativeSettings, ref textElementIndicesByMesh, ref hasMultipleColorsByMesh, uvsAreGenerated);
+		uvsAreGenerated = true;
+	}
+
+	public bool HasMissingGlyphs(NativeTextInfo textInfo, ref Dictionary<int, HashSet<uint>> missingGlyphsPerFontAsset)
+	{
+		return textLib.HasMissingGlyphs(textInfo, ref missingGlyphsPerFontAsset);
 	}
 
 	private (bool, bool) hasLinkAndHyperlink()
@@ -135,12 +173,12 @@ internal class UITKTextHandle : TextHandle
 	internal (RichTextTagParser.TagType, string) ATGFindIntersectingLink(Vector2 point)
 	{
 		Debug.Assert(base.useAdvancedText);
-		if (textGenerationInfo == IntPtr.Zero)
+		if (base.textGenerationInfo == IntPtr.Zero)
 		{
 			Debug.LogError("TextGenerationInfo pointer is null.");
 			return (RichTextTagParser.TagType.Unknown, null);
 		}
-		int num = TextLib.FindIntersectingLink(point * GetPixelsPerPoint(), textGenerationInfo);
+		int num = TextLib.FindIntersectingLink(point * GetPixelsPerPoint(), base.textGenerationInfo);
 		if (num == -1)
 		{
 			return (RichTextTagParser.TagType.Unknown, null);
@@ -172,51 +210,104 @@ internal class UITKTextHandle : TextHandle
 		}
 	}
 
-	internal bool ConvertUssToNativeTextGenerationSettings(float? fontsize = null)
+	internal void EnsureIsReadyForJobs()
 	{
+		InitTextLib();
 		FontAsset fontAsset = TextUtilities.GetFontAsset(m_TextElement);
-		if (fontAsset.atlasPopulationMode == AtlasPopulationMode.Static)
+		if (!(fontAsset == null))
 		{
-			Debug.LogError("Advanced text system cannot render using static font asset " + fontAsset.faceInfo.familyName);
-			return false;
+			TextUtilities.GetTextSettingsFrom(m_TextElement).UpdateNativeTextSettings();
+			fontAsset.EnsureNativeFontAssetIsCreated();
 		}
+	}
+
+	internal bool ConvertUssToNativeTextGenerationSettings(string? textToMeasure = null, float? fontsize = null)
+	{
 		float pixelsPerPoint = GetPixelsPerPoint();
 		ComputedStyle computedStyle = m_TextElement.computedStyle;
-		nativeSettings.textSettings = TextUtilities.GetTextSettingsFrom(m_TextElement).nativeTextSettings;
-		RenderedText renderedText = ((m_TextElement.isElided && !TextLibraryCanElide()) ? new RenderedText(m_TextElement.elidedText) : m_TextElement.renderedText);
-		nativeSettings.text = renderedText.CreateString();
-		float num = fontsize ?? computedStyle.fontSize.value;
-		nativeSettings.fontSize = (int)(num * 64f * pixelsPerPoint);
+		nativeSettings.preProcessFlags = PreProcessFlags.None;
+		nativeSettings.text = ((m_TextElement.isElided && !TextLibraryCanElide()) ? m_TextElement.elidedText : m_TextElement.renderedTextString);
+		if (textToMeasure != null)
+		{
+			nativeSettings.text = textToMeasure;
+		}
+		if (nativeSettings.text == null)
+		{
+			nativeSettings.text = "";
+		}
+		float num = (fontsize ?? computedStyle.fontSize.value) * pixelsPerPoint;
+		nativeSettings.fontSize = (int)Math.Round(num * 64f, MidpointRounding.AwayFromZero);
 		nativeSettings.bestFit = computedStyle.unityTextAutoSize.mode == TextAutoSizeMode.BestFit;
 		nativeSettings.maxFontSize = (int)(computedStyle.unityTextAutoSize.maxSize.value * 64f * pixelsPerPoint);
 		nativeSettings.minFontSize = (int)(computedStyle.unityTextAutoSize.minSize.value * 64f * pixelsPerPoint);
-		nativeSettings.wordWrap = computedStyle.whiteSpace.toTextCore(m_TextElement.isInputField);
-		nativeSettings.overflow = computedStyle.textOverflow.toTextCore(computedStyle.overflow);
+		nativeSettings.wordWrapEnabled = computedStyle.whiteSpace == WhiteSpace.Normal || computedStyle.whiteSpace == WhiteSpace.PreWrap;
+		if (!m_TextElement.isInputField && (computedStyle.whiteSpace == WhiteSpace.NoWrap || computedStyle.whiteSpace == WhiteSpace.Normal))
+		{
+			nativeSettings.preProcessFlags |= PreProcessFlags.CollapseWhiteSpaces;
+		}
+		if (m_TextElement.parseEscapeSequences)
+		{
+			nativeSettings.preProcessFlags |= PreProcessFlags.ParseEscapeSequences;
+		}
+		nativeSettings.overflow = computedStyle.textOverflow.toTextCore(computedStyle.overflow, computedStyle.unityTextOverflowPosition);
 		nativeSettings.horizontalAlignment = TextGeneratorUtilities.GetHorizontalAlignment(computedStyle.unityTextAlign);
 		nativeSettings.verticalAlignment = TextGeneratorUtilities.GetVerticalAlignment(computedStyle.unityTextAlign);
 		nativeSettings.characterSpacing = (int)(computedStyle.letterSpacing.value * 64f);
 		nativeSettings.wordSpacing = (int)(computedStyle.wordSpacing.value * 64f);
 		nativeSettings.paragraphSpacing = (int)(computedStyle.unityParagraphSpacing.value * 64f);
 		nativeSettings.color = computedStyle.color;
-		nativeSettings.fontAsset = fontAsset.nativeFontAsset;
+		ref Color32 color = ref nativeSettings.color;
+		color *= m_TextElement.playModeTintColor;
 		nativeSettings.languageDirection = m_TextElement.localLanguageDirection.toTextCore();
-		nativeSettings.vertexPadding = (int)(GetVertexPadding(fontAsset) * 64f);
 		FontStyles fontStyles = TextGeneratorUtilities.LegacyStyleToNewStyle(computedStyle.unityFontStyleAndWeight);
 		nativeSettings.fontStyle = fontStyles & ~FontStyles.Bold;
 		nativeSettings.fontWeight = (((fontStyles & FontStyles.Bold) == FontStyles.Bold) ? TextFontWeight.Bold : TextFontWeight.Regular);
-		Vector2 vector = m_TextElement.contentRect.size;
-		if (Mathf.Abs(vector.x - ATGRoundedSizes.x) < 0.01f && Mathf.Abs(vector.y - ATGRoundedSizes.y) < 0.01f)
+		Vector2 size = m_TextElement.contentRect.size;
+		if (ATGMeasuredWidth.HasValue && Mathf.Abs(size.x - ATGRoundedWidth) < 0.01f && LastPixelPerPoint == pixelsPerPoint)
 		{
-			vector = ATGMeasuredSizes;
+			size.x = ATGMeasuredWidth.Value;
 		}
 		else
 		{
-			ATGRoundedSizes = vector;
-			ATGMeasuredSizes = vector;
+			ATGRoundedWidth = size.x;
+			ATGMeasuredWidth = null;
 		}
-		nativeSettings.screenWidth = (int)(vector.x * 64f * pixelsPerPoint);
-		nativeSettings.screenHeight = (int)(vector.y * 64f * pixelsPerPoint);
+		nativeSettings.screenWidth = Mathf.RoundToInt(size.x * 64f * pixelsPerPoint);
+		nativeSettings.screenHeight = Mathf.RoundToInt(size.y * 64f * pixelsPerPoint);
+		FontAsset fontAsset = TextUtilities.GetFontAsset(m_TextElement);
+		if (fontAsset == null)
+		{
+			return false;
+		}
+		if (fontAsset.atlasPopulationMode == AtlasPopulationMode.Static)
+		{
+			Debug.LogError("Advanced text system cannot render using static font asset " + fontAsset.faceInfo.familyName);
+			return false;
+		}
+		nativeSettings.vertexPadding = (int)(GetVertexPadding(fontAsset) * 64f);
+		nativeSettings.fontAsset = fontAsset.nativeFontAsset;
+		if (fontAsset.nativeFontAsset == IntPtr.Zero)
+		{
+			return false;
+		}
+		nativeSettings.textSettings = TextUtilities.GetTextSettingsFrom(m_TextElement).nativeTextSettings;
+		if (m_TextElement.enableRichText && RichTextTagParser.MayNeedParsing(nativeSettings.text))
+		{
+			TextPreprocessor.PreProcessString(ref nativeSettings.text, nativeSettings.preProcessFlags, TextUtilities.GetTextSettingsFrom(m_TextElement));
+			nativeSettings.preProcessFlags = PreProcessFlags.None;
+			RichTextTagParser.CreateTextGenerationSettingsArray(ref nativeSettings, Links, atgHyperlinkColor, GetPixelsPerPoint(), TextUtilities.GetTextSettingsFrom(m_TextElement));
+		}
+		else
+		{
+			nativeSettings.textSpans = null;
+		}
 		return true;
+	}
+
+	internal void EnsureFontAssetsAreCreatedOnTheMainThread()
+	{
+		FontAsset fontAsset = TextUtilities.GetFontAsset(m_TextElement);
+		fontAsset.EnsureNativeFontAssetIsCreated();
 	}
 
 	private TextAsset GetICUAsset()
@@ -260,6 +351,15 @@ internal class UITKTextHandle : TextHandle
 		}
 	}
 
+	public override void RemoveFromPermanentCacheATG()
+	{
+		if (base.IsCachedPermanentATG)
+		{
+			m_ATGTextEventHandler?.UnRegisterHyperlinkCallbacks();
+		}
+		base.RemoveFromPermanentCacheATG();
+	}
+
 	public UITKTextHandle(TextElement te)
 	{
 		m_TextElement = te;
@@ -274,25 +374,36 @@ internal class UITKTextHandle : TextHandle
 	public override void SetDirty()
 	{
 		MeasuredWidth = null;
+		ATGMeasuredWidth = null;
 		base.SetDirty();
+	}
+
+	public Vector2 ComputeTextSize(string textToMeasure, float width, VisualElement.MeasureMode widthMode, float height, VisualElement.MeasureMode heightMode, float? fontsize = null)
+	{
+		if (!TextUtilities.IsAdvancedTextEnabledForElement(m_TextElement))
+		{
+			return ComputeTextSize(new RenderedText(textToMeasure), width, height, fontsize);
+		}
+		float pixelsPerPoint = GetPixelsPerPoint();
+		width = Mathf.Floor(width * pixelsPerPoint);
+		height = Mathf.Floor(height * pixelsPerPoint);
+		ComputeNativeTextSize(in textToMeasure, width, widthMode, height, heightMode, fontsize);
+		return base.preferredSize;
 	}
 
 	public Vector2 ComputeTextSize(in RenderedText textToMeasure, float width, float height, float? fontsize = null)
 	{
+		if (TextUtilities.IsAdvancedTextEnabledForElement(m_TextElement))
+		{
+			return Vector2.zero;
+		}
 		float pixelsPerPoint = GetPixelsPerPoint();
 		width = Mathf.Floor(width * pixelsPerPoint);
 		height = Mathf.Floor(height * pixelsPerPoint);
-		if (TextUtilities.IsAdvancedTextEnabledForElement(m_TextElement))
-		{
-			ComputeNativeTextSize(in textToMeasure, width, height, fontsize);
-		}
-		else
-		{
-			ConvertUssToTextGenerationSettings(populateScreenRect: false, fontsize);
-			TextHandle.settings.renderedText = textToMeasure;
-			TextHandle.settings.screenRect = new Rect(0f, 0f, width, height);
-			UpdatePreferredValues(TextHandle.settings);
-		}
+		ConvertUssToTextGenerationSettings(populateScreenRect: false, fontsize);
+		TextHandle.settings.renderedText = textToMeasure;
+		TextHandle.settings.screenRect = new Rect(0f, 0f, width, height);
+		UpdatePreferredValues(TextHandle.settings);
 		return base.preferredSize;
 	}
 
@@ -334,7 +445,7 @@ internal class UITKTextHandle : TextHandle
 			AddTextInfoToTemporaryCache(hashCode);
 			return;
 		}
-		RemoveTextInfoFromTemporaryCache();
+		RemoveFromTemporaryCache();
 		UpdateWithHash(hashCode);
 	}
 
@@ -350,6 +461,7 @@ internal class UITKTextHandle : TextHandle
 		{
 			base.AddToPermanentCacheAndGenerateMesh();
 		}
+		ReleaseResourcesIfPossible();
 	}
 
 	private TextOverflowMode GetTextOverflowMode()
@@ -471,24 +583,33 @@ internal class UITKTextHandle : TextHandle
 
 	internal void ReleaseResourcesIfPossible()
 	{
-		bool flag = TextUtilities.IsAdvancedTextEnabledForElement(m_TextElement);
-		if (wasAdvancedTextEnabledForElement && !flag && textGenerationInfo != IntPtr.Zero)
+		if (!TextUtilities.IsAdvancedTextEnabledForElement(m_TextElement))
 		{
-			TextGenerationInfo.Destroy(textGenerationInfo);
-			textGenerationInfo = IntPtr.Zero;
-			m_ATGTextEventHandler?.OnDestroy();
-			m_ATGTextEventHandler = null;
-			m_TextEventHandler = new TextEventHandler(m_TextElement);
+			RemoveFromPermanentCacheATG();
+			if (m_ATGTextEventHandler != null)
+			{
+				m_ATGTextEventHandler?.OnDestroy();
+				m_ATGTextEventHandler = null;
+			}
+			if (m_TextEventHandler == null)
+			{
+				m_TextEventHandler = new TextEventHandler(m_TextElement);
+			}
+			return;
 		}
-		else if (!wasAdvancedTextEnabledForElement && flag)
+		if (base.IsCachedPermanentTextCore)
 		{
-			TextHandle.s_PermanentCache.RemoveTextInfoFromCache(this);
-			TextHandle.s_TemporaryCache.RemoveTextInfoFromCache(this);
+			RemoveFromPermanentCacheTextCore();
+		}
+		if (base.IsCachedTemporary)
+		{
+			RemoveFromTemporaryCache();
+		}
+		if (m_TextEventHandler != null)
+		{
 			m_TextEventHandler?.OnDestroy();
 			m_TextEventHandler = null;
-			m_ATGTextEventHandler = new ATGTextEventHandler(m_TextElement);
 		}
-		wasAdvancedTextEnabledForElement = flag;
 	}
 
 	public bool IsElided()

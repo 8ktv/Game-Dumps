@@ -1,7 +1,12 @@
+using System.Runtime.InteropServices;
+
 namespace UnityEngine.LowLevelPhysics;
 
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct BoxGeometry : IGeometry
 {
+	private int m_UnusedReserved;
+
 	private Vector3 m_HalfExtents;
 
 	public Vector3 HalfExtents
@@ -20,6 +25,7 @@ public struct BoxGeometry : IGeometry
 
 	public BoxGeometry(Vector3 halfExtents)
 	{
+		m_UnusedReserved = -1;
 		m_HalfExtents = halfExtents;
 	}
 }

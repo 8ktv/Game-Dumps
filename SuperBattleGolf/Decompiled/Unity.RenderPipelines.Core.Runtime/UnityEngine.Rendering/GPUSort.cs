@@ -34,7 +34,25 @@ public struct GPUSort
 
 		public BufferHandle sortBufferValues;
 
+		[Obsolete("This Create signature is deprecated and will be removed in the future. Please use Create(IBaseRenderGraphBuilder) instead. #from(6000.3)")]
 		public static RenderGraphResources Create(int count, RenderGraph renderGraph, RenderGraphBuilder builder)
+		{
+			GraphicsBuffer.Target target = GraphicsBuffer.Target.CopyDestination | GraphicsBuffer.Target.Raw;
+			RenderGraphResources result = default(RenderGraphResources);
+			BufferDesc desc = new BufferDesc(count, 4, target)
+			{
+				name = "Keys"
+			};
+			result.sortBufferKeys = builder.CreateTransientBuffer(in desc);
+			BufferDesc desc2 = new BufferDesc(count, 4, target)
+			{
+				name = "Values"
+			};
+			result.sortBufferValues = builder.CreateTransientBuffer(in desc2);
+			return result;
+		}
+
+		public static RenderGraphResources Create(int count, RenderGraph renderGraph, IBaseRenderGraphBuilder builder)
 		{
 			GraphicsBuffer.Target target = GraphicsBuffer.Target.CopyDestination | GraphicsBuffer.Target.Raw;
 			RenderGraphResources result = default(RenderGraphResources);
@@ -142,6 +160,14 @@ public struct GPUSort
 	internal static int DivRoundUp(int x, int y)
 	{
 		return (x + y - 1) / y;
+	}
+
+	public void Dispatch(IComputeCommandBuffer cmd, Args args)
+	{
+		if (cmd is BaseCommandBuffer baseCommandBuffer)
+		{
+			Dispatch(baseCommandBuffer.m_WrappedCommandBuffer, args);
+		}
 	}
 
 	public void Dispatch(CommandBuffer cmd, Args args)

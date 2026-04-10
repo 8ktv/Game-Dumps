@@ -37,14 +37,14 @@ public sealed class LensFlareComponentSRP : MonoBehaviour
 
 	public bool useOcclusion;
 
-	[Obsolete("Replaced by environmentOcclusion.")]
+	[Obsolete("Replaced by environmentOcclusion. #from(6000.0)")]
 	public bool useBackgroundCloudOcclusion;
 
 	[FormerlySerializedAs("volumetricCloudOcclusion")]
 	[FormerlySerializedAs("useFogOpacityOcclusion")]
 	public bool environmentOcclusion;
 
-	[Obsolete("Replaced by environmentOcclusion.")]
+	[Obsolete("Replaced by environmentOcclusion. #from(6000.0)")]
 	public bool useWaterOcclusion;
 
 	[Min(0f)]
@@ -60,7 +60,7 @@ public sealed class LensFlareComponentSRP : MonoBehaviour
 
 	public bool allowOffScreen;
 
-	[Obsolete("Please use environmentOcclusion instead.")]
+	[Obsolete("Please use environmentOcclusion instead. #from(6000.0)")]
 	public bool volumetricCloudOcclusion;
 
 	private static float sCelestialAngularRadius = 0.057595868f;

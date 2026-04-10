@@ -6,11 +6,11 @@ using UnityEngine.Internal;
 
 namespace UnityEngine;
 
+[NativeHeader("Runtime/GfxDevice/GfxDevice.h")]
 [StaticAccessor("GetGfxDevice()", StaticAccessorType.Dot)]
 [NativeHeader("Runtime/Graphics/GraphicsScriptBindings.h")]
-[NativeHeader("Runtime/Camera/CameraUtil.h")]
-[NativeHeader("Runtime/GfxDevice/GfxDevice.h")]
 [NativeHeader("Runtime/Camera/Camera.h")]
+[NativeHeader("Runtime/Camera/CameraUtil.h")]
 public sealed class GL
 {
 	public const int TRIANGLES = 4;

@@ -21,7 +21,7 @@ public abstract class ComponentSingleton<T> : MonoBehaviour where T : ComponentS
 
 	private static T FindInstance()
 	{
-		return Object.FindObjectOfType<T>();
+		return Object.FindFirstObjectByType<T>();
 	}
 
 	protected virtual string GetGameObjectName()

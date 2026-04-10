@@ -4,7 +4,7 @@ using System.Globalization;
 namespace UnityEngine.UIElements;
 
 [Serializable]
-internal struct FilterParameter : IEquatable<FilterParameter>
+public struct FilterParameter : IEquatable<FilterParameter>
 {
 	[SerializeField]
 	private FilterParameterType m_Type;

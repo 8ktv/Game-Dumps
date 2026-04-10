@@ -100,12 +100,28 @@ internal class TreeViewReorderableDragAndDropController : BaseReorderableDragAnd
 
 	public override DragVisualMode HandleDragAndDrop(IListDragAndDropArgs args)
 	{
-		return (args.dragAndDropData.source == m_TreeView) ? DragVisualMode.Move : DragVisualMode.Rejected;
+		return (args.dragAndDropData.source == m_TreeView && CanDrop()) ? DragVisualMode.Move : DragVisualMode.Rejected;
+	}
+
+	public override bool CanDrop()
+	{
+		int result;
+		if (!base.CanDrop())
+		{
+			DropData dropData = m_DropData;
+			result = ((dropData != null && dropData.draggedIds != null) ? 1 : 0);
+		}
+		else
+		{
+			result = 1;
+		}
+		return (byte)result != 0;
 	}
 
 	public override void OnDrop(IListDragAndDropArgs args)
 	{
-		if (!m_TreeView.reorderable)
+		base.OnDrop(args);
+		if (!m_TreeView.reorderable || m_DropData?.draggedIds == null)
 		{
 			return;
 		}
@@ -156,6 +172,7 @@ internal class TreeViewReorderableDragAndDropController : BaseReorderableDragAnd
 
 	public override void DragCleanup()
 	{
+		base.DragCleanup();
 		if (m_DropData != null)
 		{
 			if (m_DropData.expandedIdsBeforeDrag != null)
@@ -169,12 +186,18 @@ internal class TreeViewReorderableDragAndDropController : BaseReorderableDragAnd
 
 	private void RestoreExpanded(List<int> ids)
 	{
+		bool flag = false;
 		foreach (int allItemId in m_TreeView.viewController.GetAllItemIds())
 		{
 			if (!ids.Contains(allItemId))
 			{
-				m_TreeView.CollapseItem(allItemId);
+				m_TreeView.CollapseItem(allItemId, collapseAllChildren: false, refresh: false);
+				flag = true;
 			}
+		}
+		if (flag)
+		{
+			m_TreeView.RefreshItems();
 		}
 	}
 
@@ -187,7 +210,7 @@ internal class TreeViewReorderableDragAndDropController : BaseReorderableDragAnd
 		if (id != m_DropData.lastItemId || !flag || vector.sqrMagnitude >= 100f)
 		{
 			m_DropData.lastItemId = id;
-			m_DropData.expandItemBeginTimerMs = Panel.TimeSinceStartupMs();
+			m_DropData.expandItemBeginTimerMs = item.bindableElement.TimeSinceStartupMs();
 			m_DropData.expandItemBeginPosition = pointerPosition;
 			DelayExpandDropItem();
 		}
@@ -206,7 +229,7 @@ internal class TreeViewReorderableDragAndDropController : BaseReorderableDragAnd
 
 	private void ExpandDropItem()
 	{
-		bool flag = (float)Panel.TimeSinceStartupMs() - m_DropData.expandItemBeginTimerMs > 700f;
+		bool flag = (float)m_TreeView.TimeSinceStartupMs() - m_DropData.expandItemBeginTimerMs > 700f;
 		bool flag2 = flag;
 		int lastItemId = m_DropData.lastItemId;
 		if (!(m_TreeView.viewController.Exists(lastItemId) && flag2))
@@ -224,7 +247,7 @@ internal class TreeViewReorderableDragAndDropController : BaseReorderableDragAnd
 			{
 				dropData.expandedIdsBeforeDrag = list.ToArray();
 			}
-			m_DropData.expandItemBeginTimerMs = Panel.TimeSinceStartupMs();
+			m_DropData.expandItemBeginTimerMs = m_TreeView.TimeSinceStartupMs();
 			m_DropData.lastItemId = 0;
 			m_TreeView.ExpandItem(lastItemId);
 			CollectionPool<List<int>, int>.Release(list);

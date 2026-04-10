@@ -176,8 +176,8 @@ public class AreaEffector2D : Effector2D
 		}
 	}
 
-	[Obsolete("AreaEffector2D.drag has been obsolete. Use AreaEffector2D.linearDamping instead (UnityUpgradable) -> linearDamping", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("AreaEffector2D.drag has been obsolete. Use AreaEffector2D.linearDamping instead (UnityUpgradable) -> linearDamping", true)]
 	public float drag
 	{
 		get
@@ -190,8 +190,8 @@ public class AreaEffector2D : Effector2D
 		}
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("AreaEffector2D.angularDrag has been obsolete. Use AreaEffector2D.angularDamping instead (UnityUpgradable) -> angularDamping", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public float angularDrag
 	{
 		get

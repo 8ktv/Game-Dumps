@@ -7,8 +7,8 @@ public static class CrashReporting
 {
 	public static string crashReportFolder
 	{
-		[ThreadSafe]
 		[NativeHeader("PlatformDependent/WinPlayer/Bindings/CrashReportingBindings.h")]
+		[ThreadSafe]
 		get
 		{
 			ManagedSpanWrapper ret = default(ManagedSpanWrapper);

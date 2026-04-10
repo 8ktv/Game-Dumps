@@ -8,7 +8,9 @@ internal struct IndirectBufferContextHandles
 
 	public BufferHandle instanceInfoBuffer;
 
-	public BufferHandle argsBuffer;
+	public BufferHandle dispatchArgsBuffer;
+
+	public BufferHandle drawArgsBuffer;
 
 	public BufferHandle drawInfoBuffer;
 
@@ -16,7 +18,8 @@ internal struct IndirectBufferContextHandles
 	{
 		instanceBuffer = builder.UseBuffer(in instanceBuffer, AccessFlags.ReadWrite);
 		instanceInfoBuffer = builder.UseBuffer(in instanceInfoBuffer);
-		argsBuffer = builder.UseBuffer(in argsBuffer, AccessFlags.ReadWrite);
+		dispatchArgsBuffer = builder.UseBuffer(in dispatchArgsBuffer, AccessFlags.ReadWrite);
+		drawArgsBuffer = builder.UseBuffer(in drawArgsBuffer, AccessFlags.ReadWrite);
 		drawInfoBuffer = builder.UseBuffer(in drawInfoBuffer);
 	}
 }

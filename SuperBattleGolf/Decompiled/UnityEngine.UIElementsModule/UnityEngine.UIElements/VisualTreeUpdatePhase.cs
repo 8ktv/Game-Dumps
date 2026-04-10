@@ -12,5 +12,6 @@ internal enum VisualTreeUpdatePhase
 	Layout,
 	TransformClip,
 	Repaint,
+	Authoring,
 	Count
 }

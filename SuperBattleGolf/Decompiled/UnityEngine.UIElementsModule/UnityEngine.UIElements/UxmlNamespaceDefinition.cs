@@ -24,6 +24,10 @@ internal struct UxmlNamespaceDefinition : IEquatable<UxmlNamespaceDefinition>
 
 	public static bool operator ==(UxmlNamespaceDefinition lhs, UxmlNamespaceDefinition rhs)
 	{
+		if (string.IsNullOrEmpty(lhs.prefix) && string.IsNullOrEmpty(rhs.prefix) && string.IsNullOrEmpty(lhs.resolvedNamespace) && string.IsNullOrEmpty(rhs.resolvedNamespace))
+		{
+			return true;
+		}
 		return string.Compare(lhs.prefix, rhs.prefix, StringComparison.Ordinal) == 0 && string.Compare(lhs.resolvedNamespace, rhs.resolvedNamespace, StringComparison.Ordinal) == 0;
 	}
 

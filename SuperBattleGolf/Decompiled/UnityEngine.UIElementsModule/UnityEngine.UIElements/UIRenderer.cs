@@ -14,14 +14,14 @@ public sealed class UIRenderer : Renderer
 
 	internal volatile bool skipRendering;
 
-	internal void AddDrawCallData(int safeFrameIndex, int cmdListIndex, Material mat)
+	internal void AddDrawCallData(int safeFrameIndex, int cmdListIndex, Material mat, uint textureSlotCount, uint forceRenderType)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 		if (intPtr == (IntPtr)0)
 		{
 			ThrowHelper.ThrowNullReferenceException(this);
 		}
-		AddDrawCallData_Injected(intPtr, safeFrameIndex, cmdListIndex, MarshalledUnityObject.Marshal(mat));
+		AddDrawCallData_Injected(intPtr, safeFrameIndex, cmdListIndex, MarshalledUnityObject.Marshal(mat), textureSlotCount, forceRenderType);
 	}
 
 	internal void ResetDrawCallData()
@@ -32,6 +32,16 @@ public sealed class UIRenderer : Renderer
 			ThrowHelper.ThrowNullReferenceException(this);
 		}
 		ResetDrawCallData_Injected(intPtr);
+	}
+
+	internal int GetDrawCallDataCount()
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return GetDrawCallDataCount_Injected(intPtr);
 	}
 
 	[RequiredByNativeCode]
@@ -49,8 +59,11 @@ public sealed class UIRenderer : Renderer
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void AddDrawCallData_Injected(IntPtr _unity_self, int safeFrameIndex, int cmdListIndex, IntPtr mat);
+	private static extern void AddDrawCallData_Injected(IntPtr _unity_self, int safeFrameIndex, int cmdListIndex, IntPtr mat, uint textureSlotCount, uint forceRenderType);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void ResetDrawCallData_Injected(IntPtr _unity_self);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern int GetDrawCallDataCount_Injected(IntPtr _unity_self);
 }

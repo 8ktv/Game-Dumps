@@ -49,6 +49,8 @@ internal class UIToolkitInteroperabilityBridge
 
 	private long m_OldEventCamerasHash;
 
+	private List<BaseRuntimePanel> m_PanelsToRemove = new List<BaseRuntimePanel>();
+
 	internal EventSystem eventSystem
 	{
 		get
@@ -191,12 +193,12 @@ internal class UIToolkitInteroperabilityBridge
 	{
 		if (panel.selectableGameObject == null)
 		{
-			GameObject go = new GameObject(panel.name, typeof(PanelEventHandler), typeof(PanelRaycaster));
-			go.transform.SetParent(m_EventSystem.transform);
-			panel.selectableGameObject = go;
+			GameObject gameObject = new GameObject(panel.name, typeof(PanelEventHandler), typeof(PanelRaycaster));
+			gameObject.transform.SetParent(m_EventSystem.transform);
+			panel.selectableGameObject = gameObject;
 			Action action = (destroyedActions[panel] = delegate
 			{
-				UIRUtility.Destroy(go);
+				DestroyPanelGameObject(panel);
 			});
 			Action value = action;
 			panel.destroyed += value;
@@ -394,9 +396,19 @@ internal class UIToolkitInteroperabilityBridge
 		bool flag = false;
 		foreach (BaseRuntimePanel trackedPanel in trackedPanels)
 		{
+			if (trackedPanel.disposed)
+			{
+				m_PanelsToRemove.Add(trackedPanel);
+				continue;
+			}
 			UpdatePanelGameObject(trackedPanel);
 			flag |= !trackedPanel.isFlat;
 		}
+		foreach (BaseRuntimePanel item in m_PanelsToRemove)
+		{
+			trackedPanels.Remove(item);
+		}
+		m_PanelsToRemove.Clear();
 		if (flag && (m_HandlerTypes & EventHandlerTypes.WorldSpace) != 0)
 		{
 			CreateWorldSpacePanelGameObject();

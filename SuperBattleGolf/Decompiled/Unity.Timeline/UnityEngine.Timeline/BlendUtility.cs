@@ -4,8 +4,6 @@ namespace UnityEngine.Timeline;
 
 internal static class BlendUtility
 {
-	private static readonly double kMinOverlapTime = TimeUtility.kTimeEpsilon * 1000.0;
-
 	private static bool Overlaps(TimelineClip blendOut, TimelineClip blendIn)
 	{
 		if (blendIn == blendOut)
@@ -55,9 +53,8 @@ internal static class BlendUtility
 	{
 		if (blendOutClip.SupportsBlending() && blendInClip.SupportsBlending() && !(blendInClip.start - blendOutClip.start < blendOutClip.duration - blendInClip.duration))
 		{
-			double num = Math.Max(0.0, blendOutClip.start + blendOutClip.duration - blendInClip.start);
-			num = (blendOutClip.blendOutDuration = ((num <= kMinOverlapTime) ? 0.0 : num));
-			blendInClip.blendInDuration = num;
+			double blendInDuration = (blendOutClip.blendOutDuration = Math.Max(0.0, blendOutClip.start + blendOutClip.duration - blendInClip.start));
+			blendInClip.blendInDuration = blendInDuration;
 			TimelineClip.BlendCurveMode blendInCurveMode = blendInClip.blendInCurveMode;
 			TimelineClip.BlendCurveMode blendOutCurveMode = blendOutClip.blendOutCurveMode;
 			if (blendInCurveMode == TimelineClip.BlendCurveMode.Manual && blendOutCurveMode == TimelineClip.BlendCurveMode.Auto)

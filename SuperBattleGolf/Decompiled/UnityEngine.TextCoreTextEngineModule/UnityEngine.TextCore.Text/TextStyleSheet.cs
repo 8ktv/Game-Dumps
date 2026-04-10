@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace UnityEngine.TextCore.Text;
 
 [Serializable]
-[ExcludeFromPreset]
 [ExcludeFromObjectFactory]
+[ExcludeFromPreset]
 public class TextStyleSheet : ScriptableObject
 {
 	[SerializeField]

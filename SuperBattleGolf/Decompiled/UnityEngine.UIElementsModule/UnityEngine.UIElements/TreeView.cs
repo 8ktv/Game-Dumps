@@ -15,9 +15,9 @@ public class TreeView : BaseTreeView
 		[SerializeField]
 		private VisualTreeAsset itemTemplate;
 
-		[SerializeField]
 		[HideInInspector]
 		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags itemTemplate_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]

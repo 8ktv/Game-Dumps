@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using UnityEngine.Bindings;
+using UnityEngine.Pool;
 
 namespace UnityEngine.UIElements;
 
@@ -44,7 +45,7 @@ internal static class StringUtilsExtensions
 		{
 			throw new ArgumentNullException("text");
 		}
-		StringBuilder stringBuilder = new StringBuilder();
+		StringBuilder stringBuilder = GenericPool<StringBuilder>.Get();
 		bool flag = true;
 		bool flag2 = true;
 		bool flag3 = true;
@@ -87,7 +88,9 @@ internal static class StringUtilsExtensions
 				stringBuilder.Append(c);
 			}
 		}
-		return stringBuilder.ToString();
+		string result = stringBuilder.ToString();
+		GenericPool<StringBuilder>.Release(stringBuilder.Clear());
+		return result;
 	}
 
 	public static bool EndsWithIgnoreCaseFast(this string a, string b)

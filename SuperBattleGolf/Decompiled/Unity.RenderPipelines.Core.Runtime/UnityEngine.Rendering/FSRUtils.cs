@@ -69,6 +69,11 @@ public static class FSRUtils
 		cmd.SetGlobalVector(ShaderConstants._FsrRcasConstants, value);
 	}
 
+	public static void SetRcasConstants(BaseCommandBuffer cmd, float sharpnessStops = 0.2f)
+	{
+		SetRcasConstants(cmd.m_WrappedCommandBuffer, sharpnessStops);
+	}
+
 	public static void SetRcasConstantsLinear(CommandBuffer cmd, float sharpnessLinear = 0.92f)
 	{
 		float sharpnessStops = (1f - sharpnessLinear) * 2.5f;

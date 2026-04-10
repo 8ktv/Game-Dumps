@@ -24,6 +24,8 @@ internal struct InstanceCuller : IDisposable
 
 		public static readonly int _InstanceInfo = Shader.PropertyToID("_InstanceInfo");
 
+		public static readonly int _DispatchArgs = Shader.PropertyToID("_DispatchArgs");
+
 		public static readonly int _DrawArgs = Shader.PropertyToID("_DrawArgs");
 
 		public static readonly int _InstanceIndices = Shader.PropertyToID("_InstanceIndices");
@@ -308,7 +310,7 @@ internal struct InstanceCuller : IDisposable
 				cullingOutput = cullingOutput.drawCommands,
 				indirectBufferLimits = limits,
 				visibleInstancesBufferHandle = m_IndirectStorage.visibleInstanceBufferHandle,
-				indirectArgsBufferHandle = m_IndirectStorage.indirectArgsBufferHandle,
+				indirectArgsBufferHandle = m_IndirectStorage.indirectDrawArgsBufferHandle,
 				indirectBufferAllocInfo = allocInfoSubArray,
 				indirectInstanceInfoGlobalArray = m_IndirectStorage.instanceInfoGlobalArray,
 				indirectDrawInfoGlobalArray = m_IndirectStorage.drawInfoGlobalArray
@@ -381,7 +383,7 @@ internal struct InstanceCuller : IDisposable
 			return;
 		}
 		InstanceOcclusionTestPassData passData;
-		using IComputeRenderGraphBuilder computeRenderGraphBuilder = renderGraph.AddComputePass<InstanceOcclusionTestPassData>("Instance Occlusion Test", out passData, m_ProfilingSampleInstanceOcclusionTest, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\GPUDriven\\InstanceCuller.cs", 2326);
+		using IComputeRenderGraphBuilder computeRenderGraphBuilder = renderGraph.AddComputePass<InstanceOcclusionTestPassData>("Instance Occlusion Test", out passData, m_ProfilingSampleInstanceOcclusionTest, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\GPUDriven\\InstanceCuller.cs", 2327);
 		computeRenderGraphBuilder.AllowGlobalStateModification(value: true);
 		passData.settings = settings;
 		passData.subviewSettings = InstanceOcclusionTestSubviewSettings.FromSpan(subviewOcclusionTests);
@@ -428,7 +430,7 @@ internal struct InstanceCuller : IDisposable
 				int copyInstancesKernel = m_CopyInstancesKernel;
 				commandBuffer.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._DrawInfo, m_IndirectStorage.drawInfoBuffer);
 				commandBuffer.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._InstanceInfo, m_IndirectStorage.instanceInfoBuffer);
-				commandBuffer.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._DrawArgs, m_IndirectStorage.argsBuffer);
+				commandBuffer.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._DrawArgs, m_IndirectStorage.drawArgsBuffer);
 				commandBuffer.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._InstanceIndices, m_IndirectStorage.instanceBuffer);
 				commandBuffer.DispatchCompute(cs, copyInstancesKernel, (allocInfo.instanceCount + 63) / 64, 1, 1);
 				Graphics.ExecuteCommandBuffer(commandBuffer);
@@ -553,17 +555,21 @@ internal struct InstanceCuller : IDisposable
 				if (flag5)
 				{
 					int copyInstancesKernel = m_CopyInstancesKernel;
-					cmd.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._DrawInfo, m_IndirectStorage.drawInfoBuffer);
-					cmd.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._InstanceInfo, m_IndirectStorage.instanceInfoBuffer);
-					cmd.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._DrawArgs, m_IndirectStorage.argsBuffer);
-					cmd.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._InstanceIndices, m_IndirectStorage.instanceBuffer);
+					cmd.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._DrawInfo, bufferHandles.drawInfoBuffer);
+					cmd.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._InstanceInfo, bufferHandles.instanceInfoBuffer);
+					cmd.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._DrawArgs, bufferHandles.drawArgsBuffer);
+					cmd.SetComputeBufferParam(cs, copyInstancesKernel, ShaderIDs._InstanceIndices, bufferHandles.instanceBuffer);
 					cmd.DispatchCompute(cs, copyInstancesKernel, (allocInfo.instanceCount + 63) / 64, 1, 1);
 				}
 				if (flag6)
 				{
 					int resetDrawArgsKernel = m_ResetDrawArgsKernel;
 					cmd.SetComputeBufferParam(cs, resetDrawArgsKernel, ShaderIDs._DrawInfo, bufferHandles.drawInfoBuffer);
-					cmd.SetComputeBufferParam(cs, resetDrawArgsKernel, ShaderIDs._DrawArgs, bufferHandles.argsBuffer);
+					cmd.SetComputeBufferParam(cs, resetDrawArgsKernel, ShaderIDs._DrawArgs, bufferHandles.drawArgsBuffer);
+					if (flag4)
+					{
+						cmd.SetComputeBufferParam(cs, resetDrawArgsKernel, ShaderIDs._DispatchArgs, bufferHandles.dispatchArgsBuffer);
+					}
 					cmd.DispatchCompute(cs, resetDrawArgsKernel, (allocInfo.drawCount + 63) / 64, 1, 1);
 				}
 				if (flag7)
@@ -571,7 +577,7 @@ internal struct InstanceCuller : IDisposable
 					int cullInstancesKernel = m_CullInstancesKernel;
 					cmd.SetComputeBufferParam(cs, cullInstancesKernel, ShaderIDs._DrawInfo, bufferHandles.drawInfoBuffer);
 					cmd.SetComputeBufferParam(cs, cullInstancesKernel, ShaderIDs._InstanceInfo, bufferHandles.instanceInfoBuffer);
-					cmd.SetComputeBufferParam(cs, cullInstancesKernel, ShaderIDs._DrawArgs, bufferHandles.argsBuffer);
+					cmd.SetComputeBufferParam(cs, cullInstancesKernel, ShaderIDs._DrawArgs, bufferHandles.drawArgsBuffer);
 					cmd.SetComputeBufferParam(cs, cullInstancesKernel, ShaderIDs._InstanceIndices, bufferHandles.instanceBuffer);
 					cmd.SetComputeBufferParam(cs, cullInstancesKernel, ShaderIDs._InstanceDataBuffer, batchersContext.gpuInstanceDataBuffer);
 					cmd.SetComputeBufferParam(cs, cullInstancesKernel, ShaderIDs._OcclusionDebugCounters, m_OcclusionEventDebugArray.CounterBuffer);
@@ -585,7 +591,7 @@ internal struct InstanceCuller : IDisposable
 					}
 					if (flag4)
 					{
-						cmd.DispatchCompute(cs, cullInstancesKernel, bufferHandles.argsBuffer, (uint)(20 * allocInfo.GetExtraDrawInfoSlotIndex()));
+						cmd.DispatchCompute(cs, cullInstancesKernel, bufferHandles.dispatchArgsBuffer, 0u);
 					}
 					else
 					{
@@ -618,6 +624,7 @@ internal struct InstanceCuller : IDisposable
 
 	public void UpdateFrame(int cameraCount)
 	{
+		DisposeSceneViewHiddenBits();
 		DisposeCompactVisibilityMasks();
 		if (cameraCount > m_LODParamsToCameraID.Capacity)
 		{

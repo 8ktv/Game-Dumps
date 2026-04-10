@@ -133,11 +133,11 @@ internal struct PrefixSumDrawsAndInstances : IJob
 					drawCount = num4,
 					instanceCount = num5
 				};
-				int num9 = value2.drawCount + 1;
-				int num10 = Interlocked.Add(ref UnsafeUtility.AsRef<int>(unsafePtr + 1), num9);
-				value2.drawAllocIndex = num10 - num9;
-				int num11 = Interlocked.Add(ref UnsafeUtility.AsRef<int>(unsafePtr), value2.instanceCount);
-				value2.instanceAllocIndex = num11 - value2.instanceCount;
+				int drawCount = value2.drawCount;
+				int num9 = Interlocked.Add(ref UnsafeUtility.AsRef<int>(unsafePtr + 1), drawCount);
+				value2.drawAllocIndex = num9 - drawCount;
+				int num10 = Interlocked.Add(ref UnsafeUtility.AsRef<int>(unsafePtr), value2.instanceCount);
+				value2.instanceAllocIndex = num10 - value2.instanceCount;
 				if (!value2.IsWithinLimits(in indirectBufferLimits))
 				{
 					value2 = default(IndirectBufferAllocInfo);
@@ -163,8 +163,8 @@ internal struct PrefixSumDrawsAndInstances : IJob
 			value.indirectDrawCommandCount = num4;
 			value.indirectDrawCommands = MemoryUtilities.Malloc<BatchDrawCommandIndirect>(num4, Allocator.TempJob);
 		}
-		int num12 = num2 + num4;
-		value.instanceSortingPositions = MemoryUtilities.Malloc<float>(3 * num12, Allocator.TempJob);
+		int num11 = num2 + num4;
+		value.instanceSortingPositions = MemoryUtilities.Malloc<float>(3 * num11, Allocator.TempJob);
 		cullingOutput[0] = value;
 	}
 }

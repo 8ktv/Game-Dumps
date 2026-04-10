@@ -142,6 +142,46 @@ public static class Localization
 
 		private static LocalizedString ACHIEVEMENT_Description_WalkThePlank_ref;
 
+		private static LocalizedString ACHIEVEMENT_Title_TigerInTheWoods_ref;
+
+		private static LocalizedString ACHIEVEMENT_Description_TigerInTheWoods_ref;
+
+		private static LocalizedString ACHIEVEMENT_Title_Berserker_ref;
+
+		private static LocalizedString ACHIEVEMENT_Description_Berserker_ref;
+
+		private static LocalizedString ACHIEVEMENT_Title_Explorer_ref;
+
+		private static LocalizedString ACHIEVEMENT_Description_Explorer_ref;
+
+		private static LocalizedString ACHIEVEMENT_Title_NowThatsSoldiering_ref;
+
+		private static LocalizedString ACHIEVEMENT_Description_NowThatsSoldiering_ref;
+
+		private static LocalizedString ACHIEVEMENT_Title_TargetRichEnvironment_ref;
+
+		private static LocalizedString ACHIEVEMENT_Description_TargetRichEnvironment_ref;
+
+		private static LocalizedString ACHIEVEMENT_Title_ThereCanBeOnlyOne_ref;
+
+		private static LocalizedString ACHIEVEMENT_Description_ThereCanBeOnlyOne_ref;
+
+		private static LocalizedString ACHIEVEMENT_Title_Caffeinated_ref;
+
+		private static LocalizedString ACHIEVEMENT_Description_Caffeinated_ref;
+
+		private static LocalizedString ACHIEVEMENT_Title_OneTrueKing_ref;
+
+		private static LocalizedString ACHIEVEMENT_Description_OneTrueKing_ref;
+
+		private static LocalizedString ACHIEVEMENT_Title_IceToSeeYou_ref;
+
+		private static LocalizedString ACHIEVEMENT_Description_IceToSeeYou_ref;
+
+		private static LocalizedString ACHIEVEMENT_Title_RocketPirouette_ref;
+
+		private static LocalizedString ACHIEVEMENT_Description_RocketPirouette_ref;
+
 		public static LocalizedString ACHIEVEMENT_Title_ACutAbove_Ref
 		{
 			get
@@ -1365,6 +1405,366 @@ public static class Localization
 		}
 
 		public static string ACHIEVEMENT_Description_WalkThePlank => ACHIEVEMENT_Description_WalkThePlank_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Title_TigerInTheWoods_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Title_TigerInTheWoods_ref == null)
+				{
+					ACHIEVEMENT_Title_TigerInTheWoods_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676602331136L
+					};
+				}
+				return ACHIEVEMENT_Title_TigerInTheWoods_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Title_TigerInTheWoods => ACHIEVEMENT_Title_TigerInTheWoods_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Description_TigerInTheWoods_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Description_TigerInTheWoods_ref == null)
+				{
+					ACHIEVEMENT_Description_TigerInTheWoods_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274176L
+					};
+				}
+				return ACHIEVEMENT_Description_TigerInTheWoods_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Description_TigerInTheWoods => ACHIEVEMENT_Description_TigerInTheWoods_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Title_Berserker_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Title_Berserker_ref == null)
+				{
+					ACHIEVEMENT_Title_Berserker_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274177L
+					};
+				}
+				return ACHIEVEMENT_Title_Berserker_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Title_Berserker => ACHIEVEMENT_Title_Berserker_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Description_Berserker_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Description_Berserker_ref == null)
+				{
+					ACHIEVEMENT_Description_Berserker_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274178L
+					};
+				}
+				return ACHIEVEMENT_Description_Berserker_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Description_Berserker => ACHIEVEMENT_Description_Berserker_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Title_Explorer_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Title_Explorer_ref == null)
+				{
+					ACHIEVEMENT_Title_Explorer_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274179L
+					};
+				}
+				return ACHIEVEMENT_Title_Explorer_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Title_Explorer => ACHIEVEMENT_Title_Explorer_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Description_Explorer_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Description_Explorer_ref == null)
+				{
+					ACHIEVEMENT_Description_Explorer_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274180L
+					};
+				}
+				return ACHIEVEMENT_Description_Explorer_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Description_Explorer => ACHIEVEMENT_Description_Explorer_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Title_NowThatsSoldiering_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Title_NowThatsSoldiering_ref == null)
+				{
+					ACHIEVEMENT_Title_NowThatsSoldiering_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274181L
+					};
+				}
+				return ACHIEVEMENT_Title_NowThatsSoldiering_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Title_NowThatsSoldiering => ACHIEVEMENT_Title_NowThatsSoldiering_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Description_NowThatsSoldiering_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Description_NowThatsSoldiering_ref == null)
+				{
+					ACHIEVEMENT_Description_NowThatsSoldiering_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274182L
+					};
+				}
+				return ACHIEVEMENT_Description_NowThatsSoldiering_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Description_NowThatsSoldiering => ACHIEVEMENT_Description_NowThatsSoldiering_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Title_TargetRichEnvironment_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Title_TargetRichEnvironment_ref == null)
+				{
+					ACHIEVEMENT_Title_TargetRichEnvironment_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274183L
+					};
+				}
+				return ACHIEVEMENT_Title_TargetRichEnvironment_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Title_TargetRichEnvironment => ACHIEVEMENT_Title_TargetRichEnvironment_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Description_TargetRichEnvironment_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Description_TargetRichEnvironment_ref == null)
+				{
+					ACHIEVEMENT_Description_TargetRichEnvironment_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274184L
+					};
+				}
+				return ACHIEVEMENT_Description_TargetRichEnvironment_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Description_TargetRichEnvironment => ACHIEVEMENT_Description_TargetRichEnvironment_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Title_ThereCanBeOnlyOne_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Title_ThereCanBeOnlyOne_ref == null)
+				{
+					ACHIEVEMENT_Title_ThereCanBeOnlyOne_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 20594066661654528L
+					};
+				}
+				return ACHIEVEMENT_Title_ThereCanBeOnlyOne_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Title_ThereCanBeOnlyOne => ACHIEVEMENT_Title_ThereCanBeOnlyOne_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Description_ThereCanBeOnlyOne_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Description_ThereCanBeOnlyOne_ref == null)
+				{
+					ACHIEVEMENT_Description_ThereCanBeOnlyOne_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 20594066699403264L
+					};
+				}
+				return ACHIEVEMENT_Description_ThereCanBeOnlyOne_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Description_ThereCanBeOnlyOne => ACHIEVEMENT_Description_ThereCanBeOnlyOne_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Title_Caffeinated_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Title_Caffeinated_ref == null)
+				{
+					ACHIEVEMENT_Title_Caffeinated_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274187L
+					};
+				}
+				return ACHIEVEMENT_Title_Caffeinated_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Title_Caffeinated => ACHIEVEMENT_Title_Caffeinated_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Description_Caffeinated_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Description_Caffeinated_ref == null)
+				{
+					ACHIEVEMENT_Description_Caffeinated_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274188L
+					};
+				}
+				return ACHIEVEMENT_Description_Caffeinated_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Description_Caffeinated => ACHIEVEMENT_Description_Caffeinated_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Title_OneTrueKing_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Title_OneTrueKing_ref == null)
+				{
+					ACHIEVEMENT_Title_OneTrueKing_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274189L
+					};
+				}
+				return ACHIEVEMENT_Title_OneTrueKing_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Title_OneTrueKing => ACHIEVEMENT_Title_OneTrueKing_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Description_OneTrueKing_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Description_OneTrueKing_ref == null)
+				{
+					ACHIEVEMENT_Description_OneTrueKing_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274190L
+					};
+				}
+				return ACHIEVEMENT_Description_OneTrueKing_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Description_OneTrueKing => ACHIEVEMENT_Description_OneTrueKing_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Title_IceToSeeYou_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Title_IceToSeeYou_ref == null)
+				{
+					ACHIEVEMENT_Title_IceToSeeYou_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274191L
+					};
+				}
+				return ACHIEVEMENT_Title_IceToSeeYou_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Title_IceToSeeYou => ACHIEVEMENT_Title_IceToSeeYou_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Description_IceToSeeYou_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Description_IceToSeeYou_ref == null)
+				{
+					ACHIEVEMENT_Description_IceToSeeYou_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274192L
+					};
+				}
+				return ACHIEVEMENT_Description_IceToSeeYou_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Description_IceToSeeYou => ACHIEVEMENT_Description_IceToSeeYou_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Title_RocketPirouette_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Title_RocketPirouette_ref == null)
+				{
+					ACHIEVEMENT_Title_RocketPirouette_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274193L
+					};
+				}
+				return ACHIEVEMENT_Title_RocketPirouette_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Title_RocketPirouette => ACHIEVEMENT_Title_RocketPirouette_Ref.GetLocalizedString();
+
+		public static LocalizedString ACHIEVEMENT_Description_RocketPirouette_Ref
+		{
+			get
+			{
+				if (ACHIEVEMENT_Description_RocketPirouette_ref == null)
+				{
+					ACHIEVEMENT_Description_RocketPirouette_ref = new LocalizedString
+					{
+						TableReference = "Achievements",
+						TableEntryReference = 18782676644274194L
+					};
+				}
+				return ACHIEVEMENT_Description_RocketPirouette_ref;
+			}
+		}
+
+		public static string ACHIEVEMENT_Description_RocketPirouette => ACHIEVEMENT_Description_RocketPirouette_Ref.GetLocalizedString();
 	}
 
 	public static class Data
@@ -1390,6 +1790,10 @@ public static class Localization
 		private static LocalizedString ITEM_OrbitalLaser_ref;
 
 		private static LocalizedString ITEM_Airhorn_ref;
+
+		private static LocalizedString ITEM_RocketDriver_ref;
+
+		private static LocalizedString ITEM_FreezeBomb_ref;
 
 		public static LocalizedString ITEM_Coffee_Ref
 		{
@@ -1570,6 +1974,42 @@ public static class Localization
 		}
 
 		public static string ITEM_Airhorn => ITEM_Airhorn_Ref.GetLocalizedString();
+
+		public static LocalizedString ITEM_RocketDriver_Ref
+		{
+			get
+			{
+				if (ITEM_RocketDriver_ref == null)
+				{
+					ITEM_RocketDriver_ref = new LocalizedString
+					{
+						TableReference = "Data",
+						TableEntryReference = 200942583997784064L
+					};
+				}
+				return ITEM_RocketDriver_ref;
+			}
+		}
+
+		public static string ITEM_RocketDriver => ITEM_RocketDriver_Ref.GetLocalizedString();
+
+		public static LocalizedString ITEM_FreezeBomb_Ref
+		{
+			get
+			{
+				if (ITEM_FreezeBomb_ref == null)
+				{
+					ITEM_FreezeBomb_ref = new LocalizedString
+					{
+						TableReference = "Data",
+						TableEntryReference = 203070621752049664L
+					};
+				}
+				return ITEM_FreezeBomb_ref;
+			}
+		}
+
+		public static string ITEM_FreezeBomb => ITEM_FreezeBomb_Ref.GetLocalizedString();
 	}
 
 	public static class UI
@@ -2405,6 +2845,264 @@ public static class Localization
 		private static LocalizedString SPECTATOR_Prompt_Previous_ref;
 
 		private static LocalizedString ERROR_ConnectionFailed_StillKicked_ref;
+
+		private static LocalizedString HOLE_INFO_CourseName_Snow_ref;
+
+		private static LocalizedString MESSAGE_AlreadyInLobby_ref;
+
+		private static LocalizedString MESSAGE_ConfirmChangeLobbyHost_ref;
+
+		private static LocalizedString MESSAGE_ConfirmChangeLobbyClient_ref;
+
+		private static LocalizedString MESSAGE_ConfirmChangeLobbyButton_ref;
+
+		private static LocalizedString MATCHSETUP_Title_Wind_ref;
+
+		private static LocalizedString MATCHSETUP_Rule_MinWindSpeed_ref;
+
+		private static LocalizedString MATCHSETUP_Rule_MaxWindSpeed_ref;
+
+		private static LocalizedString TEXTCHAT_Info_AchievementUnlocked_ref;
+
+		private static LocalizedString MISC_KilometersPerHour_ref;
+
+		private static LocalizedString MISC_MilesPerHour_ref;
+
+		private static LocalizedString MISC_Distance_Yards_ref;
+
+		private static LocalizedString SETTINGS_Option_Meters_ref;
+
+		private static LocalizedString SETTINGS_Option_Yards_ref;
+
+		private static LocalizedString SETTINGS_Option_KilometersPerHour_ref;
+
+		private static LocalizedString SETTINGS_Option_MilesPerHour_ref;
+
+		private static LocalizedString SETTINGS_Label_Distance_ref;
+
+		private static LocalizedString SETTINGS_Label_Speed_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Kick_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Votekick_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_CantKickSelf_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_CantKickHost_ref;
+
+		private static LocalizedString MATCHSETUP_Votekick_ref;
+
+		private static LocalizedString INFO_FEED_ChipIn_Yards_ref;
+
+		private static LocalizedString VOTEKICK_StartedBy_ref;
+
+		private static LocalizedString VOTEKICK_Label_ref;
+
+		private static LocalizedString VOTEKICK_Yes_ref;
+
+		private static LocalizedString VOTEKICK_No_ref;
+
+		private static LocalizedString MATCHSETUP_Title_BehindLead_Yards_ref;
+
+		private static LocalizedString VOTEKICK_Successful_ref;
+
+		private static LocalizedString VOTEKICK_Failed_ref;
+
+		private static LocalizedString VOTEKICK_Cooldown_ref;
+
+		private static LocalizedString VOTEKICK_Ongoing_ref;
+
+		private static LocalizedString SETTINGS_Keybinds_Vote_ref;
+
+		private static LocalizedString SETTINGS_Keybinds_Vote_Yes_ref;
+
+		private static LocalizedString SETTINGS_Keybinds_Vote_No_ref;
+
+		private static LocalizedString SETTINGS_Graphics_FPSLimit_ref;
+
+		private static LocalizedString PROMPT_ReturnToBall_ref;
+
+		private static LocalizedString INFO_FEED_Comeback_ref;
+
+		private static LocalizedString POPUP_Comeback_ref;
+
+		private static LocalizedString MATCHSETUP_Rule_Comeback_ref;
+
+		private static LocalizedString PAUSE_Course_ref;
+
+		private static LocalizedString PAUSE_Rules_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Snow1_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Snow2_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Snow3_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Snow4_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Snow5_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Snow6_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Snow7_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Snow8_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Snow9_ref;
+
+		private static LocalizedString PAUSE_ConsoleCommands_ref;
+
+		private static LocalizedString MISC_HoldToSkipIntro_ref;
+
+		private static LocalizedString SETTINGS_Tooltip_StreamerMode_ref;
+
+		private static LocalizedString SETTINGS_Tooltip_ButtonPrompts_ref;
+
+		private static LocalizedString SETTINGS_Tooltip_MuteChat_ref;
+
+		private static LocalizedString SETTINGS_Tooltip_DevConsole_ref;
+
+		private static LocalizedString SETTINGS_Tooltip_MicInputVolume_ref;
+
+		private static LocalizedString SETTINGS_Tooltip_MicThreshold_ref;
+
+		private static LocalizedString SETTINGS_Tooltip_VoiceChatMode_ref;
+
+		private static LocalizedString SETTINGS_Tooltip_CrtEffects_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Capacity_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_LobbyMode_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_OnOrBelowPar_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Speedrun_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_ChipIn_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Knockouts_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Countdown_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_OutOfBounds_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_PlayerSpeed_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_CartSpeed_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_SwingPower_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_HomingShots_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_KnockoutSpeedBoost_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_HitOtherPlayers_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_HitOtherPlayersBalls_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Comeback_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_ConsoleCommands_ref;
+
+		private static LocalizedString PAUSE_Tooltip_Mute_ref;
+
+		private static LocalizedString PAUSE_Tooltip_Host_ref;
+
+		private static LocalizedString PAUSE_Tooltip_VoiceChatVolume_ref;
+
+		private static LocalizedString PAUSE_Tooltip_ActiveTime_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_OverchargeSidespin_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_MaxTimeBasedOnPar_ref;
+
+		private static LocalizedString HOLE_INFO_Difficulty_Beginner_ref;
+
+		private static LocalizedString HOLE_INFO_Difficulty_Intermediate_ref;
+
+		private static LocalizedString HOLE_INFO_Difficulty_Expert_ref;
+
+		private static LocalizedString HOLE_INFO_CourseName_AllHoles_ref;
+
+		private static LocalizedString MATCHSETUP_Option_WindOff_ref;
+
+		private static LocalizedString MATCHSETUP_Option_WindLow_ref;
+
+		private static LocalizedString MATCHSETUP_Option_WindModerate_ref;
+
+		private static LocalizedString MATCHSETUP_Option_WindHigh_ref;
+
+		private static LocalizedString MATCHSETUP_Option_WindEscalating_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Wind_ref;
+
+		private static LocalizedString MATCHSETUP_Rule_Wind_ref;
+
+		private static LocalizedString MATCHSETUP_Courses_Random_ref;
+
+		private static LocalizedString MATCHSETUP_Courses_RandomOrder_ref;
+
+		private static LocalizedString PAUSE_Tooltip_MuteSelf_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_RandomOrder_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_NumberOfHoles_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_ActiveHoles_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_InactiveHoles_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Preset_Classic_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Preset_ProGolf_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Preset_Custom_ref;
+
+		private static LocalizedString MATCHSETUP_Title_Behind_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Ahead_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_AheadOwnBall_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Behind_ref;
+
+		private static LocalizedString MATCHSETUP_Title_MobilityItemBoxes_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_MobilityItemBoxes_ref;
+
+		private static LocalizedString MISC_Distance_Yards_Full_ref;
+
+		private static LocalizedString MATCHSETUP_Tooltip_Custom_ref;
+
+		private static LocalizedString LOBBY_BROWSER_Filter_HideCustom_ref;
+
+		private static LocalizedString LOBBY_BROWSER_Filter_HideActive_ref;
+
+		private static LocalizedString LOBBY_BROWSER_Rules_ref;
+
+		private static LocalizedString LOBBY_BROWSER_Tooltip_HideCustom_ref;
+
+		private static LocalizedString LOBBY_BROWSER_Tooltip_HideActive_ref;
+
+		private static LocalizedString LOBBY_BROWSER_Tooltip_FriendsOnly_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Catwalk_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_LongBeach_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Jungle_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Shallows_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_SeasideCliff_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_RollingHills_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_Bullseye_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_HiddenLagoon_ref;
+
+		private static LocalizedString HOLE_INFO_HoleName_TreasureIsland_ref;
 
 		public static LocalizedString MISC_Ok_Ref
 		{
@@ -9875,5 +10573,2327 @@ public static class Localization
 		}
 
 		public static string ERROR_ConnectionFailed_StillKicked => ERROR_ConnectionFailed_StillKicked_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_CourseName_Snow_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_CourseName_Snow_ref == null)
+				{
+					HOLE_INFO_CourseName_Snow_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 52882294032031744L
+					};
+				}
+				return HOLE_INFO_CourseName_Snow_ref;
+			}
+		}
+
+		public static string HOLE_INFO_CourseName_Snow => HOLE_INFO_CourseName_Snow_Ref.GetLocalizedString();
+
+		public static LocalizedString MESSAGE_AlreadyInLobby_Ref
+		{
+			get
+			{
+				if (MESSAGE_AlreadyInLobby_ref == null)
+				{
+					MESSAGE_AlreadyInLobby_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 52899149765402624L
+					};
+				}
+				return MESSAGE_AlreadyInLobby_ref;
+			}
+		}
+
+		public static string MESSAGE_AlreadyInLobby => MESSAGE_AlreadyInLobby_Ref.GetLocalizedString();
+
+		public static LocalizedString MESSAGE_ConfirmChangeLobbyHost_Ref
+		{
+			get
+			{
+				if (MESSAGE_ConfirmChangeLobbyHost_ref == null)
+				{
+					MESSAGE_ConfirmChangeLobbyHost_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 52899149765402625L
+					};
+				}
+				return MESSAGE_ConfirmChangeLobbyHost_ref;
+			}
+		}
+
+		public static string MESSAGE_ConfirmChangeLobbyHost => MESSAGE_ConfirmChangeLobbyHost_Ref.GetLocalizedString();
+
+		public static LocalizedString MESSAGE_ConfirmChangeLobbyClient_Ref
+		{
+			get
+			{
+				if (MESSAGE_ConfirmChangeLobbyClient_ref == null)
+				{
+					MESSAGE_ConfirmChangeLobbyClient_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 52899149765402626L
+					};
+				}
+				return MESSAGE_ConfirmChangeLobbyClient_ref;
+			}
+		}
+
+		public static string MESSAGE_ConfirmChangeLobbyClient => MESSAGE_ConfirmChangeLobbyClient_Ref.GetLocalizedString();
+
+		public static LocalizedString MESSAGE_ConfirmChangeLobbyButton_Ref
+		{
+			get
+			{
+				if (MESSAGE_ConfirmChangeLobbyButton_ref == null)
+				{
+					MESSAGE_ConfirmChangeLobbyButton_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 52902614923206656L
+					};
+				}
+				return MESSAGE_ConfirmChangeLobbyButton_ref;
+			}
+		}
+
+		public static string MESSAGE_ConfirmChangeLobbyButton => MESSAGE_ConfirmChangeLobbyButton_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Title_Wind_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Title_Wind_ref == null)
+				{
+					MATCHSETUP_Title_Wind_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 54459242753564672L
+					};
+				}
+				return MATCHSETUP_Title_Wind_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Title_Wind => MATCHSETUP_Title_Wind_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Rule_MinWindSpeed_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Rule_MinWindSpeed_ref == null)
+				{
+					MATCHSETUP_Rule_MinWindSpeed_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 54459242787119104L
+					};
+				}
+				return MATCHSETUP_Rule_MinWindSpeed_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Rule_MinWindSpeed => MATCHSETUP_Rule_MinWindSpeed_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Rule_MaxWindSpeed_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Rule_MaxWindSpeed_ref == null)
+				{
+					MATCHSETUP_Rule_MaxWindSpeed_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 54459242787119105L
+					};
+				}
+				return MATCHSETUP_Rule_MaxWindSpeed_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Rule_MaxWindSpeed => MATCHSETUP_Rule_MaxWindSpeed_Ref.GetLocalizedString();
+
+		public static LocalizedString TEXTCHAT_Info_AchievementUnlocked_Ref
+		{
+			get
+			{
+				if (TEXTCHAT_Info_AchievementUnlocked_ref == null)
+				{
+					TEXTCHAT_Info_AchievementUnlocked_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 56888035714600963L
+					};
+				}
+				return TEXTCHAT_Info_AchievementUnlocked_ref;
+			}
+		}
+
+		public static string TEXTCHAT_Info_AchievementUnlocked => TEXTCHAT_Info_AchievementUnlocked_Ref.GetLocalizedString();
+
+		public static LocalizedString MISC_KilometersPerHour_Ref
+		{
+			get
+			{
+				if (MISC_KilometersPerHour_ref == null)
+				{
+					MISC_KilometersPerHour_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879811821568L
+					};
+				}
+				return MISC_KilometersPerHour_ref;
+			}
+		}
+
+		public static string MISC_KilometersPerHour => MISC_KilometersPerHour_Ref.GetLocalizedString();
+
+		public static LocalizedString MISC_MilesPerHour_Ref
+		{
+			get
+			{
+				if (MISC_MilesPerHour_ref == null)
+				{
+					MISC_MilesPerHour_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879824404480L
+					};
+				}
+				return MISC_MilesPerHour_ref;
+			}
+		}
+
+		public static string MISC_MilesPerHour => MISC_MilesPerHour_Ref.GetLocalizedString();
+
+		public static LocalizedString MISC_Distance_Yards_Ref
+		{
+			get
+			{
+				if (MISC_Distance_Yards_ref == null)
+				{
+					MISC_Distance_Yards_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879828598784L
+					};
+				}
+				return MISC_Distance_Yards_ref;
+			}
+		}
+
+		public static string MISC_Distance_Yards => MISC_Distance_Yards_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Option_Meters_Ref
+		{
+			get
+			{
+				if (SETTINGS_Option_Meters_ref == null)
+				{
+					SETTINGS_Option_Meters_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879828598785L
+					};
+				}
+				return SETTINGS_Option_Meters_ref;
+			}
+		}
+
+		public static string SETTINGS_Option_Meters => SETTINGS_Option_Meters_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Option_Yards_Ref
+		{
+			get
+			{
+				if (SETTINGS_Option_Yards_ref == null)
+				{
+					SETTINGS_Option_Yards_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879828598786L
+					};
+				}
+				return SETTINGS_Option_Yards_ref;
+			}
+		}
+
+		public static string SETTINGS_Option_Yards => SETTINGS_Option_Yards_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Option_KilometersPerHour_Ref
+		{
+			get
+			{
+				if (SETTINGS_Option_KilometersPerHour_ref == null)
+				{
+					SETTINGS_Option_KilometersPerHour_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879828598787L
+					};
+				}
+				return SETTINGS_Option_KilometersPerHour_ref;
+			}
+		}
+
+		public static string SETTINGS_Option_KilometersPerHour => SETTINGS_Option_KilometersPerHour_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Option_MilesPerHour_Ref
+		{
+			get
+			{
+				if (SETTINGS_Option_MilesPerHour_ref == null)
+				{
+					SETTINGS_Option_MilesPerHour_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879828598788L
+					};
+				}
+				return SETTINGS_Option_MilesPerHour_ref;
+			}
+		}
+
+		public static string SETTINGS_Option_MilesPerHour => SETTINGS_Option_MilesPerHour_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Label_Distance_Ref
+		{
+			get
+			{
+				if (SETTINGS_Label_Distance_ref == null)
+				{
+					SETTINGS_Label_Distance_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879828598789L
+					};
+				}
+				return SETTINGS_Label_Distance_ref;
+			}
+		}
+
+		public static string SETTINGS_Label_Distance => SETTINGS_Label_Distance_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Label_Speed_Ref
+		{
+			get
+			{
+				if (SETTINGS_Label_Speed_ref == null)
+				{
+					SETTINGS_Label_Speed_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879828598790L
+					};
+				}
+				return SETTINGS_Label_Speed_ref;
+			}
+		}
+
+		public static string SETTINGS_Label_Speed => SETTINGS_Label_Speed_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Kick_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Kick_ref == null)
+				{
+					MATCHSETUP_Tooltip_Kick_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879828598791L
+					};
+				}
+				return MATCHSETUP_Tooltip_Kick_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Kick => MATCHSETUP_Tooltip_Kick_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Votekick_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Votekick_ref == null)
+				{
+					MATCHSETUP_Tooltip_Votekick_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879828598792L
+					};
+				}
+				return MATCHSETUP_Tooltip_Votekick_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Votekick => MATCHSETUP_Tooltip_Votekick_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_CantKickSelf_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_CantKickSelf_ref == null)
+				{
+					MATCHSETUP_Tooltip_CantKickSelf_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879828598793L
+					};
+				}
+				return MATCHSETUP_Tooltip_CantKickSelf_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_CantKickSelf => MATCHSETUP_Tooltip_CantKickSelf_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_CantKickHost_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_CantKickHost_ref == null)
+				{
+					MATCHSETUP_Tooltip_CantKickHost_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58001879828598794L
+					};
+				}
+				return MATCHSETUP_Tooltip_CantKickHost_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_CantKickHost => MATCHSETUP_Tooltip_CantKickHost_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Votekick_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Votekick_ref == null)
+				{
+					MATCHSETUP_Votekick_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58010747312869376L
+					};
+				}
+				return MATCHSETUP_Votekick_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Votekick => MATCHSETUP_Votekick_Ref.GetLocalizedString();
+
+		public static LocalizedString INFO_FEED_ChipIn_Yards_Ref
+		{
+			get
+			{
+				if (INFO_FEED_ChipIn_Yards_ref == null)
+				{
+					INFO_FEED_ChipIn_Yards_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58056180269649920L
+					};
+				}
+				return INFO_FEED_ChipIn_Yards_ref;
+			}
+		}
+
+		public static string INFO_FEED_ChipIn_Yards => INFO_FEED_ChipIn_Yards_Ref.GetLocalizedString();
+
+		public static LocalizedString VOTEKICK_StartedBy_Ref
+		{
+			get
+			{
+				if (VOTEKICK_StartedBy_ref == null)
+				{
+					VOTEKICK_StartedBy_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58056180286427136L
+					};
+				}
+				return VOTEKICK_StartedBy_ref;
+			}
+		}
+
+		public static string VOTEKICK_StartedBy => VOTEKICK_StartedBy_Ref.GetLocalizedString();
+
+		public static LocalizedString VOTEKICK_Label_Ref
+		{
+			get
+			{
+				if (VOTEKICK_Label_ref == null)
+				{
+					VOTEKICK_Label_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58056180286427137L
+					};
+				}
+				return VOTEKICK_Label_ref;
+			}
+		}
+
+		public static string VOTEKICK_Label => VOTEKICK_Label_Ref.GetLocalizedString();
+
+		public static LocalizedString VOTEKICK_Yes_Ref
+		{
+			get
+			{
+				if (VOTEKICK_Yes_ref == null)
+				{
+					VOTEKICK_Yes_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58056180286427138L
+					};
+				}
+				return VOTEKICK_Yes_ref;
+			}
+		}
+
+		public static string VOTEKICK_Yes => VOTEKICK_Yes_Ref.GetLocalizedString();
+
+		public static LocalizedString VOTEKICK_No_Ref
+		{
+			get
+			{
+				if (VOTEKICK_No_ref == null)
+				{
+					VOTEKICK_No_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58056180286427139L
+					};
+				}
+				return VOTEKICK_No_ref;
+			}
+		}
+
+		public static string VOTEKICK_No => VOTEKICK_No_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Title_BehindLead_Yards_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Title_BehindLead_Yards_ref == null)
+				{
+					MATCHSETUP_Title_BehindLead_Yards_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58056180286427140L
+					};
+				}
+				return MATCHSETUP_Title_BehindLead_Yards_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Title_BehindLead_Yards => MATCHSETUP_Title_BehindLead_Yards_Ref.GetLocalizedString();
+
+		public static LocalizedString VOTEKICK_Successful_Ref
+		{
+			get
+			{
+				if (VOTEKICK_Successful_ref == null)
+				{
+					VOTEKICK_Successful_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58431094365425664L
+					};
+				}
+				return VOTEKICK_Successful_ref;
+			}
+		}
+
+		public static string VOTEKICK_Successful => VOTEKICK_Successful_Ref.GetLocalizedString();
+
+		public static LocalizedString VOTEKICK_Failed_Ref
+		{
+			get
+			{
+				if (VOTEKICK_Failed_ref == null)
+				{
+					VOTEKICK_Failed_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58431094386397184L
+					};
+				}
+				return VOTEKICK_Failed_ref;
+			}
+		}
+
+		public static string VOTEKICK_Failed => VOTEKICK_Failed_Ref.GetLocalizedString();
+
+		public static LocalizedString VOTEKICK_Cooldown_Ref
+		{
+			get
+			{
+				if (VOTEKICK_Cooldown_ref == null)
+				{
+					VOTEKICK_Cooldown_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 58431094386397185L
+					};
+				}
+				return VOTEKICK_Cooldown_ref;
+			}
+		}
+
+		public static string VOTEKICK_Cooldown => VOTEKICK_Cooldown_Ref.GetLocalizedString();
+
+		public static LocalizedString VOTEKICK_Ongoing_Ref
+		{
+			get
+			{
+				if (VOTEKICK_Ongoing_ref == null)
+				{
+					VOTEKICK_Ongoing_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 59470120270761984L
+					};
+				}
+				return VOTEKICK_Ongoing_ref;
+			}
+		}
+
+		public static string VOTEKICK_Ongoing => VOTEKICK_Ongoing_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Keybinds_Vote_Ref
+		{
+			get
+			{
+				if (SETTINGS_Keybinds_Vote_ref == null)
+				{
+					SETTINGS_Keybinds_Vote_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 59470120291733504L
+					};
+				}
+				return SETTINGS_Keybinds_Vote_ref;
+			}
+		}
+
+		public static string SETTINGS_Keybinds_Vote => SETTINGS_Keybinds_Vote_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Keybinds_Vote_Yes_Ref
+		{
+			get
+			{
+				if (SETTINGS_Keybinds_Vote_Yes_ref == null)
+				{
+					SETTINGS_Keybinds_Vote_Yes_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 59470120291733505L
+					};
+				}
+				return SETTINGS_Keybinds_Vote_Yes_ref;
+			}
+		}
+
+		public static string SETTINGS_Keybinds_Vote_Yes => SETTINGS_Keybinds_Vote_Yes_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Keybinds_Vote_No_Ref
+		{
+			get
+			{
+				if (SETTINGS_Keybinds_Vote_No_ref == null)
+				{
+					SETTINGS_Keybinds_Vote_No_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 59470120291733506L
+					};
+				}
+				return SETTINGS_Keybinds_Vote_No_ref;
+			}
+		}
+
+		public static string SETTINGS_Keybinds_Vote_No => SETTINGS_Keybinds_Vote_No_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Graphics_FPSLimit_Ref
+		{
+			get
+			{
+				if (SETTINGS_Graphics_FPSLimit_ref == null)
+				{
+					SETTINGS_Graphics_FPSLimit_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 59519390835347456L
+					};
+				}
+				return SETTINGS_Graphics_FPSLimit_ref;
+			}
+		}
+
+		public static string SETTINGS_Graphics_FPSLimit => SETTINGS_Graphics_FPSLimit_Ref.GetLocalizedString();
+
+		public static LocalizedString PROMPT_ReturnToBall_Ref
+		{
+			get
+			{
+				if (PROMPT_ReturnToBall_ref == null)
+				{
+					PROMPT_ReturnToBall_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 60160806288691200L
+					};
+				}
+				return PROMPT_ReturnToBall_ref;
+			}
+		}
+
+		public static string PROMPT_ReturnToBall => PROMPT_ReturnToBall_Ref.GetLocalizedString();
+
+		public static LocalizedString INFO_FEED_Comeback_Ref
+		{
+			get
+			{
+				if (INFO_FEED_Comeback_ref == null)
+				{
+					INFO_FEED_Comeback_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 60196975371362304L
+					};
+				}
+				return INFO_FEED_Comeback_ref;
+			}
+		}
+
+		public static string INFO_FEED_Comeback => INFO_FEED_Comeback_Ref.GetLocalizedString();
+
+		public static LocalizedString POPUP_Comeback_Ref
+		{
+			get
+			{
+				if (POPUP_Comeback_ref == null)
+				{
+					POPUP_Comeback_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 60196975404916736L
+					};
+				}
+				return POPUP_Comeback_ref;
+			}
+		}
+
+		public static string POPUP_Comeback => POPUP_Comeback_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Rule_Comeback_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Rule_Comeback_ref == null)
+				{
+					MATCHSETUP_Rule_Comeback_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 60196975404916737L
+					};
+				}
+				return MATCHSETUP_Rule_Comeback_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Rule_Comeback => MATCHSETUP_Rule_Comeback_Ref.GetLocalizedString();
+
+		public static LocalizedString PAUSE_Course_Ref
+		{
+			get
+			{
+				if (PAUSE_Course_ref == null)
+				{
+					PAUSE_Course_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 60621598846947328L
+					};
+				}
+				return PAUSE_Course_ref;
+			}
+		}
+
+		public static string PAUSE_Course => PAUSE_Course_Ref.GetLocalizedString();
+
+		public static LocalizedString PAUSE_Rules_Ref
+		{
+			get
+			{
+				if (PAUSE_Rules_ref == null)
+				{
+					PAUSE_Rules_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 60621598863724544L
+					};
+				}
+				return PAUSE_Rules_ref;
+			}
+		}
+
+		public static string PAUSE_Rules => PAUSE_Rules_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Snow1_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Snow1_ref == null)
+				{
+					HOLE_INFO_HoleName_Snow1_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 56888035697823744L
+					};
+				}
+				return HOLE_INFO_HoleName_Snow1_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Snow1 => HOLE_INFO_HoleName_Snow1_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Snow2_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Snow2_ref == null)
+				{
+					HOLE_INFO_HoleName_Snow2_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 60945026481197056L
+					};
+				}
+				return HOLE_INFO_HoleName_Snow2_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Snow2 => HOLE_INFO_HoleName_Snow2_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Snow3_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Snow3_ref == null)
+				{
+					HOLE_INFO_HoleName_Snow3_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 56888035714600960L
+					};
+				}
+				return HOLE_INFO_HoleName_Snow3_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Snow3 => HOLE_INFO_HoleName_Snow3_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Snow4_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Snow4_ref == null)
+				{
+					HOLE_INFO_HoleName_Snow4_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 60945026497974272L
+					};
+				}
+				return HOLE_INFO_HoleName_Snow4_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Snow4 => HOLE_INFO_HoleName_Snow4_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Snow5_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Snow5_ref == null)
+				{
+					HOLE_INFO_HoleName_Snow5_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 60945026497974273L
+					};
+				}
+				return HOLE_INFO_HoleName_Snow5_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Snow5 => HOLE_INFO_HoleName_Snow5_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Snow6_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Snow6_ref == null)
+				{
+					HOLE_INFO_HoleName_Snow6_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 60945026497974274L
+					};
+				}
+				return HOLE_INFO_HoleName_Snow6_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Snow6 => HOLE_INFO_HoleName_Snow6_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Snow7_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Snow7_ref == null)
+				{
+					HOLE_INFO_HoleName_Snow7_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 56888035714600961L
+					};
+				}
+				return HOLE_INFO_HoleName_Snow7_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Snow7 => HOLE_INFO_HoleName_Snow7_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Snow8_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Snow8_ref == null)
+				{
+					HOLE_INFO_HoleName_Snow8_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 56888035714600962L
+					};
+				}
+				return HOLE_INFO_HoleName_Snow8_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Snow8 => HOLE_INFO_HoleName_Snow8_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Snow9_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Snow9_ref == null)
+				{
+					HOLE_INFO_HoleName_Snow9_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 60945026497974275L
+					};
+				}
+				return HOLE_INFO_HoleName_Snow9_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Snow9 => HOLE_INFO_HoleName_Snow9_Ref.GetLocalizedString();
+
+		public static LocalizedString PAUSE_ConsoleCommands_Ref
+		{
+			get
+			{
+				if (PAUSE_ConsoleCommands_ref == null)
+				{
+					PAUSE_ConsoleCommands_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 60945026497974276L
+					};
+				}
+				return PAUSE_ConsoleCommands_ref;
+			}
+		}
+
+		public static string PAUSE_ConsoleCommands => PAUSE_ConsoleCommands_Ref.GetLocalizedString();
+
+		public static LocalizedString MISC_HoldToSkipIntro_Ref
+		{
+			get
+			{
+				if (MISC_HoldToSkipIntro_ref == null)
+				{
+					MISC_HoldToSkipIntro_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62096040928284672L
+					};
+				}
+				return MISC_HoldToSkipIntro_ref;
+			}
+		}
+
+		public static string MISC_HoldToSkipIntro => MISC_HoldToSkipIntro_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Tooltip_StreamerMode_Ref
+		{
+			get
+			{
+				if (SETTINGS_Tooltip_StreamerMode_ref == null)
+				{
+					SETTINGS_Tooltip_StreamerMode_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491008049152L
+					};
+				}
+				return SETTINGS_Tooltip_StreamerMode_ref;
+			}
+		}
+
+		public static string SETTINGS_Tooltip_StreamerMode => SETTINGS_Tooltip_StreamerMode_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Tooltip_ButtonPrompts_Ref
+		{
+			get
+			{
+				if (SETTINGS_Tooltip_ButtonPrompts_ref == null)
+				{
+					SETTINGS_Tooltip_ButtonPrompts_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826368L
+					};
+				}
+				return SETTINGS_Tooltip_ButtonPrompts_ref;
+			}
+		}
+
+		public static string SETTINGS_Tooltip_ButtonPrompts => SETTINGS_Tooltip_ButtonPrompts_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Tooltip_MuteChat_Ref
+		{
+			get
+			{
+				if (SETTINGS_Tooltip_MuteChat_ref == null)
+				{
+					SETTINGS_Tooltip_MuteChat_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826369L
+					};
+				}
+				return SETTINGS_Tooltip_MuteChat_ref;
+			}
+		}
+
+		public static string SETTINGS_Tooltip_MuteChat => SETTINGS_Tooltip_MuteChat_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Tooltip_DevConsole_Ref
+		{
+			get
+			{
+				if (SETTINGS_Tooltip_DevConsole_ref == null)
+				{
+					SETTINGS_Tooltip_DevConsole_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826370L
+					};
+				}
+				return SETTINGS_Tooltip_DevConsole_ref;
+			}
+		}
+
+		public static string SETTINGS_Tooltip_DevConsole => SETTINGS_Tooltip_DevConsole_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Tooltip_MicInputVolume_Ref
+		{
+			get
+			{
+				if (SETTINGS_Tooltip_MicInputVolume_ref == null)
+				{
+					SETTINGS_Tooltip_MicInputVolume_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826371L
+					};
+				}
+				return SETTINGS_Tooltip_MicInputVolume_ref;
+			}
+		}
+
+		public static string SETTINGS_Tooltip_MicInputVolume => SETTINGS_Tooltip_MicInputVolume_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Tooltip_MicThreshold_Ref
+		{
+			get
+			{
+				if (SETTINGS_Tooltip_MicThreshold_ref == null)
+				{
+					SETTINGS_Tooltip_MicThreshold_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826372L
+					};
+				}
+				return SETTINGS_Tooltip_MicThreshold_ref;
+			}
+		}
+
+		public static string SETTINGS_Tooltip_MicThreshold => SETTINGS_Tooltip_MicThreshold_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Tooltip_VoiceChatMode_Ref
+		{
+			get
+			{
+				if (SETTINGS_Tooltip_VoiceChatMode_ref == null)
+				{
+					SETTINGS_Tooltip_VoiceChatMode_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826373L
+					};
+				}
+				return SETTINGS_Tooltip_VoiceChatMode_ref;
+			}
+		}
+
+		public static string SETTINGS_Tooltip_VoiceChatMode => SETTINGS_Tooltip_VoiceChatMode_Ref.GetLocalizedString();
+
+		public static LocalizedString SETTINGS_Tooltip_CrtEffects_Ref
+		{
+			get
+			{
+				if (SETTINGS_Tooltip_CrtEffects_ref == null)
+				{
+					SETTINGS_Tooltip_CrtEffects_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826374L
+					};
+				}
+				return SETTINGS_Tooltip_CrtEffects_ref;
+			}
+		}
+
+		public static string SETTINGS_Tooltip_CrtEffects => SETTINGS_Tooltip_CrtEffects_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Capacity_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Capacity_ref == null)
+				{
+					MATCHSETUP_Tooltip_Capacity_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826375L
+					};
+				}
+				return MATCHSETUP_Tooltip_Capacity_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Capacity => MATCHSETUP_Tooltip_Capacity_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_LobbyMode_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_LobbyMode_ref == null)
+				{
+					MATCHSETUP_Tooltip_LobbyMode_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826376L
+					};
+				}
+				return MATCHSETUP_Tooltip_LobbyMode_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_LobbyMode => MATCHSETUP_Tooltip_LobbyMode_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_OnOrBelowPar_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_OnOrBelowPar_ref == null)
+				{
+					MATCHSETUP_Tooltip_OnOrBelowPar_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826377L
+					};
+				}
+				return MATCHSETUP_Tooltip_OnOrBelowPar_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_OnOrBelowPar => MATCHSETUP_Tooltip_OnOrBelowPar_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Speedrun_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Speedrun_ref == null)
+				{
+					MATCHSETUP_Tooltip_Speedrun_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826378L
+					};
+				}
+				return MATCHSETUP_Tooltip_Speedrun_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Speedrun => MATCHSETUP_Tooltip_Speedrun_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_ChipIn_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_ChipIn_ref == null)
+				{
+					MATCHSETUP_Tooltip_ChipIn_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826379L
+					};
+				}
+				return MATCHSETUP_Tooltip_ChipIn_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_ChipIn => MATCHSETUP_Tooltip_ChipIn_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Knockouts_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Knockouts_ref == null)
+				{
+					MATCHSETUP_Tooltip_Knockouts_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826380L
+					};
+				}
+				return MATCHSETUP_Tooltip_Knockouts_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Knockouts => MATCHSETUP_Tooltip_Knockouts_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Countdown_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Countdown_ref == null)
+				{
+					MATCHSETUP_Tooltip_Countdown_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826381L
+					};
+				}
+				return MATCHSETUP_Tooltip_Countdown_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Countdown => MATCHSETUP_Tooltip_Countdown_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_OutOfBounds_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_OutOfBounds_ref == null)
+				{
+					MATCHSETUP_Tooltip_OutOfBounds_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826382L
+					};
+				}
+				return MATCHSETUP_Tooltip_OutOfBounds_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_OutOfBounds => MATCHSETUP_Tooltip_OutOfBounds_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_PlayerSpeed_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_PlayerSpeed_ref == null)
+				{
+					MATCHSETUP_Tooltip_PlayerSpeed_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826383L
+					};
+				}
+				return MATCHSETUP_Tooltip_PlayerSpeed_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_PlayerSpeed => MATCHSETUP_Tooltip_PlayerSpeed_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_CartSpeed_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_CartSpeed_ref == null)
+				{
+					MATCHSETUP_Tooltip_CartSpeed_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826384L
+					};
+				}
+				return MATCHSETUP_Tooltip_CartSpeed_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_CartSpeed => MATCHSETUP_Tooltip_CartSpeed_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_SwingPower_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_SwingPower_ref == null)
+				{
+					MATCHSETUP_Tooltip_SwingPower_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826385L
+					};
+				}
+				return MATCHSETUP_Tooltip_SwingPower_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_SwingPower => MATCHSETUP_Tooltip_SwingPower_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_HomingShots_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_HomingShots_ref == null)
+				{
+					MATCHSETUP_Tooltip_HomingShots_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826386L
+					};
+				}
+				return MATCHSETUP_Tooltip_HomingShots_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_HomingShots => MATCHSETUP_Tooltip_HomingShots_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_KnockoutSpeedBoost_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_KnockoutSpeedBoost_ref == null)
+				{
+					MATCHSETUP_Tooltip_KnockoutSpeedBoost_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826387L
+					};
+				}
+				return MATCHSETUP_Tooltip_KnockoutSpeedBoost_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_KnockoutSpeedBoost => MATCHSETUP_Tooltip_KnockoutSpeedBoost_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_HitOtherPlayers_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_HitOtherPlayers_ref == null)
+				{
+					MATCHSETUP_Tooltip_HitOtherPlayers_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826388L
+					};
+				}
+				return MATCHSETUP_Tooltip_HitOtherPlayers_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_HitOtherPlayers => MATCHSETUP_Tooltip_HitOtherPlayers_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_HitOtherPlayersBalls_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_HitOtherPlayersBalls_ref == null)
+				{
+					MATCHSETUP_Tooltip_HitOtherPlayersBalls_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826389L
+					};
+				}
+				return MATCHSETUP_Tooltip_HitOtherPlayersBalls_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_HitOtherPlayersBalls => MATCHSETUP_Tooltip_HitOtherPlayersBalls_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Comeback_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Comeback_ref == null)
+				{
+					MATCHSETUP_Tooltip_Comeback_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826390L
+					};
+				}
+				return MATCHSETUP_Tooltip_Comeback_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Comeback => MATCHSETUP_Tooltip_Comeback_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_ConsoleCommands_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_ConsoleCommands_ref == null)
+				{
+					MATCHSETUP_Tooltip_ConsoleCommands_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826391L
+					};
+				}
+				return MATCHSETUP_Tooltip_ConsoleCommands_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_ConsoleCommands => MATCHSETUP_Tooltip_ConsoleCommands_Ref.GetLocalizedString();
+
+		public static LocalizedString PAUSE_Tooltip_Mute_Ref
+		{
+			get
+			{
+				if (PAUSE_Tooltip_Mute_ref == null)
+				{
+					PAUSE_Tooltip_Mute_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826392L
+					};
+				}
+				return PAUSE_Tooltip_Mute_ref;
+			}
+		}
+
+		public static string PAUSE_Tooltip_Mute => PAUSE_Tooltip_Mute_Ref.GetLocalizedString();
+
+		public static LocalizedString PAUSE_Tooltip_Host_Ref
+		{
+			get
+			{
+				if (PAUSE_Tooltip_Host_ref == null)
+				{
+					PAUSE_Tooltip_Host_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826393L
+					};
+				}
+				return PAUSE_Tooltip_Host_ref;
+			}
+		}
+
+		public static string PAUSE_Tooltip_Host => PAUSE_Tooltip_Host_Ref.GetLocalizedString();
+
+		public static LocalizedString PAUSE_Tooltip_VoiceChatVolume_Ref
+		{
+			get
+			{
+				if (PAUSE_Tooltip_VoiceChatVolume_ref == null)
+				{
+					PAUSE_Tooltip_VoiceChatVolume_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826394L
+					};
+				}
+				return PAUSE_Tooltip_VoiceChatVolume_ref;
+			}
+		}
+
+		public static string PAUSE_Tooltip_VoiceChatVolume => PAUSE_Tooltip_VoiceChatVolume_Ref.GetLocalizedString();
+
+		public static LocalizedString PAUSE_Tooltip_ActiveTime_Ref
+		{
+			get
+			{
+				if (PAUSE_Tooltip_ActiveTime_ref == null)
+				{
+					PAUSE_Tooltip_ActiveTime_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826395L
+					};
+				}
+				return PAUSE_Tooltip_ActiveTime_ref;
+			}
+		}
+
+		public static string PAUSE_Tooltip_ActiveTime => PAUSE_Tooltip_ActiveTime_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_OverchargeSidespin_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_OverchargeSidespin_ref == null)
+				{
+					MATCHSETUP_Tooltip_OverchargeSidespin_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826396L
+					};
+				}
+				return MATCHSETUP_Tooltip_OverchargeSidespin_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_OverchargeSidespin => MATCHSETUP_Tooltip_OverchargeSidespin_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_MaxTimeBasedOnPar_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_MaxTimeBasedOnPar_ref == null)
+				{
+					MATCHSETUP_Tooltip_MaxTimeBasedOnPar_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826397L
+					};
+				}
+				return MATCHSETUP_Tooltip_MaxTimeBasedOnPar_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_MaxTimeBasedOnPar => MATCHSETUP_Tooltip_MaxTimeBasedOnPar_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_Difficulty_Beginner_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_Difficulty_Beginner_ref == null)
+				{
+					HOLE_INFO_Difficulty_Beginner_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826398L
+					};
+				}
+				return HOLE_INFO_Difficulty_Beginner_ref;
+			}
+		}
+
+		public static string HOLE_INFO_Difficulty_Beginner => HOLE_INFO_Difficulty_Beginner_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_Difficulty_Intermediate_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_Difficulty_Intermediate_ref == null)
+				{
+					HOLE_INFO_Difficulty_Intermediate_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826399L
+					};
+				}
+				return HOLE_INFO_Difficulty_Intermediate_ref;
+			}
+		}
+
+		public static string HOLE_INFO_Difficulty_Intermediate => HOLE_INFO_Difficulty_Intermediate_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_Difficulty_Expert_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_Difficulty_Expert_ref == null)
+				{
+					HOLE_INFO_Difficulty_Expert_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62717491024826400L
+					};
+				}
+				return HOLE_INFO_Difficulty_Expert_ref;
+			}
+		}
+
+		public static string HOLE_INFO_Difficulty_Expert => HOLE_INFO_Difficulty_Expert_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_CourseName_AllHoles_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_CourseName_AllHoles_ref == null)
+				{
+					HOLE_INFO_CourseName_AllHoles_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62724186337775616L
+					};
+				}
+				return HOLE_INFO_CourseName_AllHoles_ref;
+			}
+		}
+
+		public static string HOLE_INFO_CourseName_AllHoles => HOLE_INFO_CourseName_AllHoles_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Option_WindOff_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Option_WindOff_ref == null)
+				{
+					MATCHSETUP_Option_WindOff_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62761043566071808L
+					};
+				}
+				return MATCHSETUP_Option_WindOff_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Option_WindOff => MATCHSETUP_Option_WindOff_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Option_WindLow_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Option_WindLow_ref == null)
+				{
+					MATCHSETUP_Option_WindLow_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62761043578654720L
+					};
+				}
+				return MATCHSETUP_Option_WindLow_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Option_WindLow => MATCHSETUP_Option_WindLow_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Option_WindModerate_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Option_WindModerate_ref == null)
+				{
+					MATCHSETUP_Option_WindModerate_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62761043578654721L
+					};
+				}
+				return MATCHSETUP_Option_WindModerate_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Option_WindModerate => MATCHSETUP_Option_WindModerate_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Option_WindHigh_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Option_WindHigh_ref == null)
+				{
+					MATCHSETUP_Option_WindHigh_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62761043578654722L
+					};
+				}
+				return MATCHSETUP_Option_WindHigh_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Option_WindHigh => MATCHSETUP_Option_WindHigh_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Option_WindEscalating_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Option_WindEscalating_ref == null)
+				{
+					MATCHSETUP_Option_WindEscalating_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62761043578654723L
+					};
+				}
+				return MATCHSETUP_Option_WindEscalating_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Option_WindEscalating => MATCHSETUP_Option_WindEscalating_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Wind_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Wind_ref == null)
+				{
+					MATCHSETUP_Tooltip_Wind_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62761043578654724L
+					};
+				}
+				return MATCHSETUP_Tooltip_Wind_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Wind => MATCHSETUP_Tooltip_Wind_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Rule_Wind_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Rule_Wind_ref == null)
+				{
+					MATCHSETUP_Rule_Wind_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62761043578654725L
+					};
+				}
+				return MATCHSETUP_Rule_Wind_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Rule_Wind => MATCHSETUP_Rule_Wind_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Courses_Random_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Courses_Random_ref == null)
+				{
+					MATCHSETUP_Courses_Random_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62761043578654726L
+					};
+				}
+				return MATCHSETUP_Courses_Random_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Courses_Random => MATCHSETUP_Courses_Random_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Courses_RandomOrder_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Courses_RandomOrder_ref == null)
+				{
+					MATCHSETUP_Courses_RandomOrder_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 62770229494484992L
+					};
+				}
+				return MATCHSETUP_Courses_RandomOrder_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Courses_RandomOrder => MATCHSETUP_Courses_RandomOrder_Ref.GetLocalizedString();
+
+		public static LocalizedString PAUSE_Tooltip_MuteSelf_Ref
+		{
+			get
+			{
+				if (PAUSE_Tooltip_MuteSelf_ref == null)
+				{
+					PAUSE_Tooltip_MuteSelf_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892868886528L
+					};
+				}
+				return PAUSE_Tooltip_MuteSelf_ref;
+			}
+		}
+
+		public static string PAUSE_Tooltip_MuteSelf => PAUSE_Tooltip_MuteSelf_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_RandomOrder_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_RandomOrder_ref == null)
+				{
+					MATCHSETUP_Tooltip_RandomOrder_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892906635264L
+					};
+				}
+				return MATCHSETUP_Tooltip_RandomOrder_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_RandomOrder => MATCHSETUP_Tooltip_RandomOrder_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_NumberOfHoles_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_NumberOfHoles_ref == null)
+				{
+					MATCHSETUP_Tooltip_NumberOfHoles_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892906635265L
+					};
+				}
+				return MATCHSETUP_Tooltip_NumberOfHoles_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_NumberOfHoles => MATCHSETUP_Tooltip_NumberOfHoles_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_ActiveHoles_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_ActiveHoles_ref == null)
+				{
+					MATCHSETUP_Tooltip_ActiveHoles_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892906635266L
+					};
+				}
+				return MATCHSETUP_Tooltip_ActiveHoles_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_ActiveHoles => MATCHSETUP_Tooltip_ActiveHoles_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_InactiveHoles_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_InactiveHoles_ref == null)
+				{
+					MATCHSETUP_Tooltip_InactiveHoles_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892906635267L
+					};
+				}
+				return MATCHSETUP_Tooltip_InactiveHoles_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_InactiveHoles => MATCHSETUP_Tooltip_InactiveHoles_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Preset_Classic_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Preset_Classic_ref == null)
+				{
+					MATCHSETUP_Tooltip_Preset_Classic_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892906635276L
+					};
+				}
+				return MATCHSETUP_Tooltip_Preset_Classic_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Preset_Classic => MATCHSETUP_Tooltip_Preset_Classic_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Preset_ProGolf_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Preset_ProGolf_ref == null)
+				{
+					MATCHSETUP_Tooltip_Preset_ProGolf_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892906635277L
+					};
+				}
+				return MATCHSETUP_Tooltip_Preset_ProGolf_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Preset_ProGolf => MATCHSETUP_Tooltip_Preset_ProGolf_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Preset_Custom_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Preset_Custom_ref == null)
+				{
+					MATCHSETUP_Tooltip_Preset_Custom_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892906635278L
+					};
+				}
+				return MATCHSETUP_Tooltip_Preset_Custom_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Preset_Custom => MATCHSETUP_Tooltip_Preset_Custom_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Title_Behind_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Title_Behind_ref == null)
+				{
+					MATCHSETUP_Title_Behind_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892906635279L
+					};
+				}
+				return MATCHSETUP_Title_Behind_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Title_Behind => MATCHSETUP_Title_Behind_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Ahead_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Ahead_ref == null)
+				{
+					MATCHSETUP_Tooltip_Ahead_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63059308649127936L
+					};
+				}
+				return MATCHSETUP_Tooltip_Ahead_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Ahead => MATCHSETUP_Tooltip_Ahead_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_AheadOwnBall_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_AheadOwnBall_ref == null)
+				{
+					MATCHSETUP_Tooltip_AheadOwnBall_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63059308699459584L
+					};
+				}
+				return MATCHSETUP_Tooltip_AheadOwnBall_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_AheadOwnBall => MATCHSETUP_Tooltip_AheadOwnBall_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Behind_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Behind_ref == null)
+				{
+					MATCHSETUP_Tooltip_Behind_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892906635282L
+					};
+				}
+				return MATCHSETUP_Tooltip_Behind_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Behind => MATCHSETUP_Tooltip_Behind_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Title_MobilityItemBoxes_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Title_MobilityItemBoxes_ref == null)
+				{
+					MATCHSETUP_Title_MobilityItemBoxes_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892906635283L
+					};
+				}
+				return MATCHSETUP_Title_MobilityItemBoxes_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Title_MobilityItemBoxes => MATCHSETUP_Title_MobilityItemBoxes_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_MobilityItemBoxes_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_MobilityItemBoxes_ref == null)
+				{
+					MATCHSETUP_Tooltip_MobilityItemBoxes_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892906635284L
+					};
+				}
+				return MATCHSETUP_Tooltip_MobilityItemBoxes_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_MobilityItemBoxes => MATCHSETUP_Tooltip_MobilityItemBoxes_Ref.GetLocalizedString();
+
+		public static LocalizedString MISC_Distance_Yards_Full_Ref
+		{
+			get
+			{
+				if (MISC_Distance_Yards_Full_ref == null)
+				{
+					MISC_Distance_Yards_Full_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63042892906635285L
+					};
+				}
+				return MISC_Distance_Yards_Full_ref;
+			}
+		}
+
+		public static string MISC_Distance_Yards_Full => MISC_Distance_Yards_Full_Ref.GetLocalizedString();
+
+		public static LocalizedString MATCHSETUP_Tooltip_Custom_Ref
+		{
+			get
+			{
+				if (MATCHSETUP_Tooltip_Custom_ref == null)
+				{
+					MATCHSETUP_Tooltip_Custom_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63059587331268608L
+					};
+				}
+				return MATCHSETUP_Tooltip_Custom_ref;
+			}
+		}
+
+		public static string MATCHSETUP_Tooltip_Custom => MATCHSETUP_Tooltip_Custom_Ref.GetLocalizedString();
+
+		public static LocalizedString LOBBY_BROWSER_Filter_HideCustom_Ref
+		{
+			get
+			{
+				if (LOBBY_BROWSER_Filter_HideCustom_ref == null)
+				{
+					LOBBY_BROWSER_Filter_HideCustom_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63124115837227008L
+					};
+				}
+				return LOBBY_BROWSER_Filter_HideCustom_ref;
+			}
+		}
+
+		public static string LOBBY_BROWSER_Filter_HideCustom => LOBBY_BROWSER_Filter_HideCustom_Ref.GetLocalizedString();
+
+		public static LocalizedString LOBBY_BROWSER_Filter_HideActive_Ref
+		{
+			get
+			{
+				if (LOBBY_BROWSER_Filter_HideActive_ref == null)
+				{
+					LOBBY_BROWSER_Filter_HideActive_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63124115854004224L
+					};
+				}
+				return LOBBY_BROWSER_Filter_HideActive_ref;
+			}
+		}
+
+		public static string LOBBY_BROWSER_Filter_HideActive => LOBBY_BROWSER_Filter_HideActive_Ref.GetLocalizedString();
+
+		public static LocalizedString LOBBY_BROWSER_Rules_Ref
+		{
+			get
+			{
+				if (LOBBY_BROWSER_Rules_ref == null)
+				{
+					LOBBY_BROWSER_Rules_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63124115854004225L
+					};
+				}
+				return LOBBY_BROWSER_Rules_ref;
+			}
+		}
+
+		public static string LOBBY_BROWSER_Rules => LOBBY_BROWSER_Rules_Ref.GetLocalizedString();
+
+		public static LocalizedString LOBBY_BROWSER_Tooltip_HideCustom_Ref
+		{
+			get
+			{
+				if (LOBBY_BROWSER_Tooltip_HideCustom_ref == null)
+				{
+					LOBBY_BROWSER_Tooltip_HideCustom_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63124115854004226L
+					};
+				}
+				return LOBBY_BROWSER_Tooltip_HideCustom_ref;
+			}
+		}
+
+		public static string LOBBY_BROWSER_Tooltip_HideCustom => LOBBY_BROWSER_Tooltip_HideCustom_Ref.GetLocalizedString();
+
+		public static LocalizedString LOBBY_BROWSER_Tooltip_HideActive_Ref
+		{
+			get
+			{
+				if (LOBBY_BROWSER_Tooltip_HideActive_ref == null)
+				{
+					LOBBY_BROWSER_Tooltip_HideActive_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63124115854004227L
+					};
+				}
+				return LOBBY_BROWSER_Tooltip_HideActive_ref;
+			}
+		}
+
+		public static string LOBBY_BROWSER_Tooltip_HideActive => LOBBY_BROWSER_Tooltip_HideActive_Ref.GetLocalizedString();
+
+		public static LocalizedString LOBBY_BROWSER_Tooltip_FriendsOnly_Ref
+		{
+			get
+			{
+				if (LOBBY_BROWSER_Tooltip_FriendsOnly_ref == null)
+				{
+					LOBBY_BROWSER_Tooltip_FriendsOnly_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 63124115854004228L
+					};
+				}
+				return LOBBY_BROWSER_Tooltip_FriendsOnly_ref;
+			}
+		}
+
+		public static string LOBBY_BROWSER_Tooltip_FriendsOnly => LOBBY_BROWSER_Tooltip_FriendsOnly_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Catwalk_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Catwalk_ref == null)
+				{
+					HOLE_INFO_HoleName_Catwalk_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 64499649055039488L
+					};
+				}
+				return HOLE_INFO_HoleName_Catwalk_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Catwalk => HOLE_INFO_HoleName_Catwalk_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_LongBeach_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_LongBeach_ref == null)
+				{
+					HOLE_INFO_HoleName_LongBeach_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 64499649096982528L
+					};
+				}
+				return HOLE_INFO_HoleName_LongBeach_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_LongBeach => HOLE_INFO_HoleName_LongBeach_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Jungle_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Jungle_ref == null)
+				{
+					HOLE_INFO_HoleName_Jungle_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 64499649096982529L
+					};
+				}
+				return HOLE_INFO_HoleName_Jungle_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Jungle => HOLE_INFO_HoleName_Jungle_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Shallows_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Shallows_ref == null)
+				{
+					HOLE_INFO_HoleName_Shallows_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 64499649096982530L
+					};
+				}
+				return HOLE_INFO_HoleName_Shallows_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Shallows => HOLE_INFO_HoleName_Shallows_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_SeasideCliff_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_SeasideCliff_ref == null)
+				{
+					HOLE_INFO_HoleName_SeasideCliff_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 64499649096982531L
+					};
+				}
+				return HOLE_INFO_HoleName_SeasideCliff_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_SeasideCliff => HOLE_INFO_HoleName_SeasideCliff_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_RollingHills_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_RollingHills_ref == null)
+				{
+					HOLE_INFO_HoleName_RollingHills_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 64499649096982532L
+					};
+				}
+				return HOLE_INFO_HoleName_RollingHills_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_RollingHills => HOLE_INFO_HoleName_RollingHills_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_Bullseye_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_Bullseye_ref == null)
+				{
+					HOLE_INFO_HoleName_Bullseye_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 64499649096982533L
+					};
+				}
+				return HOLE_INFO_HoleName_Bullseye_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_Bullseye => HOLE_INFO_HoleName_Bullseye_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_HiddenLagoon_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_HiddenLagoon_ref == null)
+				{
+					HOLE_INFO_HoleName_HiddenLagoon_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 64499649096982534L
+					};
+				}
+				return HOLE_INFO_HoleName_HiddenLagoon_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_HiddenLagoon => HOLE_INFO_HoleName_HiddenLagoon_Ref.GetLocalizedString();
+
+		public static LocalizedString HOLE_INFO_HoleName_TreasureIsland_Ref
+		{
+			get
+			{
+				if (HOLE_INFO_HoleName_TreasureIsland_ref == null)
+				{
+					HOLE_INFO_HoleName_TreasureIsland_ref = new LocalizedString
+					{
+						TableReference = "UI",
+						TableEntryReference = 64499649096982535L
+					};
+				}
+				return HOLE_INFO_HoleName_TreasureIsland_ref;
+			}
+		}
+
+		public static string HOLE_INFO_HoleName_TreasureIsland => HOLE_INFO_HoleName_TreasureIsland_Ref.GetLocalizedString();
 	}
 }

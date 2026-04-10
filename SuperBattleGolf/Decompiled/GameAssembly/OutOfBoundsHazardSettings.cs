@@ -8,4 +8,7 @@ public class OutOfBoundsHazardSettings : ScriptableObject
 
 	[field: SerializeField]
 	public Color SwingPowerBarColor { get; private set; }
+
+	[field: SerializeField]
+	public Color SwingPowerBarOutOfBoundsOverlayColor { get; private set; }
 }

@@ -16,6 +16,9 @@ public struct CalculateGroundRollStopDistancesJob : IJobParallelFor
 	public NativeHashMap<int, int> globalTerrainLayerIndicesPerLevelTerrainLayer;
 
 	[ReadOnly]
+	public NativeHashMap<int, int> globalTerrainLayerIndicesPerLevelHazard;
+
+	[ReadOnly]
 	public NativeHashMap<int, TerrainLayerSettings.JobsPhysicsData> ballTerrainPhysicsSettingsPerTerrainLayer;
 
 	[ReadOnly]
@@ -30,6 +33,9 @@ public struct CalculateGroundRollStopDistancesJob : IJobParallelFor
 	[ReadOnly]
 	public NativeList<BoundsManager.SecondaryOutOfBoundsHazardInstance> secondaryOutOfBoundsHazards;
 
+	[ReadOnly]
+	public NativeList<BoundsManager.LevelHazardInstance> levelHazards;
+
 	[WriteOnly]
 	public NativeArray<PlayerGolfer.SwingDistanceEstimation> estimatedDistances;
 
@@ -37,7 +43,11 @@ public struct CalculateGroundRollStopDistancesJob : IJobParallelFor
 
 	public OutOfBoundsHazard mainOutOfBoundsHazardType;
 
-	public float2 fullInitialSpeed;
+	public float baseInitialSpeed;
+
+	public float fullInitialSpeed;
+
+	public float2 horizontalDirection;
 
 	public float movementDirectionRightInitialAngularSpeed;
 
@@ -69,11 +79,12 @@ public struct CalculateGroundRollStopDistancesJob : IJobParallelFor
 		float num2 = 0.4f * ballMass * ballRadius * ballRadius;
 		float num3 = 0.2857143f * ballMass;
 		float num4 = ballMass * absoluteVerticalGravity * deltaTime;
-		float2 @float = normalizedInitialSpeeds[initialSpeedIndex] * fullInitialSpeed;
+		float2 @float = (baseInitialSpeed + normalizedInitialSpeeds[initialSpeedIndex] * (fullInitialSpeed - baseInitialSpeed)) * horizontalDirection;
 		float2 float2 = initialWorldPosition2d;
 		float2 float3 = @float;
 		float num5 = math.min(movementDirectionRightInitialAngularSpeed, ballMaxAngularSpeed);
 		TerrainLayer layer = (TerrainLayer)(-1);
+		LevelHazardType levelHazardType = (LevelHazardType)(-1);
 		OutOfBoundsHazard outOfBoundsHazard = (OutOfBoundsHazard)(-1);
 		while (math.lengthsq(float3) > 0.001f && math.dot(float3, @float) > 0f)
 		{
@@ -83,18 +94,40 @@ public struct CalculateGroundRollStopDistancesJob : IJobParallelFor
 				break;
 			}
 			float heightAt = item.GetHeightAt(float2, allTerrainHeights);
-			BoundsJobHelper.IsInOutOfBoundsHazard(new float3(float2.x, heightAt, float2.y), secondaryOutOfBoundsHazards, mainOutOfBoundsHazardHeight, mainOutOfBoundsHazardType, out var _, out var hazardType, out var _);
-			if (hazardType >= OutOfBoundsHazard.Water)
+			float3 point = new float3(float2.x, heightAt, float2.y);
+			if (BoundsJobHelper.IsInOrOverLevelHazard(point, levelHazards, out var _, out var hazardHeight, out var hazardType, out var levelHazardInstanceId))
 			{
 				layer = (TerrainLayer)(-1);
-				outOfBoundsHazard = hazardType;
-				break;
+				levelHazardType = hazardType;
 			}
-			int dominantLayerIndexAt = item.GetDominantLayerIndexAt(float2, allTerrainLayerWeights);
-			if (!globalTerrainLayerIndicesPerLevelTerrainLayer.TryGetValue(dominantLayerIndexAt, out var item2))
+			else
 			{
-				Debug.LogError($"Level terrain layer {dominantLayerIndexAt} cannot be mapped to a global terrain layer");
-				break;
+				levelHazardType = (LevelHazardType)(-1);
+				BoundsJobHelper.IsInOutOfBoundsHazard(point, secondaryOutOfBoundsHazards, mainOutOfBoundsHazardHeight, mainOutOfBoundsHazardType, out hazardHeight, out var hazardType2, out levelHazardInstanceId);
+				if (hazardType2 >= OutOfBoundsHazard.Water)
+				{
+					layer = (TerrainLayer)(-1);
+					outOfBoundsHazard = hazardType2;
+					break;
+				}
+			}
+			int item2;
+			if (levelHazardType >= LevelHazardType.BreakableIce)
+			{
+				if (!globalTerrainLayerIndicesPerLevelHazard.TryGetValue((int)levelHazardType, out item2))
+				{
+					Debug.LogError($"Level hazard {levelHazardType} cannot be mapped to a global terrain layer");
+					break;
+				}
+			}
+			else
+			{
+				int dominantLayerIndexAt = item.GetDominantLayerIndexAt(float2, allTerrainLayerWeights);
+				if (!globalTerrainLayerIndicesPerLevelTerrainLayer.TryGetValue(dominantLayerIndexAt, out item2))
+				{
+					Debug.LogError($"Level terrain layer {dominantLayerIndexAt} cannot be mapped to a global terrain layer");
+					break;
+				}
 			}
 			layer = (TerrainLayer)item2;
 			TerrainLayerSettings.JobsPhysicsData jobsPhysicsData = ballTerrainPhysicsSettingsPerTerrainLayer[item2];
@@ -124,6 +157,6 @@ public struct CalculateGroundRollStopDistancesJob : IJobParallelFor
 			float2 += float3 * deltaTime;
 		}
 		float distance = math.length(float2 - initialWorldPosition2d);
-		estimatedDistances[initialSpeedIndex] = new PlayerGolfer.SwingDistanceEstimation(distance, layer, outOfBoundsHazard);
+		estimatedDistances[initialSpeedIndex] = new PlayerGolfer.SwingDistanceEstimation(distance, layer, levelHazardType, outOfBoundsHazard);
 	}
 }

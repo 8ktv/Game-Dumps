@@ -28,6 +28,8 @@ internal static class StyleDebug
 			return computedStyle.alignItems;
 		case StylePropertyId.AlignSelf:
 			return computedStyle.alignSelf;
+		case StylePropertyId.AspectRatio:
+			return computedStyle.aspectRatio;
 		case StylePropertyId.BackgroundColor:
 			return computedStyle.backgroundColor;
 		case StylePropertyId.BackgroundImage:
@@ -72,6 +74,8 @@ internal static class StyleDebug
 			return computedStyle.cursor;
 		case StylePropertyId.Display:
 			return computedStyle.display;
+		case StylePropertyId.Filter:
+			return computedStyle.filter;
 		case StylePropertyId.FlexBasis:
 			return computedStyle.flexBasis;
 		case StylePropertyId.FlexDirection:
@@ -156,6 +160,8 @@ internal static class StyleDebug
 			return computedStyle.unityFontDefinition;
 		case StylePropertyId.UnityFontStyleAndWeight:
 			return computedStyle.unityFontStyleAndWeight;
+		case StylePropertyId.UnityMaterial:
+			return computedStyle.unityMaterial;
 		case StylePropertyId.UnityOverflowClipBox:
 			return computedStyle.unityOverflowClipBox;
 		case StylePropertyId.UnityParagraphSpacing:
@@ -208,6 +214,8 @@ internal static class StyleDebug
 			return typeof(Align);
 		case StylePropertyId.AlignSelf:
 			return typeof(Align);
+		case StylePropertyId.AspectRatio:
+			return typeof(Ratio);
 		case StylePropertyId.BackgroundColor:
 			return typeof(Color);
 		case StylePropertyId.BackgroundImage:
@@ -252,6 +260,8 @@ internal static class StyleDebug
 			return typeof(Cursor);
 		case StylePropertyId.Display:
 			return typeof(DisplayStyle);
+		case StylePropertyId.Filter:
+			return typeof(List<FilterFunction>);
 		case StylePropertyId.FlexBasis:
 			return typeof(Length);
 		case StylePropertyId.FlexDirection:
@@ -336,6 +346,8 @@ internal static class StyleDebug
 			return typeof(FontDefinition);
 		case StylePropertyId.UnityFontStyleAndWeight:
 			return typeof(FontStyle);
+		case StylePropertyId.UnityMaterial:
+			return typeof(MaterialDefinition);
 		case StylePropertyId.UnityOverflowClipBox:
 			return typeof(OverflowClipBox);
 		case StylePropertyId.UnityParagraphSpacing:
@@ -410,6 +422,8 @@ internal static class StyleDebug
 			return style.alignItems;
 		case StylePropertyId.AlignSelf:
 			return style.alignSelf;
+		case StylePropertyId.AspectRatio:
+			return style.aspectRatio;
 		case StylePropertyId.BackgroundColor:
 			return style.backgroundColor;
 		case StylePropertyId.BackgroundImage:
@@ -454,6 +468,8 @@ internal static class StyleDebug
 			return style.cursor;
 		case StylePropertyId.Display:
 			return style.display;
+		case StylePropertyId.Filter:
+			return style.filter;
 		case StylePropertyId.FlexBasis:
 			return style.flexBasis;
 		case StylePropertyId.FlexDirection:
@@ -538,6 +554,8 @@ internal static class StyleDebug
 			return style.unityFontDefinition;
 		case StylePropertyId.UnityFontStyleAndWeight:
 			return style.unityFontStyleAndWeight;
+		case StylePropertyId.UnityMaterial:
+			return style.unityMaterial;
 		case StylePropertyId.UnityOverflowClipBox:
 			return style.unityOverflowClipBox;
 		case StylePropertyId.UnityParagraphSpacing:
@@ -592,6 +610,9 @@ internal static class StyleDebug
 			break;
 		case StylePropertyId.AlignSelf:
 			style.alignSelf = (StyleEnum<Align>)value;
+			break;
+		case StylePropertyId.AspectRatio:
+			style.aspectRatio = (StyleRatio)value;
 			break;
 		case StylePropertyId.BackgroundColor:
 			style.backgroundColor = (StyleColor)value;
@@ -658,6 +679,9 @@ internal static class StyleDebug
 			break;
 		case StylePropertyId.Display:
 			style.display = (StyleEnum<DisplayStyle>)value;
+			break;
+		case StylePropertyId.Filter:
+			style.filter = (StyleList<FilterFunction>)value;
 			break;
 		case StylePropertyId.FlexBasis:
 			style.flexBasis = (StyleLength)value;
@@ -785,6 +809,9 @@ internal static class StyleDebug
 		case StylePropertyId.UnityFontStyleAndWeight:
 			style.unityFontStyleAndWeight = (StyleEnum<FontStyle>)value;
 			break;
+		case StylePropertyId.UnityMaterial:
+			style.unityMaterial = (StyleMaterialDefinition)value;
+			break;
 		case StylePropertyId.UnityOverflowClipBox:
 			style.unityOverflowClipBox = (StyleEnum<OverflowClipBox>)value;
 			break;
@@ -858,6 +885,9 @@ internal static class StyleDebug
 		case StylePropertyId.AlignSelf:
 			style.alignSelf = keyword;
 			break;
+		case StylePropertyId.AspectRatio:
+			style.aspectRatio = keyword;
+			break;
 		case StylePropertyId.BackgroundColor:
 			style.backgroundColor = keyword;
 			break;
@@ -923,6 +953,9 @@ internal static class StyleDebug
 			break;
 		case StylePropertyId.Display:
 			style.display = keyword;
+			break;
+		case StylePropertyId.Filter:
+			style.filter = keyword;
 			break;
 		case StylePropertyId.FlexBasis:
 			style.flexBasis = keyword;
@@ -1050,6 +1083,9 @@ internal static class StyleDebug
 		case StylePropertyId.UnityFontStyleAndWeight:
 			style.unityFontStyleAndWeight = keyword;
 			break;
+		case StylePropertyId.UnityMaterial:
+			style.unityMaterial = keyword;
+			break;
 		case StylePropertyId.UnityOverflowClipBox:
 			style.unityOverflowClipBox = keyword;
 			break;
@@ -1120,6 +1156,8 @@ internal static class StyleDebug
 			return new List<StyleKeyword> { StyleKeyword.Auto };
 		case StylePropertyId.AlignSelf:
 			return new List<StyleKeyword> { StyleKeyword.Auto };
+		case StylePropertyId.AspectRatio:
+			return new List<StyleKeyword> { StyleKeyword.Auto };
 		case StylePropertyId.BackgroundColor:
 			return new List<StyleKeyword>();
 		case StylePropertyId.BackgroundImage:
@@ -1163,6 +1201,8 @@ internal static class StyleDebug
 		case StylePropertyId.Cursor:
 			return new List<StyleKeyword>();
 		case StylePropertyId.Display:
+			return new List<StyleKeyword> { StyleKeyword.None };
+		case StylePropertyId.Filter:
 			return new List<StyleKeyword> { StyleKeyword.None };
 		case StylePropertyId.FlexBasis:
 			return new List<StyleKeyword>();
@@ -1248,6 +1288,8 @@ internal static class StyleDebug
 			return new List<StyleKeyword>();
 		case StylePropertyId.UnityFontStyleAndWeight:
 			return new List<StyleKeyword>();
+		case StylePropertyId.UnityMaterial:
+			return new List<StyleKeyword> { StyleKeyword.None };
 		case StylePropertyId.UnityOverflowClipBox:
 			return new List<StyleKeyword>();
 		case StylePropertyId.UnityParagraphSpacing:
@@ -1300,6 +1342,8 @@ internal static class StyleDebug
 			return (StyleEnum<Align>)(Align)value;
 		case StylePropertyId.AlignSelf:
 			return (StyleEnum<Align>)(Align)value;
+		case StylePropertyId.AspectRatio:
+			return (StyleRatio)(Ratio)value;
 		case StylePropertyId.BackgroundColor:
 			return (StyleColor)(Color)value;
 		case StylePropertyId.BackgroundImage:
@@ -1344,6 +1388,8 @@ internal static class StyleDebug
 			return (StyleCursor)(Cursor)value;
 		case StylePropertyId.Display:
 			return (StyleEnum<DisplayStyle>)(DisplayStyle)value;
+		case StylePropertyId.Filter:
+			return (StyleList<FilterFunction>)(List<FilterFunction>)value;
 		case StylePropertyId.FlexBasis:
 			return (StyleLength)(Length)value;
 		case StylePropertyId.FlexDirection:
@@ -1428,6 +1474,8 @@ internal static class StyleDebug
 			return (StyleFontDefinition)(FontDefinition)value;
 		case StylePropertyId.UnityFontStyleAndWeight:
 			return (StyleEnum<FontStyle>)(FontStyle)value;
+		case StylePropertyId.UnityMaterial:
+			return (StyleMaterialDefinition)(MaterialDefinition)value;
 		case StylePropertyId.UnityOverflowClipBox:
 			return (StyleEnum<OverflowClipBox>)(OverflowClipBox)value;
 		case StylePropertyId.UnityParagraphSpacing:
@@ -1480,6 +1528,8 @@ internal static class StyleDebug
 			return typeof(StyleEnum<Align>);
 		case StylePropertyId.AlignSelf:
 			return typeof(StyleEnum<Align>);
+		case StylePropertyId.AspectRatio:
+			return typeof(StyleRatio);
 		case StylePropertyId.BackgroundColor:
 			return typeof(StyleColor);
 		case StylePropertyId.BackgroundImage:
@@ -1524,6 +1574,8 @@ internal static class StyleDebug
 			return typeof(StyleCursor);
 		case StylePropertyId.Display:
 			return typeof(StyleEnum<DisplayStyle>);
+		case StylePropertyId.Filter:
+			return typeof(StyleList<FilterFunction>);
 		case StylePropertyId.FlexBasis:
 			return typeof(StyleLength);
 		case StylePropertyId.FlexDirection:
@@ -1608,6 +1660,8 @@ internal static class StyleDebug
 			return typeof(StyleFontDefinition);
 		case StylePropertyId.UnityFontStyleAndWeight:
 			return typeof(StyleEnum<FontStyle>);
+		case StylePropertyId.UnityMaterial:
+			return typeof(StyleMaterialDefinition);
 		case StylePropertyId.UnityOverflowClipBox:
 			return typeof(StyleEnum<OverflowClipBox>);
 		case StylePropertyId.UnityParagraphSpacing:
@@ -1713,8 +1767,10 @@ internal static class StyleDebug
 			StylePropertyId.UnityFont => true, 
 			StylePropertyId.UnityFontDefinition => true, 
 			StylePropertyId.UnityFontStyleAndWeight => true, 
+			StylePropertyId.UnityMaterial => true, 
 			StylePropertyId.UnityParagraphSpacing => true, 
 			StylePropertyId.UnityTextAlign => true, 
+			StylePropertyId.UnityTextAutoSize => true, 
 			StylePropertyId.UnityTextGenerator => true, 
 			StylePropertyId.UnityTextOutlineColor => true, 
 			StylePropertyId.UnityTextOutlineWidth => true, 
@@ -1727,7 +1783,7 @@ internal static class StyleDebug
 
 	public static StylePropertyId[] GetInheritedProperties()
 	{
-		return new StylePropertyId[16]
+		return new StylePropertyId[18]
 		{
 			StylePropertyId.Color,
 			StylePropertyId.FontSize,
@@ -1737,8 +1793,10 @@ internal static class StyleDebug
 			StylePropertyId.UnityFont,
 			StylePropertyId.UnityFontDefinition,
 			StylePropertyId.UnityFontStyleAndWeight,
+			StylePropertyId.UnityMaterial,
 			StylePropertyId.UnityParagraphSpacing,
 			StylePropertyId.UnityTextAlign,
+			StylePropertyId.UnityTextAutoSize,
 			StylePropertyId.UnityTextGenerator,
 			StylePropertyId.UnityTextOutlineColor,
 			StylePropertyId.UnityTextOutlineWidth,

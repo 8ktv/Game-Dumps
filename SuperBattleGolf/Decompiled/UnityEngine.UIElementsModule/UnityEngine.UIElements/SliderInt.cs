@@ -11,12 +11,6 @@ public class SliderInt : BaseSlider<int>
 	public new class UxmlSerializedData : BaseSlider<int>.UxmlSerializedData
 	{
 		[SerializeField]
-		private int lowValue;
-
-		[SerializeField]
-		private int highValue;
-
-		[SerializeField]
 		private float pageSize;
 
 		[SerializeField]
@@ -31,41 +25,29 @@ public class SliderInt : BaseSlider<int>
 		[UxmlIgnore]
 		[SerializeField]
 		[HideInInspector]
-		private UxmlAttributeFlags lowValue_UxmlAttributeFlags;
-
-		[SerializeField]
-		[UxmlIgnore]
-		[HideInInspector]
-		private UxmlAttributeFlags highValue_UxmlAttributeFlags;
-
-		[SerializeField]
-		[UxmlIgnore]
-		[HideInInspector]
 		private UxmlAttributeFlags pageSize_UxmlAttributeFlags;
 
 		[SerializeField]
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags showInputField_UxmlAttributeFlags;
 
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		[HideInInspector]
 		private UxmlAttributeFlags direction_UxmlAttributeFlags;
 
+		[UxmlIgnore]
 		[HideInInspector]
 		[SerializeField]
-		[UxmlIgnore]
 		private UxmlAttributeFlags inverted_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
 		public new static void Register()
 		{
 			BaseSlider<int>.UxmlSerializedData.Register();
-			UxmlDescriptionCache.RegisterType(typeof(UxmlSerializedData), new UxmlAttributeNames[6]
+			UxmlDescriptionCache.RegisterType(typeof(UxmlSerializedData), new UxmlAttributeNames[4]
 			{
-				new UxmlAttributeNames("lowValue", "low-value", null),
-				new UxmlAttributeNames("highValue", "high-value", null),
 				new UxmlAttributeNames("pageSize", "page-size", null),
 				new UxmlAttributeNames("showInputField", "show-input-field", null),
 				new UxmlAttributeNames("direction", "direction", null),
@@ -80,15 +62,8 @@ public class SliderInt : BaseSlider<int>
 
 		public override void Deserialize(object obj)
 		{
+			base.Deserialize(obj);
 			SliderInt sliderInt = (SliderInt)obj;
-			if (UnityEngine.UIElements.UxmlSerializedData.ShouldWriteAttributeValue(lowValue_UxmlAttributeFlags))
-			{
-				sliderInt.lowValue = lowValue;
-			}
-			if (UnityEngine.UIElements.UxmlSerializedData.ShouldWriteAttributeValue(highValue_UxmlAttributeFlags))
-			{
-				sliderInt.highValue = highValue;
-			}
 			if (UnityEngine.UIElements.UxmlSerializedData.ShouldWriteAttributeValue(direction_UxmlAttributeFlags))
 			{
 				sliderInt.direction = direction;
@@ -105,7 +80,6 @@ public class SliderInt : BaseSlider<int>
 			{
 				sliderInt.inverted = inverted;
 			}
-			base.Deserialize(obj);
 		}
 	}
 

@@ -5,8 +5,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Rendering;
 
-[NativeHeader("Runtime/Graphics/GPUFence.h")]
 [UsedByNativeCode]
+[NativeHeader("Runtime/Graphics/GPUFence.h")]
 public struct GraphicsFence
 {
 	internal IntPtr m_Ptr;
@@ -84,7 +84,7 @@ public struct GraphicsFence
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("GPUFenceInternals::GetVersionNumber")]
 	[NativeThrows]
+	[FreeFunction("GPUFenceInternals::GetVersionNumber")]
 	private static extern int GetVersionNumber(IntPtr fencePtr);
 }

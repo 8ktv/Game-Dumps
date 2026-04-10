@@ -2,10 +2,13 @@ using System;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleTextShadow : IStyleValue<TextShadow>, IEquatable<StyleTextShadow>
 {
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
+	[SerializeField]
 	private TextShadow m_Value;
 
 	public TextShadow value

@@ -369,7 +369,7 @@ internal static class HIDParser
 			{
 				return 0;
 			}
-			return *currentPtr;
+			return (sbyte)(*currentPtr);
 		case 2:
 		{
 			if (currentPtr + 2 >= endPtr)
@@ -377,7 +377,7 @@ internal static class HIDParser
 				return 0;
 			}
 			byte b4 = *currentPtr;
-			return (currentPtr[1] << 8) | b4;
+			return (short)((currentPtr[1] << 8) | b4);
 		}
 		case 3:
 		{
@@ -388,7 +388,7 @@ internal static class HIDParser
 			byte b = *currentPtr;
 			byte b2 = currentPtr[1];
 			byte b3 = currentPtr[2];
-			return (currentPtr[3] << 24) | (b3 << 24) | (b2 << 8) | b;
+			return (currentPtr[3] << 24) | (b3 << 16) | (b2 << 8) | b;
 		}
 		default:
 			return 0;

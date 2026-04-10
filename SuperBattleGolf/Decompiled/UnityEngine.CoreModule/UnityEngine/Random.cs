@@ -64,6 +64,16 @@ public static class Random
 		}
 	}
 
+	public static Vector2 onUnitCircle
+	{
+		[FreeFunction]
+		get
+		{
+			get_onUnitCircle_Injected(out var ret);
+			return ret;
+		}
+	}
+
 	public static Vector3 onUnitSphere
 	{
 		[FreeFunction]
@@ -94,8 +104,8 @@ public static class Random
 		}
 	}
 
-	[Obsolete("Deprecated. Use InitState() function or Random.state property instead.")]
 	[StaticAccessor("GetScriptingRand()", StaticAccessorType.Dot)]
+	[Obsolete("Deprecated. Use InitState() function or Random.state property instead.")]
 	public static extern int seed
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
@@ -105,8 +115,8 @@ public static class Random
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[NativeMethod("SetSeed")]
 	[StaticAccessor("GetScriptingRand()", StaticAccessorType.Dot)]
+	[NativeMethod("SetSeed")]
 	public static extern void InitState(int seed);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -176,6 +186,9 @@ public static class Random
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void get_insideUnitSphere_Injected(out Vector3 ret);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void get_onUnitCircle_Injected(out Vector2 ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void get_onUnitSphere_Injected(out Vector3 ret);

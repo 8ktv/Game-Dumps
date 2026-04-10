@@ -7,10 +7,10 @@ using UnityEngine.Rendering;
 
 namespace UnityEngine;
 
-[RequireComponent(typeof(Transform))]
+[NativeHeader("Runtime/Export/Graphics/Light.bindings.h")]
 [RequireComponent(typeof(Transform))]
 [NativeHeader("Runtime/Camera/Light.h")]
-[NativeHeader("Runtime/Export/Graphics/Light.bindings.h")]
+[RequireComponent(typeof(Transform))]
 public sealed class Light : Behaviour
 {
 	private int m_BakedIndex;
@@ -681,12 +681,28 @@ public sealed class Light : Behaviour
 	{
 		get
 		{
+			return ShadowResolution;
+		}
+		set
+		{
+			if (RenderPipelineManager.currentPipeline != null)
+			{
+				LogWarningOnlyBuiltIn("shadowResolution");
+			}
+			ShadowResolution = value;
+		}
+	}
+
+	private LightShadowResolution ShadowResolution
+	{
+		get
+		{
 			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 			if (intPtr == (IntPtr)0)
 			{
 				ThrowHelper.ThrowNullReferenceException(this);
 			}
-			return get_shadowResolution_Injected(intPtr);
+			return get_ShadowResolution_Injected(intPtr);
 		}
 		[FreeFunction("Light_Bindings::SetShadowResolution", HasExplicitThis = true, ThrowsException = true)]
 		set
@@ -696,7 +712,7 @@ public sealed class Light : Behaviour
 			{
 				ThrowHelper.ThrowNullReferenceException(this);
 			}
-			set_shadowResolution_Injected(intPtr, value);
+			set_ShadowResolution_Injected(intPtr, value);
 		}
 	}
 
@@ -767,7 +783,20 @@ public sealed class Light : Behaviour
 		}
 	}
 
+	[Obsolete("Light.cookieSize has been deprecated. Use Light.cookieSize2D instead.", false)]
 	public float cookieSize
+	{
+		get
+		{
+			return cookieSize2D.x;
+		}
+		set
+		{
+			cookieSize2D = new Vector2(value, value);
+		}
+	}
+
+	public Vector2 cookieSize2D
 	{
 		get
 		{
@@ -776,7 +805,8 @@ public sealed class Light : Behaviour
 			{
 				ThrowHelper.ThrowNullReferenceException(this);
 			}
-			return get_cookieSize_Injected(intPtr);
+			get_cookieSize2D_Injected(intPtr, out var ret);
+			return ret;
 		}
 		set
 		{
@@ -785,7 +815,7 @@ public sealed class Light : Behaviour
 			{
 				ThrowHelper.ThrowNullReferenceException(this);
 			}
-			set_cookieSize_Injected(intPtr, value);
+			set_cookieSize2D_Injected(intPtr, ref value);
 		}
 	}
 
@@ -943,6 +973,11 @@ public sealed class Light : Behaviour
 		Reset_Injected(intPtr);
 	}
 
+	private static void LogWarningOnlyBuiltIn([CallerMemberName] string propertyName = "")
+	{
+		Debug.LogWarning("Light." + propertyName + " is compatible only with the Built-In Render Pipeline.");
+	}
+
 	public void AddCommandBuffer(LightEvent evt, CommandBuffer buffer)
 	{
 		AddCommandBuffer(evt, buffer, ShadowMapPass.All);
@@ -952,7 +987,7 @@ public sealed class Light : Behaviour
 	{
 		if (RenderPipelineManager.currentPipeline != null)
 		{
-			Debug.LogWarning("Your project uses a scriptable render pipeline. You can use Light.AddCommandBuffer only with the built-in renderer.");
+			LogWarningOnlyBuiltIn("AddCommandBuffer");
 		}
 		AddCommandBufferInternal(evt, buffer, shadowPassMask);
 	}
@@ -977,7 +1012,7 @@ public sealed class Light : Behaviour
 	{
 		if (RenderPipelineManager.currentPipeline != null)
 		{
-			Debug.LogWarning("Your project uses a scriptable render pipeline. You can use Light.AddCommandBufferAsync only with the built-in renderer.");
+			LogWarningOnlyBuiltIn("AddCommandBufferAsync");
 		}
 		AddCommandBufferAsyncInternal(evt, buffer, shadowPassMask, queueType);
 	}
@@ -997,7 +1032,7 @@ public sealed class Light : Behaviour
 	{
 		if (RenderPipelineManager.currentPipeline != null)
 		{
-			Debug.LogWarning("Your project uses a scriptable render pipeline. You can use Light.RemoveCommandBuffer only with the built-in renderer.");
+			LogWarningOnlyBuiltIn("RemoveCommandBuffer");
 		}
 		RemoveCommandBufferInternal(evt, buffer);
 	}
@@ -1017,7 +1052,7 @@ public sealed class Light : Behaviour
 	{
 		if (RenderPipelineManager.currentPipeline != null)
 		{
-			Debug.LogWarning("Your project uses a scriptable render pipeline. You can use Light.RemoveCommandBuffer only with the built-in renderer.");
+			LogWarningOnlyBuiltIn("RemoveCommandBuffers");
 		}
 		RemoveCommandBuffersInternal(evt);
 	}
@@ -1037,7 +1072,7 @@ public sealed class Light : Behaviour
 	{
 		if (RenderPipelineManager.currentPipeline != null)
 		{
-			Debug.LogWarning("Your project uses a scriptable render pipeline. You can use Light.RemoveAllCommandBuffers only with the built-in renderer.");
+			LogWarningOnlyBuiltIn("RemoveAllCommandBuffers");
 		}
 		RemoveAllCommandBuffersInternal();
 	}
@@ -1057,12 +1092,13 @@ public sealed class Light : Behaviour
 	{
 		if (RenderPipelineManager.currentPipeline != null)
 		{
-			Debug.LogWarning("Your project uses a scriptable render pipeline. You can use Light.GetCommandBuffers only with the built-in renderer.");
+			LogWarningOnlyBuiltIn("GetCommandBuffers");
 		}
 		return GetCommandBuffersInternal(evt);
 	}
 
 	[FreeFunction("Light_Bindings::GetCommandBuffers", HasExplicitThis = true)]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	internal CommandBuffer[] GetCommandBuffersInternal(LightEvent evt)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1259,10 +1295,10 @@ public sealed class Light : Behaviour
 	private static extern void set_shadowStrength_Injected(IntPtr _unity_self, float value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern LightShadowResolution get_shadowResolution_Injected(IntPtr _unity_self);
+	private static extern LightShadowResolution get_ShadowResolution_Injected(IntPtr _unity_self);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void set_shadowResolution_Injected(IntPtr _unity_self, LightShadowResolution value);
+	private static extern void set_ShadowResolution_Injected(IntPtr _unity_self, LightShadowResolution value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void get_layerShadowCullDistances_Injected(IntPtr _unity_self, out BlittableArrayWrapper ret);
@@ -1271,10 +1307,10 @@ public sealed class Light : Behaviour
 	private static extern void set_layerShadowCullDistances_Injected(IntPtr _unity_self, ref ManagedSpanWrapper value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern float get_cookieSize_Injected(IntPtr _unity_self);
+	private static extern void get_cookieSize2D_Injected(IntPtr _unity_self, out Vector2 ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void set_cookieSize_Injected(IntPtr _unity_self, float value);
+	private static extern void set_cookieSize2D_Injected(IntPtr _unity_self, [In] ref Vector2 value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern IntPtr get_cookie_Injected(IntPtr _unity_self);

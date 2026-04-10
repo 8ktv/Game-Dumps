@@ -33,14 +33,14 @@ public enum TextureFormat
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	PVRTC_RGB2 = 30,
-	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	PVRTC_RGBA2 = 31,
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	PVRTC_RGB4 = 32,
-	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release")]
 	PVRTC_RGBA4 = 33,
 	ETC_RGB4 = 34,
 	EAC_R = 41,

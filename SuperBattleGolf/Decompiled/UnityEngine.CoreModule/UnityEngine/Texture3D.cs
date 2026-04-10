@@ -10,8 +10,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Graphics/Texture3D.h")]
 [ExcludeFromPreset]
+[NativeHeader("Runtime/Graphics/Texture3D.h")]
 public sealed class Texture3D : Texture
 {
 	public int depth
@@ -125,7 +125,7 @@ public sealed class Texture3D : Texture
 	}
 
 	[FreeFunction(Name = "Texture3DScripting::GetPixels", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public Color[] GetPixels(int miplevel)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -142,7 +142,7 @@ public sealed class Texture3D : Texture
 	}
 
 	[FreeFunction(Name = "Texture3DScripting::GetPixels32", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public Color32[] GetPixels32(int miplevel)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -277,8 +277,8 @@ public sealed class Texture3D : Texture
 	{
 	}
 
-	[RequiredByNativeCode]
 	[ExcludeFromDocs]
+	[RequiredByNativeCode]
 	public Texture3D(int width, int height, int depth, GraphicsFormat format, TextureCreationFlags flags)
 		: this(width, height, depth, format, flags, Texture.GenerateAllMips)
 	{

@@ -9,8 +9,6 @@ internal struct IndirectBufferContextStorage : IDisposable
 {
 	private const int kAllocatorCount = 2;
 
-	internal const int kExtraDrawAllocationCount = 1;
-
 	internal const int kInstanceInfoGpuOffsetMultiplier = 2;
 
 	private IndirectBufferLimits m_BufferLimits;
@@ -21,7 +19,9 @@ internal struct IndirectBufferContextStorage : IDisposable
 
 	private NativeArray<IndirectInstanceInfo> m_InstanceInfoStaging;
 
-	private GraphicsBuffer m_ArgsBuffer;
+	private GraphicsBuffer m_DispatchArgsBuffer;
+
+	private GraphicsBuffer m_DrawArgsBuffer;
 
 	private GraphicsBuffer m_DrawInfoBuffer;
 
@@ -41,13 +41,15 @@ internal struct IndirectBufferContextStorage : IDisposable
 
 	public GraphicsBuffer instanceInfoBuffer => m_InstanceInfoBuffer;
 
-	public GraphicsBuffer argsBuffer => m_ArgsBuffer;
+	public GraphicsBuffer dispatchArgsBuffer => m_DispatchArgsBuffer;
+
+	public GraphicsBuffer drawArgsBuffer => m_DrawArgsBuffer;
 
 	public GraphicsBuffer drawInfoBuffer => m_DrawInfoBuffer;
 
 	public GraphicsBufferHandle visibleInstanceBufferHandle => m_InstanceBuffer.bufferHandle;
 
-	public GraphicsBufferHandle indirectArgsBufferHandle => m_ArgsBuffer.bufferHandle;
+	public GraphicsBufferHandle indirectDrawArgsBufferHandle => m_DrawArgsBuffer.bufferHandle;
 
 	public NativeArray<IndirectInstanceInfo> instanceInfoGlobalArray => m_InstanceInfoStaging;
 
@@ -61,7 +63,8 @@ internal struct IndirectBufferContextStorage : IDisposable
 		{
 			instanceBuffer = renderGraph.ImportBuffer(m_InstanceBuffer),
 			instanceInfoBuffer = renderGraph.ImportBuffer(m_InstanceInfoBuffer),
-			argsBuffer = renderGraph.ImportBuffer(m_ArgsBuffer),
+			dispatchArgsBuffer = renderGraph.ImportBuffer(m_DispatchArgsBuffer),
+			drawArgsBuffer = renderGraph.ImportBuffer(m_DrawArgsBuffer),
 			drawInfoBuffer = renderGraph.ImportBuffer(m_DrawInfoBuffer)
 		};
 	}
@@ -98,7 +101,8 @@ internal struct IndirectBufferContextStorage : IDisposable
 
 	private void AllocateDrawBuffers(int maxDrawCount)
 	{
-		m_ArgsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured | GraphicsBuffer.Target.IndirectArguments, (maxDrawCount + 1) * 5, 4);
+		m_DispatchArgsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured | GraphicsBuffer.Target.IndirectArguments, 3, 4);
+		m_DrawArgsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured | GraphicsBuffer.Target.IndirectArguments, maxDrawCount * 5, 4);
 		m_DrawInfoBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, maxDrawCount, Marshal.SizeOf<IndirectDrawInfo>());
 		m_DrawInfoStaging = new NativeArray<IndirectDrawInfo>(maxDrawCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
 		m_BufferLimits.maxDrawCount = maxDrawCount;
@@ -106,7 +110,8 @@ internal struct IndirectBufferContextStorage : IDisposable
 
 	private void FreeDrawBuffers()
 	{
-		m_ArgsBuffer.Release();
+		m_DispatchArgsBuffer.Release();
+		m_DrawArgsBuffer.Release();
 		m_DrawInfoBuffer.Release();
 		m_DrawInfoStaging.Dispose();
 		m_BufferLimits.maxDrawCount = 0;

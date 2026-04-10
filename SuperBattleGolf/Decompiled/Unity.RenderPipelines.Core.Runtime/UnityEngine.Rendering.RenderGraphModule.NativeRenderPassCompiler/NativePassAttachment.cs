@@ -17,7 +17,7 @@ internal readonly struct NativePassAttachment
 
 	public readonly int depthSlice;
 
-	public NativePassAttachment(ResourceHandle handle, RenderBufferLoadAction loadAction, RenderBufferStoreAction storeAction, bool memoryless, int mipLevel, int depthSlice)
+	public NativePassAttachment(in ResourceHandle handle, RenderBufferLoadAction loadAction, RenderBufferStoreAction storeAction, bool memoryless, int mipLevel, int depthSlice)
 	{
 		this.handle = handle;
 		this.loadAction = loadAction;

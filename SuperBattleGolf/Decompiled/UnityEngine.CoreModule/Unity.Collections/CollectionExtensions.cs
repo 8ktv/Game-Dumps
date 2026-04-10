@@ -16,21 +16,46 @@ internal static class CollectionExtensions
 		array[^1] = item;
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+	internal static void InsertIntoArray<T>(ref T[] array, int index, T item)
+	{
+		if (index < 0 || index > array.Length)
+		{
+			throw new IndexOutOfRangeException("Trying to insert into an array out of bounds.");
+		}
+		T[] array2 = array;
+		array = new T[array2.Length + 1];
+		Array.Copy(array2, array, index);
+		Array.Copy(array2, index, array, index + 1, array2.Length - index);
+		array[index] = item;
+	}
+
 	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule", "UnityEditor.UIBuilderModule" })]
-	internal static void RemoveFromArray<T>(ref T[] array, T item)
+	internal static bool RemoveFromArray<T>(ref T[] array, T item)
 	{
 		int num = Array.IndexOf(array, item);
 		if (num == -1)
 		{
-			return;
+			return false;
+		}
+		RemoveFromArray(ref array, num);
+		return true;
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule", "UnityEditor.UIBuilderModule" })]
+	internal static void RemoveFromArray<T>(ref T[] array, int index)
+	{
+		if (index < 0 || index >= array.Length)
+		{
+			throw new ArgumentOutOfRangeException("index");
 		}
 		int i = 0;
-		int num2 = 0;
+		int num = 0;
 		for (; i < array.Length; i++)
 		{
-			if (i != num)
+			if (i != index)
 			{
-				array[num2++] = array[i];
+				array[num++] = array[i];
 			}
 		}
 		Array.Resize(ref array, array.Length - 1);

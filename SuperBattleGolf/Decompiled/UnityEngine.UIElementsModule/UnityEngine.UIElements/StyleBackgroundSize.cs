@@ -2,10 +2,13 @@ using System;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleBackgroundSize : IStyleValue<BackgroundSize>, IEquatable<StyleBackgroundSize>
 {
+	[SerializeField]
 	private BackgroundSize m_Value;
 
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
 	public BackgroundSize value

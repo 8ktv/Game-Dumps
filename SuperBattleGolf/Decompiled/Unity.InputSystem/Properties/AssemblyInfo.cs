@@ -9,4 +9,6 @@ using System.Security.Permissions;
 [assembly: InternalsVisibleTo("Unity.InputSystem.Tests")]
 [assembly: InternalsVisibleTo("Unity.InputSystem.IntegrationTests")]
 [assembly: InternalsVisibleTo("Unity.InputSystem.ForUI")]
-[assembly: AssemblyVersion("1.14.2.0")]
+[assembly: InternalsVisibleTo("Unity.AI.Assistant.Editor")]
+[assembly: InternalsVisibleTo("Unity.InputSystem.EditorDevelopmentTools")]
+[assembly: AssemblyVersion("1.18.0.0")]

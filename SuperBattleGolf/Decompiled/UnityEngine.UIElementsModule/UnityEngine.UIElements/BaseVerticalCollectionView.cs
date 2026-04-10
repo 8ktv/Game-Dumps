@@ -1,8 +1,10 @@
 using System;
+using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Unity.Profiling;
 using Unity.Properties;
 using UnityEngine.Bindings;
@@ -18,8 +20,8 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 	public new abstract class UxmlSerializedData : BindableElement.UxmlSerializedData
 	{
 		[SerializeField]
-		[UxmlAttribute(obsoleteNames = new string[] { "itemHeight", "item-height" })]
 		[FixedItemHeightDecorator]
+		[UxmlAttribute(obsoleteNames = new string[] { "itemHeight", "item-height" })]
 		private float fixedItemHeight;
 
 		[SerializeField]
@@ -41,34 +43,34 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 		[SerializeField]
 		private bool horizontalScrollingEnabled;
 
-		[SerializeField]
-		[UxmlIgnore]
 		[HideInInspector]
+		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags fixedItemHeight_UxmlAttributeFlags;
 
+		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
-		[HideInInspector]
 		private UxmlAttributeFlags virtualizationMethod_UxmlAttributeFlags;
 
-		[SerializeField]
 		[HideInInspector]
+		[SerializeField]
 		[UxmlIgnore]
 		private UxmlAttributeFlags showBorder_UxmlAttributeFlags;
 
+		[SerializeField]
 		[HideInInspector]
 		[UxmlIgnore]
-		[SerializeField]
 		private UxmlAttributeFlags selectionType_UxmlAttributeFlags;
 
-		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags showAlternatingRowBackgrounds_UxmlAttributeFlags;
 
-		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags reorderable_UxmlAttributeFlags;
 
 		[UxmlIgnore]
@@ -362,6 +364,20 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 		}
 	}
 
+	private enum RangeSelectionDirection
+	{
+		Up = -1,
+		None,
+		Down
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEngine.HierarchyModule" })]
+	internal enum pointerProcessingStateEnum
+	{
+		None,
+		PointerDown
+	}
+
 	internal static readonly BindingId itemsSourceProperty = "itemsSource";
 
 	internal static readonly BindingId selectionTypeProperty = "selectionType";
@@ -423,20 +439,20 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 
 	private KeyboardNavigationManipulator m_NavigationManipulator;
 
-	[DontCreateProperty]
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	[SerializeField]
+	[DontCreateProperty]
 	internal SerializedVirtualizationData serializedVirtualizationData = new SerializedVirtualizationData();
 
-	[DontCreateProperty]
 	[SerializeField]
+	[DontCreateProperty]
 	private List<int> m_SelectedIds = new List<int>();
 
 	private readonly Selection m_Selection;
 
 	private float m_LastHeight;
 
-	private bool m_IsRangeSelectionDirectionUp;
+	private RangeSelectionDirection m_RangeSelectionDirection;
 
 	private ListViewDragger m_Dragger;
 
@@ -444,9 +460,9 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 
 	internal static CustomStyleProperty<int> s_ItemHeightProperty = new CustomStyleProperty<int>("--unity-item-height");
 
-	private Action<int, int> m_ItemIndexChangedCallback;
+	private readonly Action<int, int> m_ItemIndexChangedCallback;
 
-	private Action m_ItemsSourceChangedCallback;
+	private readonly Action m_ItemsSourceChangedCallback;
 
 	private IVisualElementScheduledItem m_RebuildScheduled;
 
@@ -487,12 +503,7 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 		}
 		set
 		{
-			IList list = itemsSource;
 			GetOrCreateViewController().itemsSource = value;
-			if (list != itemsSource)
-			{
-				NotifyPropertyChanged(in itemsSourceProperty);
-			}
 		}
 	}
 
@@ -617,11 +628,13 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 
 	public IEnumerable<int> selectedIds => m_Selection.selectedIds;
 
+	internal ReadOnlySpan<int> selectedIndicesSpan => NoAllocHelpers.CreateReadOnlySpan(m_Selection.indices);
+
 	internal IEnumerable<ReusableCollectionItem> activeItems => m_VirtualizationController?.activeItems ?? k_EmptyItems;
 
 	internal ScrollView scrollView
 	{
-		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEngine.HierarchyModule" })]
 		get
 		{
 			return m_ScrollView;
@@ -632,7 +645,7 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 
 	internal CollectionVirtualizationController virtualizationController
 	{
-		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEngine.HierarchyModule" })]
 		get
 		{
 			return GetOrCreateVirtualizationController();
@@ -787,6 +800,18 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 
 	internal bool isRebuildScheduled => m_RebuildScheduled?.isActive ?? false;
 
+	internal pointerProcessingStateEnum pointerProcessingState
+	{
+		[VisibleToOtherModules(new string[] { "UnityEngine.HierarchyModule" })]
+		get;
+		private set; }
+
+	internal int currentPointerButton
+	{
+		[VisibleToOtherModules(new string[] { "UnityEngine.HierarchyModule" })]
+		get;
+		private set; }
+
 	[Obsolete("onItemsChosen is deprecated, use itemsChosen instead", false)]
 	public event Action<IEnumerable<object>> onItemsChosen
 	{
@@ -866,9 +891,9 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 		return this.canStartDrag != null;
 	}
 
-	internal bool RaiseCanStartDrag(ReusableCollectionItem item, IEnumerable<int> ids)
+	internal bool RaiseCanStartDrag(ReusableCollectionItem item, IEnumerable<int> ids, EventModifiers modifiers)
 	{
-		return this.canStartDrag?.Invoke(new CanStartDragArgs(item?.rootElement, item?.id ?? BaseTreeView.invalidId, ids)) ?? true;
+		return this.canStartDrag?.Invoke(new CanStartDragArgs(item?.rootElement, item?.id ?? BaseTreeView.invalidId, ids, modifiers)) ?? true;
 	}
 
 	internal StartDragArgs RaiseSetupDragAndDrop(ReusableCollectionItem item, IEnumerable<int> ids, StartDragArgs args)
@@ -988,6 +1013,7 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 		{
 			selectedIds = m_SelectedIds
 		};
+		m_RangeSelectionDirection = RangeSelectionDirection.None;
 		selectionType = SelectionType.Single;
 		m_ScrollView = new ScrollView();
 		m_ScrollView.AddToClassList(listScrollViewUssClassName);
@@ -1005,6 +1031,7 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 		m_ScrollView.viewDataKey = "unity-vertical-collection-scroll-view";
 		m_ScrollView.verticalScroller.viewDataKey = null;
 		m_ScrollView.horizontalScroller.viewDataKey = null;
+		m_ScrollView.m_TouchDraggingAllowed = false;
 		focusable = true;
 		base.isCompositeRoot = true;
 		base.delegatesFocus = true;
@@ -1063,7 +1090,7 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 	private void OnItemsSourceChanged()
 	{
 		this.itemsSourceChanged?.Invoke();
-		NotifyPropertyChanged((BindingId)"itemsSource");
+		NotifyPropertyChanged(in itemsSourceProperty);
 	}
 
 	public void RefreshItem(int index)
@@ -1289,19 +1316,33 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 			ScrollToItem(selectedIndex);
 			return true;
 		case KeyboardNavigationOperation.Previous:
-			if (selectedIndex > 0)
+		{
+			int num3 = ((m_Selection.indexCount == 0) ? (-1) : ((m_RangeSelectionDirection != RangeSelectionDirection.Down) ? m_Selection.minIndex : m_Selection.maxIndex)) - 1;
+			if (num3 >= 0)
 			{
-				HandleSelectionAndScroll(selectedIndex - 1);
+				if (m_RangeSelectionDirection == RangeSelectionDirection.None)
+				{
+					m_RangeSelectionDirection = RangeSelectionDirection.Up;
+				}
+				HandleSelectionAndScroll(num3);
 				return true;
 			}
 			break;
+		}
 		case KeyboardNavigationOperation.Next:
-			if (selectedIndex + 1 < m_ViewController.itemsSource.Count)
+		{
+			int num4 = ((m_Selection.indexCount == 0) ? (-1) : ((m_RangeSelectionDirection != RangeSelectionDirection.Up) ? m_Selection.maxIndex : m_Selection.minIndex)) + 1;
+			if (num4 < m_ViewController.itemsSource.Count)
 			{
-				HandleSelectionAndScroll(selectedIndex + 1);
+				if (m_RangeSelectionDirection == RangeSelectionDirection.None)
+				{
+					m_RangeSelectionDirection = RangeSelectionDirection.Down;
+				}
+				HandleSelectionAndScroll(num4);
 				return true;
 			}
 			break;
+		}
 		case KeyboardNavigationOperation.Begin:
 			HandleSelectionAndScroll(0);
 			return true;
@@ -1311,15 +1352,23 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 		case KeyboardNavigationOperation.PageDown:
 			if (m_Selection.indexCount > 0)
 			{
-				int num2 = (m_IsRangeSelectionDirectionUp ? m_Selection.minIndex : m_Selection.maxIndex);
-				HandleSelectionAndScroll(Mathf.Min(viewController.itemsSource.Count - 1, num2 + (virtualizationController.visibleItemCount - 1)));
+				if (m_RangeSelectionDirection == RangeSelectionDirection.None)
+				{
+					m_RangeSelectionDirection = RangeSelectionDirection.Down;
+				}
+				int num = ((m_RangeSelectionDirection == RangeSelectionDirection.Up) ? m_Selection.minIndex : m_Selection.maxIndex);
+				HandleSelectionAndScroll(Mathf.Min(viewController.itemsSource.Count - 1, num + (virtualizationController.visibleItemCount - 1)));
 			}
 			return true;
 		case KeyboardNavigationOperation.PageUp:
 			if (m_Selection.indexCount > 0)
 			{
-				int num = (m_IsRangeSelectionDirectionUp ? m_Selection.minIndex : m_Selection.maxIndex);
-				HandleSelectionAndScroll(Mathf.Max(0, num - (virtualizationController.visibleItemCount - 1)));
+				if (m_RangeSelectionDirection == RangeSelectionDirection.None)
+				{
+					m_RangeSelectionDirection = RangeSelectionDirection.Up;
+				}
+				int num2 = ((m_RangeSelectionDirection == RangeSelectionDirection.Up) ? m_Selection.minIndex : m_Selection.maxIndex);
+				HandleSelectionAndScroll(Mathf.Max(0, num2 - (virtualizationController.visibleItemCount - 1)));
 			}
 			return true;
 		case KeyboardNavigationOperation.MoveRight:
@@ -1348,6 +1397,7 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 				}
 				else
 				{
+					m_RangeSelectionDirection = RangeSelectionDirection.None;
 					selectedIndex = index;
 				}
 				ScrollToItem(index);
@@ -1408,25 +1458,35 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 
 	private void ProcessPointerDown(IPointerEvent evt)
 	{
-		if (!HasValidDataAndBindings() || !evt.isPrimary)
+		pointerProcessingState = pointerProcessingStateEnum.PointerDown;
+		try
 		{
-			return;
+			if (!HasValidDataAndBindings() || !evt.isPrimary)
+			{
+				return;
+			}
+			int button = evt.button;
+			if (button == 0 || button == 1)
+			{
+				currentPointerButton = evt.button;
+				if (evt.pointerType != PointerType.mouse)
+				{
+					m_TouchDownPosition = evt.position;
+					long num = (evt as PointerDownEvent)?.timestamp ?? 0;
+					m_PointerDownCount = ((num - m_LastPointerDownTimeStamp >= Event.GetDoubleClickTime()) ? 1 : (m_PointerDownCount + 1));
+					m_LastPointerDownTimeStamp = num;
+				}
+				else
+				{
+					m_PointerDownCount = evt.clickCount;
+					DoSelect(evt.localPosition, evt.button, m_PointerDownCount, evt.actionKey, evt.shiftKey);
+				}
+			}
 		}
-		int button = evt.button;
-		if (button == 0 || button == 1)
+		finally
 		{
-			if (evt.pointerType != PointerType.mouse)
-			{
-				m_TouchDownPosition = evt.position;
-				long num = (evt as PointerDownEvent)?.timestamp ?? 0;
-				m_PointerDownCount = ((num - m_LastPointerDownTimeStamp >= Event.GetDoubleClickTime()) ? 1 : (m_PointerDownCount + 1));
-				m_LastPointerDownTimeStamp = num;
-			}
-			else
-			{
-				m_PointerDownCount = evt.clickCount;
-				DoSelect(evt.localPosition, evt.button, m_PointerDownCount, evt.actionKey, evt.shiftKey);
-			}
+			pointerProcessingState = pointerProcessingStateEnum.None;
+			currentPointerButton = -1;
 		}
 	}
 
@@ -1468,6 +1528,7 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 		{
 			return;
 		}
+		m_RangeSelectionDirection = RangeSelectionDirection.None;
 		int idForIndex = viewController.GetIdForIndex(indexFromPosition);
 		switch (num)
 		{
@@ -1541,25 +1602,41 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 
 	internal void DoRangeSelection(int rangeSelectionFinalIndex)
 	{
-		int num = (m_IsRangeSelectionDirectionUp ? m_Selection.maxIndex : m_Selection.minIndex);
-		ClearSelectionWithoutValidation();
-		List<int> list = new List<int>();
-		m_IsRangeSelectionDirectionUp = rangeSelectionFinalIndex < num;
-		if (m_IsRangeSelectionDirectionUp)
+		if (rangeSelectionFinalIndex < 0 || rangeSelectionFinalIndex >= m_ViewController.itemsSource.Count)
 		{
-			for (int i = rangeSelectionFinalIndex; i <= num; i++)
-			{
-				list.Add(i);
-			}
+			return;
 		}
-		else
+		int num = m_Selection.minIndex;
+		int num2 = m_Selection.maxIndex;
+		switch (m_RangeSelectionDirection)
 		{
-			for (int num2 = rangeSelectionFinalIndex; num2 >= num; num2--)
-			{
-				list.Add(num2);
-			}
+		case RangeSelectionDirection.Up:
+			num = rangeSelectionFinalIndex;
+			break;
+		case RangeSelectionDirection.Down:
+			num2 = rangeSelectionFinalIndex;
+			break;
+		default:
+			num = Mathf.Min(num, rangeSelectionFinalIndex);
+			num2 = Mathf.Max(num2, rangeSelectionFinalIndex);
+			break;
 		}
-		AddToSelection(list);
+		if (num == num2)
+		{
+			m_RangeSelectionDirection = RangeSelectionDirection.None;
+		}
+		int num3 = num2 - num + 1;
+		if (num3 > 0)
+		{
+			int[] array = ArrayPool<int>.Shared.Rent(num3);
+			for (int i = 0; i < num3; i++)
+			{
+				array[i] = num + i;
+			}
+			ClearSelectionWithoutValidation();
+			AddToSelection(MemoryExtensions.AsSpan(array, 0, num3));
+			ArrayPool<int>.Shared.Return(array);
+		}
 	}
 
 	private void ProcessSingleClick(int clickedIndex)
@@ -1596,21 +1673,23 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 
 	public void AddToSelection(int index)
 	{
-		AddToSelection(new int[1] { index });
+		Span<int> span = stackalloc int[1] { index };
+		AddToSelection(span);
 	}
 
-	internal void AddToSelection(IList<int> indexes)
+	internal void AddToSelection(ReadOnlySpan<int> indexes)
 	{
-		if (!HasValidDataAndBindings() || indexes == null || indexes.Count == 0)
+		if (HasValidDataAndBindings() && indexes.Length != 0)
 		{
-			return;
+			ReadOnlySpan<int> readOnlySpan = indexes;
+			for (int i = 0; i < readOnlySpan.Length; i++)
+			{
+				int index = readOnlySpan[i];
+				AddToSelectionWithoutValidation(index);
+			}
+			NotifyOfSelectionChange();
+			SaveViewData();
 		}
-		foreach (int index in indexes)
-		{
-			AddToSelectionWithoutValidation(index);
-		}
-		NotifyOfSelectionChange();
-		SaveViewData();
 	}
 
 	private void AddToSelectionWithoutValidation(int index)
@@ -1666,10 +1745,16 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 			ClearSelection();
 			return;
 		}
-		SetSelection(new int[1] { index });
+		Span<int> span = stackalloc int[1] { index };
+		SetSelection(span);
 	}
 
 	public void SetSelection(IEnumerable<int> indices)
+	{
+		SetSelectionInternal(indices, sendNotification: true);
+	}
+
+	internal void SetSelection(ReadOnlySpan<int> indices)
 	{
 		SetSelectionInternal(indices, sendNotification: true);
 	}
@@ -1679,20 +1764,74 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 		SetSelectionInternal(indices, sendNotification: false);
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEngine.HierarchyModule" })]
+	internal void SetSelectionWithoutNotify(ReadOnlySpan<int> indices)
+	{
+		SetSelectionInternal(indices, sendNotification: false);
+	}
+
 	internal void SetSelectionInternal(IEnumerable<int> indices, bool sendNotification)
 	{
-		if (!HasValidDataAndBindings() || indices == null || MatchesExistingSelection(indices))
+		if (indices == null)
 		{
 			return;
 		}
+		int num = indices.Count();
+		Span<int> span;
+		if (num == 0)
+		{
+			span = default(Span<int>);
+			SetSelectionInternal(span, sendNotification);
+			return;
+		}
+		if (num < 16)
+		{
+			span = stackalloc int[num];
+			Span<int> span2 = span;
+			int num2 = 0;
+			foreach (int index in indices)
+			{
+				span2[num2++] = index;
+			}
+			SetSelectionInternal(span2, sendNotification);
+			return;
+		}
+		byte[] array = ArrayPool<byte>.Shared.Rent(num * 4);
+		try
+		{
+			Span<int> span3 = MemoryMarshal.Cast<byte, int>(array);
+			int length = 0;
+			foreach (int index2 in indices)
+			{
+				span3[length++] = index2;
+			}
+			span = span3;
+			span3 = span.Slice(0, length);
+			SetSelectionInternal(span3, sendNotification);
+		}
+		finally
+		{
+			ArrayPool<byte>.Shared.Return(array);
+		}
+	}
+
+	internal void SetSelectionInternal(ReadOnlySpan<int> indices, bool sendNotification)
+	{
+		if (!HasValidDataAndBindings() || MatchesExistingSelection(indices))
+		{
+			return;
+		}
+		m_RangeSelectionDirection = RangeSelectionDirection.None;
 		int num = selectedIndex;
 		ClearSelectionWithoutValidation();
-		if (indices is ICollection collection && m_Selection.capacity < collection.Count)
+		if (m_Selection.capacity < indices.Length)
 		{
-			m_Selection.capacity = collection.Count;
+			m_Selection.capacity = indices.Length;
 		}
-		foreach (int index in indices)
+		ReadOnlySpan<int> readOnlySpan = indices;
+		for (int i = 0; i < readOnlySpan.Length; i++)
 		{
+			int index = readOnlySpan[i];
 			AddToSelectionWithoutValidation(index);
 		}
 		if (sendNotification)
@@ -1706,38 +1845,14 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 		SaveViewData();
 	}
 
-	private bool MatchesExistingSelection(IEnumerable<int> indices)
+	private bool MatchesExistingSelection(ReadOnlySpan<int> indices)
 	{
-		IList<int> list = indices as IList<int>;
-		List<int> list2 = null;
-		try
+		if (indices.Length != m_Selection.indexCount)
 		{
-			if (list == null)
-			{
-				list2 = CollectionPool<List<int>, int>.Get();
-				list2.AddRange(indices);
-				list = list2;
-			}
-			if (list.Count != m_Selection.indexCount)
-			{
-				return false;
-			}
-			for (int i = 0; i < list.Count; i++)
-			{
-				if (list[i] != m_Selection.indices[i])
-				{
-					return false;
-				}
-			}
-			return true;
+			return false;
 		}
-		finally
-		{
-			if (list2 != null)
-			{
-				CollectionPool<List<int>, int>.Release(list2);
-			}
-		}
+		ReadOnlySpan<int> span = NoAllocHelpers.CreateReadOnlySpan(m_Selection.indices);
+		return span.SequenceEqual(indices);
 	}
 
 	private void NotifyOfSelectionChange()
@@ -1803,8 +1918,8 @@ public abstract class BaseVerticalCollectionView : BindableElement, ISerializati
 		}
 	}
 
-	[EventInterest(EventInterestOptions.Inherit)]
 	[Obsolete("ExecuteDefaultAction override has been removed because default event handling was migrated to HandleEventBubbleUp. Please use HandleEventBubbleUp.", false)]
+	[EventInterest(EventInterestOptions.Inherit)]
 	protected override void ExecuteDefaultAction(EventBase evt)
 	{
 	}

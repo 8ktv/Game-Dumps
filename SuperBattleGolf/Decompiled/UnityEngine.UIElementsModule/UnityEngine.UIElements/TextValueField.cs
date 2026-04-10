@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Unity.Properties;
+using UnityEngine.Bindings;
+using UnityEngine.Internal;
 using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine.UIElements;
@@ -8,6 +10,39 @@ namespace UnityEngine.UIElements;
 [MovedFrom(true, "UnityEditor.UIElements", "UnityEditor.UIElementsModule", null)]
 public abstract class TextValueField<TValueType> : TextInputBaseField<TValueType>, IValueField<TValueType>
 {
+	[Serializable]
+	[ExcludeFromDocs]
+	public new abstract class UxmlSerializedData : TextInputBaseField<TValueType>.UxmlSerializedData
+	{
+		[SerializeField]
+		[Tooltip("Indicates whether the field supports expressions that can be evaluated into a value.")]
+		private bool supportExpressions;
+
+		[UxmlIgnore]
+		[HideInInspector]
+		[SerializeField]
+		private UxmlAttributeFlags supportExpressions_UxmlAttributeFlags;
+
+		public new static void Register()
+		{
+			TextInputBaseField<TValueType>.UxmlSerializedData.Register();
+			UxmlDescriptionCache.RegisterType(typeof(UxmlSerializedData), new UxmlAttributeNames[1]
+			{
+				new UxmlAttributeNames("supportExpressions", "support-expressions", null)
+			});
+		}
+
+		public override void Deserialize(object obj)
+		{
+			base.Deserialize(obj);
+			TextValueField<TValueType> textValueField = (TextValueField<TValueType>)obj;
+			if (UnityEngine.UIElements.UxmlSerializedData.ShouldWriteAttributeValue(supportExpressions_UxmlAttributeFlags))
+			{
+				textValueField.supportExpressions = supportExpressions;
+			}
+		}
+	}
+
 	protected abstract class TextValueInput : TextInputBase
 	{
 		private TextValueField<TValueType> textValueFieldParent => (TextValueField<TValueType>)base.parent;
@@ -56,9 +91,13 @@ public abstract class TextValueField<TValueType> : TextInputBaseField<TValueType
 
 	internal static readonly BindingId formatStringProperty = "formatString";
 
+	internal static readonly BindingId supportExpressionsProperty = "supportExpressions";
+
 	private BaseFieldMouseDragger m_Dragger;
 
 	private bool m_ForceUpdateDisplay;
+
+	private bool m_SupportExpressions = true;
 
 	internal const int kMaxValueFieldLength = 1000;
 
@@ -69,6 +108,23 @@ public abstract class TextValueField<TValueType> : TextInputBaseField<TValueType
 		set
 		{
 			m_ForceUpdateDisplay = value;
+		}
+	}
+
+	[CreateProperty]
+	public bool supportExpressions
+	{
+		get
+		{
+			return m_SupportExpressions;
+		}
+		set
+		{
+			if (m_SupportExpressions != value)
+			{
+				m_SupportExpressions = value;
+				NotifyPropertyChanged(in supportExpressionsProperty);
+			}
 		}
 	}
 
@@ -132,6 +188,7 @@ public abstract class TextValueField<TValueType> : TextInputBaseField<TValueType
 		}
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal override void UpdateTextFromValue()
 	{
 		if (m_UpdateTextFromValue)
@@ -174,6 +231,12 @@ public abstract class TextValueField<TValueType> : TextInputBaseField<TValueType
 			base.textEdition.UpdateText(ValueToString(base.rawValue));
 		}
 		m_ForceUpdateDisplay = false;
+	}
+
+	public void ClearValue()
+	{
+		base.text = string.Empty;
+		UpdateValueFromText();
 	}
 
 	[EventInterest(new Type[]

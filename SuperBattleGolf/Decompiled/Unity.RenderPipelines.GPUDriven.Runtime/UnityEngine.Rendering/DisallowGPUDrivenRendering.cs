@@ -73,6 +73,9 @@ internal class DisallowGPUDrivenRendering : MonoBehaviour
 	private void OnValidate()
 	{
 		OnDisable();
-		OnEnable();
+		if (base.enabled)
+		{
+			OnEnable();
+		}
 	}
 }

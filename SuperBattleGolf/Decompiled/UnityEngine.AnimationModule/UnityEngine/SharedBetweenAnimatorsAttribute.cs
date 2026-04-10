@@ -3,8 +3,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 [RequiredByNativeCode]
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 public sealed class SharedBetweenAnimatorsAttribute : Attribute
 {
 }

@@ -553,11 +553,14 @@ public class DebugUI
 
 		public virtual void SetValue(T value)
 		{
-			T val = ValidateValue(value);
-			if (val == null || !val.Equals(getter()))
+			if (setter != null)
 			{
-				setter(val);
-				onValueChanged?.Invoke(this, val);
+				T val = ValidateValue(value);
+				if (val == null || !val.Equals(getter()))
+				{
+					setter(val);
+					onValueChanged?.Invoke(this, val);
+				}
 			}
 		}
 	}
@@ -915,16 +918,9 @@ public class DebugUI
 				Camera[] camerasArray = m_CamerasArray;
 				foreach (Camera camera in camerasArray)
 				{
-					if (!(camera == null) && camera.cameraType != CameraType.Preview && camera.cameraType != CameraType.Reflection)
+					if (!(camera == null) && camera.cameraType != CameraType.Preview && camera.cameraType != CameraType.Reflection && camera.TryGetComponent<IAdditionalData>(out var _))
 					{
-						if (!camera.TryGetComponent<IAdditionalData>(out var _))
-						{
-							Debug.LogWarning("Camera " + camera.name + " does not contain an additional camera data component. Open the Game Object in the inspector to add additional camera data.");
-						}
-						else
-						{
-							m_Cameras.Add(camera);
-						}
+						m_Cameras.Add(camera);
 					}
 				}
 				return m_Cameras;
@@ -1172,7 +1168,7 @@ public class DebugUI
 		}
 	}
 
-	[Obsolete("Mask field is not longer supported. Please use a BitField or implement your own Widget. #from(6000.2)", false)]
+	[Obsolete("Mask field is not longer supported. Please use a BitField or implement your own Widget. #from(6000.2)")]
 	public class MaskField : EnumField<uint>
 	{
 		public void Fill(string[] names)

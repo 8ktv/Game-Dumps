@@ -6,8 +6,8 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
-[NativeAsStruct]
 [UsedByNativeCode]
+[NativeAsStruct]
 public sealed class TreePrototype
 {
 	[NativeName("prefab")]

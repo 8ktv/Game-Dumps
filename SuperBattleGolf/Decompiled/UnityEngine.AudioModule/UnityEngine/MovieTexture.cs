@@ -3,10 +3,10 @@ using System.ComponentModel;
 
 namespace UnityEngine;
 
-[ExcludeFromPreset]
-[EditorBrowsable(EditorBrowsableState.Never)]
 [Obsolete("MovieTexture is removed. Use VideoPlayer instead.", true)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 [ExcludeFromObjectFactory]
+[ExcludeFromPreset]
 public sealed class MovieTexture : Texture
 {
 	[Obsolete("MovieTexture is removed. Use VideoPlayer instead.", true)]

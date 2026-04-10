@@ -8,31 +8,6 @@ namespace UnityEngine.UIElements;
 [VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 internal static class VisualTreeAssetUtilities
 {
-	public static UxmlAsset GetParentAsset(this VisualTreeAsset vta, UxmlAsset asset)
-	{
-		int parentId = asset.parentId;
-		int num = vta.visualElementAssets.FindIndex((VisualElementAsset ua) => ua.id == parentId);
-		if (num >= 0)
-		{
-			return vta.visualElementAssets[num];
-		}
-		num = vta.templateAssets.FindIndex((TemplateAsset ta) => ta.id == parentId);
-		if (num >= 0)
-		{
-			return vta.templateAssets[num];
-		}
-		for (int num2 = 0; num2 < vta.uxmlObjectEntries.Count; num2++)
-		{
-			List<UxmlObjectAsset> uxmlObjectAssets = vta.uxmlObjectEntries[num2].uxmlObjectAssets;
-			num = uxmlObjectAssets.FindIndex((UxmlObjectAsset ua) => ua.id == parentId);
-			if (num >= 0)
-			{
-				return uxmlObjectAssets[num];
-			}
-		}
-		return null;
-	}
-
 	public static IEnumerable<string> EnumerateEnclosingNamespaces(string fullTypeName)
 	{
 		int startIndex = fullTypeName.Length - 1;
@@ -51,7 +26,7 @@ internal static class VisualTreeAssetUtilities
 
 	public static UxmlNamespaceDefinition FindUxmlNamespaceDefinitionFromPrefix(this VisualTreeAsset vta, UxmlAsset asset, string prefix)
 	{
-		for (UxmlAsset uxmlAsset = asset; uxmlAsset != null; uxmlAsset = vta.GetParentAsset(uxmlAsset))
+		for (UxmlAsset uxmlAsset = asset; uxmlAsset != null; uxmlAsset = uxmlAsset.parentAsset)
 		{
 			for (int i = 0; i < uxmlAsset.namespaceDefinitions.Count; i++)
 			{
@@ -70,7 +45,7 @@ internal static class VisualTreeAssetUtilities
 		List<UxmlNamespaceDefinition> value;
 		using (CollectionPool<List<UxmlNamespaceDefinition>, UxmlNamespaceDefinition>.Get(out value))
 		{
-			for (UxmlAsset uxmlAsset = asset; uxmlAsset != null; uxmlAsset = vta.GetParentAsset(uxmlAsset))
+			for (UxmlAsset uxmlAsset = asset; uxmlAsset != null; uxmlAsset = uxmlAsset.parentAsset)
 			{
 				value.AddRange(uxmlAsset.namespaceDefinitions);
 			}
@@ -94,7 +69,7 @@ internal static class VisualTreeAssetUtilities
 
 	public static void GatherUxmlNamespaceDefinitions(this VisualTreeAsset vta, UxmlAsset asset, List<UxmlNamespaceDefinition> definitions)
 	{
-		for (UxmlAsset uxmlAsset = asset; uxmlAsset != null; uxmlAsset = vta.GetParentAsset(uxmlAsset))
+		for (UxmlAsset uxmlAsset = asset; uxmlAsset != null; uxmlAsset = uxmlAsset.parentAsset)
 		{
 			definitions.InsertRange(0, uxmlAsset.namespaceDefinitions);
 		}

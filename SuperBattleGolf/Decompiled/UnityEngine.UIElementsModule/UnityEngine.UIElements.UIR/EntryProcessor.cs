@@ -114,7 +114,7 @@ internal class EntryProcessor
 		{
 			renderTreeManager.FreeExtraMeshes(renderData);
 		}
-		renderTreeManager.ResetTextures(renderData);
+		renderTreeManager.ResetGraphicEntries(renderData);
 		RenderData parent = renderData.parent;
 		bool isGroupTransform = renderData.isGroupTransform;
 		if (parent != null)
@@ -244,6 +244,7 @@ internal class EntryProcessor
 			case EntryType.DrawGradients:
 			{
 				m_RenderType = VertexFlags.IsSvgGradients;
+				m_RenderTreeManager.InsertVectorImage(m_CurrentRenderData, entry.gradientsOwner);
 				GradientRemap gradientRemap = m_RenderTreeManager.vectorImageManager.AddUser(entry.gradientsOwner, m_CurrentRenderData.owner);
 				m_GradientSettingIndexOffset = gradientRemap.destIndex;
 				TextureId textureId;
@@ -265,7 +266,6 @@ internal class EntryProcessor
 				RenderChainCommand renderChainCommand9 = m_RenderTreeManager.AllocCommand();
 				renderChainCommand9.type = CommandType.Immediate;
 				renderChainCommand9.owner = m_CurrentRenderData;
-				renderChainCommand9.isTail = m_IsTail;
 				renderChainCommand9.callback = entry.immediateCallback;
 				AppendCommand(renderChainCommand9);
 				break;
@@ -275,7 +275,6 @@ internal class EntryProcessor
 				RenderChainCommand renderChainCommand8 = m_RenderTreeManager.AllocCommand();
 				renderChainCommand8.type = CommandType.ImmediateCull;
 				renderChainCommand8.owner = m_CurrentRenderData;
-				renderChainCommand8.isTail = m_IsTail;
 				renderChainCommand8.callback = entry.immediateCallback;
 				AppendCommand(renderChainCommand8);
 				break;
@@ -313,7 +312,6 @@ internal class EntryProcessor
 				RenderChainCommand renderChainCommand7 = m_RenderTreeManager.AllocCommand();
 				renderChainCommand7.type = CommandType.PushScissor;
 				renderChainCommand7.owner = m_CurrentRenderData;
-				renderChainCommand7.isTail = m_IsTail;
 				AppendCommand(renderChainCommand7);
 				break;
 			}
@@ -322,7 +320,6 @@ internal class EntryProcessor
 				RenderChainCommand renderChainCommand6 = m_RenderTreeManager.AllocCommand();
 				renderChainCommand6.type = CommandType.PopScissor;
 				renderChainCommand6.owner = m_CurrentRenderData;
-				renderChainCommand6.isTail = m_IsTail;
 				AppendCommand(renderChainCommand6);
 				break;
 			}
@@ -331,7 +328,6 @@ internal class EntryProcessor
 				RenderChainCommand renderChainCommand5 = m_RenderTreeManager.AllocCommand();
 				renderChainCommand5.type = CommandType.PushView;
 				renderChainCommand5.owner = m_CurrentRenderData;
-				renderChainCommand5.isTail = m_IsTail;
 				AppendCommand(renderChainCommand5);
 				break;
 			}
@@ -340,7 +336,6 @@ internal class EntryProcessor
 				RenderChainCommand renderChainCommand4 = m_RenderTreeManager.AllocCommand();
 				renderChainCommand4.type = CommandType.PopView;
 				renderChainCommand4.owner = m_CurrentRenderData;
-				renderChainCommand4.isTail = m_IsTail;
 				AppendCommand(renderChainCommand4);
 				break;
 			}
@@ -349,8 +344,8 @@ internal class EntryProcessor
 				RenderChainCommand renderChainCommand3 = m_RenderTreeManager.AllocCommand();
 				renderChainCommand3.type = CommandType.PushDefaultMaterial;
 				renderChainCommand3.owner = m_CurrentRenderData;
-				renderChainCommand3.isTail = m_IsTail;
-				renderChainCommand3.state.material = entry.material;
+				renderChainCommand3.material = entry.material;
+				renderChainCommand3.userProps = entry.userProps;
 				AppendCommand(renderChainCommand3);
 				break;
 			}
@@ -359,7 +354,6 @@ internal class EntryProcessor
 				RenderChainCommand renderChainCommand2 = m_RenderTreeManager.AllocCommand();
 				renderChainCommand2.type = CommandType.PopDefaultMaterial;
 				renderChainCommand2.owner = m_CurrentRenderData;
-				renderChainCommand2.isTail = m_IsTail;
 				AppendCommand(renderChainCommand2);
 				break;
 			}
@@ -368,7 +362,6 @@ internal class EntryProcessor
 				RenderChainCommand renderChainCommand = m_RenderTreeManager.AllocCommand();
 				renderChainCommand.type = CommandType.CutRenderChain;
 				renderChainCommand.owner = m_CurrentRenderData;
-				renderChainCommand.isTail = m_IsTail;
 				AppendCommand(renderChainCommand);
 				break;
 			}
@@ -415,6 +408,8 @@ internal class EntryProcessor
 			NativeSlice<ushort> nativeSlice2 = m_Indices.Slice(m_IndicesFilled, length2);
 			bool flag = UIRUtility.ShapeWindingIsClockwise(m_MaskDepth, m_StencilRef);
 			bool worldFlipsWinding = m_CurrentRenderData.worldFlipsWinding;
+			Material material = null;
+			material = ((!(entry.material != null)) ? m_CurrentRenderData.owner.resolvedStyle.unityMaterial.material : entry.material);
 			ConvertMeshJobData job = new ConvertMeshJobData
 			{
 				vertSrc = (IntPtr)entry.vertices.GetUnsafePtr(),
@@ -437,7 +432,8 @@ internal class EntryProcessor
 				forceZ = (m_RenderTreeManager.isFlat ? 1 : 0),
 				positionZ = (m_IsDrawingMask ? 1f : 0f),
 				remapUVs = (m_RemapUVs ? 1 : 0),
-				atlasRect = m_AtlasRect
+				atlasRect = m_AtlasRect,
+				layoutSize = ((material != null) ? new Vector2(m_CurrentRenderData.owner.layout.width, m_CurrentRenderData.owner.layout.height) : new Vector2(0f, 0f))
 			};
 			m_RenderTreeManager.jobManager.Add(ref job);
 			if (m_IsDrawingMask)
@@ -453,10 +449,13 @@ internal class EntryProcessor
 			AppendCommand(renderChainCommand);
 			if (entry.type == EntryType.DrawTextMesh)
 			{
-				renderChainCommand.state.sdfScale = entry.textScale;
-				renderChainCommand.state.sharpness = entry.fontSharpness;
+				renderChainCommand.sdfScale = entry.textScale;
+				renderChainCommand.sharpness = entry.fontSharpness;
 			}
-			renderChainCommand.state.isPremultiplied = (entry.flags & EntryFlags.IsPremultiplied) != 0;
+			if ((entry.flags & EntryFlags.IsPremultiplied) != 0)
+			{
+				renderChainCommand.flags |= CommandFlags.IsPremultiplied;
+			}
 			m_VertsFilled += length;
 			m_IndicesFilled += length2;
 		}
@@ -495,17 +494,36 @@ internal class EntryProcessor
 	{
 		RenderChainCommand renderChainCommand = m_RenderTreeManager.AllocCommand();
 		renderChainCommand.type = CommandType.Draw;
-		renderChainCommand.state = new State
-		{
-			material = material,
-			texture = texture,
-			stencilRef = m_StencilRef
-		};
+		renderChainCommand.material = material;
+		renderChainCommand.texture = texture;
+		renderChainCommand.stencilRef = m_StencilRef;
 		renderChainCommand.mesh = mesh;
 		renderChainCommand.indexOffset = indexOffset;
 		renderChainCommand.indexCount = indexCount;
 		renderChainCommand.owner = m_CurrentRenderData;
-		renderChainCommand.isTail = m_IsTail;
+		if ((m_CurrentRenderData.owner.renderHints & RenderHints.LargePixelCoverage) != RenderHints.None)
+		{
+			switch (m_RenderType)
+			{
+			case VertexFlags.IsSolid:
+				renderChainCommand.flags |= CommandFlags.ForceRenderTypeSolid;
+				break;
+			case VertexFlags.IsText:
+				renderChainCommand.flags |= CommandFlags.ForceRenderTypeText;
+				break;
+			case VertexFlags.IsTextured:
+			case VertexFlags.IsDynamic:
+				renderChainCommand.flags |= CommandFlags.ForceRenderTypeTextured;
+				break;
+			case VertexFlags.IsSvgGradients:
+				renderChainCommand.flags |= CommandFlags.ForceRenderTypeSvgGradient;
+				break;
+			default:
+				Debug.LogError($"Unknown Render Type '{m_RenderType}'");
+				break;
+			}
+			renderChainCommand.flags |= CommandFlags.ForceSingleTextureSlot;
+		}
 		return renderChainCommand;
 	}
 

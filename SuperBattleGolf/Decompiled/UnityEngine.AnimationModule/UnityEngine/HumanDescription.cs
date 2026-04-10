@@ -2,8 +2,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[NativeHeader("Modules/Animation/HumanDescription.h")]
 [NativeHeader("Modules/Animation/ScriptBindings/AvatarBuilder.bindings.h")]
+[NativeHeader("Modules/Animation/HumanDescription.h")]
 public struct HumanDescription
 {
 	[NativeName("m_Human")]

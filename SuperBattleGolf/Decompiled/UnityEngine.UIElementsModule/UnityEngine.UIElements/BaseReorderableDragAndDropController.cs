@@ -25,6 +25,11 @@ internal abstract class BaseReorderableDragAndDropController : ICollectionDragAn
 		return true;
 	}
 
+	public virtual bool CanDrop()
+	{
+		return true;
+	}
+
 	public virtual StartDragArgs SetupDragAndDrop(IEnumerable<int> itemIds, bool skipText = false)
 	{
 		m_SortedSelectedIds.Clear();
@@ -64,7 +69,9 @@ internal abstract class BaseReorderableDragAndDropController : ICollectionDragAn
 
 	public abstract DragVisualMode HandleDragAndDrop(IListDragAndDropArgs args);
 
-	public abstract void OnDrop(IListDragAndDropArgs args);
+	public virtual void OnDrop(IListDragAndDropArgs args)
+	{
+	}
 
 	public virtual void DragCleanup()
 	{

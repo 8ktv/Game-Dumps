@@ -5,8 +5,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[RequireComponent(typeof(Rigidbody))]
 [NativeHeader("Modules/Physics/ConfigurableJoint.h")]
+[RequireComponent(typeof(Rigidbody))]
 [NativeClass("Unity::ConfigurableJoint")]
 public class ConfigurableJoint : Joint
 {

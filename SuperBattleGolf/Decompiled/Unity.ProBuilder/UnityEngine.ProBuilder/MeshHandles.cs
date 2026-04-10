@@ -69,7 +69,7 @@ internal static class MeshHandles
 		}
 		target.Clear();
 		target.indexFormat = ((num * 2 > 65535) ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16);
-		target.name = "ProBuilder::EdgeMesh" + target.GetInstanceID();
+		target.name = "ProBuilder::EdgeMesh" + target.GetObjectId();
 		target.vertices = mesh.positionsInternal;
 		target.subMeshCount = 1;
 		target.SetIndices(s_IndexList, MeshTopology.Lines, 0);
@@ -89,7 +89,7 @@ internal static class MeshHandles
 		}
 		target.Clear();
 		target.indexFormat = ((num2 > 65535) ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16);
-		target.name = "ProBuilder::EdgeMesh" + target.GetInstanceID();
+		target.name = "ProBuilder::EdgeMesh" + target.GetObjectId();
 		target.vertices = mesh.positionsInternal;
 		target.subMeshCount = 1;
 		target.SetIndices(s_IndexList, MeshTopology.Lines, 0);

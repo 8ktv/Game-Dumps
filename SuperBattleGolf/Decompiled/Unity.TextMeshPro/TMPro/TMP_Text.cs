@@ -292,6 +292,9 @@ public abstract class TMP_Text : MaskableGraphic
 	protected bool m_duoSpace;
 
 	[SerializeField]
+	private protected float m_characterHorizontalScale = 1f;
+
+	[SerializeField]
 	protected float m_wordSpacing;
 
 	[SerializeField]
@@ -1221,6 +1224,24 @@ public abstract class TMP_Text : MaskableGraphic
 			{
 				m_havePropertiesChanged = true;
 				m_characterSpacing = value;
+				SetVerticesDirty();
+				SetLayoutDirty();
+			}
+		}
+	}
+
+	public float characterHorizontalScale
+	{
+		get
+		{
+			return m_characterHorizontalScale;
+		}
+		set
+		{
+			if (m_characterHorizontalScale != value)
+			{
+				m_havePropertiesChanged = true;
+				m_characterHorizontalScale = value;
 				SetVerticesDirty();
 				SetLayoutDirty();
 			}
@@ -3448,13 +3469,14 @@ public abstract class TMP_Text : MaskableGraphic
 		{
 			m_internalCharacterInfo = new TMP_CharacterInfo[(totalCharacterCount > 1024) ? (totalCharacterCount + 256) : Mathf.NextPowerOfTwo(totalCharacterCount)];
 		}
-		float num = fontSize / m_fontAsset.faceInfo.pointSize * m_fontAsset.faceInfo.scale * (m_isOrthographic ? 1f : 0.1f);
-		float num2 = num;
-		float num3 = fontSize * 0.01f * (m_isOrthographic ? 1f : 0.1f);
+		float num = (m_isOrthographic ? 1f : 0.1f);
+		float num2 = fontSize / m_fontAsset.faceInfo.pointSize * m_fontAsset.faceInfo.scale * num;
+		float num3 = num2;
+		float num4 = fontSize * 0.01f * num;
 		m_fontScaleMultiplier = 1f;
 		m_currentFontSize = fontSize;
 		m_sizeStack.SetDefault(m_currentFontSize);
-		float num4 = 0f;
+		float num5 = 0f;
 		m_FontStyleInternal = m_fontStyle;
 		m_lineJustification = m_HorizontalAlignment;
 		m_lineJustificationStack.SetDefault(m_lineJustification);
@@ -3463,7 +3485,7 @@ public abstract class TMP_Text : MaskableGraphic
 		m_FXScale = Vector3.one;
 		m_lineOffset = 0f;
 		m_lineHeight = -32767f;
-		float num5 = m_currentFontAsset.faceInfo.lineHeight - (m_currentFontAsset.faceInfo.ascentLine - m_currentFontAsset.faceInfo.descentLine);
+		float num6 = m_currentFontAsset.faceInfo.lineHeight - (m_currentFontAsset.faceInfo.ascentLine - m_currentFontAsset.faceInfo.descentLine);
 		m_cSpacing = 0f;
 		m_monoSpacing = 0f;
 		m_xAdvance = 0f;
@@ -3479,36 +3501,40 @@ public abstract class TMP_Text : MaskableGraphic
 		m_startOfLineAscender = 0f;
 		m_IsDrivenLineSpacing = false;
 		m_LastBaseGlyphIndex = int.MinValue;
+		bool flag = m_ActiveFontFeatures.Contains(OTL_FeatureTag.kern);
+		bool flag2 = m_ActiveFontFeatures.Contains(OTL_FeatureTag.mark);
+		bool flag3 = m_ActiveFontFeatures.Contains(OTL_FeatureTag.mkmk);
 		float x = marginSize.x;
 		m_marginLeft = 0f;
 		m_marginRight = 0f;
 		m_width = -1f;
-		float num6 = x + 0.0001f - m_marginLeft - m_marginRight;
+		float num7 = x + 0.0001f - m_marginLeft - m_marginRight;
 		m_RenderedWidth = 0f;
 		m_RenderedHeight = 0f;
-		float num7 = 0f;
+		float num8 = 0f;
 		m_isCalculatingPreferredValues = true;
 		m_maxCapHeight = 0f;
 		m_maxTextAscender = 0f;
+		float num9 = 0f;
 		m_ElementDescender = 0f;
-		bool flag = false;
-		bool flag2 = true;
-		m_isNonBreakingSpace = false;
-		bool flag3 = false;
-		CharacterSubstitution characterSubstitution = new CharacterSubstitution(-1, 0u);
 		bool flag4 = false;
+		bool flag5 = true;
+		m_isNonBreakingSpace = false;
+		bool flag6 = false;
+		CharacterSubstitution characterSubstitution = new CharacterSubstitution(-1, 0u);
+		bool flag7 = false;
 		WordWrapState state = default(WordWrapState);
 		WordWrapState state2 = default(WordWrapState);
 		WordWrapState state3 = default(WordWrapState);
 		m_AutoSizeIterationCount++;
 		for (int i = 0; i < m_TextProcessingArray.Length && m_TextProcessingArray[i].unicode != 0; i++)
 		{
-			uint num8 = m_TextProcessingArray[i].unicode;
-			if (num8 == 26)
+			uint num10 = m_TextProcessingArray[i].unicode;
+			if (num10 == 26)
 			{
 				continue;
 			}
-			if (m_isRichText && num8 == 60)
+			if (m_isRichText && num10 == 60)
 			{
 				m_isTextLayoutPhase = true;
 				m_textElementType = TMP_TextElementType.Character;
@@ -3530,13 +3556,13 @@ public abstract class TMP_Text : MaskableGraphic
 			int currentMaterialIndex = m_currentMaterialIndex;
 			bool isUsingAlternateTypeface = m_textInfo.characterInfo[m_characterCount].isUsingAlternateTypeface;
 			m_isTextLayoutPhase = false;
-			bool flag5 = false;
+			bool flag8 = false;
 			if (characterSubstitution.index == m_characterCount)
 			{
-				num8 = characterSubstitution.unicode;
+				num10 = characterSubstitution.unicode;
 				m_textElementType = TMP_TextElementType.Character;
-				flag5 = true;
-				switch (num8)
+				flag8 = true;
+				switch (num10)
 				{
 				case 3u:
 					m_internalCharacterInfo[m_characterCount].textElement = m_currentFontAsset.characterLookupTable[3u];
@@ -3554,7 +3580,7 @@ public abstract class TMP_Text : MaskableGraphic
 					break;
 				}
 			}
-			if (m_characterCount < m_firstVisibleCharacter && num8 != 3)
+			if (m_characterCount < m_firstVisibleCharacter && num10 != 3)
 			{
 				m_internalCharacterInfo[m_characterCount].isVisible = false;
 				m_internalCharacterInfo[m_characterCount].character = '\u200b';
@@ -3562,63 +3588,65 @@ public abstract class TMP_Text : MaskableGraphic
 				m_characterCount++;
 				continue;
 			}
-			float num9 = 1f;
+			float num11 = 1f;
 			if (m_textElementType == TMP_TextElementType.Character)
 			{
 				if ((m_FontStyleInternal & FontStyles.UpperCase) == FontStyles.UpperCase)
 				{
-					if (char.IsLower((char)num8))
+					if (char.IsLower((char)num10))
 					{
-						num8 = char.ToUpper((char)num8);
+						num10 = char.ToUpper((char)num10);
 					}
 				}
 				else if ((m_FontStyleInternal & FontStyles.LowerCase) == FontStyles.LowerCase)
 				{
-					if (char.IsUpper((char)num8))
+					if (char.IsUpper((char)num10))
 					{
-						num8 = char.ToLower((char)num8);
+						num10 = char.ToLower((char)num10);
 					}
 				}
-				else if ((m_FontStyleInternal & FontStyles.SmallCaps) == FontStyles.SmallCaps && char.IsLower((char)num8))
+				else if ((m_FontStyleInternal & FontStyles.SmallCaps) == FontStyles.SmallCaps && char.IsLower((char)num10))
 				{
-					num9 = 0.8f;
-					num8 = char.ToUpper((char)num8);
+					num11 = 0.8f;
+					num10 = char.ToUpper((char)num10);
 				}
 			}
-			float num10 = 0f;
-			float num11 = 0f;
 			float num12 = 0f;
+			float num13 = 0f;
+			float num14 = 0f;
+			FaceInfo faceInfo = m_currentFontAsset.faceInfo;
 			if (m_textElementType == TMP_TextElementType.Sprite)
 			{
 				TMP_SpriteCharacter tMP_SpriteCharacter = (TMP_SpriteCharacter)m_textInfo.characterInfo[m_characterCount].textElement;
-				m_currentSpriteAsset = tMP_SpriteCharacter.textAsset as TMP_SpriteAsset;
-				m_spriteIndex = (int)tMP_SpriteCharacter.glyphIndex;
 				if (tMP_SpriteCharacter == null)
 				{
 					continue;
 				}
-				if (num8 == 60)
+				m_currentSpriteAsset = tMP_SpriteCharacter.textAsset as TMP_SpriteAsset;
+				m_spriteIndex = (int)tMP_SpriteCharacter.glyphIndex;
+				if (num10 == 60)
 				{
-					num8 = (uint)(57344 + m_spriteIndex);
+					num10 = (uint)(57344 + m_spriteIndex);
 				}
-				if (m_currentSpriteAsset.faceInfo.pointSize > 0f)
+				FaceInfo faceInfo2 = m_currentSpriteAsset.faceInfo;
+				if (faceInfo2.pointSize > 0f)
 				{
-					float num13 = m_currentFontSize / m_currentSpriteAsset.faceInfo.pointSize * m_currentSpriteAsset.faceInfo.scale * (m_isOrthographic ? 1f : 0.1f);
-					num2 = tMP_SpriteCharacter.scale * tMP_SpriteCharacter.glyph.scale * num13;
-					num11 = m_currentSpriteAsset.faceInfo.ascentLine;
-					num12 = m_currentSpriteAsset.faceInfo.descentLine;
+					float num15 = m_currentFontSize / faceInfo2.pointSize * faceInfo2.scale * num;
+					num3 = tMP_SpriteCharacter.scale * tMP_SpriteCharacter.glyph.scale * num15;
+					num13 = faceInfo2.ascentLine;
+					num14 = faceInfo2.descentLine;
 				}
 				else
 				{
-					float num14 = m_currentFontSize / m_currentFontAsset.faceInfo.pointSize * m_currentFontAsset.faceInfo.scale * (m_isOrthographic ? 1f : 0.1f);
-					num2 = m_currentFontAsset.faceInfo.ascentLine / tMP_SpriteCharacter.glyph.metrics.height * tMP_SpriteCharacter.scale * tMP_SpriteCharacter.glyph.scale * num14;
-					float num15 = num14 / num2;
-					num11 = m_currentFontAsset.faceInfo.ascentLine * num15;
-					num12 = m_currentFontAsset.faceInfo.descentLine * num15;
+					float num16 = m_currentFontSize / faceInfo.pointSize * faceInfo.scale * num;
+					num3 = faceInfo.ascentLine / tMP_SpriteCharacter.glyph.metrics.height * tMP_SpriteCharacter.scale * tMP_SpriteCharacter.glyph.scale * num16;
+					float num17 = ((num3 != 0f) ? (num16 / num3) : 0f);
+					num13 = faceInfo.ascentLine * num17;
+					num14 = faceInfo.descentLine * num17;
 				}
 				m_cached_TextElement = tMP_SpriteCharacter;
 				m_internalCharacterInfo[m_characterCount].elementType = TMP_TextElementType.Sprite;
-				m_internalCharacterInfo[m_characterCount].scale = num2;
+				m_internalCharacterInfo[m_characterCount].scale = num3;
 				m_currentMaterialIndex = currentMaterialIndex;
 			}
 			else if (m_textElementType == TMP_TextElementType.Character)
@@ -3629,31 +3657,31 @@ public abstract class TMP_Text : MaskableGraphic
 					continue;
 				}
 				m_currentMaterialIndex = m_textInfo.characterInfo[m_characterCount].materialReferenceIndex;
-				float num16 = ((!flag5 || m_TextProcessingArray[i].unicode != 10 || m_characterCount == m_firstCharacterOfLine) ? (m_currentFontSize * num9 / m_currentFontAsset.m_FaceInfo.pointSize * m_currentFontAsset.m_FaceInfo.scale * (m_isOrthographic ? 1f : 0.1f)) : (m_textInfo.characterInfo[m_characterCount - 1].pointSize * num9 / m_currentFontAsset.m_FaceInfo.pointSize * m_currentFontAsset.m_FaceInfo.scale * (m_isOrthographic ? 1f : 0.1f)));
-				if (flag5 && num8 == 8230)
+				float num18 = ((!flag8 || m_TextProcessingArray[i].unicode != 10 || m_characterCount == m_firstCharacterOfLine) ? (m_currentFontSize * num11 / faceInfo.pointSize * faceInfo.scale * num) : (m_textInfo.characterInfo[m_characterCount - 1].pointSize * num11 / faceInfo.pointSize * faceInfo.scale * num));
+				if (flag8 && num10 == 8230)
 				{
-					num11 = 0f;
-					num12 = 0f;
+					num13 = 0f;
+					num14 = 0f;
 				}
 				else
 				{
-					num11 = m_currentFontAsset.m_FaceInfo.ascentLine;
-					num12 = m_currentFontAsset.m_FaceInfo.descentLine;
+					num13 = faceInfo.ascentLine;
+					num14 = faceInfo.descentLine;
 				}
-				num2 = num16 * m_fontScaleMultiplier * m_cached_TextElement.scale;
+				num3 = num18 * m_fontScaleMultiplier * m_cached_TextElement.scale * m_cached_TextElement.m_Glyph.scale;
 				m_internalCharacterInfo[m_characterCount].elementType = TMP_TextElementType.Character;
 			}
-			float num17 = num2;
-			if (num8 == 173 || num8 == 3)
+			float num19 = num3;
+			if (num10 == 173 || num10 == 3)
 			{
-				num2 = 0f;
+				num3 = 0f;
 			}
-			m_internalCharacterInfo[m_characterCount].character = (char)num8;
+			m_internalCharacterInfo[m_characterCount].character = (char)num10;
 			GlyphMetrics glyphMetrics = m_textInfo.characterInfo[m_characterCount].alternativeGlyph?.metrics ?? m_cached_TextElement.m_Glyph.metrics;
-			bool flag6 = num8 <= 65535 && char.IsWhiteSpace((char)num8);
+			bool flag9 = num10 <= 65535 && char.IsWhiteSpace((char)num10);
 			GlyphValueRecord glyphValueRecord = default(GlyphValueRecord);
-			float num18 = m_characterSpacing;
-			if (m_enableKerning && m_textElementType == TMP_TextElementType.Character)
+			float num20 = m_characterSpacing;
+			if (flag && m_textElementType == TMP_TextElementType.Character)
 			{
 				uint glyphIndex = m_cached_TextElement.m_GlyphIndex;
 				GlyphPairAdjustmentRecord value;
@@ -3663,7 +3691,7 @@ public abstract class TMP_Text : MaskableGraphic
 					if (m_currentFontAsset.m_FontFeatureTable.m_GlyphPairAdjustmentRecordLookup.TryGetValue(key, out value))
 					{
 						glyphValueRecord = value.firstAdjustmentRecord.glyphValueRecord;
-						num18 = (((value.featureLookupFlags & UnityEngine.TextCore.LowLevel.FontFeatureLookupFlags.IgnoreSpacingAdjustments) == UnityEngine.TextCore.LowLevel.FontFeatureLookupFlags.IgnoreSpacingAdjustments) ? 0f : num18);
+						num20 = (((value.featureLookupFlags & UnityEngine.TextCore.LowLevel.FontFeatureLookupFlags.IgnoreSpacingAdjustments) == UnityEngine.TextCore.LowLevel.FontFeatureLookupFlags.IgnoreSpacingAdjustments) ? 0f : num20);
 					}
 				}
 				if (m_characterCount >= 1)
@@ -3673,101 +3701,104 @@ public abstract class TMP_Text : MaskableGraphic
 					if (textInfo.characterInfo[m_characterCount - 1].elementType == TMP_TextElementType.Character && m_currentFontAsset.m_FontFeatureTable.m_GlyphPairAdjustmentRecordLookup.TryGetValue(key2, out value))
 					{
 						glyphValueRecord += value.secondAdjustmentRecord.glyphValueRecord;
-						num18 = (((value.featureLookupFlags & UnityEngine.TextCore.LowLevel.FontFeatureLookupFlags.IgnoreSpacingAdjustments) == UnityEngine.TextCore.LowLevel.FontFeatureLookupFlags.IgnoreSpacingAdjustments) ? 0f : num18);
+						num20 = (((value.featureLookupFlags & UnityEngine.TextCore.LowLevel.FontFeatureLookupFlags.IgnoreSpacingAdjustments) == UnityEngine.TextCore.LowLevel.FontFeatureLookupFlags.IgnoreSpacingAdjustments) ? 0f : num20);
 					}
 				}
 				m_internalCharacterInfo[m_characterCount].adjustedHorizontalAdvance = glyphValueRecord.xAdvance;
 			}
-			bool flag7 = TMP_TextParsingUtilities.IsBaseGlyph(num8);
-			if (flag7)
+			bool flag10 = TMP_TextParsingUtilities.IsBaseGlyph(num10);
+			if (flag10)
 			{
 				m_LastBaseGlyphIndex = m_characterCount;
 			}
-			if (m_characterCount > 0 && !flag7)
+			if (m_characterCount > 0 && !flag10)
 			{
-				if (m_LastBaseGlyphIndex != int.MinValue && m_LastBaseGlyphIndex == m_characterCount - 1)
+				if (flag2 && m_LastBaseGlyphIndex != int.MinValue && m_LastBaseGlyphIndex == m_characterCount - 1)
 				{
 					uint index = m_textInfo.characterInfo[m_LastBaseGlyphIndex].textElement.glyph.index;
 					uint key3 = (m_cached_TextElement.glyphIndex << 16) | index;
 					if (m_currentFontAsset.fontFeatureTable.m_MarkToBaseAdjustmentRecordLookup.TryGetValue(key3, out var value2))
 					{
-						float num19 = (m_internalCharacterInfo[m_LastBaseGlyphIndex].origin - m_xAdvance) / num2;
-						glyphValueRecord.xPlacement = num19 + value2.baseGlyphAnchorPoint.xCoordinate - value2.markPositionAdjustment.xPositionAdjustment;
+						float num21 = (m_internalCharacterInfo[m_LastBaseGlyphIndex].origin - m_xAdvance) / num3;
+						glyphValueRecord.xPlacement = num21 + value2.baseGlyphAnchorPoint.xCoordinate - value2.markPositionAdjustment.xPositionAdjustment;
 						glyphValueRecord.yPlacement = value2.baseGlyphAnchorPoint.yCoordinate - value2.markPositionAdjustment.yPositionAdjustment;
-						num18 = 0f;
+						num20 = 0f;
 					}
 				}
 				else
 				{
-					bool flag8 = false;
-					int num20 = m_characterCount - 1;
-					while (num20 >= 0 && num20 != m_LastBaseGlyphIndex)
+					bool flag11 = false;
+					if (flag3)
 					{
-						uint index2 = m_textInfo.characterInfo[num20].textElement.glyph.index;
-						uint key4 = (m_cached_TextElement.glyphIndex << 16) | index2;
-						if (m_currentFontAsset.fontFeatureTable.m_MarkToMarkAdjustmentRecordLookup.TryGetValue(key4, out var value3))
+						int num22 = m_characterCount - 1;
+						while (num22 >= 0 && num22 != m_LastBaseGlyphIndex)
 						{
-							float num21 = (m_textInfo.characterInfo[num20].origin - m_xAdvance) / num2;
-							float num22 = num10 - m_lineOffset + m_baselineOffset;
-							float num23 = (m_internalCharacterInfo[num20].baseLine - num22) / num2;
-							glyphValueRecord.xPlacement = num21 + value3.baseMarkGlyphAnchorPoint.xCoordinate - value3.combiningMarkPositionAdjustment.xPositionAdjustment;
-							glyphValueRecord.yPlacement = num23 + value3.baseMarkGlyphAnchorPoint.yCoordinate - value3.combiningMarkPositionAdjustment.yPositionAdjustment;
-							num18 = 0f;
-							flag8 = true;
-							break;
+							uint index2 = m_textInfo.characterInfo[num22].textElement.glyph.index;
+							uint key4 = (m_cached_TextElement.glyphIndex << 16) | index2;
+							if (m_currentFontAsset.fontFeatureTable.m_MarkToMarkAdjustmentRecordLookup.TryGetValue(key4, out var value3))
+							{
+								float num23 = (m_textInfo.characterInfo[num22].origin - m_xAdvance) / num3;
+								float num24 = num12 - m_lineOffset + m_baselineOffset;
+								float num25 = (m_internalCharacterInfo[num22].baseLine - num24) / num3;
+								glyphValueRecord.xPlacement = num23 + value3.baseMarkGlyphAnchorPoint.xCoordinate - value3.combiningMarkPositionAdjustment.xPositionAdjustment;
+								glyphValueRecord.yPlacement = num25 + value3.baseMarkGlyphAnchorPoint.yCoordinate - value3.combiningMarkPositionAdjustment.yPositionAdjustment;
+								num20 = 0f;
+								flag11 = true;
+								break;
+							}
+							num22--;
 						}
-						num20--;
 					}
-					if (m_LastBaseGlyphIndex != int.MinValue && !flag8)
+					if (flag2 && m_LastBaseGlyphIndex != int.MinValue && !flag11)
 					{
 						uint index3 = m_textInfo.characterInfo[m_LastBaseGlyphIndex].textElement.glyph.index;
 						uint key5 = (m_cached_TextElement.glyphIndex << 16) | index3;
 						if (m_currentFontAsset.fontFeatureTable.m_MarkToBaseAdjustmentRecordLookup.TryGetValue(key5, out var value4))
 						{
-							float num24 = (m_internalCharacterInfo[m_LastBaseGlyphIndex].origin - m_xAdvance) / num2;
-							glyphValueRecord.xPlacement = num24 + value4.baseGlyphAnchorPoint.xCoordinate - value4.markPositionAdjustment.xPositionAdjustment;
+							float num26 = (m_internalCharacterInfo[m_LastBaseGlyphIndex].origin - m_xAdvance) / num3;
+							glyphValueRecord.xPlacement = num26 + value4.baseGlyphAnchorPoint.xCoordinate - value4.markPositionAdjustment.xPositionAdjustment;
 							glyphValueRecord.yPlacement = value4.baseGlyphAnchorPoint.yCoordinate - value4.markPositionAdjustment.yPositionAdjustment;
-							num18 = 0f;
+							num20 = 0f;
 						}
 					}
 				}
 			}
-			num11 += glyphValueRecord.yPlacement;
-			num12 += glyphValueRecord.yPlacement;
-			float num25 = 0f;
+			num13 += glyphValueRecord.yPlacement;
+			num14 += glyphValueRecord.yPlacement;
+			float num27 = 0f;
 			if (m_monoSpacing != 0f)
 			{
-				num25 = (m_monoSpacing / 2f - (m_cached_TextElement.glyph.metrics.width / 2f + m_cached_TextElement.glyph.metrics.horizontalBearingX) * num2) * (1f - m_charWidthAdjDelta);
-				m_xAdvance += num25;
+				num27 = (m_monoSpacing / 2f - (m_cached_TextElement.glyph.metrics.width / 2f + m_cached_TextElement.glyph.metrics.horizontalBearingX) * num3) * (1f - m_charWidthAdjDelta) * m_characterHorizontalScale;
+				m_xAdvance += num27;
 			}
-			float num26 = 0f;
+			float num28 = 0f;
 			if (m_textElementType == TMP_TextElementType.Character && !isUsingAlternateTypeface && (m_FontStyleInternal & FontStyles.Bold) == FontStyles.Bold)
 			{
-				num26 = m_currentFontAsset.boldSpacing;
+				num28 = m_currentFontAsset.boldSpacing;
 			}
-			m_internalCharacterInfo[m_characterCount].origin = m_xAdvance + glyphValueRecord.xPlacement * num2;
-			m_internalCharacterInfo[m_characterCount].baseLine = num10 - m_lineOffset + m_baselineOffset + glyphValueRecord.yPlacement * num2;
-			float num27 = ((m_textElementType == TMP_TextElementType.Character) ? (num11 * num2 / num9 + m_baselineOffset) : (num11 * num2 + m_baselineOffset));
-			float num28 = ((m_textElementType == TMP_TextElementType.Character) ? (num12 * num2 / num9 + m_baselineOffset) : (num12 * num2 + m_baselineOffset));
-			float num29 = num27;
-			float num30 = num28;
-			bool flag9 = m_characterCount == m_firstCharacterOfLine;
-			if (flag9 || !flag6)
+			m_internalCharacterInfo[m_characterCount].origin = m_xAdvance + glyphValueRecord.xPlacement * num3;
+			m_internalCharacterInfo[m_characterCount].baseLine = num12 - m_lineOffset + m_baselineOffset + glyphValueRecord.yPlacement * num3;
+			float num29 = ((m_textElementType == TMP_TextElementType.Character) ? (num13 * num3 / num11 + m_baselineOffset) : (num13 * num3 + m_baselineOffset));
+			float num30 = ((m_textElementType == TMP_TextElementType.Character) ? (num14 * num3 / num11 + m_baselineOffset) : (num14 * num3 + m_baselineOffset));
+			float num31 = num29;
+			float num32 = num30;
+			bool flag12 = m_characterCount == m_firstCharacterOfLine;
+			if (flag12 || !flag9)
 			{
 				if (m_baselineOffset != 0f)
 				{
-					num29 = Mathf.Max((num27 - m_baselineOffset) / m_fontScaleMultiplier, num29);
-					num30 = Mathf.Min((num28 - m_baselineOffset) / m_fontScaleMultiplier, num30);
+					num31 = Mathf.Max((num29 - m_baselineOffset) / m_fontScaleMultiplier, num31);
+					num32 = Mathf.Min((num30 - m_baselineOffset) / m_fontScaleMultiplier, num32);
 				}
-				m_maxLineAscender = Mathf.Max(num29, m_maxLineAscender);
-				m_maxLineDescender = Mathf.Min(num30, m_maxLineDescender);
+				m_maxLineAscender = Mathf.Max(num31, m_maxLineAscender);
+				m_maxLineDescender = Mathf.Min(num32, m_maxLineDescender);
 			}
-			if (flag9 || !flag6)
+			if (flag12 || !flag9)
 			{
-				m_internalCharacterInfo[m_characterCount].adjustedAscender = num29;
-				m_internalCharacterInfo[m_characterCount].adjustedDescender = num30;
-				m_ElementAscender = (m_internalCharacterInfo[m_characterCount].ascender = num27 - m_lineOffset);
-				m_ElementDescender = (m_internalCharacterInfo[m_characterCount].descender = num28 - m_lineOffset);
+				m_internalCharacterInfo[m_characterCount].adjustedAscender = num31;
+				m_internalCharacterInfo[m_characterCount].adjustedDescender = num32;
+				m_ElementAscender = (m_internalCharacterInfo[m_characterCount].ascender = num29 - m_lineOffset);
+				m_ElementDescender = (m_internalCharacterInfo[m_characterCount].descender = num30 - m_lineOffset);
 			}
 			else
 			{
@@ -3776,25 +3807,26 @@ public abstract class TMP_Text : MaskableGraphic
 				m_ElementAscender = (m_internalCharacterInfo[m_characterCount].ascender = m_maxLineAscender - m_lineOffset);
 				m_ElementDescender = (m_internalCharacterInfo[m_characterCount].descender = m_maxLineDescender - m_lineOffset);
 			}
-			if ((m_lineNumber == 0 || m_isNewPage) && (flag9 || !flag6))
+			if ((m_lineNumber == 0 || m_isNewPage) && (flag12 || !flag9))
 			{
 				m_maxTextAscender = m_maxLineAscender;
-				m_maxCapHeight = Mathf.Max(m_maxCapHeight, m_currentFontAsset.m_FaceInfo.capLine * num2 / num9);
+				m_maxCapHeight = Mathf.Max(m_maxCapHeight, m_currentFontAsset.m_FaceInfo.capLine * num3 / num11);
 			}
-			if (m_lineOffset == 0f && (!flag6 || m_characterCount == m_firstCharacterOfLine))
+			num9 = Mathf.Min(num9, m_ElementDescender);
+			if (m_lineOffset == 0f && (!flag9 || m_characterCount == m_firstCharacterOfLine))
 			{
-				m_PageAscender = ((m_PageAscender > num27) ? m_PageAscender : num27);
+				m_PageAscender = ((m_PageAscender > num29) ? m_PageAscender : num29);
 			}
-			bool flag10 = (m_lineJustification & HorizontalAlignmentOptions.Flush) == HorizontalAlignmentOptions.Flush || (m_lineJustification & HorizontalAlignmentOptions.Justified) == HorizontalAlignmentOptions.Justified;
-			if (num8 == 9 || ((textWrapMode == TextWrappingModes.PreserveWhitespace || textWrapMode == TextWrappingModes.PreserveWhitespaceNoWrap) && (flag6 || num8 == 8203)) || (!flag6 && num8 != 8203 && num8 != 173 && num8 != 3) || (num8 == 173 && !flag4) || m_textElementType == TMP_TextElementType.Sprite)
+			bool flag13 = (m_lineJustification & HorizontalAlignmentOptions.Flush) == HorizontalAlignmentOptions.Flush || (m_lineJustification & HorizontalAlignmentOptions.Justified) == HorizontalAlignmentOptions.Justified;
+			if (num10 == 9 || ((textWrapMode == TextWrappingModes.PreserveWhitespace || textWrapMode == TextWrappingModes.PreserveWhitespaceNoWrap) && (flag9 || num10 == 8203)) || (!flag9 && num10 != 8203 && num10 != 173 && num10 != 3) || (num10 == 173 && !flag7) || m_textElementType == TMP_TextElementType.Sprite)
 			{
-				num6 = ((m_width != -1f) ? Mathf.Min(x + 0.0001f - m_marginLeft - m_marginRight, m_width) : (x + 0.0001f - m_marginLeft - m_marginRight));
-				num7 = Mathf.Abs(m_xAdvance) + glyphMetrics.horizontalAdvance * (1f - m_charWidthAdjDelta) * ((num8 == 173) ? num17 : num2);
+				num7 = ((m_width != -1f) ? Mathf.Min(x + 0.0001f - m_marginLeft - m_marginRight, m_width) : (x + 0.0001f - m_marginLeft - m_marginRight));
+				num8 = Mathf.Abs(m_xAdvance) + glyphMetrics.horizontalAdvance * (1f - m_charWidthAdjDelta) * m_characterHorizontalScale * ((num10 == 173) ? num19 : num3);
 				_ = m_characterCount;
-				if (flag7 && num7 > num6 * (flag10 ? 1.05f : 1f) && textWrapMode != TextWrappingModes.NoWrap && textWrapMode != TextWrappingModes.PreserveWhitespaceNoWrap && m_characterCount != m_firstCharacterOfLine)
+				if (flag10 && num8 > num7 * (flag13 ? 1.05f : 1f) && textWrapMode != TextWrappingModes.NoWrap && textWrapMode != TextWrappingModes.PreserveWhitespaceNoWrap && m_characterCount != m_firstCharacterOfLine)
 				{
 					i = RestoreWordWrappingState(ref state);
-					if (m_internalCharacterInfo[m_characterCount - 1].character == '\u00ad' && !flag4 && m_overflowMode == TextOverflowModes.Overflow)
+					if (m_internalCharacterInfo[m_characterCount - 1].character == '\u00ad' && !flag7 && m_overflowMode == TextOverflowModes.Overflow)
 					{
 						characterSubstitution.index = m_characterCount - 1;
 						characterSubstitution.unicode = 45u;
@@ -3802,52 +3834,52 @@ public abstract class TMP_Text : MaskableGraphic
 						m_characterCount--;
 						continue;
 					}
-					flag4 = false;
+					flag7 = false;
 					if (m_internalCharacterInfo[m_characterCount].character == '\u00ad')
 					{
-						flag4 = true;
+						flag7 = true;
 						continue;
 					}
-					if (isTextAutoSizingEnabled && flag2)
+					if (isTextAutoSizingEnabled && flag5)
 					{
 						if (m_charWidthAdjDelta < m_charWidthMaxAdj / 100f && m_AutoSizeIterationCount < m_AutoSizeMaxIterationCount)
 						{
-							float num31 = num7;
+							float num33 = num8;
 							if (m_charWidthAdjDelta > 0f)
 							{
-								num31 /= 1f - m_charWidthAdjDelta;
+								num33 /= 1f - m_charWidthAdjDelta;
 							}
-							float num32 = num7 - (num6 - 0.0001f) * (flag10 ? 1.05f : 1f);
-							m_charWidthAdjDelta += num32 / num31;
+							float num34 = num8 - (num7 - 0.0001f) * (flag13 ? 1.05f : 1f);
+							m_charWidthAdjDelta += num34 / num33;
 							m_charWidthAdjDelta = Mathf.Min(m_charWidthAdjDelta, m_charWidthMaxAdj / 100f);
 							return Vector2.zero;
 						}
 						if (fontSize > m_fontSizeMin && m_AutoSizeIterationCount < m_AutoSizeMaxIterationCount)
 						{
 							m_maxFontSize = fontSize;
-							float num33 = Mathf.Max((fontSize - m_minFontSize) / 2f, 0.05f);
-							fontSize -= num33;
+							float num35 = Mathf.Max((fontSize - m_minFontSize) / 2f, 0.05f);
+							fontSize -= num35;
 							fontSize = Mathf.Max((float)(int)(fontSize * 20f + 0.5f) / 20f, m_fontSizeMin);
 							return Vector2.zero;
 						}
 					}
-					float num34 = m_maxLineAscender - m_startOfLineAscender;
-					if (m_lineOffset > 0f && Math.Abs(num34) > 0.01f && !m_IsDrivenLineSpacing && !m_isNewPage)
+					float num36 = m_maxLineAscender - m_startOfLineAscender;
+					if (m_lineOffset > 0f && Math.Abs(num36) > 0.01f && !m_IsDrivenLineSpacing && !m_isNewPage)
 					{
-						m_ElementDescender -= num34;
-						m_lineOffset += num34;
+						m_ElementDescender -= num36;
+						m_lineOffset += num36;
 					}
 					_ = m_maxLineAscender;
 					_ = m_lineOffset;
-					float num35 = m_maxLineDescender - m_lineOffset;
-					m_ElementDescender = ((m_ElementDescender < num35) ? m_ElementDescender : num35);
-					if (!flag)
+					float num37 = m_maxLineDescender - m_lineOffset;
+					m_ElementDescender = ((m_ElementDescender < num37) ? m_ElementDescender : num37);
+					if (!flag4)
 					{
 						_ = m_ElementDescender;
 					}
 					if (m_useMaxVisibleDescender && (m_characterCount >= m_maxVisibleCharacters || m_lineNumber >= m_maxVisibleLines))
 					{
-						flag = true;
+						flag4 = true;
 					}
 					m_firstCharacterOfLine = m_characterCount;
 					m_lineVisibleCharacterCount = 0;
@@ -3856,86 +3888,88 @@ public abstract class TMP_Text : MaskableGraphic
 					float adjustedAscender = m_internalCharacterInfo[m_characterCount].adjustedAscender;
 					if (m_lineHeight == -32767f)
 					{
-						m_lineOffset += 0f - m_maxLineDescender + adjustedAscender + (num5 + m_lineSpacingDelta) * num + m_lineSpacing * num3;
+						m_lineOffset += 0f - m_maxLineDescender + adjustedAscender + (num6 + m_lineSpacingDelta) * num2 + m_lineSpacing * num4;
 						m_IsDrivenLineSpacing = false;
 					}
 					else
 					{
-						m_lineOffset += m_lineHeight + m_lineSpacing * num3;
+						m_lineOffset += m_lineHeight + m_lineSpacing * num4;
 						m_IsDrivenLineSpacing = true;
 					}
 					m_maxLineAscender = k_LargeNegativeFloat;
 					m_maxLineDescender = k_LargePositiveFloat;
 					m_startOfLineAscender = adjustedAscender;
 					m_xAdvance = 0f + tag_Indent;
-					flag2 = true;
+					flag5 = true;
 					continue;
 				}
-				m_RenderedWidth = Mathf.Max(m_RenderedWidth, num7 + m_marginLeft + m_marginRight);
-				m_RenderedHeight = Mathf.Max(m_RenderedHeight, m_maxTextAscender - m_ElementDescender);
+				m_RenderedWidth = Mathf.Max(m_RenderedWidth, num8 + m_marginLeft + m_marginRight);
+				m_RenderedHeight = Mathf.Max(m_RenderedHeight, m_maxTextAscender - num9);
 			}
 			if (m_lineOffset > 0f && !TMP_Math.Approximately(m_maxLineAscender, m_startOfLineAscender) && !m_IsDrivenLineSpacing && !m_isNewPage)
 			{
-				float num36 = m_maxLineAscender - m_startOfLineAscender;
-				m_ElementDescender -= num36;
-				m_lineOffset += num36;
-				m_startOfLineAscender += num36;
+				float num38 = m_maxLineAscender - m_startOfLineAscender;
+				m_ElementDescender -= num38;
+				m_lineOffset += num38;
+				m_RenderedHeight += num38;
+				m_startOfLineAscender += num38;
 				state.lineOffset = m_lineOffset;
 				state.startOfLineAscender = m_startOfLineAscender;
 			}
-			if (num8 == 9)
+			if (num10 == 9)
 			{
-				float num37 = m_currentFontAsset.faceInfo.tabWidth * (float)(int)m_currentFontAsset.tabSize * num2;
-				float num38 = Mathf.Ceil(m_xAdvance / num37) * num37;
-				m_xAdvance = ((num38 > m_xAdvance) ? num38 : (m_xAdvance + num37));
+				float num39 = m_currentFontAsset.faceInfo.tabWidth * (float)(int)m_currentFontAsset.tabSize * num3;
+				float num40 = Mathf.Ceil(m_xAdvance / num39) * num39;
+				m_xAdvance = ((num40 > m_xAdvance) ? num40 : (m_xAdvance + num39));
 			}
 			else if (m_monoSpacing != 0f)
 			{
-				m_xAdvance += (m_monoSpacing - num25 + (m_currentFontAsset.normalSpacingOffset + num18) * num3 + m_cSpacing) * (1f - m_charWidthAdjDelta);
-				if (flag6 || num8 == 8203)
+				m_xAdvance += (m_monoSpacing - num27 + (m_currentFontAsset.normalSpacingOffset + num20) * num4 + m_cSpacing) * (1f - m_charWidthAdjDelta) * m_characterHorizontalScale;
+				if (flag9 || num10 == 8203)
 				{
-					m_xAdvance += m_wordSpacing * num3;
+					m_xAdvance += m_wordSpacing * num4;
 				}
 			}
 			else
 			{
-				m_xAdvance += ((glyphMetrics.horizontalAdvance * m_FXScale.x + glyphValueRecord.xAdvance) * num2 + (m_currentFontAsset.normalSpacingOffset + num18 + num26) * num3 + m_cSpacing) * (1f - m_charWidthAdjDelta);
-				if (flag6 || num8 == 8203)
+				m_xAdvance += ((glyphMetrics.horizontalAdvance * m_FXScale.x + glyphValueRecord.xAdvance) * num3 + (m_currentFontAsset.normalSpacingOffset + num20 + num28) * num4 + m_cSpacing) * (1f - m_charWidthAdjDelta) * m_characterHorizontalScale;
+				if (flag9 || num10 == 8203)
 				{
-					m_xAdvance += m_wordSpacing * num3;
+					m_xAdvance += m_wordSpacing * num4;
 				}
 			}
-			if (num8 == 13)
+			if (num10 == 13)
 			{
 				m_xAdvance = 0f + tag_Indent;
 			}
-			if (num8 == 10 || num8 == 11 || num8 == 3 || num8 == 8232 || num8 == 8233 || m_characterCount == totalCharacterCount - 1)
+			if (num10 == 10 || num10 == 11 || num10 == 3 || num10 == 8232 || num10 == 8233 || m_characterCount == totalCharacterCount - 1)
 			{
-				float num39 = m_maxLineAscender - m_startOfLineAscender;
-				if (m_lineOffset > 0f && Math.Abs(num39) > 0.01f && !m_IsDrivenLineSpacing && !m_isNewPage)
+				float num41 = m_maxLineAscender - m_startOfLineAscender;
+				if (m_lineOffset > 0f && Math.Abs(num41) > 0.01f && !m_IsDrivenLineSpacing && !m_isNewPage)
 				{
-					m_ElementDescender -= num39;
-					m_lineOffset += num39;
+					m_ElementDescender -= num41;
+					m_lineOffset += num41;
 				}
 				m_isNewPage = false;
-				float num40 = m_maxLineDescender - m_lineOffset;
-				m_ElementDescender = ((m_ElementDescender < num40) ? m_ElementDescender : num40);
-				if (num8 == 10 || num8 == 11 || (num8 == 45 && flag5) || num8 == 8232 || num8 == 8233)
+				float num42 = m_maxLineDescender - m_lineOffset;
+				m_ElementDescender = ((m_ElementDescender < num42) ? m_ElementDescender : num42);
+				if (num10 == 10 || num10 == 11 || (num10 == 45 && flag8) || num10 == 8232 || num10 == 8233)
 				{
 					SaveWordWrappingState(ref state2, i, m_characterCount);
 					SaveWordWrappingState(ref state, i, m_characterCount);
 					m_lineNumber++;
 					m_firstCharacterOfLine = m_characterCount + 1;
+					flag5 = true;
 					float adjustedAscender2 = m_internalCharacterInfo[m_characterCount].adjustedAscender;
 					if (m_lineHeight == -32767f)
 					{
-						float num41 = 0f - m_maxLineDescender + adjustedAscender2 + (num5 + m_lineSpacingDelta) * num + (m_lineSpacing + ((num8 == 10 || num8 == 8233) ? m_paragraphSpacing : 0f)) * num3;
-						m_lineOffset += num41;
+						float num43 = 0f - m_maxLineDescender + adjustedAscender2 + (num6 + m_lineSpacingDelta) * num2 + (m_lineSpacing + ((num10 == 10 || num10 == 8233) ? m_paragraphSpacing : 0f)) * num4;
+						m_lineOffset += num43;
 						m_IsDrivenLineSpacing = false;
 					}
 					else
 					{
-						m_lineOffset += m_lineHeight + (m_lineSpacing + ((num8 == 10 || num8 == 8233) ? m_paragraphSpacing : 0f)) * num3;
+						m_lineOffset += m_lineHeight + (m_lineSpacing + ((num10 == 10 || num10 == 8233) ? m_paragraphSpacing : 0f)) * num4;
 						m_IsDrivenLineSpacing = true;
 					}
 					m_maxLineAscender = k_LargeNegativeFloat;
@@ -3945,92 +3979,87 @@ public abstract class TMP_Text : MaskableGraphic
 					m_characterCount++;
 					continue;
 				}
-				if (num8 == 3)
+				if (num10 == 3)
 				{
 					i = m_TextProcessingArray.Length;
 				}
 			}
 			if ((textWrapMode != TextWrappingModes.NoWrap && textWrapMode != TextWrappingModes.PreserveWhitespaceNoWrap) || m_overflowMode == TextOverflowModes.Truncate || m_overflowMode == TextOverflowModes.Ellipsis)
 			{
-				bool flag11 = false;
-				bool flag12 = false;
-				if ((flag6 || num8 == 8203 || num8 == 45 || num8 == 173) && (!m_isNonBreakingSpace || flag3) && num8 != 160 && num8 != 8199 && num8 != 8209 && num8 != 8239 && num8 != 8288)
+				bool flag14 = false;
+				bool flag15 = false;
+				uint num44 = ((m_characterCount + 1 < totalCharacterCount) ? m_textInfo.characterInfo[m_characterCount + 1].character : '\0');
+				if ((flag9 || num10 == 8203 || num10 == 45 || num10 == 173) && (!m_isNonBreakingSpace || flag6) && num10 != 160 && num10 != 8199 && num10 != 8209 && num10 != 8239 && num10 != 8288)
 				{
-					if (num8 != 45 || m_characterCount <= 0 || !char.IsWhiteSpace(m_textInfo.characterInfo[m_characterCount - 1].character) || m_textInfo.characterInfo[m_characterCount - 1].lineNumber != m_lineNumber)
+					if (num10 != 45 || m_characterCount <= 0 || !char.IsWhiteSpace(m_textInfo.characterInfo[m_characterCount - 1].character) || m_textInfo.characterInfo[m_characterCount - 1].lineNumber != m_lineNumber)
 					{
-						flag2 = false;
-						flag11 = true;
+						flag5 = false;
+						flag14 = true;
 						state3.previous_WordBreak = -1;
 					}
 				}
-				else if (!m_isNonBreakingSpace && ((TMP_TextParsingUtilities.IsHangul(num8) && !TMP_Settings.useModernHangulLineBreakingRules) || TMP_TextParsingUtilities.IsCJK(num8)))
+				else if (!m_isNonBreakingSpace && ((TMP_TextParsingUtilities.IsHangul(num10) && !TMP_Settings.useModernHangulLineBreakingRules) || TMP_TextParsingUtilities.IsCJK(num10)))
 				{
-					bool num42 = TMP_Settings.linebreakingRules.leadingCharacters.Contains(num8);
-					bool flag13 = m_characterCount < totalCharacterCount - 1 && TMP_Settings.linebreakingRules.followingCharacters.Contains(m_internalCharacterInfo[m_characterCount + 1].character);
-					if (!num42)
+					bool num45 = TMP_Settings.linebreakingRules.leadingCharacters.Contains(num10);
+					bool flag16 = m_characterCount < totalCharacterCount - 1 && TMP_Settings.linebreakingRules.followingCharacters.Contains(num44);
+					if (!num45)
 					{
-						if (!flag13)
+						if (!flag16)
 						{
-							flag2 = false;
-							flag11 = true;
+							flag5 = false;
+							flag14 = true;
 						}
-						if (flag2)
+						if (flag5)
 						{
-							if (flag6)
+							if (flag9)
 							{
-								flag12 = true;
+								flag15 = true;
 							}
-							flag11 = true;
+							flag14 = true;
 						}
 					}
-					else if (flag2 && flag9)
+					else if (flag5 && flag12)
 					{
-						if (flag6)
+						if (flag9)
 						{
-							flag12 = true;
+							flag15 = true;
 						}
-						flag11 = true;
+						flag14 = true;
 					}
 				}
-				else if (!m_isNonBreakingSpace && m_characterCount + 1 < totalCharacterCount && TMP_TextParsingUtilities.IsCJK(m_textInfo.characterInfo[m_characterCount + 1].character))
+				else if (!m_isNonBreakingSpace && TMP_TextParsingUtilities.IsCJK(num44) && !TMP_Settings.linebreakingRules.followingCharacters.Contains(num44))
 				{
-					uint character = m_textInfo.characterInfo[m_characterCount + 1].character;
-					bool num43 = TMP_Settings.linebreakingRules.leadingCharacters.Contains(num8);
-					bool flag14 = TMP_Settings.linebreakingRules.followingCharacters.Contains(character);
-					if (!num43 && !flag14)
-					{
-						flag11 = true;
-					}
+					flag14 = true;
 				}
-				else if (flag2)
+				else if (flag5)
 				{
-					if ((flag6 && num8 != 160) || (num8 == 173 && !flag4))
+					if ((flag9 && num10 != 160) || (num10 == 173 && !flag7))
 					{
-						flag12 = true;
+						flag15 = true;
 					}
-					flag11 = true;
+					flag14 = true;
 				}
-				if (flag11)
+				if (flag14)
 				{
 					SaveWordWrappingState(ref state, i, m_characterCount);
 				}
-				if (flag12)
+				if (flag15)
 				{
 					SaveWordWrappingState(ref state3, i, m_characterCount);
 				}
 			}
 			m_characterCount++;
 		}
-		num4 = m_maxFontSize - m_minFontSize;
-		if (isTextAutoSizingEnabled && num4 > 0.051f && fontSize < m_fontSizeMax && m_AutoSizeIterationCount < m_AutoSizeMaxIterationCount)
+		num5 = m_maxFontSize - m_minFontSize;
+		if (isTextAutoSizingEnabled && num5 > 0.051f && fontSize < m_fontSizeMax && m_AutoSizeIterationCount < m_AutoSizeMaxIterationCount)
 		{
 			if (m_charWidthAdjDelta < m_charWidthMaxAdj / 100f)
 			{
 				m_charWidthAdjDelta = 0f;
 			}
 			m_minFontSize = fontSize;
-			float num44 = Mathf.Max((m_maxFontSize - fontSize) / 2f, 0.05f);
-			fontSize += num44;
+			float num46 = Mathf.Max((m_maxFontSize - fontSize) / 2f, 0.05f);
+			fontSize += num46;
 			fontSize = Mathf.Min((float)(int)(fontSize * 20f + 0.5f) / 20f, m_fontSizeMax);
 			return Vector2.zero;
 		}
@@ -4075,7 +4104,7 @@ public abstract class TMP_Text : MaskableGraphic
 		Vector2 vector = default(Vector2);
 		vector.x = extents.max.x - extents.min.x;
 		vector.y = extents.max.y - extents.min.y;
-		return new Bounds((extents.min + extents.max) / 2f, vector);
+		return new Bounds((Vector3)((extents.min + extents.max) / 2f), (Vector3)vector);
 	}
 
 	protected Bounds GetTextBounds(bool onlyVisibleCharacters)
@@ -4098,7 +4127,7 @@ public abstract class TMP_Text : MaskableGraphic
 		Vector2 vector = default(Vector2);
 		vector.x = extents.max.x - extents.min.x;
 		vector.y = extents.max.y - extents.min.y;
-		return new Bounds((extents.min + extents.max) / 2f, vector);
+		return new Bounds((Vector3)((extents.min + extents.max) / 2f), (Vector3)vector);
 	}
 
 	protected void AdjustLineOffset(int startIndex, int endIndex, float offset)
@@ -4182,7 +4211,7 @@ public abstract class TMP_Text : MaskableGraphic
 		m_textInfo.lineInfo[m_lineNumber].lineExtents.max = new Vector2(m_textInfo.characterInfo[m_lastVisibleCharacterOfLine].topRight.x, num2);
 		m_textInfo.lineInfo[m_lineNumber].length = m_textInfo.lineInfo[m_lineNumber].lineExtents.max.x;
 		m_textInfo.lineInfo[m_lineNumber].width = width;
-		float num4 = (m_textInfo.characterInfo[m_lastVisibleCharacterOfLine].adjustedHorizontalAdvance * currentElementScale + (m_currentFontAsset.normalSpacingOffset + characterSpacingAdjustment + boldSpacingAdjustment) * currentEmScale + m_cSpacing) * (1f - m_charWidthAdjDelta);
+		float num4 = (m_textInfo.characterInfo[m_lastVisibleCharacterOfLine].adjustedHorizontalAdvance * currentElementScale + (m_currentFontAsset.normalSpacingOffset + characterSpacingAdjustment + boldSpacingAdjustment) * currentEmScale + m_cSpacing) * (1f - m_charWidthAdjDelta) * m_characterHorizontalScale;
 		float xAdvance = (m_textInfo.lineInfo[m_lineNumber].maxAdvance = m_textInfo.characterInfo[m_lastVisibleCharacterOfLine].xAdvance + (m_isRightToLeft ? num4 : (0f - num4)));
 		m_textInfo.characterInfo[m_lastVisibleCharacterOfLine].xAdvance = xAdvance;
 		m_textInfo.lineInfo[m_lineNumber].baseline = 0f - m_lineOffset;

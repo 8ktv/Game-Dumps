@@ -44,6 +44,8 @@ public static class SystemInfo
 
 	public static bool supportsAudio => UnityEngine.SystemInfo.supportsAudio;
 
+	public static bool supportsRendering => UnityEngine.SystemInfo.supportsRendering;
+
 	public static DeviceType deviceType => UnityEngine.SystemInfo.deviceType;
 
 	public static int graphicsMemorySize => UnityEngine.SystemInfo.graphicsMemorySize;
@@ -71,6 +73,8 @@ public static class SystemInfo
 	public static FoveatedRenderingCaps foveatedRenderingCaps => UnityEngine.SystemInfo.foveatedRenderingCaps;
 
 	public static bool supportsVariableRateShading => UnityEngine.SystemInfo.supportsVariableRateShading;
+
+	public static int maxTiledPixelStorageSize => UnityEngine.SystemInfo.maxTiledPixelStorageSize;
 
 	public static bool hasTiledGPU => UnityEngine.SystemInfo.hasTiledGPU;
 
@@ -120,6 +124,8 @@ public static class SystemInfo
 
 	public static int supportedRandomWriteTargetCount => UnityEngine.SystemInfo.supportedRandomWriteTargetCount;
 
+	public static bool supportsMemorylessTextures => UnityEngine.SystemInfo.supportsMemorylessTextures;
+
 	public static int supportsMultisampledTextures => UnityEngine.SystemInfo.supportsMultisampledTextures;
 
 	public static bool supportsMultisampled2DArrayTextures => UnityEngine.SystemInfo.supportsMultisampled2DArrayTextures;
@@ -127,6 +133,8 @@ public static class SystemInfo
 	public static bool supportsMultisampledBackBuffer => UnityEngine.SystemInfo.supportsMultisampledBackBuffer;
 
 	public static bool supportsMultisampleAutoResolve => UnityEngine.SystemInfo.supportsMultisampleAutoResolve;
+
+	public static bool supportsMultisampledShaderResolve => UnityEngine.SystemInfo.supportsMultisampledShaderResolve;
 
 	public static int supportsTextureWrapMirrorOnce => UnityEngine.SystemInfo.supportsTextureWrapMirrorOnce;
 
@@ -214,6 +222,8 @@ public static class SystemInfo
 
 	public static bool supportsDepthFetchInRenderPass => UnityEngine.SystemInfo.supportsDepthFetchInRenderPass;
 
+	public static bool supportsDynamicResolution => UnityEngine.SystemInfo.supportsDynamicResolution;
+
 	public static bool SupportsRenderTextureFormat(RenderTextureFormat format)
 	{
 		return UnityEngine.SystemInfo.SupportsRenderTextureFormat(format);
@@ -271,5 +281,10 @@ public static class SystemInfo
 	public static bool SupportsRandomWriteOnRenderTextureFormat(RenderTextureFormat format)
 	{
 		return UnityEngine.SystemInfo.SupportsRandomWriteOnRenderTextureFormat(format);
+	}
+
+	public static int GetTiledRenderTargetStorageSize(GraphicsFormat format, int sampleCount)
+	{
+		return UnityEngine.SystemInfo.GetTiledRenderTargetStorageSize(format, sampleCount);
 	}
 }

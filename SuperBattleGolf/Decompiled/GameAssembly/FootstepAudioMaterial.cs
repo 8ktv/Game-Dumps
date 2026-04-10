@@ -3,5 +3,8 @@ public enum FootstepAudioMaterial
 	Default,
 	Grass,
 	Sand,
-	Water
+	Water,
+	Snow,
+	Ice,
+	BreakableIce
 }

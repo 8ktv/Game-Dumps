@@ -282,7 +282,7 @@ public class ControlsRebind : MonoBehaviour
 					for (int i = 0; i < item2.bindings.Count; i++)
 					{
 						InputBinding binding = item2.bindings[i];
-						if (action != item2 || i != bindingIndex)
+						if ((action != item2 || i != bindingIndex) && !IgnoreOverlap(action, item2))
 						{
 							string text3 = GetBindingPath(binding);
 							if (text3 != null && !(text3 == string.Empty) && text3 == text)
@@ -302,6 +302,23 @@ public class ControlsRebind : MonoBehaviour
 				return inputBinding.path;
 			}
 			return inputBinding.overridePath;
+		}
+		static bool IgnoreOverlap(InputAction inputAction, InputAction inputAction2)
+		{
+			GameControls controls = InputManager.Controls;
+			if (!Check(inputAction, inputAction2))
+			{
+				return Check(inputAction2, inputAction);
+			}
+			return true;
+			bool Check(InputAction inputAction3, InputAction inputAction4)
+			{
+				if (inputAction3 == controls.Gameplay.Swing)
+				{
+					return inputAction4 == controls.Gameplay.UseItem;
+				}
+				return false;
+			}
 		}
 	}
 

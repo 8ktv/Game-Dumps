@@ -33,7 +33,7 @@ internal static class UxmlUtility
 
 	public static string EncodeListItem(string item)
 	{
-		return item.Replace(",", "%2C");
+		return (item == null) ? string.Empty : item.Replace(",", "%2C");
 	}
 
 	public static string DecodeListItem(string item)
@@ -88,6 +88,12 @@ internal static class UxmlUtility
 	{
 		uint result;
 		return uint.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result) ? result : defaultValue;
+	}
+
+	public static Angle ParseAngle(string value, Angle defaultValue = default(Angle))
+	{
+		Angle angle;
+		return Angle.TryParseString(value, out angle) ? angle : defaultValue;
 	}
 
 	public static float TryParseFloatAttribute(string attributeName, IUxmlAttributes bag, ref int foundAttributeCounter)
@@ -208,5 +214,23 @@ internal static class UxmlUtility
 			return UxmlSerializedDataUtility.CopySerialized(value);
 		}
 		return value;
+	}
+
+	public static int SplitValues(ReadOnlySpan<char> spanStr, Span<float> values, char separator)
+	{
+		int num = 0;
+		int num2 = 0;
+		for (int i = 0; i <= spanStr.Length; i++)
+		{
+			if (i == spanStr.Length || spanStr[i] == separator)
+			{
+				if (num2 < i && num < values.Length && float.TryParse(spanStr.Slice(num2, i - num2), NumberStyles.Any, CultureInfo.InvariantCulture.NumberFormat, out var result))
+				{
+					values[num++] = result;
+				}
+				num2 = i + 1;
+			}
+		}
+		return num;
 	}
 }

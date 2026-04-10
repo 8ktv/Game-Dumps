@@ -47,6 +47,8 @@ internal struct ComputedStyle
 
 	public Align alignSelf => layoutData.Read().alignSelf;
 
+	public Ratio aspectRatio => layoutData.Read().aspectRatio;
+
 	public Color backgroundColor => visualData.Read().backgroundColor;
 
 	public Background backgroundImage => visualData.Read().backgroundImage;
@@ -90,6 +92,8 @@ internal struct ComputedStyle
 	public Cursor cursor => rareData.Read().cursor;
 
 	public DisplayStyle display => layoutData.Read().display;
+
+	public List<FilterFunction> filter => visualData.Read().filter;
 
 	public Length flexBasis => layoutData.Read().flexBasis;
 
@@ -175,6 +179,8 @@ internal struct ComputedStyle
 
 	public FontStyle unityFontStyleAndWeight => inheritedData.Read().unityFontStyleAndWeight;
 
+	public MaterialDefinition unityMaterial => inheritedData.Read().unityMaterial;
+
 	public OverflowClipBox unityOverflowClipBox => rareData.Read().unityOverflowClipBox;
 
 	public Length unityParagraphSpacing => inheritedData.Read().unityParagraphSpacing;
@@ -193,7 +199,7 @@ internal struct ComputedStyle
 
 	public TextAnchor unityTextAlign => inheritedData.Read().unityTextAlign;
 
-	public TextAutoSize unityTextAutoSize => rareData.Read().unityTextAutoSize;
+	public TextAutoSize unityTextAutoSize => inheritedData.Read().unityTextAutoSize;
 
 	public TextGeneratorType unityTextGenerator => inheritedData.Read().unityTextGenerator;
 
@@ -367,6 +373,18 @@ internal struct ComputedStyle
 		return element.styleAnimation.Start(StylePropertyId.BackgroundSize, computedStyle.visualData.Read().backgroundSize, to, durationMs, delayMs, easingCurve);
 	}
 
+	public static bool StartAnimationInlineFilter(VisualElement element, ref ComputedStyle computedStyle, StyleList<FilterFunction> filter, int durationMs, int delayMs, Func<float, float> easingCurve)
+	{
+		List<FilterFunction> to = ((filter.keyword == StyleKeyword.Initial) ? InitialStyle.filter : filter.value);
+		return element.styleAnimation.Start(StylePropertyId.Filter, computedStyle.visualData.Read().filter, to, durationMs, delayMs, easingCurve);
+	}
+
+	public static bool StartAnimationInlineMaterial(VisualElement element, ref ComputedStyle computedStyle, StyleMaterialDefinition matDef, int durationMs, int delayMs, Func<float, float> easingCurve)
+	{
+		MaterialDefinition to = ((matDef.keyword == StyleKeyword.Initial) ? InitialStyle.unityMaterial : matDef.value);
+		return element.styleAnimation.Start(StylePropertyId.UnityMaterial, computedStyle.inheritedData.Read().unityMaterial, to, durationMs, delayMs, easingCurve);
+	}
+
 	public static ComputedStyle Create(ref ComputedStyle parentStyle)
 	{
 		ref ComputedStyle reference = ref InitialStyle.Get();
@@ -451,6 +469,9 @@ internal struct ComputedStyle
 				case StylePropertyId.AlignSelf:
 					layoutData.Write().alignSelf = (Align)reader.ReadEnum(StyleEnumType.Align, 0);
 					break;
+				case StylePropertyId.AspectRatio:
+					layoutData.Write().aspectRatio = reader.ReadRatio(0);
+					break;
 				case StylePropertyId.BackgroundColor:
 					visualData.Write().backgroundColor = reader.ReadColor(0);
 					break;
@@ -528,6 +549,9 @@ internal struct ComputedStyle
 					break;
 				case StylePropertyId.Display:
 					layoutData.Write().display = (DisplayStyle)reader.ReadEnum(StyleEnumType.DisplayStyle, 0);
+					break;
+				case StylePropertyId.Filter:
+					reader.ReadListFilterFunction(visualData.Write().filter, 0);
 					break;
 				case StylePropertyId.Flex:
 					ShorthandApplicator.ApplyFlex(reader, ref this);
@@ -674,6 +698,9 @@ internal struct ComputedStyle
 				case StylePropertyId.UnityFontStyleAndWeight:
 					inheritedData.Write().unityFontStyleAndWeight = (FontStyle)reader.ReadEnum(StyleEnumType.FontStyle, 0);
 					break;
+				case StylePropertyId.UnityMaterial:
+					inheritedData.Write().unityMaterial = reader.ReadMaterialDefinition(0);
+					break;
 				case StylePropertyId.UnityOverflowClipBox:
 					rareData.Write().unityOverflowClipBox = (OverflowClipBox)reader.ReadEnum(StyleEnumType.OverflowClipBox, 0);
 					break;
@@ -702,7 +729,7 @@ internal struct ComputedStyle
 					inheritedData.Write().unityTextAlign = (TextAnchor)reader.ReadEnum(StyleEnumType.TextAnchor, 0);
 					break;
 				case StylePropertyId.UnityTextAutoSize:
-					rareData.Write().unityTextAutoSize = reader.ReadTextAutoSize(0);
+					inheritedData.Write().unityTextAutoSize = reader.ReadTextAutoSize(0);
 					break;
 				case StylePropertyId.UnityTextGenerator:
 					inheritedData.Write().unityTextGenerator = (TextGeneratorType)reader.ReadEnum(StyleEnumType.TextGeneratorType, 0);
@@ -774,6 +801,9 @@ internal struct ComputedStyle
 			{
 				layoutData.Write().alignSelf = Align.Auto;
 			}
+			break;
+		case StylePropertyId.AspectRatio:
+			layoutData.Write().aspectRatio = sv.number;
 			break;
 		case StylePropertyId.BackgroundColor:
 			visualData.Write().backgroundColor = sv.color;
@@ -938,6 +968,9 @@ internal struct ComputedStyle
 		case StylePropertyId.UnityFontStyleAndWeight:
 			inheritedData.Write().unityFontStyleAndWeight = (FontStyle)sv.number;
 			break;
+		case StylePropertyId.UnityMaterial:
+			inheritedData.Write().unityMaterial = (sv.resource.IsAllocated ? MaterialDefinition.FromObject(sv.resource.Target) : ((MaterialDefinition)null));
+			break;
 		case StylePropertyId.UnityOverflowClipBox:
 			rareData.Write().unityOverflowClipBox = (OverflowClipBox)sv.number;
 			break;
@@ -1003,6 +1036,16 @@ internal struct ComputedStyle
 		}
 		switch (sv.id)
 		{
+		case StylePropertyId.Filter:
+			if (sv.value == null)
+			{
+				visualData.Write().filter.CopyFrom(InitialStyle.filter);
+			}
+			else
+			{
+				visualData.Write().filter = sv.value as List<FilterFunction>;
+			}
+			break;
 		case StylePropertyId.TransitionDelay:
 			if (sv.value == null)
 			{
@@ -1065,7 +1108,7 @@ internal struct ComputedStyle
 
 	public void ApplyStyleTextAutoSize(TextAutoSize st)
 	{
-		rareData.Write().unityTextAutoSize = st;
+		inheritedData.Write().unityTextAutoSize = st;
 	}
 
 	public void ApplyFromComputedStyle(StylePropertyId id, ref ComputedStyle other)
@@ -1080,6 +1123,9 @@ internal struct ComputedStyle
 			break;
 		case StylePropertyId.AlignSelf:
 			layoutData.Write().alignSelf = other.layoutData.Read().alignSelf;
+			break;
+		case StylePropertyId.AspectRatio:
+			layoutData.Write().aspectRatio = other.layoutData.Read().aspectRatio;
 			break;
 		case StylePropertyId.BackgroundColor:
 			visualData.Write().backgroundColor = other.visualData.Read().backgroundColor;
@@ -1146,6 +1192,9 @@ internal struct ComputedStyle
 			break;
 		case StylePropertyId.Display:
 			layoutData.Write().display = other.layoutData.Read().display;
+			break;
+		case StylePropertyId.Filter:
+			visualData.Write().filter.CopyFrom(other.visualData.Read().filter);
 			break;
 		case StylePropertyId.FlexBasis:
 			layoutData.Write().flexBasis = other.layoutData.Read().flexBasis;
@@ -1277,6 +1326,9 @@ internal struct ComputedStyle
 		case StylePropertyId.UnityFontStyleAndWeight:
 			inheritedData.Write().unityFontStyleAndWeight = other.inheritedData.Read().unityFontStyleAndWeight;
 			break;
+		case StylePropertyId.UnityMaterial:
+			inheritedData.Write().unityMaterial = other.inheritedData.Read().unityMaterial;
+			break;
 		case StylePropertyId.UnityOverflowClipBox:
 			rareData.Write().unityOverflowClipBox = other.rareData.Read().unityOverflowClipBox;
 			break;
@@ -1305,7 +1357,7 @@ internal struct ComputedStyle
 			inheritedData.Write().unityTextAlign = other.inheritedData.Read().unityTextAlign;
 			break;
 		case StylePropertyId.UnityTextAutoSize:
-			rareData.Write().unityTextAutoSize = other.rareData.Read().unityTextAutoSize;
+			inheritedData.Write().unityTextAutoSize = other.inheritedData.Read().unityTextAutoSize;
 			break;
 		case StylePropertyId.UnityTextGenerator:
 			inheritedData.Write().unityTextGenerator = other.inheritedData.Read().unityTextGenerator;
@@ -1778,6 +1830,19 @@ internal struct ComputedStyle
 		throw new ArgumentException("Invalid animation property id. Can't apply value of type 'Background' to property '" + id.ToString() + "'. Please make sure that this property is animatable.", "id");
 	}
 
+	public void ApplyPropertyAnimation(VisualElement ve, StylePropertyId id, List<FilterFunction> newValue)
+	{
+		StylePropertyId stylePropertyId = id;
+		StylePropertyId stylePropertyId2 = stylePropertyId;
+		if (stylePropertyId2 == StylePropertyId.Filter)
+		{
+			visualData.Write().filter = newValue;
+			ve.IncrementVersion(VersionChangeType.Repaint);
+			return;
+		}
+		throw new ArgumentException("Invalid animation property id. Can't apply value of type 'List<FilterFunction>' to property '" + id.ToString() + "'. Please make sure that this property is animatable.", "id");
+	}
+
 	public void ApplyPropertyAnimation(VisualElement ve, StylePropertyId id, Font newValue)
 	{
 		StylePropertyId stylePropertyId = id;
@@ -1875,6 +1940,33 @@ internal struct ComputedStyle
 		throw new ArgumentException("Invalid animation property id. Can't apply value of type 'Scale' to property '" + id.ToString() + "'. Please make sure that this property is animatable.", "id");
 	}
 
+	public void ApplyPropertyAnimation(VisualElement ve, StylePropertyId id, MaterialDefinition newValue)
+	{
+		StylePropertyId stylePropertyId = id;
+		StylePropertyId stylePropertyId2 = stylePropertyId;
+		if (stylePropertyId2 == StylePropertyId.UnityMaterial)
+		{
+			inheritedData.Write().unityMaterial = newValue;
+			ve.IncrementVersion(VersionChangeType.StyleSheet | VersionChangeType.Repaint);
+			return;
+		}
+		throw new ArgumentException("Invalid animation property id. Can't apply value of type 'MaterialDefinition' to property '" + id.ToString() + "'. Please make sure that this property is animatable.", "id");
+	}
+
+	public void ApplyPropertyAnimation(VisualElement ve, StylePropertyId id, Ratio newValue)
+	{
+		StylePropertyId stylePropertyId = id;
+		StylePropertyId stylePropertyId2 = stylePropertyId;
+		if (stylePropertyId2 == StylePropertyId.AspectRatio)
+		{
+			layoutData.Write().aspectRatio = newValue;
+			ve.layoutNode.AspectRatio = newValue;
+			ve.IncrementVersion(VersionChangeType.Layout);
+			return;
+		}
+		throw new ArgumentException("Invalid animation property id. Can't apply value of type 'Ratio' to property '" + id.ToString() + "'. Please make sure that this property is animatable.", "id");
+	}
+
 	public static bool StartAnimation(VisualElement element, StylePropertyId id, ref ComputedStyle oldStyle, ref ComputedStyle newStyle, int durationMs, int delayMs, Func<float, float> easingCurve)
 	{
 		switch (id)
@@ -1887,6 +1979,8 @@ internal struct ComputedStyle
 			return element.styleAnimation.StartEnum(StylePropertyId.AlignSelf, (int)oldStyle.layoutData.Read().alignSelf, (int)newStyle.layoutData.Read().alignSelf, durationMs, delayMs, easingCurve);
 		case StylePropertyId.All:
 			return StartAnimationAllProperty(element, ref oldStyle, ref newStyle, durationMs, delayMs, easingCurve);
+		case StylePropertyId.AspectRatio:
+			return element.styleAnimation.Start(StylePropertyId.AspectRatio, oldStyle.layoutData.Read().aspectRatio, newStyle.layoutData.Read().aspectRatio, durationMs, delayMs, easingCurve);
 		case StylePropertyId.BackgroundColor:
 		{
 			bool flag13 = element.styleAnimation.Start(StylePropertyId.BackgroundColor, oldStyle.visualData.Read().backgroundColor, newStyle.visualData.Read().backgroundColor, durationMs, delayMs, easingCurve);
@@ -1900,9 +1994,9 @@ internal struct ComputedStyle
 			return element.styleAnimation.Start(StylePropertyId.BackgroundImage, oldStyle.visualData.Read().backgroundImage, newStyle.visualData.Read().backgroundImage, durationMs, delayMs, easingCurve);
 		case StylePropertyId.BackgroundPosition:
 		{
-			bool flag11 = false;
-			flag11 |= element.styleAnimation.Start(StylePropertyId.BackgroundPositionX, oldStyle.visualData.Read().backgroundPositionX, newStyle.visualData.Read().backgroundPositionX, durationMs, delayMs, easingCurve);
-			return flag11 | element.styleAnimation.Start(StylePropertyId.BackgroundPositionY, oldStyle.visualData.Read().backgroundPositionY, newStyle.visualData.Read().backgroundPositionY, durationMs, delayMs, easingCurve);
+			bool flag8 = false;
+			flag8 |= element.styleAnimation.Start(StylePropertyId.BackgroundPositionX, oldStyle.visualData.Read().backgroundPositionX, newStyle.visualData.Read().backgroundPositionX, durationMs, delayMs, easingCurve);
+			return flag8 | element.styleAnimation.Start(StylePropertyId.BackgroundPositionY, oldStyle.visualData.Read().backgroundPositionY, newStyle.visualData.Read().backgroundPositionY, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.BackgroundPositionX:
 			return element.styleAnimation.Start(StylePropertyId.BackgroundPositionX, oldStyle.visualData.Read().backgroundPositionX, newStyle.visualData.Read().backgroundPositionX, durationMs, delayMs, easingCurve);
@@ -1914,12 +2008,12 @@ internal struct ComputedStyle
 			return element.styleAnimation.Start(StylePropertyId.BackgroundSize, oldStyle.visualData.Read().backgroundSize, newStyle.visualData.Read().backgroundSize, durationMs, delayMs, easingCurve);
 		case StylePropertyId.BorderBottomColor:
 		{
-			bool flag20 = element.styleAnimation.Start(StylePropertyId.BorderBottomColor, oldStyle.visualData.Read().borderBottomColor, newStyle.visualData.Read().borderBottomColor, durationMs, delayMs, easingCurve);
-			if (flag20 && (element.usageHints & UsageHints.DynamicColor) == 0)
+			bool flag18 = element.styleAnimation.Start(StylePropertyId.BorderBottomColor, oldStyle.visualData.Read().borderBottomColor, newStyle.visualData.Read().borderBottomColor, durationMs, delayMs, easingCurve);
+			if (flag18 && (element.usageHints & UsageHints.DynamicColor) == 0)
 			{
 				element.usageHints |= UsageHints.DynamicColor;
 			}
-			return flag20;
+			return flag18;
 		}
 		case StylePropertyId.BorderBottomLeftRadius:
 			return element.styleAnimation.Start(StylePropertyId.BorderBottomLeftRadius, oldStyle.visualData.Read().borderBottomLeftRadius, newStyle.visualData.Read().borderBottomLeftRadius, durationMs, delayMs, easingCurve);
@@ -1929,25 +2023,25 @@ internal struct ComputedStyle
 			return element.styleAnimation.Start(StylePropertyId.BorderBottomWidth, oldStyle.layoutData.Read().borderBottomWidth, newStyle.layoutData.Read().borderBottomWidth, durationMs, delayMs, easingCurve);
 		case StylePropertyId.BorderColor:
 		{
-			bool flag10 = false;
-			flag10 |= element.styleAnimation.Start(StylePropertyId.BorderTopColor, oldStyle.visualData.Read().borderTopColor, newStyle.visualData.Read().borderTopColor, durationMs, delayMs, easingCurve);
-			flag10 |= element.styleAnimation.Start(StylePropertyId.BorderRightColor, oldStyle.visualData.Read().borderRightColor, newStyle.visualData.Read().borderRightColor, durationMs, delayMs, easingCurve);
-			flag10 |= element.styleAnimation.Start(StylePropertyId.BorderBottomColor, oldStyle.visualData.Read().borderBottomColor, newStyle.visualData.Read().borderBottomColor, durationMs, delayMs, easingCurve);
-			flag10 |= element.styleAnimation.Start(StylePropertyId.BorderLeftColor, oldStyle.visualData.Read().borderLeftColor, newStyle.visualData.Read().borderLeftColor, durationMs, delayMs, easingCurve);
-			if (flag10 && (element.usageHints & UsageHints.DynamicColor) == 0)
+			bool flag11 = false;
+			flag11 |= element.styleAnimation.Start(StylePropertyId.BorderTopColor, oldStyle.visualData.Read().borderTopColor, newStyle.visualData.Read().borderTopColor, durationMs, delayMs, easingCurve);
+			flag11 |= element.styleAnimation.Start(StylePropertyId.BorderRightColor, oldStyle.visualData.Read().borderRightColor, newStyle.visualData.Read().borderRightColor, durationMs, delayMs, easingCurve);
+			flag11 |= element.styleAnimation.Start(StylePropertyId.BorderBottomColor, oldStyle.visualData.Read().borderBottomColor, newStyle.visualData.Read().borderBottomColor, durationMs, delayMs, easingCurve);
+			flag11 |= element.styleAnimation.Start(StylePropertyId.BorderLeftColor, oldStyle.visualData.Read().borderLeftColor, newStyle.visualData.Read().borderLeftColor, durationMs, delayMs, easingCurve);
+			if (flag11 && (element.usageHints & UsageHints.DynamicColor) == 0)
 			{
 				element.usageHints |= UsageHints.DynamicColor;
 			}
-			return flag10;
+			return flag11;
 		}
 		case StylePropertyId.BorderLeftColor:
 		{
-			bool flag8 = element.styleAnimation.Start(StylePropertyId.BorderLeftColor, oldStyle.visualData.Read().borderLeftColor, newStyle.visualData.Read().borderLeftColor, durationMs, delayMs, easingCurve);
-			if (flag8 && (element.usageHints & UsageHints.DynamicColor) == 0)
+			bool flag9 = element.styleAnimation.Start(StylePropertyId.BorderLeftColor, oldStyle.visualData.Read().borderLeftColor, newStyle.visualData.Read().borderLeftColor, durationMs, delayMs, easingCurve);
+			if (flag9 && (element.usageHints & UsageHints.DynamicColor) == 0)
 			{
 				element.usageHints |= UsageHints.DynamicColor;
 			}
-			return flag8;
+			return flag9;
 		}
 		case StylePropertyId.BorderLeftWidth:
 			return element.styleAnimation.Start(StylePropertyId.BorderLeftWidth, oldStyle.layoutData.Read().borderLeftWidth, newStyle.layoutData.Read().borderLeftWidth, durationMs, delayMs, easingCurve);
@@ -1972,12 +2066,12 @@ internal struct ComputedStyle
 			return element.styleAnimation.Start(StylePropertyId.BorderRightWidth, oldStyle.layoutData.Read().borderRightWidth, newStyle.layoutData.Read().borderRightWidth, durationMs, delayMs, easingCurve);
 		case StylePropertyId.BorderTopColor:
 		{
-			bool flag19 = element.styleAnimation.Start(StylePropertyId.BorderTopColor, oldStyle.visualData.Read().borderTopColor, newStyle.visualData.Read().borderTopColor, durationMs, delayMs, easingCurve);
-			if (flag19 && (element.usageHints & UsageHints.DynamicColor) == 0)
+			bool flag20 = element.styleAnimation.Start(StylePropertyId.BorderTopColor, oldStyle.visualData.Read().borderTopColor, newStyle.visualData.Read().borderTopColor, durationMs, delayMs, easingCurve);
+			if (flag20 && (element.usageHints & UsageHints.DynamicColor) == 0)
 			{
 				element.usageHints |= UsageHints.DynamicColor;
 			}
-			return flag19;
+			return flag20;
 		}
 		case StylePropertyId.BorderTopLeftRadius:
 			return element.styleAnimation.Start(StylePropertyId.BorderTopLeftRadius, oldStyle.visualData.Read().borderTopLeftRadius, newStyle.visualData.Read().borderTopLeftRadius, durationMs, delayMs, easingCurve);
@@ -1987,11 +2081,11 @@ internal struct ComputedStyle
 			return element.styleAnimation.Start(StylePropertyId.BorderTopWidth, oldStyle.layoutData.Read().borderTopWidth, newStyle.layoutData.Read().borderTopWidth, durationMs, delayMs, easingCurve);
 		case StylePropertyId.BorderWidth:
 		{
-			bool flag18 = false;
-			flag18 |= element.styleAnimation.Start(StylePropertyId.BorderTopWidth, oldStyle.layoutData.Read().borderTopWidth, newStyle.layoutData.Read().borderTopWidth, durationMs, delayMs, easingCurve);
-			flag18 |= element.styleAnimation.Start(StylePropertyId.BorderRightWidth, oldStyle.layoutData.Read().borderRightWidth, newStyle.layoutData.Read().borderRightWidth, durationMs, delayMs, easingCurve);
-			flag18 |= element.styleAnimation.Start(StylePropertyId.BorderBottomWidth, oldStyle.layoutData.Read().borderBottomWidth, newStyle.layoutData.Read().borderBottomWidth, durationMs, delayMs, easingCurve);
-			return flag18 | element.styleAnimation.Start(StylePropertyId.BorderLeftWidth, oldStyle.layoutData.Read().borderLeftWidth, newStyle.layoutData.Read().borderLeftWidth, durationMs, delayMs, easingCurve);
+			bool flag19 = false;
+			flag19 |= element.styleAnimation.Start(StylePropertyId.BorderTopWidth, oldStyle.layoutData.Read().borderTopWidth, newStyle.layoutData.Read().borderTopWidth, durationMs, delayMs, easingCurve);
+			flag19 |= element.styleAnimation.Start(StylePropertyId.BorderRightWidth, oldStyle.layoutData.Read().borderRightWidth, newStyle.layoutData.Read().borderRightWidth, durationMs, delayMs, easingCurve);
+			flag19 |= element.styleAnimation.Start(StylePropertyId.BorderBottomWidth, oldStyle.layoutData.Read().borderBottomWidth, newStyle.layoutData.Read().borderBottomWidth, durationMs, delayMs, easingCurve);
+			return flag19 | element.styleAnimation.Start(StylePropertyId.BorderLeftWidth, oldStyle.layoutData.Read().borderLeftWidth, newStyle.layoutData.Read().borderLeftWidth, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.Bottom:
 			return element.styleAnimation.Start(StylePropertyId.Bottom, oldStyle.layoutData.Read().bottom, newStyle.layoutData.Read().bottom, durationMs, delayMs, easingCurve);
@@ -2004,6 +2098,8 @@ internal struct ComputedStyle
 			}
 			return flag17;
 		}
+		case StylePropertyId.Filter:
+			return element.styleAnimation.Start(StylePropertyId.Filter, oldStyle.visualData.Read().filter, newStyle.visualData.Read().filter, durationMs, delayMs, easingCurve);
 		case StylePropertyId.Flex:
 		{
 			bool flag16 = false;
@@ -2090,12 +2186,12 @@ internal struct ComputedStyle
 		}
 		case StylePropertyId.Scale:
 		{
-			bool flag9 = element.styleAnimation.Start(StylePropertyId.Scale, oldStyle.transformData.Read().scale, newStyle.transformData.Read().scale, durationMs, delayMs, easingCurve);
-			if (flag9 && (element.usageHints & UsageHints.DynamicTransform) == 0)
+			bool flag10 = element.styleAnimation.Start(StylePropertyId.Scale, oldStyle.transformData.Read().scale, newStyle.transformData.Read().scale, durationMs, delayMs, easingCurve);
+			if (flag10 && (element.usageHints & UsageHints.DynamicTransform) == 0)
 			{
 				element.usageHints |= UsageHints.DynamicTransform;
 			}
-			return flag9;
+			return flag10;
 		}
 		case StylePropertyId.TextOverflow:
 			return element.styleAnimation.StartEnum(StylePropertyId.TextOverflow, (int)oldStyle.rareData.Read().textOverflow, (int)newStyle.rareData.Read().textOverflow, durationMs, delayMs, easingCurve);
@@ -2144,6 +2240,8 @@ internal struct ComputedStyle
 			return element.styleAnimation.Start(StylePropertyId.UnityFontDefinition, oldStyle.inheritedData.Read().unityFontDefinition, newStyle.inheritedData.Read().unityFontDefinition, durationMs, delayMs, easingCurve);
 		case StylePropertyId.UnityFontStyleAndWeight:
 			return element.styleAnimation.StartEnum(StylePropertyId.UnityFontStyleAndWeight, (int)oldStyle.inheritedData.Read().unityFontStyleAndWeight, (int)newStyle.inheritedData.Read().unityFontStyleAndWeight, durationMs, delayMs, easingCurve);
+		case StylePropertyId.UnityMaterial:
+			return element.styleAnimation.Start(StylePropertyId.UnityMaterial, oldStyle.inheritedData.Read().unityMaterial, newStyle.inheritedData.Read().unityMaterial, durationMs, delayMs, easingCurve);
 		case StylePropertyId.UnityOverflowClipBox:
 			return element.styleAnimation.StartEnum(StylePropertyId.UnityOverflowClipBox, (int)oldStyle.rareData.Read().unityOverflowClipBox, (int)newStyle.rareData.Read().unityOverflowClipBox, durationMs, delayMs, easingCurve);
 		case StylePropertyId.UnityParagraphSpacing:
@@ -2229,6 +2327,10 @@ internal struct ComputedStyle
 			{
 				flag |= element.styleAnimation.StartEnum(StylePropertyId.UnityFontStyleAndWeight, (int)reference.unityFontStyleAndWeight, (int)reference2.unityFontStyleAndWeight, durationMs, delayMs, easingCurve);
 			}
+			if (hasRunningAnimations || reference.unityMaterial != reference2.unityMaterial)
+			{
+				flag |= element.styleAnimation.Start(StylePropertyId.UnityMaterial, reference.unityMaterial, reference2.unityMaterial, durationMs, delayMs, easingCurve);
+			}
 			if (hasRunningAnimations || reference.unityParagraphSpacing != reference2.unityParagraphSpacing)
 			{
 				flag |= element.styleAnimation.Start(StylePropertyId.UnityParagraphSpacing, reference.unityParagraphSpacing, reference2.unityParagraphSpacing, durationMs, delayMs, easingCurve);
@@ -2273,6 +2375,10 @@ internal struct ComputedStyle
 			if (hasRunningAnimations || reference3.alignSelf != reference4.alignSelf)
 			{
 				flag |= element.styleAnimation.StartEnum(StylePropertyId.AlignSelf, (int)reference3.alignSelf, (int)reference4.alignSelf, durationMs, delayMs, easingCurve);
+			}
+			if (hasRunningAnimations || reference3.aspectRatio != reference4.aspectRatio)
+			{
+				flag |= element.styleAnimation.Start(StylePropertyId.AspectRatio, reference3.aspectRatio, reference4.aspectRatio, durationMs, delayMs, easingCurve);
 			}
 			if (hasRunningAnimations || reference3.borderBottomWidth != reference4.borderBottomWidth)
 			{
@@ -2567,6 +2673,10 @@ internal struct ComputedStyle
 			{
 				flag |= element.styleAnimation.Start(StylePropertyId.BorderTopRightRadius, reference9.borderTopRightRadius, reference10.borderTopRightRadius, durationMs, delayMs, easingCurve);
 			}
+			if (hasRunningAnimations || reference9.filter != reference10.filter)
+			{
+				flag |= element.styleAnimation.Start(StylePropertyId.Filter, reference9.filter, reference10.filter, durationMs, delayMs, easingCurve);
+			}
 			if (hasRunningAnimations || reference9.opacity != reference10.opacity)
 			{
 				flag |= element.styleAnimation.Start(StylePropertyId.Opacity, reference9.opacity, reference10.opacity, durationMs, delayMs, easingCurve);
@@ -2589,35 +2699,40 @@ internal struct ComputedStyle
 		{
 		case StylePropertyId.AlignContent:
 		{
-			Align to28 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.alignContent : ((Align)sv.number));
+			Align to4 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.alignContent : ((Align)sv.number));
 			if (sv.keyword == StyleKeyword.Auto)
 			{
-				to28 = Align.Auto;
+				to4 = Align.Auto;
 			}
-			return element.styleAnimation.StartEnum(StylePropertyId.AlignContent, (int)computedStyle.layoutData.Read().alignContent, (int)to28, durationMs, delayMs, easingCurve);
+			return element.styleAnimation.StartEnum(StylePropertyId.AlignContent, (int)computedStyle.layoutData.Read().alignContent, (int)to4, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.AlignItems:
 		{
-			Align to58 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.alignItems : ((Align)sv.number));
+			Align to10 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.alignItems : ((Align)sv.number));
 			if (sv.keyword == StyleKeyword.Auto)
 			{
-				to58 = Align.Auto;
+				to10 = Align.Auto;
 			}
-			return element.styleAnimation.StartEnum(StylePropertyId.AlignItems, (int)computedStyle.layoutData.Read().alignItems, (int)to58, durationMs, delayMs, easingCurve);
+			return element.styleAnimation.StartEnum(StylePropertyId.AlignItems, (int)computedStyle.layoutData.Read().alignItems, (int)to10, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.AlignSelf:
 		{
-			Align to56 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.alignSelf : ((Align)sv.number));
+			Align to36 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.alignSelf : ((Align)sv.number));
 			if (sv.keyword == StyleKeyword.Auto)
 			{
-				to56 = Align.Auto;
+				to36 = Align.Auto;
 			}
-			return element.styleAnimation.StartEnum(StylePropertyId.AlignSelf, (int)computedStyle.layoutData.Read().alignSelf, (int)to56, durationMs, delayMs, easingCurve);
+			return element.styleAnimation.StartEnum(StylePropertyId.AlignSelf, (int)computedStyle.layoutData.Read().alignSelf, (int)to36, durationMs, delayMs, easingCurve);
+		}
+		case StylePropertyId.AspectRatio:
+		{
+			Ratio to7 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.aspectRatio : ((Ratio)sv.number));
+			return element.styleAnimation.Start(StylePropertyId.AspectRatio, computedStyle.layoutData.Read().aspectRatio, to7, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.BackgroundColor:
 		{
-			Color to35 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.backgroundColor : sv.color);
-			bool flag5 = element.styleAnimation.Start(StylePropertyId.BackgroundColor, computedStyle.visualData.Read().backgroundColor, to35, durationMs, delayMs, easingCurve);
+			Color to46 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.backgroundColor : sv.color);
+			bool flag5 = element.styleAnimation.Start(StylePropertyId.BackgroundColor, computedStyle.visualData.Read().backgroundColor, to46, durationMs, delayMs, easingCurve);
 			if (flag5 && (element.usageHints & UsageHints.DynamicColor) == 0)
 			{
 				element.usageHints |= UsageHints.DynamicColor;
@@ -2626,83 +2741,83 @@ internal struct ComputedStyle
 		}
 		case StylePropertyId.BackgroundImage:
 		{
-			Background to2 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.backgroundImage : (sv.resource.IsAllocated ? Background.FromObject(sv.resource.Target) : default(Background)));
-			return element.styleAnimation.Start(StylePropertyId.BackgroundImage, computedStyle.visualData.Read().backgroundImage, to2, durationMs, delayMs, easingCurve);
+			Background to42 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.backgroundImage : (sv.resource.IsAllocated ? Background.FromObject(sv.resource.Target) : default(Background)));
+			return element.styleAnimation.Start(StylePropertyId.BackgroundImage, computedStyle.visualData.Read().backgroundImage, to42, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.BackgroundPositionX:
 		{
-			BackgroundPosition to4 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.backgroundPositionX : sv.position);
-			return element.styleAnimation.Start(StylePropertyId.BackgroundPositionX, computedStyle.visualData.Read().backgroundPositionX, to4, durationMs, delayMs, easingCurve);
+			BackgroundPosition to16 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.backgroundPositionX : sv.position);
+			return element.styleAnimation.Start(StylePropertyId.BackgroundPositionX, computedStyle.visualData.Read().backgroundPositionX, to16, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.BackgroundPositionY:
 		{
-			BackgroundPosition to22 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.backgroundPositionY : sv.position);
-			return element.styleAnimation.Start(StylePropertyId.BackgroundPositionY, computedStyle.visualData.Read().backgroundPositionY, to22, durationMs, delayMs, easingCurve);
+			BackgroundPosition to20 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.backgroundPositionY : sv.position);
+			return element.styleAnimation.Start(StylePropertyId.BackgroundPositionY, computedStyle.visualData.Read().backgroundPositionY, to20, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.BackgroundRepeat:
 		{
-			BackgroundRepeat to63 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.backgroundRepeat : sv.repeat);
-			return element.styleAnimation.Start(StylePropertyId.BackgroundRepeat, computedStyle.visualData.Read().backgroundRepeat, to63, durationMs, delayMs, easingCurve);
+			BackgroundRepeat to70 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.backgroundRepeat : sv.repeat);
+			return element.styleAnimation.Start(StylePropertyId.BackgroundRepeat, computedStyle.visualData.Read().backgroundRepeat, to70, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.BorderBottomColor:
 		{
-			Color to31 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderBottomColor : sv.color);
-			bool flag4 = element.styleAnimation.Start(StylePropertyId.BorderBottomColor, computedStyle.visualData.Read().borderBottomColor, to31, durationMs, delayMs, easingCurve);
-			if (flag4 && (element.usageHints & UsageHints.DynamicColor) == 0)
-			{
-				element.usageHints |= UsageHints.DynamicColor;
-			}
-			return flag4;
-		}
-		case StylePropertyId.BorderBottomLeftRadius:
-		{
-			Length to68 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderBottomLeftRadius : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.BorderBottomLeftRadius, computedStyle.visualData.Read().borderBottomLeftRadius, to68, durationMs, delayMs, easingCurve);
-		}
-		case StylePropertyId.BorderBottomRightRadius:
-		{
-			Length to36 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderBottomRightRadius : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.BorderBottomRightRadius, computedStyle.visualData.Read().borderBottomRightRadius, to36, durationMs, delayMs, easingCurve);
-		}
-		case StylePropertyId.BorderBottomWidth:
-		{
-			float to30 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderBottomWidth : sv.number);
-			return element.styleAnimation.Start(StylePropertyId.BorderBottomWidth, computedStyle.layoutData.Read().borderBottomWidth, to30, durationMs, delayMs, easingCurve);
-		}
-		case StylePropertyId.BorderLeftColor:
-		{
-			Color to54 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderLeftColor : sv.color);
-			bool flag6 = element.styleAnimation.Start(StylePropertyId.BorderLeftColor, computedStyle.visualData.Read().borderLeftColor, to54, durationMs, delayMs, easingCurve);
-			if (flag6 && (element.usageHints & UsageHints.DynamicColor) == 0)
-			{
-				element.usageHints |= UsageHints.DynamicColor;
-			}
-			return flag6;
-		}
-		case StylePropertyId.BorderLeftWidth:
-		{
-			float to20 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderLeftWidth : sv.number);
-			return element.styleAnimation.Start(StylePropertyId.BorderLeftWidth, computedStyle.layoutData.Read().borderLeftWidth, to20, durationMs, delayMs, easingCurve);
-		}
-		case StylePropertyId.BorderRightColor:
-		{
-			Color to70 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderRightColor : sv.color);
-			bool flag7 = element.styleAnimation.Start(StylePropertyId.BorderRightColor, computedStyle.visualData.Read().borderRightColor, to70, durationMs, delayMs, easingCurve);
+			Color to67 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderBottomColor : sv.color);
+			bool flag7 = element.styleAnimation.Start(StylePropertyId.BorderBottomColor, computedStyle.visualData.Read().borderBottomColor, to67, durationMs, delayMs, easingCurve);
 			if (flag7 && (element.usageHints & UsageHints.DynamicColor) == 0)
 			{
 				element.usageHints |= UsageHints.DynamicColor;
 			}
 			return flag7;
 		}
+		case StylePropertyId.BorderBottomLeftRadius:
+		{
+			Length to31 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderBottomLeftRadius : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.BorderBottomLeftRadius, computedStyle.visualData.Read().borderBottomLeftRadius, to31, durationMs, delayMs, easingCurve);
+		}
+		case StylePropertyId.BorderBottomRightRadius:
+		{
+			Length to43 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderBottomRightRadius : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.BorderBottomRightRadius, computedStyle.visualData.Read().borderBottomRightRadius, to43, durationMs, delayMs, easingCurve);
+		}
+		case StylePropertyId.BorderBottomWidth:
+		{
+			float to63 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderBottomWidth : sv.number);
+			return element.styleAnimation.Start(StylePropertyId.BorderBottomWidth, computedStyle.layoutData.Read().borderBottomWidth, to63, durationMs, delayMs, easingCurve);
+		}
+		case StylePropertyId.BorderLeftColor:
+		{
+			Color to24 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderLeftColor : sv.color);
+			bool flag4 = element.styleAnimation.Start(StylePropertyId.BorderLeftColor, computedStyle.visualData.Read().borderLeftColor, to24, durationMs, delayMs, easingCurve);
+			if (flag4 && (element.usageHints & UsageHints.DynamicColor) == 0)
+			{
+				element.usageHints |= UsageHints.DynamicColor;
+			}
+			return flag4;
+		}
+		case StylePropertyId.BorderLeftWidth:
+		{
+			float to26 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderLeftWidth : sv.number);
+			return element.styleAnimation.Start(StylePropertyId.BorderLeftWidth, computedStyle.layoutData.Read().borderLeftWidth, to26, durationMs, delayMs, easingCurve);
+		}
+		case StylePropertyId.BorderRightColor:
+		{
+			Color to47 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderRightColor : sv.color);
+			bool flag6 = element.styleAnimation.Start(StylePropertyId.BorderRightColor, computedStyle.visualData.Read().borderRightColor, to47, durationMs, delayMs, easingCurve);
+			if (flag6 && (element.usageHints & UsageHints.DynamicColor) == 0)
+			{
+				element.usageHints |= UsageHints.DynamicColor;
+			}
+			return flag6;
+		}
 		case StylePropertyId.BorderRightWidth:
 		{
-			float to40 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderRightWidth : sv.number);
-			return element.styleAnimation.Start(StylePropertyId.BorderRightWidth, computedStyle.layoutData.Read().borderRightWidth, to40, durationMs, delayMs, easingCurve);
+			float to44 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderRightWidth : sv.number);
+			return element.styleAnimation.Start(StylePropertyId.BorderRightWidth, computedStyle.layoutData.Read().borderRightWidth, to44, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.BorderTopColor:
 		{
-			Color to24 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderTopColor : sv.color);
-			bool flag3 = element.styleAnimation.Start(StylePropertyId.BorderTopColor, computedStyle.visualData.Read().borderTopColor, to24, durationMs, delayMs, easingCurve);
+			Color to23 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderTopColor : sv.color);
+			bool flag3 = element.styleAnimation.Start(StylePropertyId.BorderTopColor, computedStyle.visualData.Read().borderTopColor, to23, durationMs, delayMs, easingCurve);
 			if (flag3 && (element.usageHints & UsageHints.DynamicColor) == 0)
 			{
 				element.usageHints |= UsageHints.DynamicColor;
@@ -2711,28 +2826,28 @@ internal struct ComputedStyle
 		}
 		case StylePropertyId.BorderTopLeftRadius:
 		{
-			Length to11 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderTopLeftRadius : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.BorderTopLeftRadius, computedStyle.visualData.Read().borderTopLeftRadius, to11, durationMs, delayMs, easingCurve);
+			Length to69 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderTopLeftRadius : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.BorderTopLeftRadius, computedStyle.visualData.Read().borderTopLeftRadius, to69, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.BorderTopRightRadius:
 		{
-			Length to60 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderTopRightRadius : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.BorderTopRightRadius, computedStyle.visualData.Read().borderTopRightRadius, to60, durationMs, delayMs, easingCurve);
+			Length to59 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderTopRightRadius : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.BorderTopRightRadius, computedStyle.visualData.Read().borderTopRightRadius, to59, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.BorderTopWidth:
 		{
-			float to52 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderTopWidth : sv.number);
-			return element.styleAnimation.Start(StylePropertyId.BorderTopWidth, computedStyle.layoutData.Read().borderTopWidth, to52, durationMs, delayMs, easingCurve);
+			float to60 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.borderTopWidth : sv.number);
+			return element.styleAnimation.Start(StylePropertyId.BorderTopWidth, computedStyle.layoutData.Read().borderTopWidth, to60, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.Bottom:
 		{
-			Length to46 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.bottom : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.Bottom, computedStyle.layoutData.Read().bottom, to46, durationMs, delayMs, easingCurve);
+			Length to35 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.bottom : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.Bottom, computedStyle.layoutData.Read().bottom, to35, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.Color:
 		{
-			Color to12 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.color : sv.color);
-			bool flag = element.styleAnimation.Start(StylePropertyId.Color, computedStyle.inheritedData.Read().color, to12, durationMs, delayMs, easingCurve);
+			Color to14 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.color : sv.color);
+			bool flag = element.styleAnimation.Start(StylePropertyId.Color, computedStyle.inheritedData.Read().color, to14, durationMs, delayMs, easingCurve);
 			if (flag && (element.usageHints & UsageHints.DynamicColor) == 0)
 			{
 				element.usageHints |= UsageHints.DynamicColor;
@@ -2741,148 +2856,148 @@ internal struct ComputedStyle
 		}
 		case StylePropertyId.FlexBasis:
 		{
-			Length to16 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.flexBasis : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.FlexBasis, computedStyle.layoutData.Read().flexBasis, to16, durationMs, delayMs, easingCurve);
+			Length to12 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.flexBasis : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.FlexBasis, computedStyle.layoutData.Read().flexBasis, to12, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.FlexDirection:
 		{
-			FlexDirection to67 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.flexDirection : ((FlexDirection)sv.number));
-			return element.styleAnimation.StartEnum(StylePropertyId.FlexDirection, (int)computedStyle.layoutData.Read().flexDirection, (int)to67, durationMs, delayMs, easingCurve);
+			FlexDirection to62 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.flexDirection : ((FlexDirection)sv.number));
+			return element.styleAnimation.StartEnum(StylePropertyId.FlexDirection, (int)computedStyle.layoutData.Read().flexDirection, (int)to62, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.FlexGrow:
 		{
-			float to51 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.flexGrow : sv.number);
-			return element.styleAnimation.Start(StylePropertyId.FlexGrow, computedStyle.layoutData.Read().flexGrow, to51, durationMs, delayMs, easingCurve);
+			float to56 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.flexGrow : sv.number);
+			return element.styleAnimation.Start(StylePropertyId.FlexGrow, computedStyle.layoutData.Read().flexGrow, to56, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.FlexShrink:
 		{
-			float to42 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.flexShrink : sv.number);
-			return element.styleAnimation.Start(StylePropertyId.FlexShrink, computedStyle.layoutData.Read().flexShrink, to42, durationMs, delayMs, easingCurve);
+			float to54 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.flexShrink : sv.number);
+			return element.styleAnimation.Start(StylePropertyId.FlexShrink, computedStyle.layoutData.Read().flexShrink, to54, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.FlexWrap:
 		{
-			Wrap to43 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.flexWrap : ((Wrap)sv.number));
-			return element.styleAnimation.StartEnum(StylePropertyId.FlexWrap, (int)computedStyle.layoutData.Read().flexWrap, (int)to43, durationMs, delayMs, easingCurve);
+			Wrap to38 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.flexWrap : ((Wrap)sv.number));
+			return element.styleAnimation.StartEnum(StylePropertyId.FlexWrap, (int)computedStyle.layoutData.Read().flexWrap, (int)to38, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.FontSize:
 		{
-			Length to27 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.fontSize : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.FontSize, computedStyle.inheritedData.Read().fontSize, to27, durationMs, delayMs, easingCurve);
+			Length to28 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.fontSize : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.FontSize, computedStyle.inheritedData.Read().fontSize, to28, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.Height:
 		{
-			Length to15 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.height : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.Height, computedStyle.layoutData.Read().height, to15, durationMs, delayMs, easingCurve);
+			Length to22 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.height : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.Height, computedStyle.layoutData.Read().height, to22, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.JustifyContent:
 		{
-			Justify to10 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.justifyContent : ((Justify)sv.number));
-			return element.styleAnimation.StartEnum(StylePropertyId.JustifyContent, (int)computedStyle.layoutData.Read().justifyContent, (int)to10, durationMs, delayMs, easingCurve);
+			Justify to6 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.justifyContent : ((Justify)sv.number));
+			return element.styleAnimation.StartEnum(StylePropertyId.JustifyContent, (int)computedStyle.layoutData.Read().justifyContent, (int)to6, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.Left:
 		{
-			Length to8 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.left : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.Left, computedStyle.layoutData.Read().left, to8, durationMs, delayMs, easingCurve);
+			Length to72 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.left : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.Left, computedStyle.layoutData.Read().left, to72, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.LetterSpacing:
 		{
-			Length to62 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.letterSpacing : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.LetterSpacing, computedStyle.inheritedData.Read().letterSpacing, to62, durationMs, delayMs, easingCurve);
+			Length to68 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.letterSpacing : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.LetterSpacing, computedStyle.inheritedData.Read().letterSpacing, to68, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.MarginBottom:
 		{
-			Length to59 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.marginBottom : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.MarginBottom, computedStyle.layoutData.Read().marginBottom, to59, durationMs, delayMs, easingCurve);
+			Length to58 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.marginBottom : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.MarginBottom, computedStyle.layoutData.Read().marginBottom, to58, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.MarginLeft:
 		{
-			Length to47 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.marginLeft : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.MarginLeft, computedStyle.layoutData.Read().marginLeft, to47, durationMs, delayMs, easingCurve);
+			Length to51 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.marginLeft : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.MarginLeft, computedStyle.layoutData.Read().marginLeft, to51, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.MarginRight:
 		{
-			Length to44 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.marginRight : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.MarginRight, computedStyle.layoutData.Read().marginRight, to44, durationMs, delayMs, easingCurve);
+			Length to52 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.marginRight : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.MarginRight, computedStyle.layoutData.Read().marginRight, to52, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.MarginTop:
 		{
-			Length to38 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.marginTop : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.MarginTop, computedStyle.layoutData.Read().marginTop, to38, durationMs, delayMs, easingCurve);
+			Length to40 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.marginTop : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.MarginTop, computedStyle.layoutData.Read().marginTop, to40, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.MaxHeight:
 		{
-			Length to26 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.maxHeight : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.MaxHeight, computedStyle.layoutData.Read().maxHeight, to26, durationMs, delayMs, easingCurve);
+			Length to30 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.maxHeight : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.MaxHeight, computedStyle.layoutData.Read().maxHeight, to30, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.MaxWidth:
 		{
-			Length to19 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.maxWidth : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.MaxWidth, computedStyle.layoutData.Read().maxWidth, to19, durationMs, delayMs, easingCurve);
+			Length to27 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.maxWidth : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.MaxWidth, computedStyle.layoutData.Read().maxWidth, to27, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.MinHeight:
 		{
-			Length to18 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.minHeight : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.MinHeight, computedStyle.layoutData.Read().minHeight, to18, durationMs, delayMs, easingCurve);
+			Length to15 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.minHeight : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.MinHeight, computedStyle.layoutData.Read().minHeight, to15, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.MinWidth:
 		{
-			Length to7 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.minWidth : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.MinWidth, computedStyle.layoutData.Read().minWidth, to7, durationMs, delayMs, easingCurve);
+			Length to18 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.minWidth : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.MinWidth, computedStyle.layoutData.Read().minWidth, to18, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.Opacity:
 		{
-			float to3 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.opacity : sv.number);
-			return element.styleAnimation.Start(StylePropertyId.Opacity, computedStyle.visualData.Read().opacity, to3, durationMs, delayMs, easingCurve);
+			float to8 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.opacity : sv.number);
+			return element.styleAnimation.Start(StylePropertyId.Opacity, computedStyle.visualData.Read().opacity, to8, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.Overflow:
 		{
-			OverflowInternal to66 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.overflow : ((OverflowInternal)sv.number));
-			return element.styleAnimation.StartEnum(StylePropertyId.Overflow, (int)computedStyle.visualData.Read().overflow, (int)to66, durationMs, delayMs, easingCurve);
+			OverflowInternal to2 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.overflow : ((OverflowInternal)sv.number));
+			return element.styleAnimation.StartEnum(StylePropertyId.Overflow, (int)computedStyle.visualData.Read().overflow, (int)to2, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.PaddingBottom:
 		{
-			Length to64 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.paddingBottom : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.PaddingBottom, computedStyle.layoutData.Read().paddingBottom, to64, durationMs, delayMs, easingCurve);
+			Length to66 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.paddingBottom : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.PaddingBottom, computedStyle.layoutData.Read().paddingBottom, to66, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.PaddingLeft:
 		{
-			Length to55 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.paddingLeft : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.PaddingLeft, computedStyle.layoutData.Read().paddingLeft, to55, durationMs, delayMs, easingCurve);
+			Length to64 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.paddingLeft : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.PaddingLeft, computedStyle.layoutData.Read().paddingLeft, to64, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.PaddingRight:
 		{
-			Length to50 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.paddingRight : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.PaddingRight, computedStyle.layoutData.Read().paddingRight, to50, durationMs, delayMs, easingCurve);
+			Length to55 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.paddingRight : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.PaddingRight, computedStyle.layoutData.Read().paddingRight, to55, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.PaddingTop:
 		{
-			Length to48 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.paddingTop : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.PaddingTop, computedStyle.layoutData.Read().paddingTop, to48, durationMs, delayMs, easingCurve);
+			Length to50 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.paddingTop : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.PaddingTop, computedStyle.layoutData.Read().paddingTop, to50, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.Position:
 		{
-			Position to39 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.position : ((Position)sv.number));
-			return element.styleAnimation.StartEnum(StylePropertyId.Position, (int)computedStyle.layoutData.Read().position, (int)to39, durationMs, delayMs, easingCurve);
+			Position to48 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.position : ((Position)sv.number));
+			return element.styleAnimation.StartEnum(StylePropertyId.Position, (int)computedStyle.layoutData.Read().position, (int)to48, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.Right:
 		{
-			Length to34 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.right : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.Right, computedStyle.layoutData.Read().right, to34, durationMs, delayMs, easingCurve);
+			Length to39 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.right : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.Right, computedStyle.layoutData.Read().right, to39, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.TextOverflow:
 		{
-			TextOverflow to32 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.textOverflow : ((TextOverflow)sv.number));
-			return element.styleAnimation.StartEnum(StylePropertyId.TextOverflow, (int)computedStyle.rareData.Read().textOverflow, (int)to32, durationMs, delayMs, easingCurve);
+			TextOverflow to34 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.textOverflow : ((TextOverflow)sv.number));
+			return element.styleAnimation.StartEnum(StylePropertyId.TextOverflow, (int)computedStyle.rareData.Read().textOverflow, (int)to34, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.Top:
 		{
-			Length to23 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.top : sv.length);
-			return element.styleAnimation.Start(StylePropertyId.Top, computedStyle.layoutData.Read().top, to23, durationMs, delayMs, easingCurve);
+			Length to32 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.top : sv.length);
+			return element.styleAnimation.Start(StylePropertyId.Top, computedStyle.layoutData.Read().top, to32, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.UnityBackgroundImageTintColor:
 		{
-			Color to14 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.unityBackgroundImageTintColor : sv.color);
-			bool flag2 = element.styleAnimation.Start(StylePropertyId.UnityBackgroundImageTintColor, computedStyle.rareData.Read().unityBackgroundImageTintColor, to14, durationMs, delayMs, easingCurve);
+			Color to19 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.unityBackgroundImageTintColor : sv.color);
+			bool flag2 = element.styleAnimation.Start(StylePropertyId.UnityBackgroundImageTintColor, computedStyle.rareData.Read().unityBackgroundImageTintColor, to19, durationMs, delayMs, easingCurve);
 			if (flag2 && (element.usageHints & UsageHints.DynamicColor) == 0)
 			{
 				element.usageHints |= UsageHints.DynamicColor;
@@ -2891,18 +3006,23 @@ internal struct ComputedStyle
 		}
 		case StylePropertyId.UnityFont:
 		{
-			Font to6 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.unityFont : (sv.resource.IsAllocated ? (sv.resource.Target as Font) : null));
-			return element.styleAnimation.Start(StylePropertyId.UnityFont, computedStyle.inheritedData.Read().unityFont, to6, durationMs, delayMs, easingCurve);
+			Font to11 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.unityFont : (sv.resource.IsAllocated ? (sv.resource.Target as Font) : null));
+			return element.styleAnimation.Start(StylePropertyId.UnityFont, computedStyle.inheritedData.Read().unityFont, to11, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.UnityFontDefinition:
 		{
-			FontDefinition to69 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.unityFontDefinition : (sv.resource.IsAllocated ? FontDefinition.FromObject(sv.resource.Target) : default(FontDefinition)));
-			return element.styleAnimation.Start(StylePropertyId.UnityFontDefinition, computedStyle.inheritedData.Read().unityFontDefinition, to69, durationMs, delayMs, easingCurve);
+			FontDefinition to3 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.unityFontDefinition : (sv.resource.IsAllocated ? FontDefinition.FromObject(sv.resource.Target) : default(FontDefinition)));
+			return element.styleAnimation.Start(StylePropertyId.UnityFontDefinition, computedStyle.inheritedData.Read().unityFontDefinition, to3, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.UnityFontStyleAndWeight:
 		{
-			FontStyle to65 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.unityFontStyleAndWeight : ((FontStyle)sv.number));
-			return element.styleAnimation.StartEnum(StylePropertyId.UnityFontStyleAndWeight, (int)computedStyle.inheritedData.Read().unityFontStyleAndWeight, (int)to65, durationMs, delayMs, easingCurve);
+			FontStyle to71 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.unityFontStyleAndWeight : ((FontStyle)sv.number));
+			return element.styleAnimation.StartEnum(StylePropertyId.UnityFontStyleAndWeight, (int)computedStyle.inheritedData.Read().unityFontStyleAndWeight, (int)to71, durationMs, delayMs, easingCurve);
+		}
+		case StylePropertyId.UnityMaterial:
+		{
+			MaterialDefinition to65 = ((sv.keyword == StyleKeyword.Initial) ? InitialStyle.unityMaterial : (sv.resource.IsAllocated ? MaterialDefinition.FromObject(sv.resource.Target) : ((MaterialDefinition)null)));
+			return element.styleAnimation.Start(StylePropertyId.UnityMaterial, computedStyle.inheritedData.Read().unityMaterial, to65, durationMs, delayMs, easingCurve);
 		}
 		case StylePropertyId.UnityOverflowClipBox:
 		{
@@ -3014,6 +3134,11 @@ internal struct ComputedStyle
 		visualData.Write().backgroundSize = backgroundSizeValue;
 	}
 
+	public void ApplyStyleFilter(List<FilterFunction> st)
+	{
+		visualData.Write().filter = st;
+	}
+
 	public void ApplyInitialValue(StylePropertyReader reader)
 	{
 		switch (reader.propertyId)
@@ -3044,6 +3169,9 @@ internal struct ComputedStyle
 			layoutData.Write().alignSelf = InitialStyle.alignSelf;
 			break;
 		case StylePropertyId.All:
+			break;
+		case StylePropertyId.AspectRatio:
+			layoutData.Write().aspectRatio = InitialStyle.aspectRatio;
 			break;
 		case StylePropertyId.BackgroundColor:
 			visualData.Write().backgroundColor = InitialStyle.backgroundColor;
@@ -3132,6 +3260,9 @@ internal struct ComputedStyle
 			break;
 		case StylePropertyId.Display:
 			layoutData.Write().display = InitialStyle.display;
+			break;
+		case StylePropertyId.Filter:
+			visualData.Write().filter.CopyFrom(InitialStyle.filter);
 			break;
 		case StylePropertyId.Flex:
 			layoutData.Write().flexGrow = InitialStyle.flexGrow;
@@ -3293,6 +3424,9 @@ internal struct ComputedStyle
 		case StylePropertyId.UnityFontStyleAndWeight:
 			inheritedData.Write().unityFontStyleAndWeight = InitialStyle.unityFontStyleAndWeight;
 			break;
+		case StylePropertyId.UnityMaterial:
+			inheritedData.Write().unityMaterial = InitialStyle.unityMaterial;
+			break;
 		case StylePropertyId.UnityOverflowClipBox:
 			rareData.Write().unityOverflowClipBox = InitialStyle.unityOverflowClipBox;
 			break;
@@ -3321,7 +3455,7 @@ internal struct ComputedStyle
 			inheritedData.Write().unityTextAlign = InitialStyle.unityTextAlign;
 			break;
 		case StylePropertyId.UnityTextAutoSize:
-			rareData.Write().unityTextAutoSize = InitialStyle.unityTextAutoSize;
+			inheritedData.Write().unityTextAutoSize = InitialStyle.unityTextAutoSize;
 			break;
 		case StylePropertyId.UnityTextGenerator:
 			inheritedData.Write().unityTextGenerator = InitialStyle.unityTextGenerator;
@@ -3399,11 +3533,17 @@ internal struct ComputedStyle
 		case StylePropertyId.UnityFontStyleAndWeight:
 			inheritedData.Write().unityFontStyleAndWeight = parentStyle.unityFontStyleAndWeight;
 			break;
+		case StylePropertyId.UnityMaterial:
+			inheritedData.Write().unityMaterial = parentStyle.unityMaterial;
+			break;
 		case StylePropertyId.UnityParagraphSpacing:
 			inheritedData.Write().unityParagraphSpacing = parentStyle.unityParagraphSpacing;
 			break;
 		case StylePropertyId.UnityTextAlign:
 			inheritedData.Write().unityTextAlign = parentStyle.unityTextAlign;
+			break;
+		case StylePropertyId.UnityTextAutoSize:
+			inheritedData.Write().unityTextAutoSize = parentStyle.unityTextAutoSize;
 			break;
 		case StylePropertyId.UnityTextGenerator:
 			inheritedData.Write().unityTextGenerator = parentStyle.unityTextGenerator;
@@ -3434,7 +3574,7 @@ internal struct ComputedStyle
 		VersionChangeType versionChangeType = VersionChangeType.Styles;
 		if (!x.layoutData.ReferenceEquals(y.layoutData))
 		{
-			if (x.display != y.display || x.flexGrow != y.flexGrow || x.flexShrink != y.flexShrink || x.flexWrap != y.flexWrap || x.flexDirection != y.flexDirection || x.justifyContent != y.justifyContent || x.bottom != y.bottom || x.left != y.left || x.right != y.right || x.top != y.top || x.height != y.height || x.width != y.width || x.paddingBottom != y.paddingBottom || x.paddingLeft != y.paddingLeft || x.paddingRight != y.paddingRight || x.paddingTop != y.paddingTop || x.marginBottom != y.marginBottom || x.marginLeft != y.marginLeft || x.marginRight != y.marginRight || x.marginTop != y.marginTop || x.position != y.position || x.alignContent != y.alignContent || x.alignItems != y.alignItems || x.alignSelf != y.alignSelf || x.flexBasis != y.flexBasis || x.maxHeight != y.maxHeight || x.maxWidth != y.maxWidth || x.minHeight != y.minHeight || x.minWidth != y.minWidth)
+			if (x.aspectRatio != y.aspectRatio || x.display != y.display || x.flexGrow != y.flexGrow || x.flexShrink != y.flexShrink || x.flexWrap != y.flexWrap || x.flexDirection != y.flexDirection || x.justifyContent != y.justifyContent || x.bottom != y.bottom || x.left != y.left || x.right != y.right || x.top != y.top || x.height != y.height || x.width != y.width || x.paddingBottom != y.paddingBottom || x.paddingLeft != y.paddingLeft || x.paddingRight != y.paddingRight || x.paddingTop != y.paddingTop || x.marginBottom != y.marginBottom || x.marginLeft != y.marginLeft || x.marginRight != y.marginRight || x.marginTop != y.marginTop || x.position != y.position || x.alignContent != y.alignContent || x.alignItems != y.alignItems || x.alignSelf != y.alignSelf || x.flexBasis != y.flexBasis || x.maxHeight != y.maxHeight || x.maxWidth != y.maxWidth || x.minHeight != y.minHeight || x.minWidth != y.minWidth)
 			{
 				versionChangeType |= VersionChangeType.Layout;
 			}
@@ -3449,11 +3589,11 @@ internal struct ComputedStyle
 			{
 				versionChangeType |= VersionChangeType.Color;
 			}
-			if ((versionChangeType & (VersionChangeType.Layout | VersionChangeType.Repaint)) == 0 && (x.unityFont != y.unityFont || x.unityTextGenerator != y.unityTextGenerator || x.fontSize != y.fontSize || x.unityFontDefinition != y.unityFontDefinition || x.whiteSpace != y.whiteSpace || x.unityFontStyleAndWeight != y.unityFontStyleAndWeight || x.unityTextOutlineWidth != y.unityTextOutlineWidth || x.letterSpacing != y.letterSpacing || x.wordSpacing != y.wordSpacing || x.unityEditorTextRenderingMode != y.unityEditorTextRenderingMode || x.unityParagraphSpacing != y.unityParagraphSpacing))
+			if ((versionChangeType & (VersionChangeType.Layout | VersionChangeType.Repaint)) == 0 && (x.unityFont != y.unityFont || x.unityTextGenerator != y.unityTextGenerator || x.fontSize != y.fontSize || x.unityFontDefinition != y.unityFontDefinition || x.unityTextAutoSize != y.unityTextAutoSize || x.whiteSpace != y.whiteSpace || x.unityFontStyleAndWeight != y.unityFontStyleAndWeight || x.unityTextOutlineWidth != y.unityTextOutlineWidth || x.letterSpacing != y.letterSpacing || x.wordSpacing != y.wordSpacing || x.unityEditorTextRenderingMode != y.unityEditorTextRenderingMode || x.unityParagraphSpacing != y.unityParagraphSpacing))
 			{
 				versionChangeType |= VersionChangeType.Layout | VersionChangeType.Repaint;
 			}
-			if ((versionChangeType & VersionChangeType.Repaint) == 0 && (x.textShadow != y.textShadow || x.unityTextAlign != y.unityTextAlign || x.unityTextOutlineColor != y.unityTextOutlineColor))
+			if ((versionChangeType & VersionChangeType.Repaint) == 0 && (x.unityMaterial != y.unityMaterial || x.textShadow != y.textShadow || x.unityTextAlign != y.unityTextAlign || x.unityTextOutlineColor != y.unityTextOutlineColor))
 			{
 				versionChangeType |= VersionChangeType.Repaint;
 			}
@@ -3476,7 +3616,7 @@ internal struct ComputedStyle
 			{
 				versionChangeType |= VersionChangeType.Color;
 			}
-			if ((versionChangeType & VersionChangeType.Repaint) == 0 && (x.backgroundImage != y.backgroundImage || x.backgroundPositionX != y.backgroundPositionX || x.backgroundPositionY != y.backgroundPositionY || x.backgroundRepeat != y.backgroundRepeat || x.backgroundSize != y.backgroundSize))
+			if ((versionChangeType & VersionChangeType.Repaint) == 0 && (x.backgroundImage != y.backgroundImage || x.backgroundPositionX != y.backgroundPositionX || x.backgroundPositionY != y.backgroundPositionY || x.backgroundRepeat != y.backgroundRepeat || x.backgroundSize != y.backgroundSize || !AreListPropertiesEqual(x.filter, y.filter)))
 			{
 				versionChangeType |= VersionChangeType.Repaint;
 			}
@@ -3495,7 +3635,7 @@ internal struct ComputedStyle
 		}
 		if (!x.rareData.ReferenceEquals(y.rareData))
 		{
-			if ((versionChangeType & (VersionChangeType.Layout | VersionChangeType.Repaint)) == 0 && (x.unitySliceType != y.unitySliceType || x.textOverflow != y.textOverflow || x.unitySliceScale != y.unitySliceScale || x.unityTextAutoSize != y.unityTextAutoSize))
+			if ((versionChangeType & (VersionChangeType.Layout | VersionChangeType.Repaint)) == 0 && (x.unitySliceType != y.unitySliceType || x.textOverflow != y.textOverflow || x.unitySliceScale != y.unitySliceScale))
 			{
 				versionChangeType |= VersionChangeType.Layout | VersionChangeType.Repaint;
 			}

@@ -295,4 +295,11 @@ public class SupportedRenderingFeatures
 		int* ptr = (int*)(void*)lightmapperPtr;
 		*ptr = 1;
 	}
+
+	[RequiredByNativeCode]
+	internal unsafe static void IsRotatingReflectionProbesSupported(IntPtr isSupportedPtr)
+	{
+		bool* ptr = (bool*)(void*)isSupportedPtr;
+		*ptr = (active.reflectionProbeModes & ReflectionProbeModes.Rotation) > ReflectionProbeModes.None;
+	}
 }

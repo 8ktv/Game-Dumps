@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using Cysharp.Threading.Tasks;
+using FMODUnity;
 using Mirror;
 using Mirror.RemoteCalls;
 using UnityEngine;
@@ -12,6 +13,9 @@ public class DrivingRangeStaticCameraManager : SingletonNetworkBehaviour<Driving
 
 	[SerializeField]
 	private Renderer screenRenderer;
+
+	[SerializeField]
+	private DrivingRangeNextCameraButton nextCameraButton;
 
 	[SerializeField]
 	private float cycleButtonCooldown;
@@ -144,6 +148,19 @@ public class DrivingRangeStaticCameraManager : SingletonNetworkBehaviour<Driving
 		NetworkWriterPool.Return(writer);
 	}
 
+	[TargetRpc]
+	private void RpcPlayNextCameraButtonPressedEffects(NetworkConnectionToClient connection)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendTargetRPCInternal(connection, "System.Void DrivingRangeStaticCameraManager::RpcPlayNextCameraButtonPressedEffects(Mirror.NetworkConnectionToClient)", 728709951, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	private void PlayNextCameraButtonPressedEffectsInternal()
+	{
+		RuntimeManager.PlayOneShot(GameManager.AudioSettings.DrivingRangeNextCameraButtonPressedEvent, MatchSetupStation.NextCameraButton.AsEntity.TargetReticlePosition.transform.position);
+	}
+
 	private void ApplyCurrentCameraIndex()
 	{
 		if (currentCamera != null)
@@ -174,10 +191,19 @@ public class DrivingRangeStaticCameraManager : SingletonNetworkBehaviour<Driving
 
 	protected void UserCode_CmdCycleNextCameraForAllClientsInternal__NetworkConnectionToClient(NetworkConnectionToClient sender)
 	{
-		if (serverCycleNextCameraCommandRateLimiter.RegisterHit(sender) && isCycleNextButtonEnabled)
+		if (!serverCycleNextCameraCommandRateLimiter.RegisterHit(sender) || !isCycleNextButtonEnabled)
 		{
-			NetworkcurrentCameraIndex = BMath.Wrap(currentCameraIndex + 1, cameras.Length);
-			DisableCycleButtonTemporarily(cycleButtonCooldown);
+			return;
+		}
+		NetworkcurrentCameraIndex = BMath.Wrap(currentCameraIndex + 1, cameras.Length);
+		DisableCycleButtonTemporarily(cycleButtonCooldown);
+		PlayNextCameraButtonPressedEffectsInternal();
+		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
+		{
+			if (value != NetworkServer.localConnection)
+			{
+				RpcPlayNextCameraButtonPressedEffects(value);
+			}
 		}
 		async void DisableCycleButtonTemporarily(float duration)
 		{
@@ -206,9 +232,27 @@ public class DrivingRangeStaticCameraManager : SingletonNetworkBehaviour<Driving
 		}
 	}
 
+	protected void UserCode_RpcPlayNextCameraButtonPressedEffects__NetworkConnectionToClient(NetworkConnectionToClient connection)
+	{
+		PlayNextCameraButtonPressedEffectsInternal();
+	}
+
+	protected static void InvokeUserCode_RpcPlayNextCameraButtonPressedEffects__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcPlayNextCameraButtonPressedEffects called on server.");
+		}
+		else
+		{
+			((DrivingRangeStaticCameraManager)obj).UserCode_RpcPlayNextCameraButtonPressedEffects__NetworkConnectionToClient(null);
+		}
+	}
+
 	static DrivingRangeStaticCameraManager()
 	{
 		RemoteProcedureCalls.RegisterCommand(typeof(DrivingRangeStaticCameraManager), "System.Void DrivingRangeStaticCameraManager::CmdCycleNextCameraForAllClientsInternal(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdCycleNextCameraForAllClientsInternal__NetworkConnectionToClient, requiresAuthority: false);
+		RemoteProcedureCalls.RegisterRpc(typeof(DrivingRangeStaticCameraManager), "System.Void DrivingRangeStaticCameraManager::RpcPlayNextCameraButtonPressedEffects(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayNextCameraButtonPressedEffects__NetworkConnectionToClient);
 	}
 
 	public override void SerializeSyncVars(NetworkWriter writer, bool forceAll)

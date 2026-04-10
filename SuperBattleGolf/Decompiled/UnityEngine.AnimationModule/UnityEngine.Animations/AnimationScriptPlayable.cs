@@ -9,12 +9,12 @@ using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine.Animations;
 
-[RequiredByNativeCode]
-[MovedFrom("UnityEngine.Experimental.Animations")]
-[NativeHeader("Runtime/Director/Core/HPlayableGraph.h")]
-[NativeHeader("Modules/Animation/ScriptBindings/AnimationScriptPlayable.bindings.h")]
 [NativeHeader("Runtime/Director/Core/HPlayable.h")]
 [StaticAccessor("AnimationScriptPlayableBindings", StaticAccessorType.DoubleColon)]
+[NativeHeader("Runtime/Director/Core/HPlayableGraph.h")]
+[RequiredByNativeCode]
+[NativeHeader("Modules/Animation/ScriptBindings/AnimationScriptPlayable.bindings.h")]
+[MovedFrom("UnityEngine.Experimental.Animations")]
 public struct AnimationScriptPlayable : IAnimationJobPlayable, IPlayable, IEquatable<AnimationScriptPlayable>
 {
 	private PlayableHandle m_Handle;

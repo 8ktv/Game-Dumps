@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Text;
 using UnityEngine.Pool;
 using UnityEngine.Serialization;
 
@@ -19,6 +18,8 @@ internal readonly struct UxmlTypeDescription
 
 	public readonly Dictionary<string, int> cSharpNameToIndex;
 
+	public readonly bool isEditorOnly;
+
 	public UxmlTypeDescription(Type type)
 	{
 		if (!typeof(UxmlSerializedData).IsAssignableFrom(type))
@@ -29,10 +30,18 @@ internal readonly struct UxmlTypeDescription
 		attributeDescriptions = new List<UxmlDescription>();
 		uxmlNameToIndex = new Dictionary<string, int>();
 		cSharpNameToIndex = new Dictionary<string, int>();
-		GenerateAttributeDescription(type);
+		if (UxmlDescriptionCache.TryGetCachedDescription(type, out var description))
+		{
+			isEditorOnly = description.editorOnly;
+		}
+		else
+		{
+			isEditorOnly = false;
+		}
+		GenerateAttributeDescription(type, description.attributeNames);
 	}
 
-	private void GenerateAttributeDescription(Type t)
+	private void GenerateAttributeDescription(Type t, UxmlAttributeNames[] attributes)
 	{
 		if (t.BaseType != null && t.BaseType != s_UxmlSerializedDataType)
 		{
@@ -47,12 +56,11 @@ internal readonly struct UxmlTypeDescription
 				cSharpNameToIndex[item3.Key] = item3.Value;
 			}
 		}
-		if (UxmlDescriptionCache.TryGetCachedDescription(t, out var attributes))
+		if (attributes != null)
 		{
-			UxmlAttributeNames[] array = attributes;
-			for (int i = 0; i < array.Length; i++)
+			for (int i = 0; i < attributes.Length; i++)
 			{
-				UxmlAttributeNames names = array[i];
+				UxmlAttributeNames names = attributes[i];
 				FieldInfo field = t.GetField(names.fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
 				if (null == field)
 				{
@@ -91,8 +99,8 @@ internal readonly struct UxmlTypeDescription
 		{
 			return;
 		}
-		FieldInfo[] array2 = fields;
-		foreach (FieldInfo fieldInfo in array2)
+		FieldInfo[] array = fields;
+		foreach (FieldInfo fieldInfo in array)
 		{
 			if (fieldInfo.GetCustomAttribute<UxmlIgnoreAttribute>() != null)
 			{
@@ -178,23 +186,7 @@ internal readonly struct UxmlTypeDescription
 					}
 					return (valid: true, uxmlName: customAttribute2.name, obsoleteNames: GetArray(value));
 				}
-				StringBuilder stringBuilder = GenericPool<StringBuilder>.Get();
-				string name = fieldInfo.Name;
-				for (int j = 0; j < name.Length; j++)
-				{
-					char c = name[j];
-					if (char.IsUpper(c))
-					{
-						c = char.ToLower(c);
-						if (j > 0)
-						{
-							stringBuilder.Append("-");
-						}
-					}
-					stringBuilder.Append(c);
-				}
-				string item2 = stringBuilder.ToString();
-				GenericPool<StringBuilder>.Release(stringBuilder.Clear());
+				string item2 = fieldInfo.Name.ToKebabCase();
 				return (valid: true, uxmlName: item2, obsoleteNames: GetArray(value));
 			}
 		}

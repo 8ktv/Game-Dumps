@@ -12,20 +12,20 @@ public class MultiColumnTreeView : BaseTreeView
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : BaseTreeView.UxmlSerializedData
 	{
-		[SerializeField]
 		[HideInInspector]
+		[SerializeField]
 		private bool sortingEnabled;
 
-		[HideInInspector]
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
+		[HideInInspector]
 		private UxmlAttributeFlags sortingEnabled_UxmlAttributeFlags;
 
 		[SerializeField]
 		private ColumnSortingMode sortingMode;
 
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		[SerializeField]
 		private UxmlAttributeFlags sortingMode_UxmlAttributeFlags;
 
@@ -33,18 +33,18 @@ public class MultiColumnTreeView : BaseTreeView
 		[UxmlObjectReference]
 		private Columns.UxmlSerializedData columns;
 
-		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags columns_UxmlAttributeFlags;
 
-		[UxmlObjectReference]
 		[SerializeReference]
+		[UxmlObjectReference]
 		private SortColumnDescriptions.UxmlSerializedData sortColumnDescriptions;
 
-		[HideInInspector]
 		[UxmlIgnore]
 		[SerializeField]
+		[HideInInspector]
 		private UxmlAttributeFlags sortColumnDescriptions_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]

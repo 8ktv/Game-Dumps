@@ -87,8 +87,8 @@ internal class VisualTreeStyleUpdaterTraversal : HierarchyTraversal
 		bool flag = m_UpdateList.Contains(element);
 		if (flag)
 		{
-			element.triggerPseudoMask = (PseudoStates)0;
-			element.dependencyPseudoMask = (PseudoStates)0;
+			element.triggerPseudoMask = PseudoStates.None;
+			element.dependencyPseudoMask = PseudoStates.None;
 		}
 		int styleSheetCount = m_StyleMatchingContext.styleSheetCount;
 		if (element.styleSheetList != null)
@@ -145,9 +145,8 @@ internal class VisualTreeStyleUpdaterTraversal : HierarchyTraversal
 		}
 		if (flag && (customPropertiesCount > 0 || element.computedStyle.customPropertiesCount > 0) && element.HasSelfEventInterests(EventBase<CustomStyleResolvedEvent>.EventCategory))
 		{
-			using CustomStyleResolvedEvent customStyleResolvedEvent = EventBase<CustomStyleResolvedEvent>.GetPooled();
-			customStyleResolvedEvent.elementTarget = element;
-			EventDispatchUtilities.HandleEventAtTargetAndDefaultPhase(customStyleResolvedEvent, currentPanel, element);
+			using CustomStyleResolvedEvent evt = EventBase<CustomStyleResolvedEvent>.GetPooled();
+			EventDispatchUtilities.SendEventDirectlyToTarget(evt, currentPanel, element);
 		}
 		m_StyleMatchingContext.ancestorFilter.PushElement(element);
 		Recurse(element, depth);

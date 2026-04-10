@@ -65,6 +65,9 @@
     <Reference Include="UnityEngine.IMGUIModule">
       <HintPath>UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.Collections">
+      <HintPath>Unity.Collections.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.InputSystem">
       <HintPath>Unity.InputSystem.dll</HintPath>
     </Reference>
@@ -73,9 +76,6 @@
     </Reference>
     <Reference Include="Unity.Burst">
       <HintPath>Unity.Burst.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.Collections">
-      <HintPath>Unity.Collections.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Mathematics">
       <HintPath>Unity.Mathematics.dll</HintPath>

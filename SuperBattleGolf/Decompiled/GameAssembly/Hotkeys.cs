@@ -323,7 +323,7 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 	{
 		if (SingletonBehaviour<Hotkeys>.HasInstance)
 		{
-			SingletonBehaviour<Hotkeys>.Instance.UpdatePlayerInventoryHoykeyInternal(inventorySlotIndex);
+			SingletonBehaviour<Hotkeys>.Instance.UpdatePlayerInventoryHotkeyInternal(inventorySlotIndex);
 		}
 	}
 
@@ -404,7 +404,7 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 				obj.gameObject.SetActive(value: true);
 				obj.SetIcon(golfCartSeatIcons[BMath.Min(i, golfCartSeatIcons.Length - 1)]);
 				obj.SetUses(0, 0);
-				obj.SetIsGreyedOut(greyedOut: false);
+				obj.SetState(greyedOut: false, isDisarmed: false);
 			}
 			bool flag = GameManager.LocalPlayerInventory != null;
 			for (int j = 0; j < hotkeyPreviewUis.Length; j++)
@@ -421,7 +421,7 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 					{
 						hotkeyUi.SetIcon(null);
 						hotkeyUi.SetUses(0, 0);
-						hotkeyUi.SetIsGreyedOut(greyedOut: false);
+						hotkeyUi.SetState(greyedOut: false, isDisarmed: false);
 					}
 					else
 					{
@@ -444,7 +444,7 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 			obj.gameObject.SetActive(value: true);
 			obj.SetIcon(GetGolfClubIcon());
 			obj.SetUses(0, 0);
-			obj.SetIsGreyedOut(greyedOut: false);
+			obj.SetState(greyedOut: false, isDisarmed: false);
 			bool flag = GameManager.LocalPlayerInventory != null;
 			for (int i = 1; i < hotkeyUis.Length; i++)
 			{
@@ -461,7 +461,7 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 					{
 						hotkeyUi.SetIcon(null);
 						hotkeyUi.SetUses(0, 0);
-						hotkeyUi.SetIsGreyedOut(greyedOut: false);
+						hotkeyUi.SetState(greyedOut: false, isDisarmed: false);
 					}
 					else
 					{
@@ -498,7 +498,7 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 				obj.gameObject.SetActive(value: true);
 				obj.SetIcon(GetGolfClubIcon());
 				obj.SetUses(0, 0);
-				obj.SetIsGreyedOut(greyedOut: true);
+				obj.SetState(greyedOut: true, isDisarmed: false);
 				PlayerInventory inventory = GameManager.LocalPlayerAsSpectator.TargetPlayer.Inventory;
 				int num = ((inventory.GetEffectivelyEquippedItem() != ItemType.None) ? (inventory.PlayerInfo.NetworkedEquippedItemIndex + 1) : 0);
 				for (int j = 1; j < hotkeyUis.Length; j++)
@@ -554,7 +554,17 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 			ApplyToSwingPitch();
 			return true;
 		}
-		if (previousSelectedIndex >= 0 && previousSelectedIndex < hotkeyUis.Length)
+		if (forced)
+		{
+			for (int i = 0; i < hotkeyUis.Length; i++)
+			{
+				if (i != index)
+				{
+					OnDeselected(hotkeyUis[i]);
+				}
+			}
+		}
+		else if (previousSelectedIndex >= 0 && previousSelectedIndex < hotkeyUis.Length)
 		{
 			OnDeselected(hotkeyUis[previousSelectedIndex]);
 		}
@@ -592,11 +602,11 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 				uiOnly = true;
 				if (previousSelectedIndex > 0)
 				{
-					UpdatePlayerInventoryHoykeyInternal(HotkeyIndexToInventoryIndexInternal(previousSelectedIndex));
+					UpdatePlayerInventoryHotkeyInternal(HotkeyIndexToInventoryIndexInternal(previousSelectedIndex));
 				}
 				if (index > 0)
 				{
-					UpdatePlayerInventoryHoykeyInternal(HotkeyIndexToInventoryIndexInternal(index));
+					UpdatePlayerInventoryHotkeyInternal(HotkeyIndexToInventoryIndexInternal(index));
 				}
 			}
 			PlayerInventory playerInventory = ((currentMode != HotkeyMode.Spectating) ? GameManager.LocalPlayerInventory : ((GameManager.LocalPlayerAsSpectator != null && GameManager.LocalPlayerAsSpectator.TargetPlayer != null) ? GameManager.LocalPlayerAsSpectator.TargetPlayer.Inventory : null));
@@ -629,9 +639,9 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 		}
 		void ApplyToSwingPitch()
 		{
-			for (int i = 0; i < swingButtonPrompts.Length; i++)
+			for (int j = 0; j < swingButtonPrompts.Length; j++)
 			{
-				swingButtonPrompts[i].color = new Color(1f, 1f, 1f, (i == index) ? 1f : 0.5f);
+				swingButtonPrompts[j].color = new Color(1f, 1f, 1f, (j == index) ? 1f : 0.5f);
 			}
 			if (!uiOnly)
 			{
@@ -654,6 +664,12 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 				return GameManager.LocalPlayerInventory.CanSelectItemAt(HotkeyIndexToInventoryIndexInternal(index));
 			case HotkeyMode.SwingPitch:
 				return index < GameManager.GolfSettings.HotkeySwingPresets.Length;
+			case HotkeyMode.GolfCart:
+				if (GameManager.LocalPlayerInfo != null && GameManager.LocalPlayerInfo.ActiveGolfCartSeat.IsValid())
+				{
+					return !GameManager.LocalPlayerInfo.ActiveGolfCartSeat.golfCart.AsEntity.AsHittable.IsFrozen;
+				}
+				return false;
 			default:
 				return true;
 			}
@@ -734,9 +750,20 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 		}
 		bool ShouldBeVisible()
 		{
-			if (currentMode == HotkeyMode.Inventory && selectedIndex == 0)
+			if (currentMode == HotkeyMode.Inventory)
 			{
-				return true;
+				if (selectedIndex < 0)
+				{
+					return false;
+				}
+				if (selectedIndex == 0)
+				{
+					return true;
+				}
+				if (GameManager.LocalPlayerInventory != null && GameManager.LocalPlayerInventory.slots[HotkeyIndexToInventoryIndexInternal(selectedIndex)].itemType == ItemType.RocketDriver)
+				{
+					return true;
+				}
 			}
 			if (currentMode == HotkeyMode.SwingPitch)
 			{
@@ -746,7 +773,7 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 		}
 	}
 
-	private void UpdatePlayerInventoryHoykeyInternal(int inventorySlotIndex)
+	private void UpdatePlayerInventoryHotkeyInternal(int inventorySlotIndex)
 	{
 		if (currentMode != HotkeyMode.Inventory && currentMode != HotkeyMode.GolfCart && currentMode != HotkeyMode.Spectating)
 		{
@@ -759,12 +786,12 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 		{
 			hotkeyUi.SetIcon(null);
 			hotkeyUi.SetUses(0, 0);
-			hotkeyUi.SetIsGreyedOut(greyedOut: false);
+			hotkeyUi.SetState(greyedOut: false, isDisarmed: false);
 			return;
 		}
 		if (currentMode == HotkeyMode.Spectating && num != 0)
 		{
-			int num2 = ((playerInventory.GetEffectivelyEquippedItem() != ItemType.None) ? (playerInventory.PlayerInfo.NetworkedEquippedItemIndex + 1) : 0);
+			int num2 = ((playerInventory.GetEffectivelyEquippedItem(ignoreEquipmentHiding: true) != ItemType.None) ? (playerInventory.PlayerInfo.NetworkedEquippedItemIndex + 1) : 0);
 			if (num != num2)
 			{
 				SetInventoryUnknownHotkeyData(hotkeyUi);
@@ -781,7 +808,7 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 			DeselectInternal(uiOnly: true);
 			for (int i = 0; i < GameManager.GolfCartSettings.MaxPassengers; i++)
 			{
-				hotkeyUis[i].SetIsGreyedOut(greyedOut: false);
+				hotkeyUis[i].SetState(greyedOut: false, isDisarmed: false);
 			}
 			return;
 		}
@@ -789,7 +816,7 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 		SelectInternal(playerSeat.seat, uiOnly: true);
 		for (int j = 0; j < GameManager.GolfCartSettings.MaxPassengers; j++)
 		{
-			hotkeyUis[j].SetIsGreyedOut(j != playerSeat.seat && !golfCart.IsSeatFreeFor(GameManager.LocalPlayerInfo, j));
+			hotkeyUis[j].SetState(j != playerSeat.seat && !golfCart.IsSeatFreeFor(GameManager.LocalPlayerInfo, j), isDisarmed: false);
 		}
 	}
 
@@ -865,7 +892,7 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 		}
 		void UpdateInventory()
 		{
-			hotkeyUis[0].SetIsGreyedOut(ShouldGolfClubBeGreyedOut());
+			hotkeyUis[0].SetState(ShouldGolfClubBeGreyedOut(), isDisarmed: false);
 			for (int i = 0; i < GameManager.PlayerInventorySettings.MaxItems; i++)
 			{
 				int num = InventoryIndexToHotkeyIndexInternal(i);
@@ -884,9 +911,9 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 		{
 			isLocalPlayerInventory = inventory == GameManager.LocalPlayerInventory;
 			inventory.GetUsesForSlot(inventorySlotIndex, out remainingUses, out maxUses);
-			hotkey.SetIcon(inventory.GetIconForSlot(inventorySlotIndex));
+			hotkey.SetIcon((inventorySlotIndex < 0) ? GetGolfClubIcon() : inventory.GetIconForSlot(inventorySlotIndex));
 			hotkey.SetUses(remainingUses, maxUses);
-			hotkey.SetIsGreyedOut(ShouldGreyOut());
+			hotkey.SetState(ShouldGreyOut(), isDisarmed: false);
 		}
 		bool ShouldGreyOut()
 		{
@@ -920,7 +947,7 @@ public class Hotkeys : SingletonBehaviour<Hotkeys>, IBUpdateCallback, IAnyBUpdat
 		{
 			hotkey.SetIcon(GameManager.UiSettings.UnknownItemIcon);
 			hotkey.SetUses(0, 0);
-			hotkey.SetIsGreyedOut(greyedOut: false);
+			hotkey.SetState(greyedOut: false, isDisarmed: false);
 		}
 	}
 

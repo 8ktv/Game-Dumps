@@ -2,8 +2,8 @@ using System;
 
 namespace UnityEngine.Lumin;
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 [Obsolete("Lumin is no longer supported in Unity 2022.2")]
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 public sealed class UsesLuminPlatformLevelAttribute : Attribute
 {
 	private readonly uint m_PlatformLevel;

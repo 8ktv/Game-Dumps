@@ -12,13 +12,13 @@ public class Tab : VisualElement
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : VisualElement.UxmlSerializedData
 	{
-		[SerializeField]
 		[MultilineTextField]
+		[SerializeField]
 		private string label;
 
 		[UxmlAttribute("icon-image")]
 		[UxmlAttributeBindingPath("iconImage")]
-		[ImageFieldValueDecorator]
+		[ImageFieldValueDecorator("Icon Image")]
 		[SerializeField]
 		private Object iconImageReference;
 
@@ -30,14 +30,14 @@ public class Tab : VisualElement
 		[HideInInspector]
 		private UxmlAttributeFlags label_UxmlAttributeFlags;
 
-		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags iconImageReference_UxmlAttributeFlags;
 
-		[SerializeField]
-		[UxmlIgnore]
 		[HideInInspector]
+		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags closeable_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -373,7 +373,7 @@ public class Tab : VisualElement
 	{
 		if (evt.currentTarget is VisualElement visualElement && !string.IsNullOrEmpty(base.tooltip))
 		{
-			evt.rect = visualElement.GetTooltipRect();
+			evt.rect = visualElement.worldBound;
 			evt.tooltip = base.tooltip;
 			evt.StopImmediatePropagation();
 		}
@@ -431,14 +431,14 @@ public class Tab : VisualElement
 
 	internal void SetActive()
 	{
-		m_TabHeader.pseudoStates |= PseudoStates.Checked;
-		base.pseudoStates |= PseudoStates.Checked;
+		m_TabHeader.SetCheckedPseudoState(value: true);
+		SetCheckedPseudoState(value: true);
 	}
 
 	internal void SetInactive()
 	{
-		m_TabHeader.pseudoStates &= ~PseudoStates.Checked;
-		base.pseudoStates &= ~PseudoStates.Checked;
+		m_TabHeader.SetCheckedPseudoState(value: false);
+		SetCheckedPseudoState(value: false);
 	}
 
 	private void OnTabClicked(PointerDownEvent _)

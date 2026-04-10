@@ -1,6 +1,6 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace UnityEngine.UIElements;
 
@@ -12,13 +12,25 @@ internal class DefaultDragAndDropClient : DragAndDropData, IDragAndDrop
 
 	private DragVisualMode m_VisualMode;
 
-	private IEnumerable<Object> m_UnityObjectReferences;
+	private IReadOnlyList<EntityId> m_EntityIds;
 
 	public override DragVisualMode visualMode => m_VisualMode;
 
 	public override object source => GetGenericData("__unity-drag-and-drop__source-view");
 
-	public override IEnumerable<Object> unityObjectReferences => m_UnityObjectReferences;
+	[Obsolete("Use entityIDs instead, and call Object.FindObjectFromInstanceID(entityId) if you need to get a Unity object from an EntityId.")]
+	public override IEnumerable<Object> unityObjectReferences
+	{
+		get
+		{
+			foreach (EntityId entityId in m_EntityIds)
+			{
+				yield return Object.FindObjectFromInstanceID(entityId);
+			}
+		}
+	}
+
+	public override IReadOnlyList<EntityId> entityIds => m_EntityIds;
 
 	public DragAndDropData data => this;
 
@@ -34,9 +46,9 @@ internal class DefaultDragAndDropClient : DragAndDropData, IDragAndDrop
 
 	public void StartDrag(StartDragArgs args, Vector3 pointerPosition)
 	{
-		if (args.unityObjectReferences != null)
+		if (args.entityIds != null)
 		{
-			m_UnityObjectReferences = args.unityObjectReferences.ToArray();
+			m_EntityIds = args.entityIds;
 		}
 		paths = args.assetPaths;
 		m_VisualMode = args.visualMode;
@@ -86,7 +98,7 @@ internal class DefaultDragAndDropClient : DragAndDropData, IDragAndDrop
 	public void DragCleanup()
 	{
 		paths = null;
-		m_UnityObjectReferences = null;
+		m_EntityIds = null;
 		m_GenericData?.Clear();
 		SetVisualMode(DragVisualMode.None);
 		m_DraggedInfoLabel?.RemoveFromHierarchy();

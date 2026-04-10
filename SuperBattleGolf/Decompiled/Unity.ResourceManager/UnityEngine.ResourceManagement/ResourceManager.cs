@@ -128,6 +128,7 @@ public class ResourceManager : IDisposable
 		protected override void Destroy()
 		{
 			m_instanceProvider.ReleaseInstance(m_RM, m_instance);
+			m_instance = null;
 		}
 
 		protected override bool InvokeWaitForCompletion()

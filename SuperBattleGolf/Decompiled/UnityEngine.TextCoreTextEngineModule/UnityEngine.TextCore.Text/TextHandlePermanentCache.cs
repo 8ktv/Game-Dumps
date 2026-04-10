@@ -6,49 +6,59 @@ namespace UnityEngine.TextCore.Text;
 [VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
 internal class TextHandlePermanentCache
 {
-	internal LinkedList<TextInfo> s_TextInfoPool = new LinkedList<TextInfo>();
+	internal LinkedList<TextCacheEntry> s_Cache = new LinkedList<TextCacheEntry>();
 
 	private object syncRoot = new object();
 
-	public virtual void AddTextInfoToCache(TextHandle textHandle)
+	public void AddToCache(TextHandle textHandle)
 	{
 		lock (syncRoot)
 		{
-			if (textHandle.IsCachedPermanent)
+			if (textHandle.IsCachedPermanentTextCore)
 			{
 				return;
 			}
 			if (textHandle.IsCachedTemporary)
 			{
-				textHandle.RemoveTextInfoFromTemporaryCache();
+				textHandle.RemoveFromTemporaryCache();
 			}
-			if (s_TextInfoPool.Count > 0)
+			if (s_Cache.Count > 0)
 			{
-				textHandle.TextInfoNode = s_TextInfoPool.Last;
-				s_TextInfoPool.RemoveLast();
+				textHandle.TextInfoNode = s_Cache.Last;
+				textHandle.TextInfoNode.SetTextHandle(textHandle);
+				s_Cache.RemoveLast();
 			}
 			else
 			{
-				TextInfo value = new TextInfo();
-				textHandle.TextInfoNode = new LinkedListNode<TextInfo>(value);
+				textHandle.TextInfoNode = new LinkedListNode<TextCacheEntry>(new TextCacheEntry(textHandle, new TextInfo()));
 			}
 		}
-		textHandle.IsCachedPermanent = true;
+		textHandle.IsCachedPermanentTextCore = true;
 		textHandle.SetDirty();
 		textHandle.Update();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
-	public void RemoveTextInfoFromCache(TextHandle textHandle)
+	public void RemoveFromCache(TextHandle textHandle)
 	{
 		lock (syncRoot)
 		{
-			if (textHandle.IsCachedPermanent)
+			if (textHandle.IsCachedPermanentTextCore)
 			{
-				s_TextInfoPool.AddFirst(textHandle.TextInfoNode);
-				textHandle.TextInfoNode = null;
-				textHandle.IsCachedPermanent = false;
+				if (textHandle.TextInfoNode != null)
+				{
+					s_Cache.AddFirst(textHandle.TextInfoNode);
+					ResetEntryState(textHandle);
+				}
+				textHandle.IsCachedPermanentTextCore = false;
 			}
 		}
+	}
+
+	private void ResetEntryState(TextHandle handle)
+	{
+		handle.TextInfoNode.SetTime(0f);
+		handle.TextInfoNode.SetTextHandle(null);
+		handle.TextInfoNode = null;
 	}
 }

@@ -16,7 +16,6 @@ public class RectField : BaseCompositeField<Rect, FloatField, float>
 		[Conditional("UNITY_EDITOR")]
 		public new static void Register()
 		{
-			BaseCompositeField<Rect, FloatField, float>.UxmlSerializedData.Register();
 		}
 
 		public override object CreateInstance()

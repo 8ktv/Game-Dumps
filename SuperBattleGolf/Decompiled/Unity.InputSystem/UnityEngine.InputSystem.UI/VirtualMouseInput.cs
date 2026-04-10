@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace UnityEngine.InputSystem.UI;
 
 [AddComponentMenu("Input/Virtual Mouse")]
-[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.14/manual/UISupport.html#virtual-mouse-cursor-control")]
+[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.18/manual/UISupport.html#virtual-mouse-cursor-control")]
 public class VirtualMouseInput : MonoBehaviour
 {
 	public enum CursorMode

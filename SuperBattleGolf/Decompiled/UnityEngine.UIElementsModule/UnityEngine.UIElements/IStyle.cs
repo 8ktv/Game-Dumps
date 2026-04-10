@@ -10,6 +10,8 @@ public interface IStyle
 
 	StyleEnum<Align> alignSelf { get; set; }
 
+	StyleRatio aspectRatio { get; set; }
+
 	StyleColor backgroundColor { get; set; }
 
 	StyleBackground backgroundImage { get; set; }
@@ -53,6 +55,8 @@ public interface IStyle
 	StyleCursor cursor { get; set; }
 
 	StyleEnum<DisplayStyle> display { get; set; }
+
+	StyleList<FilterFunction> filter { get; set; }
 
 	StyleLength flexBasis { get; set; }
 
@@ -137,6 +141,8 @@ public interface IStyle
 	StyleFontDefinition unityFontDefinition { get; set; }
 
 	StyleEnum<FontStyle> unityFontStyleAndWeight { get; set; }
+
+	StyleMaterialDefinition unityMaterial { get; set; }
 
 	StyleEnum<OverflowClipBox> unityOverflowClipBox { get; set; }
 

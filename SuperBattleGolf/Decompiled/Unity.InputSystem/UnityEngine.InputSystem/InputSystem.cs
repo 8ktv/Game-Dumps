@@ -35,9 +35,9 @@ public static class InputSystem
 		public unsafe fixed byte data[511];
 	}
 
-	internal const string kAssemblyVersion = "1.14.2";
+	internal const string kAssemblyVersion = "1.18.0";
 
-	internal const string kDocUrl = "https://docs.unity3d.com/Packages/com.unity.inputsystem@1.14";
+	internal const string kDocUrl = "https://docs.unity3d.com/Packages/com.unity.inputsystem@1.18";
 
 	private static readonly ProfilerMarker k_InputResetMarker;
 
@@ -120,7 +120,7 @@ public static class InputSystem
 
 	public static InputRemoting remoting => s_Remote;
 
-	public static Version version => new Version("1.14.2");
+	public static Version version => new Version("1.18.0");
 
 	public static bool runInBackground
 	{

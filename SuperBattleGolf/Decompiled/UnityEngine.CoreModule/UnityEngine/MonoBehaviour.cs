@@ -8,10 +8,10 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[RequiredByNativeCode]
-[NativeHeader("Runtime/Scripting/DelayedCallUtility.h")]
-[NativeHeader("Runtime/Mono/MonoBehaviour.h")]
 [ExtensionOfNativeClass]
+[RequiredByNativeCode]
+[NativeHeader("Runtime/Mono/MonoBehaviour.h")]
+[NativeHeader("Runtime/Scripting/DelayedCallUtility.h")]
 public class MonoBehaviour : Behaviour
 {
 	private CancellationTokenSource m_CancellationTokenSource;
@@ -372,7 +372,7 @@ public class MonoBehaviour : Behaviour
 		return IsObjectMonoBehaviour_Injected(intPtr);
 	}
 
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	private unsafe Coroutine StartCoroutineManaged(string methodName, object value)
 	{
 		//The blocks IL_0039 are reachable both inside and outside the pinned region starting at IL_0028. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -400,7 +400,7 @@ public class MonoBehaviour : Behaviour
 		}
 	}
 
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	private Coroutine StartCoroutineManaged2(IEnumerator enumerator)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);

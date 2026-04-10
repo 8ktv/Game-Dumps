@@ -11,6 +11,26 @@ using UnityEngine.Pool;
 
 public class PlayerCosmetics : NetworkBehaviour
 {
+	[Flags]
+	public enum LoadoutSlot
+	{
+		None = 0,
+		Head = 2,
+		Hat = 4,
+		UpperFace = 8,
+		LowerFace = 0x10,
+		Body = 0x20,
+		Club = 0x40,
+		Mouth = 0x80,
+		Eyes = 0x100,
+		Cheeks = 0x200,
+		Brows = 0x400,
+		GolfBall = 0x800,
+		SkinColor = 0x1000,
+		VictoryDance = 0x2000,
+		All = -1
+	}
+
 	[Serializable]
 	public struct SaveData
 	{
@@ -48,41 +68,125 @@ public class PlayerCosmetics : NetworkBehaviour
 
 		public VictoryDance victoryDance;
 
-		public Loadout(PlayerCosmeticsSwitcher cosmetics, VictoryDance victoryDance)
+		public static Loadout Get(PlayerCosmeticsSwitcher cosmetics, VictoryDance victoryDance, LoadoutSlot slotsToApply, Loadout loadout = default(Loadout))
 		{
-			head = cosmetics.CurrentHeadRuntimeKey;
-			hat = cosmetics.CurrentHatRuntimeKey;
-			upperFace = cosmetics.CurrentFaceRuntimeKey;
-			lowerFace = cosmetics.CurrentLowerFaceRuntimeKey;
-			body = cosmetics.CurrentBodyRuntimeKey;
-			club = cosmetics.CurrentClubRuntimeKey;
-			mouth = cosmetics.CurrentMouthRuntimeKey;
-			eyes = cosmetics.CurrentEyesRuntimeKey;
-			cheeks = cosmetics.CurrentCheeksRuntimeKey;
-			brows = cosmetics.CurrentBrowsRuntimeKey;
-			golfBall = cosmetics.CurrentGolfBallRuntimeKey;
-			this.victoryDance = victoryDance;
-			skinColorIndex = cosmetics.CurrentSkinColorIndex;
+			if (HasSlot(LoadoutSlot.Head))
+			{
+				loadout.head = cosmetics.CurrentHeadRuntimeKey;
+			}
+			if (HasSlot(LoadoutSlot.Hat))
+			{
+				loadout.hat = cosmetics.CurrentHatRuntimeKey;
+			}
+			if (HasSlot(LoadoutSlot.UpperFace))
+			{
+				loadout.upperFace = cosmetics.CurrentFaceRuntimeKey;
+			}
+			if (HasSlot(LoadoutSlot.LowerFace))
+			{
+				loadout.lowerFace = cosmetics.CurrentLowerFaceRuntimeKey;
+			}
+			if (HasSlot(LoadoutSlot.Body))
+			{
+				loadout.body = cosmetics.CurrentBodyRuntimeKey;
+			}
+			if (HasSlot(LoadoutSlot.Club))
+			{
+				loadout.club = cosmetics.CurrentClubRuntimeKey;
+			}
+			if (HasSlot(LoadoutSlot.Mouth))
+			{
+				loadout.mouth = cosmetics.CurrentMouthRuntimeKey;
+			}
+			if (HasSlot(LoadoutSlot.Eyes))
+			{
+				loadout.eyes = cosmetics.CurrentEyesRuntimeKey;
+			}
+			if (HasSlot(LoadoutSlot.Cheeks))
+			{
+				loadout.cheeks = cosmetics.CurrentCheeksRuntimeKey;
+			}
+			if (HasSlot(LoadoutSlot.Brows))
+			{
+				loadout.brows = cosmetics.CurrentBrowsRuntimeKey;
+			}
+			if (HasSlot(LoadoutSlot.GolfBall))
+			{
+				loadout.golfBall = cosmetics.CurrentGolfBallRuntimeKey;
+			}
+			if (HasSlot(LoadoutSlot.VictoryDance))
+			{
+				loadout.victoryDance = victoryDance;
+			}
+			if (HasSlot(LoadoutSlot.SkinColor))
+			{
+				loadout.skinColorIndex = cosmetics.CurrentSkinColorIndex;
+			}
+			return loadout;
+			bool HasSlot(LoadoutSlot slot)
+			{
+				return (slotsToApply & slot) != 0;
+			}
 		}
 
-		public async UniTask Apply(PlayerCosmeticsSwitcher switcher)
+		public async UniTask Apply(PlayerCosmeticsSwitcher switcher, LoadoutSlot slotsToApply)
 		{
 			List<UniTask> value;
 			using (CollectionPool<List<UniTask>, UniTask>.Get(out value))
 			{
-				value.Add(switcher.SetHeadModel(head));
-				value.Add(switcher.SetHatModel(hat));
-				value.Add(switcher.SetFaceModel(upperFace));
-				value.Add(switcher.SetLowerFaceModel(lowerFace));
-				value.Add(switcher.SetBodyModel(body));
-				value.Add(switcher.SetClubModel(club));
-				value.Add(switcher.SetEyesTexture(eyes));
-				value.Add(switcher.SetMouthTexture(mouth));
-				value.Add(switcher.SetCheeksTexture(cheeks));
-				value.Add(switcher.SetBrowTexture(brows));
-				value.Add(switcher.SetGolfBallModel(golfBall));
-				switcher.SetSkinColor(skinColorIndex);
+				if (HasSlot(LoadoutSlot.Head))
+				{
+					value.Add(switcher.SetHeadModel(head));
+				}
+				if (HasSlot(LoadoutSlot.Hat))
+				{
+					value.Add(switcher.SetHatModel(hat));
+				}
+				if (HasSlot(LoadoutSlot.UpperFace))
+				{
+					value.Add(switcher.SetFaceModel(upperFace));
+				}
+				if (HasSlot(LoadoutSlot.LowerFace))
+				{
+					value.Add(switcher.SetLowerFaceModel(lowerFace));
+				}
+				if (HasSlot(LoadoutSlot.Body))
+				{
+					value.Add(switcher.SetBodyModel(body));
+				}
+				if (HasSlot(LoadoutSlot.Club))
+				{
+					value.Add(switcher.SetClubModel(club));
+				}
+				if (HasSlot(LoadoutSlot.Eyes))
+				{
+					value.Add(switcher.SetEyesTexture(eyes));
+				}
+				if (HasSlot(LoadoutSlot.Mouth))
+				{
+					value.Add(switcher.SetMouthTexture(mouth));
+				}
+				if (HasSlot(LoadoutSlot.Cheeks))
+				{
+					value.Add(switcher.SetCheeksTexture(cheeks));
+				}
+				if (HasSlot(LoadoutSlot.Brows))
+				{
+					value.Add(switcher.SetBrowTexture(brows));
+				}
+				if (HasSlot(LoadoutSlot.GolfBall))
+				{
+					value.Add(switcher.SetGolfBallModel(golfBall));
+				}
+				if (HasSlot(LoadoutSlot.SkinColor))
+				{
+					switcher.SetSkinColor(skinColorIndex);
+				}
 				await UniTask.WhenAll(value);
+			}
+			bool HasSlot(LoadoutSlot slot)
+			{
+				return (slotsToApply & slot) != 0;
 			}
 		}
 
@@ -451,7 +555,7 @@ public class PlayerCosmetics : NetworkBehaviour
 			{
 				saveData.loadout[num] = loadout;
 			}
-			EquipLoadout(0, equipDefaultsOnFail: true).Forget();
+			EquipLoadout(0, equipDefaultsOnFail: true, LoadoutSlot.All).Forget();
 		}
 	}
 
@@ -504,7 +608,7 @@ public class PlayerCosmetics : NetworkBehaviour
 				Array.Resize(ref saveData.loadout, 4);
 			}
 			saveData.equippedLoadout = BMath.Clamp(saveData.equippedLoadout, 0, 3);
-			EquipLoadout(saveData.equippedLoadout, equipDefaultsOnFail: true).Forget();
+			EquipLoadout(saveData.equippedLoadout, equipDefaultsOnFail: true, LoadoutSlot.All).Forget();
 			return true;
 		}
 		catch (Exception exception)
@@ -515,10 +619,10 @@ public class PlayerCosmetics : NetworkBehaviour
 		}
 	}
 
-	public async UniTask EquipLoadout(int index, bool equipDefaultsOnFail)
+	public async UniTask EquipLoadout(int index, bool equipDefaultsOnFail, LoadoutSlot slotsToEquip)
 	{
 		Loadout equipped = saveData.loadout[index];
-		UniTask task = equipped.Apply(switcher);
+		UniTask task = equipped.Apply(switcher, slotsToEquip);
 		if (playerInfo.AsGolfer.OwnBall == null)
 		{
 			NetworkgolfBallCosmeticKey = equipped.golfBall;
@@ -540,7 +644,7 @@ public class PlayerCosmetics : NetworkBehaviour
 		NetworkvictoryDance = equipped.GetVictoryDance();
 		saveData.equippedLoadout = index;
 		await task;
-		saveData.loadout[index] = new Loadout(switcher, victoryDance);
+		saveData.loadout[index] = Loadout.Get(switcher, victoryDance, slotsToEquip, saveData.loadout[index]);
 		static bool EquipSuccess(PlayerCosmeticsSwitcher.CosmeticKey equip, PlayerCosmeticsSwitcher.CosmeticKey cosmeticKey)
 		{
 			if (equip == null || string.IsNullOrEmpty(equip.metadataKey))
@@ -555,12 +659,16 @@ public class PlayerCosmetics : NetworkBehaviour
 		}
 	}
 
-	public async UniTask SetLoadout(PlayerCosmeticsSwitcher switcher, VictoryDance victoryDance, int loadoutIndex, bool equip, bool save)
+	public async UniTask SetAndEquipLoadout(PlayerCosmeticsSwitcher switcher, VictoryDance victoryDance, int loadoutIndex, bool loadCosmetics, bool save, LoadoutSlot slotsToEquip)
 	{
-		saveData.loadout[loadoutIndex] = new Loadout(switcher, victoryDance);
-		if (equip)
+		saveData.loadout[loadoutIndex] = Loadout.Get(switcher, victoryDance, slotsToEquip, saveData.loadout[loadoutIndex]);
+		if (loadCosmetics)
 		{
-			await EquipLoadout(loadoutIndex, equipDefaultsOnFail: false);
+			await EquipLoadout(loadoutIndex, equipDefaultsOnFail: false, slotsToEquip);
+		}
+		else
+		{
+			saveData.equippedLoadout = loadoutIndex;
 		}
 		if (save)
 		{

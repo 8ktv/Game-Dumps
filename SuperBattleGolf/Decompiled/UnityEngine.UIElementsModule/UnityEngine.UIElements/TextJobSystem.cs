@@ -25,4 +25,13 @@ internal class TextJobSystem
 			m_UITKTextJobSystem.GenerateText(mgc, textElement);
 		}
 	}
+
+	internal void PrepareShapingBeforeLayout(BaseVisualElementPanel panel)
+	{
+		if (m_ATGTextJobSystem == null)
+		{
+			m_ATGTextJobSystem = new ATGTextJobSystem();
+		}
+		m_ATGTextJobSystem.PrepareShapingBeforeLayout(panel);
+	}
 }

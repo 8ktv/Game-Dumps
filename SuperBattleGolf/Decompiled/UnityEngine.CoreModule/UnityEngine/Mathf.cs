@@ -9,10 +9,10 @@ using UnityEngineInternal;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential, Size = 1)]
-[Il2CppEagerStaticClassConstruction]
-[NativeHeader("Runtime/Math/FloatConversion.h")]
-[NativeHeader("Runtime/Math/PerlinNoise.h")]
+[NativeHeader("NativeKernel/Math/FloatConversion.h")]
 [NativeHeader("Runtime/Math/ColorSpaceConversion.h")]
+[NativeHeader("Runtime/Math/PerlinNoise.h")]
+[Il2CppEagerStaticClassConstruction]
 public struct Mathf
 {
 	public const float PI = MathF.PI;
@@ -393,14 +393,15 @@ public struct Mathf
 		value = Clamp(value, 0f - num5, num5);
 		target = current - value;
 		float num6 = (currentVelocity + num * value) * deltaTime;
+		float num7 = currentVelocity;
 		currentVelocity = (currentVelocity - num * num6) * num3;
-		float num7 = target + (value + num6) * num3;
-		if (num4 - current > 0f == num7 > num4)
+		float num8 = target + (value + num6) * num3;
+		if (num4 - current > 0f == num8 > num4)
 		{
-			num7 = num4;
-			currentVelocity = (num7 - num4) / deltaTime;
+			num8 = num4;
+			currentVelocity = ((deltaTime != 0f) ? ((num8 - num4) / deltaTime) : num7);
 		}
-		return num7;
+		return num8;
 	}
 
 	[ExcludeFromDocs]

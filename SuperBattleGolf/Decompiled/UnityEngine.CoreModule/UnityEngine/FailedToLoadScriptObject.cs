@@ -5,8 +5,8 @@ namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
 [NativeClass(null)]
-[RequiredByNativeCode]
 [ExcludeFromObjectFactory]
+[RequiredByNativeCode]
 internal class FailedToLoadScriptObject : Object
 {
 	private FailedToLoadScriptObject()

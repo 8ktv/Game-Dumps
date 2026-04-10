@@ -32,7 +32,7 @@ public class SwingPowerBarUi : SingletonBehaviour<SwingPowerBarUi>
 	private Image flagIcon;
 
 	[SerializeField]
-	private GameObject terrainLayerSectionParent;
+	private RectTransform terrainLayerSectionParent;
 
 	[SerializeField]
 	private Image terrainLayerSectionTemplate;
@@ -77,6 +77,8 @@ public class SwingPowerBarUi : SingletonBehaviour<SwingPowerBarUi>
 
 	private readonly List<Image> terrainLayerSections = new List<Image>();
 
+	private RectTransform rectTransform;
+
 	private Color defaultFillColor;
 
 	private bool isDisplayingOvercharge;
@@ -96,6 +98,7 @@ public class SwingPowerBarUi : SingletonBehaviour<SwingPowerBarUi>
 	protected override void Awake()
 	{
 		base.Awake();
+		rectTransform = base.transform as RectTransform;
 		defaultFillColor = powerFill.color;
 		powerLevelGroup.alpha = 0f;
 		powerLabel.color = new Color(1f, 1f, 1f, 0f);
@@ -111,11 +114,11 @@ public class SwingPowerBarUi : SingletonBehaviour<SwingPowerBarUi>
 		base.OnDestroy();
 	}
 
-	public static void SetNormalizedPower(float power)
+	public static void SetNormalizedPower(float normalizedPower, float labelNormalizedPower)
 	{
 		if (SingletonBehaviour<SwingPowerBarUi>.HasInstance)
 		{
-			SingletonBehaviour<SwingPowerBarUi>.Instance.SetNormalizedPowerInternal(power);
+			SingletonBehaviour<SwingPowerBarUi>.Instance.SetNormalizedPowerInternal(normalizedPower, labelNormalizedPower);
 		}
 	}
 
@@ -211,12 +214,13 @@ public class SwingPowerBarUi : SingletonBehaviour<SwingPowerBarUi>
 		}
 	}
 
-	private void SetNormalizedPowerInternal(float normalizedPower)
+	private void SetNormalizedPowerInternal(float normalizedPower, float labelNormalizedPower)
 	{
 		float num = normalizedPower - 1f;
 		bool flag = isDisplayingOvercharge;
 		isDisplayingOvercharge = num > 0f;
-		powerLabel.text = BMath.CeilToInt(normalizedPower * 100f).ToString();
+		float f = labelNormalizedPower * 100f - 0.0001f;
+		powerLabel.text = BMath.CeilToInt(f).ToString();
 		powerLevelVisibilityTween?.Kill();
 		powerLabel.color = Color.white;
 		powerLevelGroup.alpha = 1f;
@@ -273,8 +277,7 @@ public class SwingPowerBarUi : SingletonBehaviour<SwingPowerBarUi>
 	private void SetTerrainLayersInternal(NativeList<PlayerGolfer.TerrainLayerNormalizedSwingPower> terrainLayerNormalizedSwingPowers)
 	{
 		terrainLayerNormalizedSwingPowers.Sort(default(PlayerGolfer.TerrainLayerNormalizedSwingPowerComparer));
-		_ = (bool)terrainLayerSectionParent;
-		terrainLayerSectionParent.SetActive(value: true);
+		terrainLayerSectionParent.gameObject.SetActive(value: true);
 		int i = 0;
 		foreach (PlayerGolfer.TerrainLayerNormalizedSwingPower item in terrainLayerNormalizedSwingPowers)
 		{
@@ -283,47 +286,93 @@ public class SwingPowerBarUi : SingletonBehaviour<SwingPowerBarUi>
 				break;
 			}
 			bool flag = item.layer >= TerrainLayer.Fairway;
-			bool flag2 = item.outOfBoundsHazard >= OutOfBoundsHazard.Water;
-			if (!flag && !flag2)
+			bool flag2 = item.levelHazard >= LevelHazardType.BreakableIce;
+			bool flag3 = item.outOfBoundsHazard >= OutOfBoundsHazard.Water;
+			LevelHazardSettings value = default(LevelHazardSettings);
+			if (flag2)
+			{
+				flag2 = GameManager.HazardSettings.levelHazardsByType.TryGetValue(item.levelHazard, out value);
+				if (!flag2)
+				{
+					Debug.LogError($"No settings found for level hazard of type {item.levelHazard}");
+				}
+			}
+			if (!flag && !flag2 && !flag3)
 			{
 				continue;
 			}
 			Color b = default(Color);
-			bool flag3 = false;
+			Color color = default(Color);
+			bool flag4 = false;
 			if (flag)
 			{
-				if (!TerrainManager.Settings.LayerSettings.TryGetValue(item.layer, out var value))
+				if (!TerrainManager.Settings.LayerSettings.TryGetValue(item.layer, out var value2))
 				{
 					Debug.LogError($"Could not get settings for terrain layer {item.layer}", base.gameObject);
 					continue;
 				}
-				b = value.SwingPowerBarColor;
-				flag3 = value.IsOutOfBounds;
+				b = value2.SwingPowerBarColor;
+				flag4 = value2.IsOutOfBounds;
+				if (flag4)
+				{
+					color = value2.SwingPowerBarOutOfBoundsOverlayColor;
+				}
 			}
 			else if (flag2)
 			{
-				if (!TerrainManager.Settings.OutOfBoundsHazardSettings.TryGetValue(item.outOfBoundsHazard, out var value2))
+				if (!TerrainManager.Settings.LayerSettings.TryGetValue(value.effectiveTerrainLayer, out var value3))
+				{
+					Debug.LogError($"Could not get settings for terrain layer {value.effectiveTerrainLayer}", base.gameObject);
+					continue;
+				}
+				b = value3.SwingPowerBarColor;
+				color = value.swingPowerBarOverlayColor;
+				flag4 = false;
+			}
+			else if (flag3)
+			{
+				if (!TerrainManager.Settings.OutOfBoundsHazardSettings.TryGetValue(item.outOfBoundsHazard, out var value4))
 				{
 					Debug.LogError($"Could not get settings for out of bounds hazard {item.outOfBoundsHazard}", base.gameObject);
 					continue;
 				}
-				b = value2.SwingPowerBarColor;
-				flag3 = true;
+				b = value4.SwingPowerBarColor;
+				color = value4.SwingPowerBarOutOfBoundsOverlayColor;
+				flag4 = true;
 			}
 			Image image = GetOrCreateTerrainLayerSection(i++);
 			image.gameObject.SetActive(value: true);
+			RectTransform obj = image.rectTransform;
+			obj.anchorMin = new Vector2(obj.anchorMin.x, GetNormalizedSwingPowerWithOffset(item.startNormalizedPower, 4f));
+			obj.anchorMax = new Vector2(obj.anchorMax.x, GetNormalizedSwingPowerWithOffset(item.endNormalizedPower, -4f));
+			b = Color.Lerp(Color.black, b, terrainLayerBrightness);
+			image.color = b;
 			RawImage component = image.transform.GetChild(0).GetComponent<RawImage>();
-			component.gameObject.SetActive(flag3);
-			RectTransform rectTransform = image.rectTransform;
-			rectTransform.anchorMin = new Vector2(rectTransform.anchorMin.x, GetNormalizedSwingPowerWithOffset(item.startNormalizedPower, 4f));
-			rectTransform.anchorMax = new Vector2(rectTransform.anchorMax.x, GetNormalizedSwingPowerWithOffset(item.endNormalizedPower, -4f));
-			b = (image.color = Color.Lerp(Color.black, b, terrainLayerBrightness));
-			if (flag3)
+			if (flag2)
 			{
-				component.color = b + new Color(0.1f, 0.1f, 0.1f, 0f);
+				component.gameObject.SetActive(value: true);
+				component.texture = value.swingPowerBarOverlayTexture;
+				component.color = color;
+				component.rectTransform.position = terrainLayerSectionParent.position;
 				Rect uvRect = component.uvRect;
-				uvRect.position = new Vector2((0f - Time.time * 2f) % 1f, 0f);
+				uvRect.position = new Vector2(0.15f, 0.25f);
+				uvRect.size = new Vector2(1.5f, 6f);
 				component.uvRect = uvRect;
+			}
+			else if (flag4)
+			{
+				component.gameObject.SetActive(value: true);
+				component.texture = GameManager.HazardSettings.SwingPowerBarOutOfBoundsHazardOVerlayTexture;
+				component.color = color;
+				component.rectTransform.position = terrainLayerSectionParent.position;
+				Rect uvRect2 = component.uvRect;
+				uvRect2.position = new Vector2((0f - Time.time * 2f) % 1f, 0f);
+				uvRect2.size = new Vector2(8f, 32f);
+				component.uvRect = uvRect2;
+			}
+			else
+			{
+				component.gameObject.SetActive(value: false);
 			}
 		}
 		for (; i < terrainLayerSections.Count; i++)
@@ -344,14 +393,14 @@ public class SwingPowerBarUi : SingletonBehaviour<SwingPowerBarUi>
 
 	private float GetNormalizedSwingPowerWithOffset(float normalizedSwingPower, float offset)
 	{
-		float height = terrainLayerSectionParent.GetComponent<RectTransform>().rect.height;
+		float height = terrainLayerSectionParent.rect.height;
 		float num = offset / height;
 		return BMath.Clamp(normalizedSwingPower - num, 0f, 1f);
 	}
 
 	private void HideTerrainLayersInternal()
 	{
-		terrainLayerSectionParent.SetActive(value: false);
+		terrainLayerSectionParent.gameObject.SetActive(value: false);
 	}
 
 	private void ReleaseSwingChargeInternal()

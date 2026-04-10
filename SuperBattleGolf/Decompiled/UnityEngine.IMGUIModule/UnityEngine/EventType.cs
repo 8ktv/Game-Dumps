@@ -33,14 +33,14 @@ public enum EventType
 	[Obsolete("Use MouseDown instead (UnityUpgradable) -> MouseDown", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	mouseDown = 0,
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Use MouseUp instead (UnityUpgradable) -> MouseUp", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	mouseUp = 1,
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Use MouseMove instead (UnityUpgradable) -> MouseMove", true)]
 	mouseMove = 2,
-	[Obsolete("Use MouseDrag instead (UnityUpgradable) -> MouseDrag", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Use MouseDrag instead (UnityUpgradable) -> MouseDrag", true)]
 	mouseDrag = 3,
 	[Obsolete("Use KeyDown instead (UnityUpgradable) -> KeyDown", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
@@ -48,8 +48,8 @@ public enum EventType
 	[Obsolete("Use KeyUp instead (UnityUpgradable) -> KeyUp", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	keyUp = 5,
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Use ScrollWheel instead (UnityUpgradable) -> ScrollWheel", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	scrollWheel = 6,
 	[Obsolete("Use Repaint instead (UnityUpgradable) -> Repaint", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
@@ -57,11 +57,11 @@ public enum EventType
 	[Obsolete("Use Layout instead (UnityUpgradable) -> Layout", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	layout = 8,
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Use DragUpdated instead (UnityUpgradable) -> DragUpdated", true)]
-	dragUpdated = 9,
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	dragUpdated = 9,
 	[Obsolete("Use DragPerform instead (UnityUpgradable) -> DragPerform", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	dragPerform = 10,
 	[Obsolete("Use Ignore instead (UnityUpgradable) -> Ignore", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]

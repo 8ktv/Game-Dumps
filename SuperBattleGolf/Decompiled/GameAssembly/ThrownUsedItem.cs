@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using FMODUnity;
 using UnityEngine;
 
 public class ThrownUsedItem : MonoBehaviour, IBUpdateCallback, IAnyBUpdateCallback
@@ -15,7 +16,11 @@ public class ThrownUsedItem : MonoBehaviour, IBUpdateCallback, IAnyBUpdateCallba
 	[SerializeField]
 	private AnimationCurve scaleOverTime;
 
+	private bool wasThrown;
+
 	private double appearanceTimestamp;
+
+	public Entity AsEntity { get; private set; }
 
 	public ThrownUsedItemType Type => type;
 
@@ -28,6 +33,7 @@ public class ThrownUsedItem : MonoBehaviour, IBUpdateCallback, IAnyBUpdateCallba
 
 	private void Awake()
 	{
+		AsEntity = GetComponent<Entity>();
 		rigidbody.maxAngularVelocity = 30f;
 	}
 
@@ -53,6 +59,11 @@ public class ThrownUsedItem : MonoBehaviour, IBUpdateCallback, IAnyBUpdateCallba
 	private void OnDisable()
 	{
 		BUpdate.DeregisterCallback(this);
+		if (wasThrown)
+		{
+			wasThrown = false;
+			RuntimeManager.PlayOneShot(GameManager.AudioSettings.ThrownItemDisappearEvent, base.transform.position);
+		}
 	}
 
 	public void OnBUpdate()
@@ -60,11 +71,20 @@ public class ThrownUsedItem : MonoBehaviour, IBUpdateCallback, IAnyBUpdateCallba
 		float timeSince = BMath.GetTimeSince(appearanceTimestamp);
 		if (timeSince > lifeTime)
 		{
+			OnWillReturntoPool();
 			ThrownUsedItemManager.ReturnThrownItem(this);
 		}
 		else
 		{
 			base.transform.localScale = scaleOverTime.Evaluate(timeSince / lifeTime) * Vector3.one;
+		}
+		void OnWillReturntoPool()
+		{
+			if (type == ThrownUsedItemType.RocketDriver && TryGetComponent<ThrownUsedRocketDriver>(out var component) && component.IsRocketActive)
+			{
+				VfxManager.PlayPooledVfxLocalOnly(VfxType.RocketDriverDespawn, base.transform.position, base.transform.rotation);
+				RuntimeManager.PlayOneShot(GameManager.AudioSettings.RocketDriverUsedThrownExplosionEvent, base.transform.position);
+			}
 		}
 	}
 
@@ -75,5 +95,6 @@ public class ThrownUsedItem : MonoBehaviour, IBUpdateCallback, IAnyBUpdateCallba
 		rigidbody.rotation = rotation;
 		rigidbody.linearVelocity = velocity;
 		rigidbody.angularVelocity = angularVelocity;
+		wasThrown = true;
 	}
 }

@@ -73,7 +73,7 @@ public class SpeedBoostWheelUi : MonoBehaviour, ILateBUpdateCallback, IAnyBUpdat
 		void UpdateSpeedBoost()
 		{
 			float num = displayedNormalizedSpeedBoost;
-			displayedNormalizedSpeedBoost = BMath.Clamp01(GameManager.LocalPlayerMovement.SpeedBoostRemainingTime / GameManager.LocalPlayerMovement.Settings.MaxSpeedBoostDuration);
+			displayedNormalizedSpeedBoost = BMath.Clamp01(GameManager.LocalPlayerMovement.SpeedBoostRemainingTime / GameManager.PlayerMovementSettings.MaxSpeedBoostDuration);
 			if (displayedNormalizedSpeedBoost != num)
 			{
 				staminaWheel.fillAmount = displayedNormalizedSpeedBoost;

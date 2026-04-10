@@ -2,5 +2,5 @@ public enum GroundTerrainType
 {
 	NotTerrain,
 	Terrain,
-	TerrainEdgeDetail
+	TerrainAddition
 }

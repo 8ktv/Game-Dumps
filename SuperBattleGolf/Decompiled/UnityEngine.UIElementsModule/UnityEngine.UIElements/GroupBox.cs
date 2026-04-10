@@ -12,13 +12,13 @@ public class GroupBox : BindableElement, IGroupBox
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : BindableElement.UxmlSerializedData
 	{
-		[SerializeField]
 		[MultilineTextField]
+		[SerializeField]
 		private string text;
 
+		[UxmlIgnore]
 		[SerializeField]
 		[HideInInspector]
-		[UxmlIgnore]
 		private UxmlAttributeFlags text_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]

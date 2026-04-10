@@ -6,8 +6,8 @@ using UnityEngine.Bindings;
 
 namespace Unity.Content;
 
-[StaticAccessor("GetContentNamespaceManager()", StaticAccessorType.Dot)]
 [NativeHeader("Runtime/Misc/ContentNamespace.h")]
+[StaticAccessor("GetContentNamespaceManager()", StaticAccessorType.Dot)]
 public struct ContentNamespace
 {
 	internal ulong Id;

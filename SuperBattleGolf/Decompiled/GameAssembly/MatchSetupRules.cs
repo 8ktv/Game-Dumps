@@ -36,24 +36,61 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		PlayerSpeed,
 		CartSpeed,
 		SwingPower,
-		OverChargeSideSpin,
+		OverchargeSidespin,
 		HomingShots,
 		KnockoutSpeedBoost,
 		HitOtherPlayers,
 		HitOtherPlayersBalls,
 		ConsoleCommands,
-		OnOrBelowParBonus,
-		SpeedrunBonus,
-		ChipInBonus,
-		KnockoutsBonus
+		OnOrBelowPar,
+		Speedrun,
+		ChipIn,
+		Knockouts,
+		Comeback,
+		Wind,
+		Count
+	}
+
+	public enum RuleCategory
+	{
+		BonusScore,
+		Time,
+		Player,
+		Battle,
+		Wind,
+		Cheats,
+		Count
 	}
 
 	public enum Preset
 	{
+		Invalid = -1,
 		Classic,
 		ProGolf,
 		Custom
 	}
+
+	public static readonly RuleCategory[] RuleCategoryLookup = new RuleCategory[18]
+	{
+		RuleCategory.Time,
+		RuleCategory.Time,
+		RuleCategory.Time,
+		RuleCategory.Player,
+		RuleCategory.Player,
+		RuleCategory.Player,
+		RuleCategory.Player,
+		RuleCategory.Battle,
+		RuleCategory.Battle,
+		RuleCategory.Battle,
+		RuleCategory.Battle,
+		RuleCategory.Cheats,
+		RuleCategory.BonusScore,
+		RuleCategory.BonusScore,
+		RuleCategory.BonusScore,
+		RuleCategory.BonusScore,
+		RuleCategory.BonusScore,
+		RuleCategory.Wind
+	};
 
 	[SerializeField]
 	private GameObject rulesTab;
@@ -69,6 +106,8 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 	public DropdownOption chipIn;
 
 	public DropdownOption knockouts;
+
+	public DropdownOption comeback;
 
 	[Header("Time")]
 	public SliderOption countdown;
@@ -95,13 +134,16 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 
 	public DropdownOption hitOtherPlayersBalls;
 
-	[Header("Cheats")]
-	public GameObject[] cheatsOptions;
+	[Header("Wind")]
+	public DropdownOption wind;
 
+	[Header("Cheats")]
 	public DropdownOption consoleCommands;
 
 	[Header("Items")]
 	public ItemSpawnerSettings itemSpawnerSettings;
+
+	public ItemSpawnerSettings mobilityItemSpawnerSettings;
 
 	public SetLayoutInformer itemLayoutInformer;
 
@@ -126,6 +168,9 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 	[Header("Labels")]
 	public LocalizeStringEvent rulesLabelLobby;
 
+	[Header("Tooltip")]
+	public UiTooltip tooltip;
+
 	[SyncVar(hook = "OnPresetChanged")]
 	private Preset currentPreset;
 
@@ -135,15 +180,19 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 
 	private SyncDictionary<ItemPoolId, float> spawnChanceWeights = new SyncDictionary<ItemPoolId, float>();
 
+	private Dictionary<int, float> totalWeightPerPool = new Dictionary<int, float>();
+
 	private static Dictionary<ItemPoolId, float> serverPersistentSpawnChanceWeights = new Dictionary<ItemPoolId, float>();
 
 	private bool currentItemPoolDirty;
 
-	private int currentItemPoolIndex;
+	private int currentItemPoolIndex = 1;
 
 	private Dictionary<Rule, SliderOption> sliderLookup = new Dictionary<Rule, SliderOption>();
 
 	private Dictionary<Rule, DropdownOption> onOffDropdownLookup = new Dictionary<Rule, DropdownOption>();
+
+	private Dictionary<Rule, DropdownOption> dropdownLookup = new Dictionary<Rule, DropdownOption>();
 
 	private List<SliderOption> spawnChanceSliders = new List<SliderOption>();
 
@@ -153,7 +202,12 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 
 	public static bool CheatsWarningShowed;
 
+	[HideInInspector]
+	public bool IsRulesPopulated;
+
 	public Action<Preset, Preset> _Mirror_SyncVarHookDelegate_currentPreset;
+
+	public Preset CurrentPreset => currentPreset;
 
 	public Preset NetworkcurrentPreset
 	{
@@ -169,6 +223,8 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 	}
 
 	private event Action UpdateItemSpawnersLoc;
+
+	public static event Action RulesPopulated;
 
 	public static bool IsCheatsEnabled()
 	{
@@ -211,27 +267,30 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 				SetSpawnChance(serverPersistentSpawnChanceWeight.Key.itemPoolIndex, serverPersistentSpawnChanceWeight.Key.itemType, serverPersistentSpawnChanceWeight.Value);
 			}
 			serverPersistentSpawnChanceWeights.Clear();
+			IsRulesPopulated = true;
+			MatchSetupRules.RulesPopulated?.Invoke();
 		}
 		supressPreset = true;
-		InitDropdownOnOff(onOrBelowPar, Rule.OnOrBelowParBonus);
-		InitDropdownOnOff(speedrun, Rule.SpeedrunBonus);
-		InitDropdownOnOff(chipIn, Rule.ChipInBonus);
-		InitDropdownOnOff(knockouts, Rule.KnockoutsBonus);
+		InitDropdownOnOff(onOrBelowPar, Rule.OnOrBelowPar);
+		InitDropdownOnOff(speedrun, Rule.Speedrun);
+		InitDropdownOnOff(chipIn, Rule.ChipIn);
+		InitDropdownOnOff(knockouts, Rule.Knockouts);
 		InitSlider(countdown, Rule.Countdown, "{0}s", (float x) => SnapTo(x, 5f));
 		InitSlider(outOfBounds, Rule.OutOfBounds, "{0}s", OutOfBoundsSnapping);
 		InitDropdownOnOff(maxTimeBasedOnPar, Rule.MaxTimeBasedOnPar);
 		InitSlider(playerSpeed, Rule.PlayerSpeed, "{0}%", (float x) => SnapTo(x, 0.1f), 100f);
 		InitSlider(cartSpeed, Rule.CartSpeed, "{0}%", (float x) => SnapTo(x, 0.1f), 100f);
 		InitSlider(swingPower, Rule.SwingPower, "{0}%", (float x) => SnapTo(x, 0.1f), 100f);
-		InitDropdownOnOff(overchargeSideSpin, Rule.OverChargeSideSpin);
+		InitDropdownOnOff(overchargeSideSpin, Rule.OverchargeSidespin);
 		InitDropdownOnOff(homingShots, Rule.HomingShots);
 		InitDropdownOnOff(knockoutSpeedBoost, Rule.KnockoutSpeedBoost);
 		InitDropdownOnOff(hitOtherPlayers, Rule.HitOtherPlayers);
 		InitDropdownOnOff(hitOtherPlayersBalls, Rule.HitOtherPlayersBalls);
+		InitDropdownOnOff(comeback, Rule.Comeback);
+		InitDropdown(wind, Rule.Wind);
 		InitDropdownOnOff(consoleCommands, Rule.ConsoleCommands);
 		UpdateRule(Rule.ConsoleCommands);
 		UpdateRule(Rule.HitOtherPlayers);
-		int num = 0;
 		Queue<Transform> tabParentQueue = new Queue<Transform>();
 		Transform[] array = itemTabParents;
 		foreach (Transform transform in array)
@@ -240,23 +299,32 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 			tabParentQueue.Enqueue(transform);
 		}
 		tabParentQueue.Peek().gameObject.SetActive(value: true);
+		int num2 = 0;
 		InstantiateSpawnChanceTab(delegate(TMP_Text label)
 		{
 			label.text = Localization.UI.MATCHSETUP_Title_AheadOwnBall;
 		}, 0);
 		RegisterItemPool(itemSpawnerSettings.AheadOfBallItemPool, 0);
-		num++;
+		num2++;
 		foreach (ItemSpawnerSettings.ItemPoolData itemPool in itemSpawnerSettings.ItemPools)
 		{
 			ItemSpawnerSettings.ItemPoolData pool = itemPool;
-			InstantiateSpawnChanceTab(UpdateLocString, num);
-			RegisterItemPool(pool.pool, num);
-			num++;
+			InstantiateSpawnChanceTab(UpdateLocString, num2);
+			RegisterItemPool(pool.pool, num2);
+			num2++;
 			void UpdateLocString(TMP_Text label)
 			{
-				label.text = ((pool.minDistanceBehindLeader > float.Epsilon) ? string.Format(Localization.UI.MATCHSETUP_Title_BehindLead, ">" + pool.minDistanceBehindLeader) : Localization.UI.MATCHSETUP_Title_Ahead);
+				label.text = GetPoolLocString(pool);
 			}
 		}
+		InstantiateSpawnChanceTab(delegate(TMP_Text label)
+		{
+			label.text = Localization.UI.MATCHSETUP_Title_MobilityItemBoxes;
+		}, 5);
+		RegisterItemPool(mobilityItemSpawnerSettings.ItemPools[0].pool, 5);
+		itemTabs[5].transform.SetAsLastSibling();
+		itemTabs[0].transform.SetAsLastSibling();
+		GameSettings.GeneralSettings.DistanceUnitChanged = (Action)Delegate.Combine(GameSettings.GeneralSettings.DistanceUnitChanged, new Action(DistanceUnitChanged));
 		for (int num3 = 0; num3 < itemOrder.Length; num3++)
 		{
 			GameObject gameObject = UnityEngine.Object.Instantiate(itemPrefab);
@@ -282,14 +350,31 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		UpdateCurrentItemPool(currentItemPoolIndex);
 		CheckAndShowCheatsWarning();
 		rulesTab.SetActive(activeSelf);
+		UpdateTooltips();
+		if (base.isServer)
+		{
+			BNetworkManager.singleton.ServerUpdateRules();
+		}
 		void InstantiateSpawnChanceTab(Action<TMP_Text> UpdateLoc, int poolIndex)
 		{
-			Transform transform2 = tabParentQueue.Peek();
-			if (transform2.childCount >= 3)
+			Transform transform2;
+			switch (poolIndex)
 			{
-				tabParentQueue.Dequeue();
+			case 0:
+				transform2 = itemTabParents[^1];
+				break;
+			case 5:
+				transform2 = itemTabParents[^1];
+				break;
+			default:
 				transform2 = tabParentQueue.Peek();
-				transform2.gameObject.SetActive(value: true);
+				if (transform2.childCount >= 3)
+				{
+					tabParentQueue.Dequeue();
+					transform2 = tabParentQueue.Peek();
+					transform2.gameObject.SetActive(value: true);
+				}
+				break;
 			}
 			Button button = UnityEngine.Object.Instantiate(itemTabPrefab, transform2);
 			itemTabs.Add(button);
@@ -317,7 +402,107 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 					spawnChanceWeights.TryAdd(ItemPoolId.Get(poolIndex, itemSpawnChance.item), itemSpawnChance.spawnChanceWeight);
 				}
 			}
+			UpdateTotalWeightForPool(poolIndex);
 		}
+	}
+
+	public string GetPoolLocString(ItemSpawnerSettings.ItemPoolData pool)
+	{
+		int distanceInCurrentUnits = GameSettings.All.General.GetDistanceInCurrentUnits(pool.minDistanceBehindLeader);
+		string arg = string.Format(GameSettings.All.General.GetLocalizedDistanceUnitNameFull(), distanceInCurrentUnits);
+		if (!(pool.minDistanceBehindLeader > float.Epsilon))
+		{
+			return Localization.UI.MATCHSETUP_Title_Ahead;
+		}
+		return string.Format(Localization.UI.MATCHSETUP_Title_Behind, arg);
+	}
+
+	private void UpdateTooltips()
+	{
+		tooltip.DeregisterTooltip(onOrBelowPar.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(speedrun.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(chipIn.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(knockouts.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(countdown.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(outOfBounds.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(maxTimeBasedOnPar.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(overchargeSideSpin.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(homingShots.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(knockoutSpeedBoost.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(hitOtherPlayers.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(hitOtherPlayersBalls.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(comeback.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(wind.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(consoleCommands.GetComponent<RectTransform>());
+		tooltip.RegisterTooltip(onOrBelowPar.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_OnOrBelowPar);
+		tooltip.RegisterTooltip(speedrun.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Speedrun);
+		tooltip.RegisterTooltip(chipIn.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_ChipIn);
+		tooltip.RegisterTooltip(knockouts.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Knockouts);
+		tooltip.RegisterTooltip(countdown.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Countdown);
+		tooltip.RegisterTooltip(outOfBounds.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_OutOfBounds);
+		tooltip.RegisterTooltip(maxTimeBasedOnPar.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_MaxTimeBasedOnPar);
+		tooltip.RegisterTooltip(overchargeSideSpin.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_OverchargeSidespin);
+		tooltip.RegisterTooltip(homingShots.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_HomingShots);
+		tooltip.RegisterTooltip(knockoutSpeedBoost.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_KnockoutSpeedBoost);
+		tooltip.RegisterTooltip(hitOtherPlayers.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_HitOtherPlayers);
+		tooltip.RegisterTooltip(hitOtherPlayersBalls.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_HitOtherPlayersBalls);
+		tooltip.RegisterTooltip(comeback.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Comeback);
+		tooltip.RegisterTooltip(wind.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Wind);
+		tooltip.RegisterTooltip(consoleCommands.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_ConsoleCommands);
+		if (presetCategories.Length != 0 && presetCategories[0] != null)
+		{
+			tooltip.DeregisterTooltip(presetCategories[0].GetComponent<RectTransform>());
+			tooltip.RegisterTooltip(presetCategories[0].GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Preset_Classic);
+		}
+		if (presetCategories.Length > 1 && presetCategories[1] != null)
+		{
+			tooltip.DeregisterTooltip(presetCategories[1].GetComponent<RectTransform>());
+			tooltip.RegisterTooltip(presetCategories[1].GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Preset_ProGolf);
+		}
+		if (presetCategories.Length > 2 && presetCategories[2] != null)
+		{
+			tooltip.DeregisterTooltip(presetCategories[2].GetComponent<RectTransform>());
+			tooltip.RegisterTooltip(presetCategories[2].GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Preset_Custom);
+		}
+		for (int i = 0; i < itemTabs.Count; i++)
+		{
+			Button button = itemTabs[i];
+			TMP_Text componentInChildren = button.GetComponentInChildren<TMP_Text>();
+			RectTransform component = button.GetComponent<RectTransform>();
+			tooltip.DeregisterTooltip(component);
+			string text;
+			if (string.Compare(componentInChildren.text, Localization.UI.MATCHSETUP_Title_AheadOwnBall) == 0)
+			{
+				text = Localization.UI.MATCHSETUP_Tooltip_AheadOwnBall;
+			}
+			else if (string.Compare(componentInChildren.text, Localization.UI.MATCHSETUP_Title_Ahead) == 0)
+			{
+				text = Localization.UI.MATCHSETUP_Tooltip_Ahead;
+			}
+			else if (string.Compare(componentInChildren.text, Localization.UI.MATCHSETUP_Title_MobilityItemBoxes) == 0)
+			{
+				text = Localization.UI.MATCHSETUP_Tooltip_MobilityItemBoxes;
+			}
+			else if (i >= 2)
+			{
+				string arg = string.Format(GameSettings.All.General.GetLocalizedDistanceUnitNameFull(), GameSettings.All.General.GetDistanceInCurrentUnits(itemSpawnerSettings.ItemPools[i - 1].minDistanceBehindLeader));
+				text = string.Format(Localization.UI.MATCHSETUP_Tooltip_Behind, arg);
+			}
+			else
+			{
+				text = "";
+			}
+			if (text != "")
+			{
+				tooltip.RegisterTooltip(component, text);
+			}
+		}
+	}
+
+	private void DistanceUnitChanged()
+	{
+		UpdateTooltips();
+		this.UpdateItemSpawnersLoc?.Invoke();
 	}
 
 	private void UpdateCurrentItemPool(int newIndex)
@@ -330,21 +515,24 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		supressPreset = true;
 		try
 		{
+			ItemPool itemPool = GetItemPool(newIndex);
 			for (int i = 0; i < spawnChanceSliders.Count; i++)
 			{
 				SliderOption slider = spawnChanceSliders[i];
 				int num = i;
 				ItemType item = itemOrder[i];
+				bool itemExistsInPool = Array.Exists(itemPool.SpawnChances, (ItemPool.ItemSpawnChance sc) => sc.item == item);
 				slider.Initialize(delegate
 				{
-					slider.valueWithoutNotify = SnapTo(slider.value, 0.025f);
-					float value = slider.value * 100f;
+					slider.valueWithoutNotify = (itemExistsInPool ? SnapTo(slider.value, 0.025f) : 0f);
+					slider.Slider.interactable = itemExistsInPool;
+					float value = (itemExistsInPool ? (slider.value * 100f) : 0f);
 					if (base.isServer)
 					{
 						spawnChanceWeights[ItemPoolId.Get(currentItemPoolIndex, item)] = value;
 						SetPreset(Preset.Custom);
 					}
-				}, (num < spawnChanceWeights.Count) ? (spawnChanceWeights[ItemPoolId.Get(currentItemPoolIndex, item)] / 100f) : 0f);
+				}, (!itemExistsInPool) ? 0f : ((num < spawnChanceWeights.Count) ? (spawnChanceWeights[ItemPoolId.Get(currentItemPoolIndex, item)] / 100f) : 0f));
 				if (base.isServer)
 				{
 					ServerUpdateSpawnChanceValue(ItemPoolId.Get(currentItemPoolIndex, item));
@@ -372,9 +560,55 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		if (currentItemPoolIndex == itemPoolId.itemPoolIndex)
 		{
 			int index = itemOrderLookup[(int)(itemPoolId.itemType - 1)];
-			spawnChanceSliders[index].valueWithoutNotify = spawnChanceWeights[itemPoolId] / 100f;
+			SliderOption sliderOption = spawnChanceSliders[index];
+			float valueWithoutNotify = spawnChanceWeights[itemPoolId] / 100f;
+			sliderOption.valueWithoutNotify = valueWithoutNotify;
 			currentItemPoolDirty = true;
 		}
+		UpdateTotalWeightForPool(itemPoolId.itemPoolIndex);
+		if (PauseMenu.IsPaused)
+		{
+			SingletonBehaviour<PauseMenu>.Instance.UpdateItemProbabilites();
+		}
+	}
+
+	private void UpdateSliderGreyedOut(SliderOption slider)
+	{
+		Color color = slider.label.color;
+		bool flag = slider.value > 0f;
+		color.a = (flag ? 1f : 0.5f);
+		slider.label.color = color;
+		SetLabelGreyedOut(slider.gameObject, !flag);
+	}
+
+	private void UpdateDropdownGreyedOut(DropdownOption dropdown)
+	{
+		int value = dropdown.value;
+		Color color = dropdown.captionText.color;
+		color.a = ((value == 0) ? 1f : 0.5f);
+		dropdown.captionText.color = color;
+		SetLabelGreyedOut(dropdown.gameObject, value != 0);
+	}
+
+	private void UpdateDropdownGreyedOut(DropdownOption dropdown, int greyedOutOption)
+	{
+		int value = dropdown.value;
+		Color color = dropdown.captionText.color;
+		color.a = ((value == greyedOutOption) ? 0.5f : 1f);
+		dropdown.captionText.color = color;
+		SetLabelGreyedOut(dropdown.gameObject, value == greyedOutOption);
+	}
+
+	private void UpdateTotalWeightForPool(int poolIndex)
+	{
+		float num = 0f;
+		ItemPool.ItemSpawnChance[] spawnChances = GetItemPool(poolIndex).SpawnChances;
+		for (int i = 0; i < spawnChances.Length; i++)
+		{
+			ItemPool.ItemSpawnChance itemSpawnChance = spawnChances[i];
+			num += spawnChanceWeights[ItemPoolId.Get(poolIndex, itemSpawnChance.item)];
+		}
+		totalWeightPerPool[poolIndex] = num;
 	}
 
 	[Server]
@@ -386,16 +620,33 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 			return;
 		}
 		int itemPoolIndex = itemPoolRef.itemPoolIndex;
-		if (itemPoolIndex == 0)
+		switch (itemPoolIndex)
 		{
-			SetSpawnChance(itemSpawnerSettings.AheadOfBallItemPool);
-			return;
+		case 0:
+		{
+			ItemPool aheadOfBallItemPool = itemSpawnerSettings.AheadOfBallItemPool;
+			SetSpawnChance(aheadOfBallItemPool);
+			aheadOfBallItemPool.UpdateTotalWeight();
+			break;
 		}
-		itemPoolIndex--;
-		ItemSpawnerSettings.ItemPoolData value = itemSpawnerSettings.ItemPools[itemPoolIndex];
-		SetSpawnChance(value.pool);
-		value.pool.UpdateTotalWeight();
-		itemSpawnerSettings.ItemPools[itemPoolIndex] = value;
+		case 5:
+		{
+			ItemSpawnerSettings.ItemPoolData value2 = mobilityItemSpawnerSettings.ItemPools[0];
+			SetSpawnChance(mobilityItemSpawnerSettings.ItemPools[0].pool);
+			value2.pool.UpdateTotalWeight();
+			mobilityItemSpawnerSettings.ItemPools[0] = value2;
+			break;
+		}
+		default:
+		{
+			itemPoolIndex--;
+			ItemSpawnerSettings.ItemPoolData value = itemSpawnerSettings.ItemPools[itemPoolIndex];
+			SetSpawnChance(value.pool);
+			value.pool.UpdateTotalWeight();
+			itemSpawnerSettings.ItemPools[itemPoolIndex] = value;
+			break;
+		}
+		}
 		void SetSpawnChance(ItemPool pool)
 		{
 			for (int i = 0; i < pool.SpawnChances.Length; i++)
@@ -439,9 +690,9 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 				ResetRules(curr == Preset.Classic);
 				if (curr == Preset.ProGolf)
 				{
-					TrySetDropdown(Rule.HomingShots, value: false);
-					TrySetDropdown(Rule.MaxTimeBasedOnPar, value: true);
-					TrySetDropdown(Rule.HitOtherPlayers, value: true);
+					TrySetDropdownOnOff(Rule.HomingShots, value: false);
+					TrySetDropdownOnOff(Rule.MaxTimeBasedOnPar, value: true);
+					TrySetDropdownOnOff(Rule.HitOtherPlayers, value: true);
 					List<ItemPoolId> value;
 					using (CollectionPool<List<ItemPoolId>, ItemPoolId>.Get(out value))
 					{
@@ -458,8 +709,16 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 				supressPreset = false;
 			}
 		}
+		if (base.isServer)
+		{
+			BNetworkManager.singleton.ServerUpdateRules();
+		}
 		resetItemSpawnChancesButton.interactable = curr == Preset.Custom && base.isServer;
-		void TrySetDropdown(Rule rule, bool flag)
+		if (PauseMenu.IsPaused)
+		{
+			SingletonBehaviour<PauseMenu>.Instance.UpdateGameInfoLabels();
+		}
+		void TrySetDropdownOnOff(Rule rule, bool flag)
 		{
 			if (onOffDropdownLookup.TryGetValue(rule, out var value2))
 			{
@@ -478,11 +737,18 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 			Rule rule = key;
 			value.SetValue(GetValue(rule));
 		}
+		DropdownOption value2;
 		foreach (KeyValuePair<Rule, DropdownOption> item2 in onOffDropdownLookup)
 		{
-			item2.Deconstruct(out key, out var value2);
+			item2.Deconstruct(out key, out value2);
 			Rule rule2 = key;
 			value2.SetValue((!GetValueAsBool(rule2)) ? 1 : 0);
+		}
+		foreach (KeyValuePair<Rule, DropdownOption> item3 in dropdownLookup)
+		{
+			item3.Deconstruct(out key, out value2);
+			Rule rule3 = key;
+			value2.SetValue((int)GetDefaultValue(rule3));
 		}
 		if (resetSpawnChances)
 		{
@@ -493,7 +759,9 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 	public void ResetSpawnChances()
 	{
 		itemSpawnerSettings.ResetRuntimeData();
+		mobilityItemSpawnerSettings.ResetRuntimeData();
 		ResetItemPool(itemSpawnerSettings.AheadOfBallItemPool, 0);
+		ResetItemPool(mobilityItemSpawnerSettings.ItemPools[0].pool, 5);
 		for (int i = 0; i < itemSpawnerSettings.ItemPools.Count; i++)
 		{
 			ResetItemPool(itemSpawnerSettings.ItemPools[i].pool, i + 1);
@@ -510,9 +778,19 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		}
 	}
 
+	public bool IsSpawnChangeDefault(int poolIndex, ItemType itemType)
+	{
+		ItemPoolId itemPoolId = ItemPoolId.Get(poolIndex, itemType);
+		if (!spawnChanceWeights.ContainsKey(itemPoolId))
+		{
+			return true;
+		}
+		return Mathf.Approximately(spawnChanceWeights[itemPoolId], GetDefaultWeight(poolIndex, itemType));
+	}
+
 	private void SetSpawnChance(int itemPoolIndex, ItemType item, float spawnChance)
 	{
-		if (itemPoolIndex < 0 || itemPoolIndex >= itemSpawnerSettings.ItemPools.Count + 1)
+		if (itemPoolIndex < 0 || itemPoolIndex >= itemSpawnerSettings.ItemPools.Count + 2)
 		{
 			Debug.LogWarning("Invalid item pool index!! " + itemPoolIndex);
 		}
@@ -522,18 +800,15 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		}
 	}
 
+	private void OnWindChanged()
+	{
+		WindManager.Initialize(force: true);
+	}
+
 	private void OnLanguageChanged()
 	{
 		this.UpdateItemSpawnersLoc?.Invoke();
-	}
-
-	public void OnOpenMenu()
-	{
-		GameObject[] array = cheatsOptions;
-		for (int i = 0; i < array.Length; i++)
-		{
-			array[i].SetActive(GameSettings.All.General.DevConsole);
-		}
+		UpdateTooltips();
 	}
 
 	public override void OnStartClient()
@@ -565,39 +840,86 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		base.OnDestroy();
 		itemLayoutInformer.SetLayoutHorizontalCalled -= OnItemLayoutSet;
 		LocalizationManager.LanguageChanged -= OnLanguageChanged;
+		GameSettings.GeneralSettings.DistanceUnitChanged = (Action)Delegate.Remove(GameSettings.GeneralSettings.DistanceUnitChanged, new Action(DistanceUnitChanged));
 	}
 
 	private void Update()
 	{
-		if (MatchSetupMenu.IsActive && currentItemPoolDirty)
+		if (!MatchSetupMenu.IsActive || !currentItemPoolDirty)
 		{
-			ItemPool currentItemPool = GetCurrentItemPool();
-			float num = 0f;
-			ItemPool.ItemSpawnChance[] spawnChances = currentItemPool.SpawnChances;
-			for (int i = 0; i < spawnChances.Length; i++)
-			{
-				ItemPool.ItemSpawnChance itemSpawnChance = spawnChances[i];
-				num += spawnChanceWeights[ItemPoolId.Get(currentItemPoolIndex, itemSpawnChance.item)];
-			}
-			spawnChances = currentItemPool.SpawnChances;
-			for (int i = 0; i < spawnChances.Length; i++)
-			{
-				ItemPool.ItemSpawnChance itemSpawnChance2 = spawnChances[i];
-				SliderOption sliderOption = spawnChanceSliders[itemOrderLookup[(int)(itemSpawnChance2.item - 1)]];
-				float num2 = ((num > float.Epsilon) ? (spawnChanceWeights[ItemPoolId.Get(currentItemPoolIndex, itemSpawnChance2.item)] / num) : 0f);
-				sliderOption.SetValueText($"{num2 * 100f:0.#}%");
-			}
-			currentItemPoolDirty = false;
+			return;
 		}
+		ItemPool currentItemPool = GetCurrentItemPool();
+		float num = totalWeightPerPool[currentItemPoolIndex];
+		foreach (SliderOption spawnChanceSlider in spawnChanceSliders)
+		{
+			if (!spawnChanceSlider.Slider.interactable)
+			{
+				spawnChanceSlider.SetValueText($"{0:0.#}%");
+				UpdateSliderGreyedOut(spawnChanceSlider);
+			}
+		}
+		ItemPool.ItemSpawnChance[] spawnChances = currentItemPool.SpawnChances;
+		for (int i = 0; i < spawnChances.Length; i++)
+		{
+			ItemPool.ItemSpawnChance itemSpawnChance = spawnChances[i];
+			SliderOption sliderOption = spawnChanceSliders[itemOrderLookup[(int)(itemSpawnChance.item - 1)]];
+			float num2 = ((num > float.Epsilon) ? (spawnChanceWeights[ItemPoolId.Get(currentItemPoolIndex, itemSpawnChance.item)] / num) : 0f);
+			sliderOption.SetValueText($"{num2 * 100f:0.#}%");
+			UpdateSliderGreyedOut(sliderOption);
+		}
+		currentItemPoolDirty = false;
+	}
+
+	public float GetItemPoolTotalWeight(int index)
+	{
+		if (totalWeightPerPool.TryGetValue(index, out var value))
+		{
+			return value;
+		}
+		return 0f;
+	}
+
+	public float GetWeight(int poolIndex, ItemType itemType)
+	{
+		spawnChanceWeights.TryGetValue(ItemPoolId.Get(poolIndex, itemType), out var value);
+		return value;
+	}
+
+	public float GetDefaultWeight(int poolIndex, ItemType itemType)
+	{
+		return GetDefaultItemPool(poolIndex).GetSpawnChanceWeight(itemType);
+	}
+
+	public float GetDefaultItemFactor(int poolIndex, ItemType itemType)
+	{
+		ItemPool defaultItemPool = GetDefaultItemPool(poolIndex);
+		float spawnChanceWeight = defaultItemPool.GetSpawnChanceWeight(itemType);
+		if (spawnChanceWeight > 0f && defaultItemPool.TotalSpawnChanceWeight > 0f)
+		{
+			return spawnChanceWeight / defaultItemPool.TotalSpawnChanceWeight;
+		}
+		return 0f;
 	}
 
 	private ItemPool GetItemPool(int index)
 	{
-		if (index != 0)
+		return index switch
 		{
-			return itemSpawnerSettings.ItemPools[index - 1].pool;
-		}
-		return itemSpawnerSettings.AheadOfBallItemPool;
+			0 => itemSpawnerSettings.AheadOfBallItemPool, 
+			5 => mobilityItemSpawnerSettings.ItemPools[0].pool, 
+			_ => itemSpawnerSettings.ItemPools[index - 1].pool, 
+		};
+	}
+
+	private ItemPool GetDefaultItemPool(int index)
+	{
+		return index switch
+		{
+			0 => itemSpawnerSettings.AheadOfBallItemPoolDefaults, 
+			5 => mobilityItemSpawnerSettings.ItemPoolsDefaults[0].pool, 
+			_ => itemSpawnerSettings.ItemPoolsDefaults[index - 1].pool, 
+		};
 	}
 
 	private ItemPool GetCurrentItemPool()
@@ -663,6 +985,14 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		}
 	}
 
+	public void SetLabelGreyedOut(GameObject child, bool greyed)
+	{
+		TMP_Text componentInChildren = child.transform.GetComponentInChildren<TMP_Text>();
+		Color color = componentInChildren.color;
+		color.a = (greyed ? 0.5f : 1f);
+		componentInChildren.color = color;
+	}
+
 	private void RuleUpdated(SyncIDictionary<Rule, float>.Operation operation, Rule rule, float value)
 	{
 		if ((uint)operation == 0u || (uint)operation == 1u)
@@ -670,6 +1000,7 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 			if (!base.isServer)
 			{
 				SliderOption value3;
+				DropdownOption value4;
 				if (onOffDropdownLookup.TryGetValue(rule, out var value2))
 				{
 					value2.SetValue((!GetValueAsBoolInternal(rule)) ? 1 : 0);
@@ -678,12 +1009,24 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 				{
 					value3.SetValue(GetValueInternal(rule));
 				}
+				else if (dropdownLookup.TryGetValue(rule, out value4))
+				{
+					value4.SetValue((int)GetValueInternal(rule));
+				}
 			}
 			UpdateRule(rule);
 		}
 		if (rule == Rule.ConsoleCommands)
 		{
 			CheckAndShowCheatsWarning();
+		}
+		if (rule == Rule.Wind)
+		{
+			OnWindChanged();
+		}
+		if (PauseMenu.IsPaused)
+		{
+			SingletonBehaviour<PauseMenu>.Instance.UpdateRules();
 		}
 	}
 
@@ -693,12 +1036,14 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		if (valueAsBool && !CheatsWarningShowed)
 		{
 			TextChatUi.ShowMessage(string.Format(Localization.UI.TEXTCHAT_Info_CheatsEnabled, GameManager.UiSettings.TextRedHighlightStartTag, GameManager.UiSettings.TextColorEndTag));
+			Debug.Log("CHEATS ARE ENABLED");
 			CheatsWarningShowed = true;
 		}
 		else if (!valueAsBool && CheatsWarningShowed)
 		{
 			TextChatUi.ShowMessage(string.Format(Localization.UI.TEXTCHAT_Info_CheatsDisabled, GameManager.UiSettings.TextHighlightStartTag, GameManager.UiSettings.TextColorEndTag));
 			DevConsole.ResetCVars();
+			Debug.Log("CHEATS ARE DISABLED");
 			CheatsWarningShowed = false;
 		}
 	}
@@ -708,7 +1053,7 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		switch (rule)
 		{
 		case Rule.ConsoleCommands:
-			GameSettings.All.General.UpdateDevConsoleEnabled();
+			GameManager.UpdateConsoleEnabled();
 			break;
 		case Rule.HitOtherPlayers:
 			GameManager.LayerSettings.SetPlayerCollisions(GetValueAsBoolInternal(Rule.HitOtherPlayers));
@@ -734,12 +1079,13 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 			{
 				sliderOption.valueWithoutNotify = snapping(sliderOption.value);
 			}
-			SetValue(rule, sliderOption.value);
 			sliderOption.SetValueText(string.Format(format, BMath.RoundToInt(sliderOption.value * valueMultiplier).ToString()));
+			SetValue(rule, sliderOption.value);
 			if (base.isServer)
 			{
 				SetPreset(Preset.Custom);
 			}
+			UpdateSliderGreyedOut(sliderOption);
 		}, GetValueInternal(rule));
 		sliderLookup[rule] = sliderOption;
 	}
@@ -753,8 +1099,45 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 			{
 				SetPreset(Preset.Custom);
 			}
+			UpdateDropdownGreyedOut(dropdownOption);
 		}, (!GetValueAsBoolInternal(rule)) ? 1 : 0);
 		onOffDropdownLookup[rule] = dropdownOption;
+	}
+
+	private void InitDropdown(DropdownOption dropdownOption, Rule rule)
+	{
+		dropdownOption.Initialize(delegate
+		{
+			SetValue(rule, dropdownOption.value);
+			if (base.isServer)
+			{
+				SetPreset(Preset.Custom);
+			}
+			UpdateDropdownGreyedOut(dropdownOption, 0);
+		}, (int)GetValueInternal(rule));
+		dropdownLookup[rule] = dropdownOption;
+	}
+
+	public string GetFormattedValue(Rule rule)
+	{
+		if (onOffDropdownLookup.TryGetValue(rule, out var value))
+		{
+			return value.Localized.GetLocalizedOption().GetLocalizedString();
+		}
+		if (dropdownLookup.TryGetValue(rule, out var value2))
+		{
+			return value2.Localized.GetLocalizedOption().GetLocalizedString();
+		}
+		if (sliderLookup.TryGetValue(rule, out var value3))
+		{
+			return value3.label.text;
+		}
+		return string.Empty;
+	}
+
+	public bool IsDropdown(Rule rule)
+	{
+		return onOffDropdownLookup.ContainsKey(rule);
 	}
 
 	private void SetValue(Rule rule, float value)
@@ -787,6 +1170,11 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		return GetValue(rule) > 0f;
 	}
 
+	public static bool IsDefaultValue(Rule rule)
+	{
+		return GetDefaultValue(rule) == GetValue(rule);
+	}
+
 	private static float GetDefaultValue(Rule rule)
 	{
 		return rule switch
@@ -797,16 +1185,18 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 			Rule.PlayerSpeed => 1f, 
 			Rule.CartSpeed => 1f, 
 			Rule.SwingPower => 1f, 
-			Rule.OverChargeSideSpin => 1f, 
+			Rule.OverchargeSidespin => 1f, 
 			Rule.HomingShots => 1f, 
 			Rule.KnockoutSpeedBoost => 1f, 
 			Rule.HitOtherPlayers => 1f, 
 			Rule.HitOtherPlayersBalls => 0f, 
 			Rule.ConsoleCommands => 0f, 
-			Rule.OnOrBelowParBonus => 1f, 
-			Rule.SpeedrunBonus => 1f, 
-			Rule.ChipInBonus => 1f, 
-			Rule.KnockoutsBonus => 0f, 
+			Rule.OnOrBelowPar => 1f, 
+			Rule.Speedrun => 1f, 
+			Rule.ChipIn => 1f, 
+			Rule.Knockouts => 0f, 
+			Rule.Wind => 1f, 
+			Rule.Comeback => 1f, 
 			_ => 0f, 
 		};
 	}

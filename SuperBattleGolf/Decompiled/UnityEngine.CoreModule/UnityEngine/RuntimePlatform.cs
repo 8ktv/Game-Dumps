@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 
 namespace UnityEngine;
 
@@ -67,18 +68,26 @@ public enum RuntimePlatform
 	GameCoreXboxOne = 37,
 	PS5 = 38,
 	EmbeddedLinuxArm64 = 39,
+	[Obsolete("32-bit embedded platforms are no longer supported")]
 	EmbeddedLinuxArm32 = 40,
 	EmbeddedLinuxX64 = 41,
+	[Obsolete("32-bit embedded platforms are no longer supported")]
 	EmbeddedLinuxX86 = 42,
 	LinuxServer = 43,
 	WindowsServer = 44,
 	OSXServer = 45,
+	[Obsolete("32-bit embedded platforms are no longer supported")]
 	QNXArm32 = 46,
 	QNXArm64 = 47,
 	QNXX64 = 48,
+	[Obsolete("32-bit embedded platforms are no longer supported")]
 	QNXX86 = 49,
 	VisionOS = 50,
-	ReservedCFE = 51,
+	Switch2 = 51,
+	[Obsolete]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	KeplerArm64 = 52,
+	[Obsolete]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	KeplerX64 = 53
 }

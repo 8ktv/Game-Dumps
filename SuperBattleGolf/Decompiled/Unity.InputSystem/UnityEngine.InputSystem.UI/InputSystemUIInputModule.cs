@@ -10,7 +10,7 @@ using UnityEngine.UIElements;
 
 namespace UnityEngine.InputSystem.UI;
 
-[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.14/manual/UISupport.html#setting-up-ui-input")]
+[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.18/manual/UISupport.html#setting-up-ui-input")]
 public class InputSystemUIInputModule : BaseInputModule
 {
 	private struct InputActionReferenceState

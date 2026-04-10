@@ -3,8 +3,8 @@ using UnityEngine.Scripting;
 
 namespace Unity.Profiling;
 
-[UsedByNativeCode]
 [DebuggerDisplay("Value = {Value}; Count = {Count}")]
+[UsedByNativeCode]
 public struct ProfilerRecorderSample
 {
 	private long value;

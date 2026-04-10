@@ -44,7 +44,7 @@ public static class LightmapperUtils
 
 	public static void Extract(Light l, ref DirectionalLight dir)
 	{
-		dir.instanceID = l.GetInstanceID();
+		dir.entityId = l.GetEntityId();
 		dir.mode = Extract(l.bakingOutput.lightmapBakeType);
 		dir.shadow = l.shadows != LightShadows.None;
 		dir.position = l.transform.position;
@@ -61,7 +61,7 @@ public static class LightmapperUtils
 
 	public static void Extract(Light l, ref PointLight point)
 	{
-		point.instanceID = l.GetInstanceID();
+		point.entityId = l.GetEntityId();
 		point.mode = Extract(l.bakingOutput.lightmapBakeType);
 		point.shadow = l.shadows != LightShadows.None;
 		point.position = l.transform.position;
@@ -80,7 +80,7 @@ public static class LightmapperUtils
 
 	public static void Extract(Light l, ref SpotLight spot)
 	{
-		spot.instanceID = l.GetInstanceID();
+		spot.entityId = l.GetEntityId();
 		spot.mode = Extract(l.bakingOutput.lightmapBakeType);
 		spot.shadow = l.shadows != LightShadows.None;
 		spot.position = l.transform.position;
@@ -102,7 +102,7 @@ public static class LightmapperUtils
 
 	public static void Extract(Light l, ref RectangleLight rect)
 	{
-		rect.instanceID = l.GetInstanceID();
+		rect.entityId = l.GetEntityId();
 		rect.mode = Extract(l.bakingOutput.lightmapBakeType);
 		rect.shadow = l.shadows != LightShadows.None;
 		rect.position = l.transform.position;
@@ -122,7 +122,7 @@ public static class LightmapperUtils
 
 	public static void Extract(Light l, ref DiscLight disc)
 	{
-		disc.instanceID = l.GetInstanceID();
+		disc.entityId = l.GetEntityId();
 		disc.mode = Extract(l.bakingOutput.lightmapBakeType);
 		disc.shadow = l.shadows != LightShadows.None;
 		disc.position = l.transform.position;
@@ -141,8 +141,8 @@ public static class LightmapperUtils
 
 	public static void Extract(Light l, out Cookie cookie)
 	{
-		cookie.instanceID = (l.cookie ? l.cookie.GetInstanceID() : 0);
+		cookie.entityId = (l.cookie ? ((EntityId)l.cookie.GetInstanceID()) : EntityId.None);
 		cookie.scale = 1f;
-		cookie.sizes = ((l.type == UnityEngine.LightType.Directional && (bool)l.cookie) ? new Vector2(l.cookieSize, l.cookieSize) : new Vector2(1f, 1f));
+		cookie.sizes = ((l.type == UnityEngine.LightType.Directional && (bool)l.cookie) ? l.cookieSize2D : new Vector2(1f, 1f));
 	}
 }

@@ -19,9 +19,9 @@ public abstract class BaseTreeView : BaseVerticalCollectionView
 		[SerializeField]
 		private bool autoExpand;
 
+		[SerializeField]
 		[HideInInspector]
 		[UxmlIgnore]
-		[SerializeField]
 		private UxmlAttributeFlags autoExpand_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -91,8 +91,8 @@ public abstract class BaseTreeView : BaseVerticalCollectionView
 
 	private bool m_AutoExpand;
 
-	[SerializeField]
 	[DontCreateProperty]
+	[SerializeField]
 	private List<int> m_ExpandedItemIds;
 
 	[CreateProperty(ReadOnly = true)]

@@ -3,7 +3,7 @@ using System;
 namespace UnityEngine.Rendering;
 
 [Serializable]
-[Obsolete("BatchRendererGroupGlobals and associated cbuffer are now set automatically by Unity. Setting it manually is no longer necessary or supported.")]
+[Obsolete("BatchRendererGroupGlobals and associated cbuffer are now set automatically by Unity. Setting it manually is no longer necessary or supported. #from(2023.1)")]
 public struct BatchRendererGroupGlobals : IEquatable<BatchRendererGroupGlobals>
 {
 	public const string kGlobalsPropertyName = "unity_DOTSInstanceGlobalValues";

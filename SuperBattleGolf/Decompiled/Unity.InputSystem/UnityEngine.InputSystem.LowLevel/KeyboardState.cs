@@ -7,11 +7,11 @@ namespace UnityEngine.InputSystem.LowLevel;
 
 public struct KeyboardState : IInputStateTypeInfo
 {
-	private const int kSizeInBits = 123;
+	private const int kSizeInBits = 126;
 
 	internal const int kSizeInBytes = 16;
 
-	[InputControl(name = "anyKey", displayName = "Any Key", layout = "AnyKey", bit = 1u, sizeInBits = 123u, synthetic = true)]
+	[InputControl(name = "anyKey", displayName = "Any Key", layout = "AnyKey", bit = 1u, sizeInBits = 126u, synthetic = true)]
 	[InputControl(name = "escape", displayName = "Escape", layout = "Key", usages = new string[] { "Back", "Cancel" }, bit = 60u)]
 	[InputControl(name = "space", displayName = "Space", layout = "Key", bit = 1u)]
 	[InputControl(name = "enter", displayName = "Enter", layout = "Key", usage = "Submit", bit = 2u)]
@@ -137,7 +137,11 @@ public struct KeyboardState : IInputStateTypeInfo
 	[InputControl(name = "f22", displayName = "F22", layout = "Key", bit = 121u)]
 	[InputControl(name = "f23", displayName = "F23", layout = "Key", bit = 122u)]
 	[InputControl(name = "f24", displayName = "F24", layout = "Key", bit = 123u)]
+	[InputControl(name = "mediaPlayPause", displayName = "MediaPlayPause", layout = "Key", bit = 124u)]
+	[InputControl(name = "mediaRewind", displayName = "MediaRewind", layout = "Key", bit = 125u)]
+	[InputControl(name = "mediaForward", displayName = "MediaForward", layout = "Key", bit = 126u)]
 	[InputControl(name = "IMESelected", layout = "Button", bit = 127u, synthetic = true)]
+	[InputControl(name = "IMESelectedObsoleteKey", layout = "Key", bit = 127u, synthetic = true)]
 	public unsafe fixed byte keys[16];
 
 	public static FourCC Format => new FourCC('K', 'E', 'Y', 'S');

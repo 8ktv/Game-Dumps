@@ -9,8 +9,8 @@ public class DynamicAtlasSettings
 	[HideInInspector]
 	private int m_MinAtlasSize;
 
-	[HideInInspector]
 	[SerializeField]
+	[HideInInspector]
 	private int m_MaxAtlasSize;
 
 	[SerializeField]

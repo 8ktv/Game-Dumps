@@ -26,6 +26,9 @@ public class ItemData
 	public bool IsExplosive { get; private set; }
 
 	[field: SerializeField]
+	public bool CanBreakBreakableIce { get; private set; }
+
+	[field: SerializeField]
 	public ItemNonAimingUse NonAimUse { get; private set; }
 
 	[field: SerializeField]

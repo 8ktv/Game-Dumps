@@ -113,6 +113,30 @@ internal class StyleValueCollection
 		return StyleKeyword.Null;
 	}
 
+	public StyleMaterialDefinition GetStyleMaterialDefinition(StylePropertyId id)
+	{
+		StyleValue value = default(StyleValue);
+		if (TryGetStyleValue(id, ref value))
+		{
+			object obj = (value.resource.IsAllocated ? value.resource.Target : null);
+			if (obj != null)
+			{
+				return new StyleMaterialDefinition(obj, value.keyword);
+			}
+		}
+		return StyleKeyword.Null;
+	}
+
+	public StyleRatio GetStyleRatio(StylePropertyId id)
+	{
+		StyleValue value = default(StyleValue);
+		if (TryGetStyleValue(id, ref value))
+		{
+			return new StyleRatio(value.number);
+		}
+		return StyleKeyword.Null;
+	}
+
 	public bool TryGetStyleValue(StylePropertyId id, ref StyleValue value)
 	{
 		value.id = StylePropertyId.Unknown;

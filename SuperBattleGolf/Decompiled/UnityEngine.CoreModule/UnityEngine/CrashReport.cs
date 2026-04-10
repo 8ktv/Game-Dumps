@@ -111,6 +111,7 @@ public sealed class CrashReport
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction(Name = "CrashReport_Bindings::GetReports", IsThreadSafe = true)]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	private static extern string[] GetReports();
 
 	[FreeFunction(Name = "CrashReport_Bindings::GetReportData", IsThreadSafe = true)]

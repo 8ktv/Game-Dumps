@@ -42,8 +42,8 @@ public sealed class CustomSampler : Sampler
 		return new CustomSampler(intPtr);
 	}
 
-	[IgnoredByDeepProfiler]
 	[Conditional("ENABLE_PROFILER")]
+	[IgnoredByDeepProfiler]
 	public void Begin()
 	{
 		ProfilerUnsafeUtility.BeginSample(m_Ptr);

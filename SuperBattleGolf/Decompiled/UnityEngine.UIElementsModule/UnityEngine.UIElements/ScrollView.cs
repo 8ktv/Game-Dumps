@@ -51,34 +51,34 @@ public class ScrollView : VisualElement
 		[SerializeField]
 		private bool showHorizontal;
 
+		[SerializeField]
 		[HideInInspector]
 		[UxmlAttribute("show-vertical-scroller")]
-		[SerializeField]
 		private bool showVertical;
 
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		[SerializeField]
 		private UxmlAttributeFlags mode_UxmlAttributeFlags;
 
+		[SerializeField]
 		[UxmlIgnore]
 		[HideInInspector]
-		[SerializeField]
 		private UxmlAttributeFlags nestedInteractionKind_UxmlAttributeFlags;
 
+		[SerializeField]
 		[UxmlIgnore]
 		[HideInInspector]
-		[SerializeField]
 		private UxmlAttributeFlags showHorizontal_UxmlAttributeFlags;
 
+		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
-		[HideInInspector]
 		private UxmlAttributeFlags showVertical_UxmlAttributeFlags;
 
-		[SerializeField]
 		[UxmlIgnore]
 		[HideInInspector]
+		[SerializeField]
 		private UxmlAttributeFlags horizontalScrollerVisibility_UxmlAttributeFlags;
 
 		[SerializeField]
@@ -86,24 +86,24 @@ public class ScrollView : VisualElement
 		[HideInInspector]
 		private UxmlAttributeFlags verticalScrollerVisibility_UxmlAttributeFlags;
 
-		[SerializeField]
 		[HideInInspector]
 		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags horizontalPageSize_UxmlAttributeFlags;
 
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		[SerializeField]
 		private UxmlAttributeFlags verticalPageSize_UxmlAttributeFlags;
 
-		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags mouseWheelScrollSize_UxmlAttributeFlags;
 
-		[UxmlIgnore]
 		[SerializeField]
 		[HideInInspector]
+		[UxmlIgnore]
 		private UxmlAttributeFlags touchScrollBehavior_UxmlAttributeFlags;
 
 		[SerializeField]
@@ -111,14 +111,14 @@ public class ScrollView : VisualElement
 		[UxmlIgnore]
 		private UxmlAttributeFlags scrollDecelerationRate_UxmlAttributeFlags;
 
-		[SerializeField]
 		[HideInInspector]
+		[SerializeField]
 		[UxmlIgnore]
 		private UxmlAttributeFlags elasticity_UxmlAttributeFlags;
 
-		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags elasticAnimationIntervalMs_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -360,6 +360,10 @@ public class ScrollView : VisualElement
 
 	internal static readonly BindingId elasticAnimationIntervalMsProperty = "elasticAnimationIntervalMs";
 
+	private VisualElement m_DeferredScrollToElement;
+
+	private IVisualElementScheduledItem m_DeferredScrollTo;
+
 	private const int k_MaxLocalLayoutPassCount = 5;
 
 	private int m_FirstLayoutPass = -1;
@@ -390,8 +394,8 @@ public class ScrollView : VisualElement
 
 	internal bool m_MouseWheelScrollSizeIsInline;
 
-	[DontCreateProperty]
 	[SerializeField]
+	[DontCreateProperty]
 	private Vector2 m_ScrollOffset;
 
 	private float m_HorizontalPageSize;
@@ -483,6 +487,8 @@ public class ScrollView : VisualElement
 	private float m_LastVelocityLerpTime;
 
 	private bool m_StartedMoving;
+
+	internal bool m_TouchDraggingAllowed = true;
 
 	private bool m_TouchPointerMoveAllowed;
 
@@ -603,19 +609,23 @@ public class ScrollView : VisualElement
 		}
 		set
 		{
-			if (value != m_ScrollOffset)
+			if (!(value != m_ScrollOffset))
 			{
-				horizontalScroller.value = value.x;
-				verticalScroller.value = value.y;
-				m_ScrollOffset = new Vector2(horizontalScroller.value, verticalScroller.value);
-				SaveViewData();
-				if (base.panel != null)
+				return;
+			}
+			horizontalScroller.value = value.x;
+			verticalScroller.value = value.y;
+			m_ScrollOffset = new Vector2(horizontalScroller.value, verticalScroller.value);
+			SaveViewData();
+			if (base.panel != null)
+			{
+				if (!Mathf.Approximately(m_ContentAndVerticalScrollContainer.layout.height - contentViewport.layout.height, 0f))
 				{
 					UpdateScrollers(needsHorizontal, needsVertical);
-					UpdateContentViewTransform();
 				}
-				NotifyPropertyChanged(in scrollOffsetProperty);
+				UpdateContentViewTransform();
 			}
+			NotifyPropertyChanged(in scrollOffsetProperty);
 		}
 	}
 
@@ -860,6 +870,14 @@ public class ScrollView : VisualElement
 		{
 			throw new ArgumentException("Cannot scroll to a VisualElement that's not a child of the ScrollView content-container.");
 		}
+		if (ShouldDeferScrollTo())
+		{
+			StartDeferredScrollTo(child);
+		}
+		else
+		{
+			StopDeferredScrollTo();
+		}
 		m_Velocity = Vector2.zero;
 		float num = 0f;
 		float num2 = 0f;
@@ -876,6 +894,57 @@ public class ScrollView : VisualElement
 		if (num != 0f || num2 != 0f)
 		{
 			UpdateContentViewTransform();
+		}
+	}
+
+	private bool ShouldDeferScrollTo()
+	{
+		return contentContainer.panel.isDirty;
+	}
+
+	private bool ShouldStopDeferredScrollTo()
+	{
+		return !ShouldDeferScrollTo();
+	}
+
+	private void StartDeferredScrollTo(VisualElement target)
+	{
+		m_DeferredScrollToElement = target;
+		if (m_DeferredScrollTo == null)
+		{
+			m_DeferredScrollTo = base.schedule.Execute(PerformDeferredScrollTo).Until(ShouldStopDeferredScrollTo);
+		}
+		else if (!m_DeferredScrollTo.isActive)
+		{
+			m_DeferredScrollTo.Resume();
+		}
+	}
+
+	private void StopDeferredScrollTo()
+	{
+		m_DeferredScrollToElement = null;
+		if (m_DeferredScrollTo != null && m_DeferredScrollTo.isActive)
+		{
+			m_DeferredScrollTo.Pause();
+		}
+	}
+
+	private void PerformDeferredScrollTo()
+	{
+		if (m_DeferredScrollToElement != null)
+		{
+			if (!contentContainer.Contains(m_DeferredScrollToElement))
+			{
+				StopDeferredScrollTo();
+			}
+			else
+			{
+				ScrollTo(m_DeferredScrollToElement);
+			}
+		}
+		else
+		{
+			StopDeferredScrollTo();
 		}
 	}
 
@@ -1053,19 +1122,17 @@ public class ScrollView : VisualElement
 	{
 		if (evt.destinationPanel != null)
 		{
-			m_AttachedRootVisualContainer = GetRootVisualContainer();
+			m_AttachedRootVisualContainer = GetRootVisualContainer() ?? evt.destinationPanel.visualTree;
 			m_AttachedRootVisualContainer?.RegisterCallback<CustomStyleResolvedEvent>(OnRootCustomStyleResolved);
+			RegisterCallback<CustomStyleResolvedEvent>(OnRootCustomStyleResolved);
 			MarkSingleLineHeightDirty();
-			if (evt.destinationPanel.contextType == ContextType.Player)
-			{
-				m_ContentAndVerticalScrollContainer.RegisterCallback<PointerMoveEvent>(OnPointerMove);
-				contentContainer.RegisterCallback<PointerDownEvent>(OnPointerDown, TrickleDown.TrickleDown);
-				contentContainer.RegisterCallback<PointerCancelEvent>(OnPointerCancel);
-				contentContainer.RegisterCallback<PointerUpEvent>(OnPointerUp, TrickleDown.TrickleDown);
-				contentContainer.RegisterCallback<PointerCaptureEvent>(OnPointerCapture);
-				contentContainer.RegisterCallback<PointerCaptureOutEvent>(OnPointerCaptureOut);
-				evt.destinationPanel.visualTree.RegisterCallback<PointerUpEvent>(OnRootPointerUp, TrickleDown.TrickleDown);
-			}
+			m_ContentAndVerticalScrollContainer.RegisterCallback<PointerMoveEvent>(OnPointerMove);
+			contentContainer.RegisterCallback<PointerDownEvent>(OnPointerDown, TrickleDown.TrickleDown);
+			contentContainer.RegisterCallback<PointerCancelEvent>(OnPointerCancel);
+			contentContainer.RegisterCallback<PointerUpEvent>(OnPointerUp, TrickleDown.TrickleDown);
+			contentContainer.RegisterCallback<PointerCaptureEvent>(OnPointerCapture);
+			contentContainer.RegisterCallback<PointerCaptureOutEvent>(OnPointerCaptureOut);
+			evt.destinationPanel.visualTree.RegisterCallback<PointerUpEvent>(OnRootPointerUp, TrickleDown.TrickleDown);
 		}
 	}
 
@@ -1077,16 +1144,14 @@ public class ScrollView : VisualElement
 		{
 			m_AttachedRootVisualContainer?.UnregisterCallback<CustomStyleResolvedEvent>(OnRootCustomStyleResolved);
 			m_AttachedRootVisualContainer = null;
-			if (evt.originPanel.contextType == ContextType.Player)
-			{
-				m_ContentAndVerticalScrollContainer.UnregisterCallback<PointerMoveEvent>(OnPointerMove);
-				contentContainer.UnregisterCallback<PointerDownEvent>(OnPointerDown, TrickleDown.TrickleDown);
-				contentContainer.UnregisterCallback<PointerCancelEvent>(OnPointerCancel);
-				contentContainer.UnregisterCallback<PointerUpEvent>(OnPointerUp, TrickleDown.TrickleDown);
-				contentContainer.UnregisterCallback<PointerCaptureEvent>(OnPointerCapture);
-				contentContainer.UnregisterCallback<PointerCaptureOutEvent>(OnPointerCaptureOut);
-				evt.originPanel.visualTree.UnregisterCallback<PointerUpEvent>(OnRootPointerUp, TrickleDown.TrickleDown);
-			}
+			UnregisterCallback<CustomStyleResolvedEvent>(OnRootCustomStyleResolved);
+			m_ContentAndVerticalScrollContainer.UnregisterCallback<PointerMoveEvent>(OnPointerMove);
+			contentContainer.UnregisterCallback<PointerDownEvent>(OnPointerDown, TrickleDown.TrickleDown);
+			contentContainer.UnregisterCallback<PointerCancelEvent>(OnPointerCancel);
+			contentContainer.UnregisterCallback<PointerUpEvent>(OnPointerUp, TrickleDown.TrickleDown);
+			contentContainer.UnregisterCallback<PointerCaptureEvent>(OnPointerCapture);
+			contentContainer.UnregisterCallback<PointerCaptureOutEvent>(OnPointerCaptureOut);
+			evt.originPanel.visualTree.UnregisterCallback<PointerUpEvent>(OnRootPointerUp, TrickleDown.TrickleDown);
 		}
 	}
 
@@ -1368,18 +1433,23 @@ public class ScrollView : VisualElement
 
 	private void OnPointerDown(PointerDownEvent evt)
 	{
-		if (!(evt.pointerType == PointerType.mouse) && evt.isPrimary)
+		if (evt.pointerType == PointerType.mouse || !m_TouchDraggingAllowed)
+		{
+			return;
+		}
+		bool flag = evt.pointerType == PointerType.tracked;
+		if (evt.isPrimary || flag)
 		{
 			if (evt.pointerId != PointerId.invalidPointerId)
 			{
 				ReleaseScrolling(evt.pointerId, evt.target);
 			}
 			m_PostPointerUpAnimation?.Pause();
-			bool flag = Mathf.Abs(m_Velocity.x) > 10f || Mathf.Abs(m_Velocity.y) > 10f;
+			bool flag2 = Mathf.Abs(m_Velocity.x) > 10f || Mathf.Abs(m_Velocity.y) > 10f;
 			m_TouchPointerMoveAllowed = true;
 			m_StartedMoving = false;
 			InitTouchScrolling(evt.position);
-			if (flag)
+			if (flag2)
 			{
 				contentContainer.CapturePointer(evt.pointerId);
 				contentContainer.panel.PreventCompatibilityMouseEvents(evt.pointerId);
@@ -1391,7 +1461,12 @@ public class ScrollView : VisualElement
 
 	private void OnPointerMove(PointerMoveEvent evt)
 	{
-		if (evt.pointerType == PointerType.mouse || !evt.isPrimary || !m_TouchPointerMoveAllowed)
+		if (evt.pointerType == PointerType.mouse || !m_TouchDraggingAllowed || !m_TouchPointerMoveAllowed)
+		{
+			return;
+		}
+		bool flag = evt.pointerType == PointerType.tracked;
+		if (!evt.isPrimary && !flag)
 		{
 			return;
 		}
@@ -1403,6 +1478,17 @@ public class ScrollView : VisualElement
 		}
 		Vector2 vector = evt.position;
 		Vector2 vector2 = vector - m_PointerStartPosition;
+		if (flag)
+		{
+			if (vector2.sqrMagnitude > 100f)
+			{
+				m_PointerStartPosition = vector;
+				m_StartPosition = scrollOffset;
+				vector2 = Vector2.zero;
+			}
+			vector2 *= 100f;
+			vector2.y = 0f - vector2.y;
+		}
 		if (mode == ScrollViewMode.Horizontal)
 		{
 			vector2.y = 0f;
@@ -1415,7 +1501,8 @@ public class ScrollView : VisualElement
 		{
 			return;
 		}
-		TouchScrollingResult touchScrollingResult = ComputeTouchScrolling(evt.position);
+		Vector2 position = m_PointerStartPosition + vector2;
+		TouchScrollingResult touchScrollingResult = ComputeTouchScrolling(position);
 		if (touchScrollingResult != TouchScrollingResult.Forward)
 		{
 			evt.isHandledByDraggable = true;
@@ -1602,14 +1689,35 @@ public class ScrollView : VisualElement
 
 	private void OnScrollWheel(WheelEvent evt)
 	{
+		if (Application.platform == RuntimePlatform.OSXEditor || Application.platform == RuntimePlatform.OSXPlayer)
+		{
+			if (evt.commandKey)
+			{
+				return;
+			}
+		}
+		else if (evt.ctrlKey)
+		{
+			return;
+		}
 		bool flag = false;
 		bool flag2 = mode != ScrollViewMode.Horizontal && scrollableHeight > 0f;
 		bool flag3 = mode != ScrollViewMode.Vertical && scrollableWidth > 0f;
 		float num = ((flag3 && !flag2) ? evt.delta.y : evt.delta.x);
-		if ((flag3 || flag2) && !m_MouseWheelScrollSizeIsInline && m_SingleLineHeightDirtyFlag)
+		if ((flag3 || flag2) && !m_MouseWheelScrollSizeIsInline)
 		{
+			if (!m_SingleLineHeightDirtyFlag)
+			{
+				VisualElement visualElement = base.parent;
+				if (visualElement == null || !visualElement.isRootVisualContainer || base.parent == m_AttachedRootVisualContainer)
+				{
+					goto IL_00f0;
+				}
+			}
 			ReadSingleLineHeight();
 		}
+		goto IL_00f0;
+		IL_00f0:
 		float num2 = (m_MouseWheelScrollSizeIsInline ? mouseWheelScrollSize : m_SingleLineHeight);
 		if (flag2)
 		{
@@ -1655,20 +1763,30 @@ public class ScrollView : VisualElement
 
 	private void ReadSingleLineHeight()
 	{
-		for (VisualElement visualElement = this; visualElement != null; visualElement = visualElement.parent)
+		if (base.computedStyle.customProperties != null && base.computedStyle.customProperties.TryGetValue("--unity-metrics-single_line-height", out var value))
 		{
-			if (visualElement.computedStyle.customProperties != null && visualElement.computedStyle.customProperties.TryGetValue("--unity-metrics-single_line-height", out var value))
+			m_SingleLineHeightDirtyFlag = false;
+			if (value.sheet.TryReadDimension(value.handle, out var value2))
 			{
-				m_SingleLineHeightDirtyFlag = false;
-				if (value.sheet.TryReadDimension(value.handle, out var value2))
-				{
-					m_SingleLineHeight = value2.value;
-					return;
-				}
+				m_SingleLineHeight = value2.value;
+				return;
 			}
-			else if (visualElement == m_AttachedRootVisualContainer)
+		}
+		VisualElement firstAncestorWhere = GetFirstAncestorWhere((VisualElement x) => x.isRootVisualContainer);
+		if (firstAncestorWhere != m_AttachedRootVisualContainer)
+		{
+			m_AttachedRootVisualContainer.UnregisterCallback<CustomStyleResolvedEvent>(OnRootCustomStyleResolved);
+			m_AttachedRootVisualContainer = firstAncestorWhere;
+			m_AttachedRootVisualContainer.RegisterCallback<CustomStyleResolvedEvent>(OnRootCustomStyleResolved);
+		}
+		VisualElement attachedRootVisualContainer = m_AttachedRootVisualContainer;
+		if (attachedRootVisualContainer != null && attachedRootVisualContainer.computedStyle.customProperties != null && m_AttachedRootVisualContainer.computedStyle.customProperties.TryGetValue("--unity-metrics-single_line-height", out var value3))
+		{
+			m_SingleLineHeightDirtyFlag = false;
+			if (value3.sheet.TryReadDimension(value3.handle, out var value4))
 			{
-				break;
+				m_SingleLineHeight = value4.value;
+				return;
 			}
 		}
 		m_SingleLineHeight = UIElementsUtility.singleLineHeight;

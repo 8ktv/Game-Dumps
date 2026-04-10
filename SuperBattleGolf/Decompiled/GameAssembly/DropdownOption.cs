@@ -14,6 +14,22 @@ public class DropdownOption : MonoBehaviour
 
 	private Action onChanged;
 
+	public TMP_Text captionText => dropdown.captionText;
+
+	public LocalizeDropdown Localized => localized;
+
+	public bool Interactable
+	{
+		get
+		{
+			return dropdown.interactable;
+		}
+		set
+		{
+			dropdown.interactable = value;
+		}
+	}
+
 	public int OptionsCount => dropdown.options.Count;
 
 	public Selectable Selectable => dropdown;

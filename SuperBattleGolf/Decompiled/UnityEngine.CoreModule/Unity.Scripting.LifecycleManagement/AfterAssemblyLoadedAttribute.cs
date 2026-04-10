@@ -3,8 +3,8 @@ using UnityEngine.Bindings;
 
 namespace Unity.Scripting.LifecycleManagement;
 
-[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 [VisibleToOtherModules]
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 internal sealed class AfterAssemblyLoadedAttribute : LifecycleAttributeBase
 {
 }

@@ -176,11 +176,12 @@ internal class EntryRecorder
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public void PushDefaultMaterial(Entry parentEntry, Material material)
+	public void PushDefaultMaterial(Entry parentEntry, MaterialDefinition matDef)
 	{
 		Entry entry = m_EntryPool.Get();
 		entry.type = EntryType.PushDefaultMaterial;
-		entry.material = material;
+		entry.material = matDef.material;
+		entry.userProps = matDef.BuildPropertyBlock();
 		Append(parentEntry, entry);
 	}
 

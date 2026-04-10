@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine.Bindings;
 using UnityEngine.Pool;
 
 namespace UnityEngine.UIElements;
 
+[VisibleToOtherModules(new string[] { "UnityEditor.UIToolkitAuthoringModule", "UnityEngine.VectorGraphicsModule" })]
 internal abstract class BaseRuntimePanel : Panel
 {
 	private GameObject m_SelectableGameObject;
@@ -138,17 +140,8 @@ internal abstract class BaseRuntimePanel : Panel
 
 	internal virtual void Update()
 	{
-		using (m_MarkerTickScheduledActionsPreLayout.Auto())
-		{
-			scheduler.UpdateScheduledEvents();
-			ValidateFocus();
-		}
+		TickSchedulingUpdaters();
 		ValidateLayout();
-		using (m_MarkerTickScheduledActionsPostLayout.Auto())
-		{
-			UpdateAnimations();
-			UpdateBindings();
-		}
 	}
 
 	internal static int getScreenRenderingHeight(int display)

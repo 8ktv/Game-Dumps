@@ -10,6 +10,8 @@ public struct Vertex
 
 	public Vector2 uv;
 
+	internal Vector2 layoutUV;
+
 	internal Color32 xformClipPages;
 
 	internal Color32 ids;

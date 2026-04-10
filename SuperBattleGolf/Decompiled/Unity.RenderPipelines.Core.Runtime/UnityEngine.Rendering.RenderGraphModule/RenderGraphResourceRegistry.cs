@@ -284,9 +284,10 @@ internal class RenderGraphResourceRegistry
 		}
 	}
 
-	internal void IncrementWriteCount(in ResourceHandle res)
+	internal ResourceHandle IncrementWriteCount(in ResourceHandle res)
 	{
-		m_RenderGraphResources[res.iType].resourceArray[res.index].IncrementWriteCount();
+		int version = (int)m_RenderGraphResources[res.iType].resourceArray[res.index].IncrementWriteCount();
+		return new ResourceHandle(in res, version);
 	}
 
 	internal void IncrementReadCount(in ResourceHandle res)
@@ -294,44 +295,15 @@ internal class RenderGraphResourceRegistry
 		m_RenderGraphResources[res.iType].resourceArray[res.index].IncrementReadCount();
 	}
 
-	internal void NewVersion(in ResourceHandle res)
-	{
-		m_RenderGraphResources[res.iType].resourceArray[res.index].NewVersion();
-	}
-
 	internal ResourceHandle GetLatestVersionHandle(in ResourceHandle res)
 	{
-		int num = m_RenderGraphResources[res.iType].resourceArray[res.index].version;
-		if (IsRenderGraphResourceShared(in res))
-		{
-			num -= m_ExecutionCount;
-		}
-		return new ResourceHandle(in res, num);
+		int writeCount = (int)m_RenderGraphResources[res.iType].resourceArray[res.index].writeCount;
+		return new ResourceHandle(in res, writeCount);
 	}
 
-	internal int GetLatestVersionNumber(in ResourceHandle res)
-	{
-		int num = m_RenderGraphResources[res.iType].resourceArray[res.index].version;
-		if (IsRenderGraphResourceShared(in res))
-		{
-			num -= m_ExecutionCount;
-		}
-		return num;
-	}
-
-	internal ResourceHandle GetZeroVersionedHandle(in ResourceHandle res)
+	internal ResourceHandle GetZeroVersionHandle(in ResourceHandle res)
 	{
 		return new ResourceHandle(in res, 0);
-	}
-
-	internal ResourceHandle GetNewVersionedHandle(in ResourceHandle res)
-	{
-		int num = m_RenderGraphResources[res.iType].resourceArray[res.index].NewVersion();
-		if (IsRenderGraphResourceShared(in res))
-		{
-			num -= m_ExecutionCount;
-		}
-		return new ResourceHandle(in res, num);
 	}
 
 	internal IRenderGraphResource GetResourceLowLevel(in ResourceHandle res)
@@ -352,11 +324,6 @@ internal class RenderGraphResourceRegistry
 	internal bool IsRenderGraphResourceImported(in ResourceHandle res)
 	{
 		return m_RenderGraphResources[res.iType].resourceArray[res.index].imported;
-	}
-
-	internal bool IsRenderGraphResourceForceReleased(RenderGraphResourceType type, int index)
-	{
-		return m_RenderGraphResources[(int)type].resourceArray[index].forceRelease;
 	}
 
 	internal bool IsRenderGraphResourceShared(RenderGraphResourceType type, int index)
@@ -406,7 +373,8 @@ internal class RenderGraphResourceRegistry
 		ImportResourceParams importParams = new ImportResourceParams
 		{
 			clearOnFirstUse = false,
-			discardOnLastUse = false
+			discardOnLastUse = false,
+			textureUVOrigin = TextureUVOrigin.BottomLeft
 		};
 		return ImportTexture(in rt, in importParams, isBuiltin);
 	}
@@ -430,6 +398,7 @@ internal class RenderGraphResourceRegistry
 		outRes.desc.clearBuffer = importParams.clearOnFirstUse;
 		outRes.desc.clearColor = importParams.clearColor;
 		outRes.desc.discardBuffer = importParams.discardOnLastUse;
+		outRes.textureUVOrigin = (TextureUVOriginSelection)importParams.textureUVOrigin;
 		TextureHandle result = new TextureHandle(handle, shared: false, isBuiltin);
 		_ = rt;
 		return result;
@@ -453,6 +422,7 @@ internal class RenderGraphResourceRegistry
 			outRes.desc.clearBuffer = importParams.clearOnFirstUse;
 			outRes.desc.clearColor = importParams.clearColor;
 			outRes.desc.discardBuffer = importParams.discardOnLastUse;
+			outRes.textureUVOrigin = (TextureUVOriginSelection)importParams.textureUVOrigin;
 			outRes.validDesc = false;
 		}
 		return new TextureHandle(handle);
@@ -529,6 +499,7 @@ internal class RenderGraphResourceRegistry
 		outRes.desc.clearBuffer = importParams.clearOnFirstUse;
 		outRes.desc.clearColor = importParams.clearColor;
 		outRes.desc.discardBuffer = importParams.discardOnLastUse;
+		outRes.textureUVOrigin = (TextureUVOriginSelection)importParams.textureUVOrigin;
 		outRes.validDesc = false;
 		return new TextureHandle(handle);
 	}
@@ -588,7 +559,7 @@ internal class RenderGraphResourceRegistry
 				{
 					throw new Exception("Invalid imported texture. The RTHandle provided is invalid.");
 				}
-				TextureDesc textureResourceDesc = GetTextureResourceDesc(in res, noThrowOnInvalidDesc: true);
+				ref readonly TextureDesc textureResourceDesc = ref GetTextureResourceDesc(in res, noThrowOnInvalidDesc: true);
 				outInfo.width = textureResourceDesc.width;
 				outInfo.height = textureResourceDesc.height;
 				outInfo.volumeDepth = textureResourceDesc.slices;
@@ -599,7 +570,7 @@ internal class RenderGraphResourceRegistry
 		}
 		else
 		{
-			TextureDesc textureResourceDesc2 = GetTextureResourceDesc(in res);
+			ref readonly TextureDesc textureResourceDesc2 = ref GetTextureResourceDesc(in res);
 			Vector2Int vector2Int = textureResourceDesc2.CalculateFinalDimensions();
 			outInfo = default(RenderTargetInfo);
 			outInfo.width = vector2Int.x;
@@ -638,7 +609,18 @@ internal class RenderGraphResourceRegistry
 		outRes.validDesc = true;
 		outRes.transientPassIndex = transientPassIndex;
 		outRes.requestFallBack = desc.fallBackToBlackTexture;
+		outRes.textureUVOrigin = TextureUVOriginSelection.Unknown;
 		return new TextureHandle(handle);
+	}
+
+	internal void SetTextureAsMemoryLess(in ResourceHandle handle)
+	{
+		ref TextureDesc desc = ref GetTextureResource(in handle).desc;
+		desc.memoryless = ((!GraphicsFormatUtility.IsDepthStencilFormat(desc.format)) ? RenderTextureMemoryless.Color : RenderTextureMemoryless.Depth);
+		if (desc.msaaSamples != MSAASamples.None)
+		{
+			desc.memoryless |= RenderTextureMemoryless.MSAA;
+		}
 	}
 
 	internal int GetResourceCount(RenderGraphResourceType type)
@@ -661,14 +643,14 @@ internal class RenderGraphResourceRegistry
 		return m_RenderGraphResources[0].resourceArray[index] as TextureResource;
 	}
 
-	internal TextureDesc GetTextureResourceDesc(in ResourceHandle handle, bool noThrowOnInvalidDesc = false)
+	internal ref readonly TextureDesc GetTextureResourceDesc(in ResourceHandle handle, bool noThrowOnInvalidDesc = false)
 	{
 		TextureResource obj = m_RenderGraphResources[0].resourceArray[handle.index] as TextureResource;
 		if (!obj.validDesc && !noThrowOnInvalidDesc)
 		{
 			throw new ArgumentException("The passed in texture handle does not have a valid descriptor. (This is most commonly cause by the handle referencing a built-in texture such as the system back buffer.)", "handle");
 		}
-		return obj.desc;
+		return ref obj.desc;
 	}
 
 	internal RendererListHandle CreateRendererList(in RendererListDesc desc)
@@ -744,13 +726,12 @@ internal class RenderGraphResourceRegistry
 		return new RendererListHandle(m_RendererListLegacyResources.Add(in value), RendererListHandleType.Legacy);
 	}
 
-	internal BufferHandle ImportBuffer(GraphicsBuffer graphicsBuffer, bool forceRelease = false)
+	internal BufferHandle ImportBuffer(GraphicsBuffer graphicsBuffer)
 	{
 		BufferResource outRes;
 		int handle = m_RenderGraphResources[1].AddNewRenderGraphResource<BufferResource>(out outRes);
 		outRes.graphicsResource = graphicsBuffer;
 		outRes.imported = true;
-		outRes.forceRelease = forceRelease;
 		outRes.validDesc = false;
 		return new BufferHandle(handle);
 	}
@@ -765,14 +746,14 @@ internal class RenderGraphResourceRegistry
 		return new BufferHandle(handle);
 	}
 
-	internal BufferDesc GetBufferResourceDesc(in ResourceHandle handle, bool noThrowOnInvalidDesc = false)
+	internal ref readonly BufferDesc GetBufferResourceDesc(in ResourceHandle handle, bool noThrowOnInvalidDesc = false)
 	{
 		BufferResource obj = m_RenderGraphResources[1].resourceArray[handle.index] as BufferResource;
 		if (!obj.validDesc && !noThrowOnInvalidDesc)
 		{
 			throw new ArgumentException("The passed in buffer handle does not have a valid descriptor. (This is most commonly cause by importing the buffer.)", "handle");
 		}
-		return obj.desc;
+		return ref obj.desc;
 	}
 
 	internal int GetBufferResourceCount()
@@ -806,7 +787,6 @@ internal class RenderGraphResourceRegistry
 		int handle = m_RenderGraphResources[2].AddNewRenderGraphResource<RayTracingAccelerationStructureResource>(out outRes, pooledResource: false);
 		outRes.graphicsResource = accelStruct;
 		outRes.imported = true;
-		outRes.forceRelease = false;
 		outRes.desc.name = name;
 		return new RayTracingAccelerationStructureHandle(handle);
 	}
@@ -848,7 +828,7 @@ internal class RenderGraphResourceRegistry
 		IRenderGraphResource renderGraphResource = m_RenderGraphResources[type].resourceArray[index];
 		if (!renderGraphResource.imported)
 		{
-			renderGraphResource.CreatePooledGraphicsResource();
+			renderGraphResource.CreatePooledGraphicsResource(rgContext.forceResourceCreation);
 			if (m_RenderGraphDebug.enableLogging)
 			{
 				renderGraphResource.LogCreation(m_FrameInformationLogger);
@@ -881,12 +861,15 @@ internal class RenderGraphResourceRegistry
 		return result;
 	}
 
-	internal void ClearResource(InternalRenderGraphContext rgContext, int type, int index)
+	internal bool ClearResource(InternalRenderGraphContext rgContext, int type, int index)
 	{
+		bool result = false;
 		if (m_RenderGraphResources[type].resourceArray[index] is TextureResource resource)
 		{
 			ClearTexture(rgContext, resource);
+			result = true;
 		}
+		return result;
 	}
 
 	private void ClearTexture(InternalRenderGraphContext rgContext, TextureResource resource)
@@ -903,7 +886,7 @@ internal class RenderGraphResourceRegistry
 	internal void ReleasePooledResource(InternalRenderGraphContext rgContext, int type, int index)
 	{
 		IRenderGraphResource renderGraphResource = m_RenderGraphResources[type].resourceArray[index];
-		if (!renderGraphResource.imported || renderGraphResource.forceRelease)
+		if (!renderGraphResource.imported)
 		{
 			m_RenderGraphResources[type].releaseResourceCallback?.Invoke(rgContext, renderGraphResource);
 			if (m_RenderGraphDebug.enableLogging)

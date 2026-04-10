@@ -6,10 +6,10 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Experimental.Playables;
 
-[NativeHeader("Runtime/Export/Director/TextureMixerPlayable.bindings.h")]
 [NativeHeader("Runtime/Director/Core/HPlayable.h")]
-[RequiredByNativeCode]
 [StaticAccessor("TextureMixerPlayableBindings", StaticAccessorType.DoubleColon)]
+[NativeHeader("Runtime/Export/Director/TextureMixerPlayable.bindings.h")]
+[RequiredByNativeCode]
 [NativeHeader("Runtime/Graphics/Director/TextureMixerPlayable.h")]
 public struct TextureMixerPlayable : IPlayable, IEquatable<TextureMixerPlayable>
 {

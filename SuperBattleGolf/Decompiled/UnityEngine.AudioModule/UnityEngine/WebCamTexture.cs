@@ -6,16 +6,17 @@ using UnityEngine.Internal;
 
 namespace UnityEngine;
 
-[NativeHeader("AudioScriptingClasses.h")]
-[NativeHeader("Runtime/Video/ScriptBindings/WebCamTexture.bindings.h")]
 [NativeHeader("Runtime/Video/BaseWebCamTexture.h")]
+[NativeHeader("Runtime/Video/ScriptBindings/WebCamTexture.bindings.h")]
+[NativeHeader("AudioScriptingClasses.h")]
 public sealed class WebCamTexture : Texture
 {
 	public static extern WebCamDevice[] devices
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		[StaticAccessor("WebCamTextureBindings", StaticAccessorType.DoubleColon)]
 		[NativeName("Internal_GetDevices")]
+		[StaticAccessor("WebCamTextureBindings", StaticAccessorType.DoubleColon)]
+		[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 		get;
 	}
 
@@ -317,7 +318,7 @@ public sealed class WebCamTexture : Texture
 	}
 
 	[FreeFunction("WebCamTextureBindings::Internal_GetPixels", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public Color[] GetPixels(int x, int y, int blockWidth, int blockHeight)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -335,8 +336,8 @@ public sealed class WebCamTexture : Texture
 	}
 
 	[FreeFunction("WebCamTextureBindings::Internal_GetPixels32", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
-	public Color32[] GetPixels32([DefaultValue("null")][Unmarshalled] Color32[] colors)
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
+	public Color32[] GetPixels32([UnityMarshalAs(NativeType.ScriptingObjectPtr)][DefaultValue("null")] Color32[] colors)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 		if (intPtr == (IntPtr)0)

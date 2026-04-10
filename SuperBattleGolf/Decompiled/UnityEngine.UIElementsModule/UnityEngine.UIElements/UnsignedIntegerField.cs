@@ -9,12 +9,12 @@ public class UnsignedIntegerField : TextValueField<uint>
 {
 	[Serializable]
 	[ExcludeFromDocs]
-	public new class UxmlSerializedData : TextInputBaseField<uint>.UxmlSerializedData
+	public new class UxmlSerializedData : TextValueField<uint>.UxmlSerializedData
 	{
 		[Conditional("UNITY_EDITOR")]
 		public new static void Register()
 		{
-			TextInputBaseField<uint>.UxmlSerializedData.Register();
+			TextValueField<uint>.UxmlSerializedData.Register();
 		}
 
 		public override object CreateInstance()
@@ -37,7 +37,7 @@ public class UnsignedIntegerField : TextValueField<uint>
 	{
 		private UnsignedIntegerField parentUnsignedIntegerField => (UnsignedIntegerField)base.parent;
 
-		protected override string allowedCharacters => UINumericFieldsUtils.k_AllowedCharactersForInt;
+		protected override string allowedCharacters => parentUnsignedIntegerField.supportExpressions ? UINumericFieldsUtils.k_AllowedCharactersForInt : UINumericFieldsUtils.k_AllowedCharactersForUInt_NoExpressions;
 
 		internal UnsignedIntegerInput()
 		{

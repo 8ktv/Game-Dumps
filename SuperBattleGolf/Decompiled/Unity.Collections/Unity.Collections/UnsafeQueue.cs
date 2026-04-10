@@ -188,7 +188,7 @@ public struct UnsafeQueue<T> : INativeDisposable, IDisposable where T : unmanage
 			ptr->m_NumItems++;
 		}
 
-		internal unsafe void Enqueue(T value, int threadIndexOverride)
+		public unsafe void Enqueue(T value, int threadIndexOverride)
 		{
 			UnsafeQueueBlockHeader* ptr = UnsafeQueueData.AllocateWriteBlockMT<T>(m_Buffer, m_AllocatorLabel, threadIndexOverride);
 			UnsafeUtility.WriteArrayElement(ptr + 1, ptr->m_NumItems, value);

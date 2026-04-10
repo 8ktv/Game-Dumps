@@ -159,6 +159,7 @@ internal class VectorImageManager : IDisposable
 						location.y += atlasRect.y;
 						gradientRemap2.location = location;
 						gradientRemap2.atlas = textureId;
+						gradientRemap2.next = null;
 					}
 					m_GradientSettingsAtlas.Write(alloc, vi.settings, vectorImageRenderInfo.firstGradientRemap);
 				}
@@ -180,9 +181,11 @@ internal class VectorImageManager : IDisposable
 						gradientRemap4.origIndex = j;
 						gradientRemap4.destIndex = (int)alloc.start + j;
 						gradientRemap4.atlas = TextureId.invalid;
+						gradientRemap4.next = null;
 					}
 					m_GradientSettingsAtlas.Write(alloc, vi.settings, null);
 				}
+				vectorImageRenderInfo.gradientSettingsAlloc = alloc;
 			}
 			else if (!m_LoggedExhaustedSettingsAtlas)
 			{
@@ -195,11 +198,12 @@ internal class VectorImageManager : IDisposable
 
 	private void Unregister(VectorImage vi, VectorImageRenderInfo renderInfo)
 	{
+		GradientRemap gradientRemap = renderInfo.firstGradientRemap;
 		if (renderInfo.gradientSettingsAlloc.size != 0)
 		{
 			m_GradientSettingsAtlas.Remove(renderInfo.gradientSettingsAlloc);
+			m_Atlas.ReturnAtlas(null, vi.atlas, gradientRemap.atlas);
 		}
-		GradientRemap gradientRemap = renderInfo.firstGradientRemap;
 		while (gradientRemap != null)
 		{
 			GradientRemap next = gradientRemap.next;

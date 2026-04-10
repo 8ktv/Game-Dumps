@@ -10,7 +10,10 @@ public struct GlobalDynamicResolutionSettings
 
 	public bool useMipBias;
 
+	[Obsolete("Obsolete, use advancedUpscalerNames list instead.")]
 	public List<AdvancedUpscalers> advancedUpscalersByPriority;
+
+	public List<string> advancedUpscalerNames;
 
 	public uint DLSSPerfQualitySetting;
 
@@ -26,6 +29,16 @@ public struct GlobalDynamicResolutionSettings
 
 	[Range(0f, 1f)]
 	public float DLSSSharpness;
+
+	public uint DLSSRenderPresetForQuality;
+
+	public uint DLSSRenderPresetForBalanced;
+
+	public uint DLSSRenderPresetForPerformance;
+
+	public uint DLSSRenderPresetForUltraPerformance;
+
+	public uint DLSSRenderPresetForDLAA;
 
 	public bool FSR2EnableSharpness;
 
@@ -63,7 +76,7 @@ public struct GlobalDynamicResolutionSettings
 
 	public float lowResVolumetricCloudsMinimumThreshold;
 
-	[Obsolete("Obsolete, used only for data migration. Use the advancedUpscalersByPriority list instead to add the proper supported advanced upscaler by priority.")]
+	[Obsolete("Obsolete, used only for data migration. Use the advancedUpscalersByPriority list instead to add the proper supported advanced upscaler by priority. #from(2023.3)")]
 	public bool enableDLSS;
 
 	public static GlobalDynamicResolutionSettings NewDefault()
@@ -82,11 +95,16 @@ public struct GlobalDynamicResolutionSettings
 			DLSSUseOptimalSettings = true,
 			DLSSPerfQualitySetting = 0u,
 			DLSSSharpness = 0.5f,
+			DLSSRenderPresetForQuality = 0u,
+			DLSSRenderPresetForBalanced = 0u,
+			DLSSRenderPresetForPerformance = 0u,
+			DLSSRenderPresetForUltraPerformance = 0u,
+			DLSSRenderPresetForDLAA = 0u,
 			DLSSInjectionPoint = DynamicResolutionHandler.UpsamplerScheduleType.BeforePost,
 			FSR2InjectionPoint = DynamicResolutionHandler.UpsamplerScheduleType.BeforePost,
 			TAAUInjectionPoint = DynamicResolutionHandler.UpsamplerScheduleType.BeforePost,
 			defaultInjectionPoint = DynamicResolutionHandler.UpsamplerScheduleType.AfterPost,
-			advancedUpscalersByPriority = new List<AdvancedUpscalers> { AdvancedUpscalers.STP },
+			advancedUpscalerNames = new List<string> { AdvancedUpscalers.STP.ToString() },
 			fsrOverrideSharpness = false,
 			fsrSharpness = 0.92f
 		};

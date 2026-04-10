@@ -781,11 +781,6 @@ internal class AddressablesImpl : IEqualityComparer<IResourceLocation>
 		m_ResourceManager.Release(handle);
 	}
 
-	private AsyncOperationHandle<long> GetDownloadSizeWithChain(AsyncOperationHandle dep, object key)
-	{
-		return ResourceManager.CreateChainOperation(dep, (AsyncOperationHandle op) => GetDownloadSizeAsync(key));
-	}
-
 	private AsyncOperationHandle<long> ComputeCatalogSizeWithChain(IResourceLocation catalogLoc)
 	{
 		if (!catalogLoc.HasDependencies)

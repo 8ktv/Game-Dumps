@@ -11,7 +11,8 @@ internal struct LayoutCachedMeasurement
 		WidthMeasureMode = LayoutMeasureMode.Invalid,
 		HeightMeasureMode = LayoutMeasureMode.Invalid,
 		ComputedWidth = -1f,
-		ComputedHeight = -1f
+		ComputedHeight = -1f,
+		m_NextMeasurementCachePtr = null
 	};
 
 	public float AvailableWidth;
@@ -29,4 +30,13 @@ internal struct LayoutCachedMeasurement
 	public float ComputedWidth;
 
 	public float ComputedHeight;
+
+	private unsafe void* m_NextMeasurementCachePtr;
+
+	public unsafe LayoutCachedMeasurement* NextMeasurementCache => (LayoutCachedMeasurement*)m_NextMeasurementCachePtr;
+
+	public override readonly string ToString()
+	{
+		return $"Available: {AvailableWidth}/{AvailableHeight}   Parent: {ParentWidth}/{ParentHeight}   MeasureMode: {WidthMeasureMode}/{HeightMeasureMode},   Computed: {ComputedWidth}/{ComputedHeight}";
+	}
 }

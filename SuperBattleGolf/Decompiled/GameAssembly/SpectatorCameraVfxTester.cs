@@ -19,18 +19,47 @@ public class SpectatorCameraVfxTester : MonoBehaviour
 	[SerializeField]
 	private ParticleSystem confused;
 
-	private Dictionary<SpectatorCameraEmoteType, ParticleSystem> emoteVfx;
+	[SerializeField]
+	private ParticleSystem cheer;
+
+	[SerializeField]
+	private ParticleSystem heartsLocal;
+
+	[SerializeField]
+	private ParticleSystem shockedLocal;
+
+	[SerializeField]
+	private ParticleSystem sadLocal;
+
+	[SerializeField]
+	private ParticleSystem confusedLocal;
+
+	[SerializeField]
+	private ParticleSystem cheerLocal;
+
+	private Dictionary<SpectatorEmote, ParticleSystem> emoteVfx;
+
+	private Dictionary<SpectatorEmote, ParticleSystem> emoteLocalVfx;
 
 	private bool isTalking;
 
 	private void Awake()
 	{
-		emoteVfx = new Dictionary<SpectatorCameraEmoteType, ParticleSystem>
+		emoteVfx = new Dictionary<SpectatorEmote, ParticleSystem>
 		{
-			[SpectatorCameraEmoteType.Heart] = hearts,
-			[SpectatorCameraEmoteType.Shocked] = shocked,
-			[SpectatorCameraEmoteType.Sad] = sad,
-			[SpectatorCameraEmoteType.Confused] = confused
+			[SpectatorEmote.Heart] = hearts,
+			[SpectatorEmote.Shocked] = shocked,
+			[SpectatorEmote.Worried] = sad,
+			[SpectatorEmote.Confused] = confused,
+			[SpectatorEmote.Cheer] = cheer
+		};
+		emoteLocalVfx = new Dictionary<SpectatorEmote, ParticleSystem>
+		{
+			[SpectatorEmote.Heart] = heartsLocal,
+			[SpectatorEmote.Shocked] = shockedLocal,
+			[SpectatorEmote.Worried] = sadLocal,
+			[SpectatorEmote.Confused] = confusedLocal,
+			[SpectatorEmote.Cheer] = cheerLocal
 		};
 	}
 
@@ -38,19 +67,23 @@ public class SpectatorCameraVfxTester : MonoBehaviour
 	{
 		if (Keyboard.current[Key.Q].wasPressedThisFrame)
 		{
-			TryEmote(SpectatorCameraEmoteType.Heart);
+			TryEmote(SpectatorEmote.Heart);
 		}
 		if (Keyboard.current[Key.W].wasPressedThisFrame)
 		{
-			TryEmote(SpectatorCameraEmoteType.Shocked);
+			TryEmote(SpectatorEmote.Shocked);
 		}
 		if (Keyboard.current[Key.E].wasPressedThisFrame)
 		{
-			TryEmote(SpectatorCameraEmoteType.Sad);
+			TryEmote(SpectatorEmote.Worried);
 		}
 		if (Keyboard.current[Key.R].wasPressedThisFrame)
 		{
-			TryEmote(SpectatorCameraEmoteType.Confused);
+			TryEmote(SpectatorEmote.Confused);
+		}
+		if (Keyboard.current[Key.T].wasPressedThisFrame)
+		{
+			TryEmote(SpectatorEmote.Cheer);
 		}
 		if (Keyboard.current[Key.LeftAlt].wasPressedThisFrame)
 		{
@@ -59,10 +92,18 @@ public class SpectatorCameraVfxTester : MonoBehaviour
 		}
 	}
 
-	private void TryEmote(SpectatorCameraEmoteType type)
+	private void TryEmote(SpectatorEmote type)
 	{
-		spectator.TryEmote(type);
-		if (emoteVfx.ContainsKey(type) && (bool)emoteVfx[type])
+		bool isPressed = Keyboard.current[Key.LeftShift].isPressed;
+		spectator.PlayEmote(type, isPressed, isTestScene: true);
+		if (isPressed)
+		{
+			if (emoteLocalVfx.ContainsKey(type) && (bool)emoteLocalVfx[type])
+			{
+				emoteLocalVfx[type].Play();
+			}
+		}
+		else if (emoteVfx.ContainsKey(type) && (bool)emoteVfx[type])
 		{
 			emoteVfx[type].Play();
 		}

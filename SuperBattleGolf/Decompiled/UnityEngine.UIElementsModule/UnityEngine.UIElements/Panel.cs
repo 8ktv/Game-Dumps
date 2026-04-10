@@ -6,7 +6,7 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.UIElements;
 
-[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEditor.UIToolkitAuthoringModule" })]
 internal class Panel : BaseVisualElementPanel
 {
 	internal class UIFrameState
@@ -99,8 +99,6 @@ internal class Panel : BaseVisualElementPanel
 
 	private static ProfilerMarker s_MarkerPickAll = new ProfilerMarker("UIElements.PickAll");
 
-	private TimerEventScheduler m_Scheduler;
-
 	private bool m_JustReceivedFocus;
 
 	private IDebugPanelChangeReceiver m_PanelChangeReceiver;
@@ -112,10 +110,6 @@ internal class Panel : BaseVisualElementPanel
 	public sealed override VisualElement visualTree => m_RootContainer;
 
 	public sealed override EventDispatcher dispatcher { get; set; }
-
-	public TimerEventScheduler timerEventScheduler => m_Scheduler ?? (m_Scheduler = new TimerEventScheduler());
-
-	internal override IScheduler scheduler => timerEventScheduler;
 
 	internal VisualTreeUpdater visualTreeUpdater => m_VisualTreeUpdater;
 
@@ -186,6 +180,7 @@ internal class Panel : BaseVisualElementPanel
 		}
 	}
 
+	[Obsolete("Use the non-static TimeSinceStartupFunc instead")]
 	internal static TimeMsFunction TimeSinceStartup { get; set; }
 
 	public override int IMGUIContainersCount { get; set; }
@@ -283,7 +278,7 @@ internal class Panel : BaseVisualElementPanel
 		m_RootContainer = ((contextType == ContextType.Editor) ? new EditorPanelRootElement() : new PanelRootElement());
 		visualTree.SetPanel(this);
 		focusController = new FocusController(new VisualElementFocusRing(visualTree));
-		styleAnimationSystem = new StylePropertyAnimationSystem();
+		styleAnimationSystem = new StylePropertyAnimationSystem(this);
 		CreateMarkers();
 		InvokeHierarchyChanged(visualTree, HierarchyChangeType.AddedToParent);
 		atlas = new DynamicAtlas();
@@ -291,26 +286,21 @@ internal class Panel : BaseVisualElementPanel
 
 	protected override void Dispose(bool disposing)
 	{
-		if (!base.disposed)
+		if (base.disposed)
 		{
-			if (disposing)
-			{
-				atlas = null;
-				visualTree.Clear();
-				m_VisualTreeUpdater.Dispose();
-			}
-			base.Dispose(disposing);
+			return;
 		}
-	}
-
-	public static long TimeSinceStartupMs()
-	{
-		return TimeSinceStartup?.Invoke() ?? DefaultTimeSinceStartupMs();
-	}
-
-	internal static long DefaultTimeSinceStartupMs()
-	{
-		return (long)(Time.realtimeSinceStartup * 1000f);
+		if (disposing)
+		{
+			atlas = null;
+			visualTree.Clear();
+			m_VisualTreeUpdater.Dispose();
+			if (textElementRegistry.IsValueCreated)
+			{
+				textElementRegistry.Value.Clear();
+			}
+		}
+		base.Dispose(disposing);
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "Assembly-CSharp-testable" })]
@@ -400,6 +390,7 @@ internal class Panel : BaseVisualElementPanel
 		{
 			if (!m_ValidatingLayout)
 			{
+				UIElementsUtility.RebuildDirtyStyleSheets();
 				m_ValidatingLayout = true;
 				m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.Styles);
 				m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.Layout);
@@ -430,7 +421,9 @@ internal class Panel : BaseVisualElementPanel
 		{
 			using (m_MarkerTickScheduledActions.Auto())
 			{
-				timerEventScheduler.UpdateScheduledEvents();
+				UIElementsUtility.RebuildDirtyStyleSheets();
+				base.scheduler.UpdateScheduledEvents();
+				ValidateFocus();
 				ValidateFocus();
 				UpdateBindings();
 				UpdateDataBinding();
@@ -438,6 +431,11 @@ internal class Panel : BaseVisualElementPanel
 				m_LastTickedHierarchyVersion = m_HierarchyVersion;
 			}
 		}
+	}
+
+	public override void UpdateAuthoring()
+	{
+		m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.Authoring);
 	}
 
 	public override void ApplyStyles()
@@ -451,19 +449,25 @@ internal class Panel : BaseVisualElementPanel
 		{
 			TickSchedulingUpdaters();
 		}
-		m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.DataBinding);
+		else
+		{
+			UIElementsUtility.RebuildDirtyStyleSheets();
+		}
 		m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.Styles);
 		m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.Layout);
 		m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.TransformClip);
 		m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.Repaint);
+		m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.Authoring);
 	}
 
 	internal void UpdateWithoutRepaint()
 	{
+		UIElementsUtility.RebuildDirtyStyleSheets();
 		m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.Bindings);
 		m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.DataBinding);
 		m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.Styles);
 		m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.Layout);
+		m_VisualTreeUpdater.UpdateVisualTreePhase(VisualTreeUpdatePhase.Authoring);
 	}
 
 	public override void Repaint(Event e)

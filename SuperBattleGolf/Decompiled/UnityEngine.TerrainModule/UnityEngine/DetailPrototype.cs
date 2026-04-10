@@ -8,10 +8,10 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
-[NativeHeader("TerrainScriptingClasses.h")]
-[NativeHeader("Modules/Terrain/Public/TerrainDataScriptingInterface.h")]
-[UsedByNativeCode]
 [NativeAsStruct]
+[UsedByNativeCode]
+[NativeHeader("Modules/Terrain/Public/TerrainDataScriptingInterface.h")]
+[NativeHeader("TerrainScriptingClasses.h")]
 public sealed class DetailPrototype
 {
 	internal static readonly Color DefaultHealthColor = new Color(0.2627451f, 83f / 85f, 14f / 85f, 1f);

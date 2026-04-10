@@ -6,13 +6,13 @@ namespace UnityEngine.Rendering.RenderGraphModule;
 
 [DebuggerDisplay("Texture ({handle.index})")]
 [MovedFrom(true, "UnityEngine.Experimental.Rendering.RenderGraphModule", "UnityEngine.Rendering.RenderGraphModule", null)]
-public struct TextureHandle
+public readonly struct TextureHandle
 {
 	private static TextureHandle s_NullHandle;
 
-	internal ResourceHandle handle;
+	internal readonly ResourceHandle handle;
 
-	private bool builtin;
+	private readonly bool builtin;
 
 	public static TextureHandle nullHandle => s_NullHandle;
 

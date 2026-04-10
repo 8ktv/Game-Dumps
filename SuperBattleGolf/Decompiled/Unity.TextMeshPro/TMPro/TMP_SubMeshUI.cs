@@ -219,8 +219,12 @@ public class TMP_SubMeshUI : MaskableGraphic
 		tMP_SubMeshUI.m_fontAsset = materialReference.fontAsset;
 		tMP_SubMeshUI.m_spriteAsset = materialReference.spriteAsset;
 		tMP_SubMeshUI.m_isDefaultMaterial = materialReference.isDefaultMaterial;
-		tMP_SubMeshUI.maskable = textComponent.maskable;
 		tMP_SubMeshUI.SetSharedMaterial(materialReference.material);
+		if (!textComponent.maskable)
+		{
+			tMP_SubMeshUI.maskable = false;
+			tMP_SubMeshUI.RecalculateClipping();
+		}
 		return tMP_SubMeshUI;
 	}
 

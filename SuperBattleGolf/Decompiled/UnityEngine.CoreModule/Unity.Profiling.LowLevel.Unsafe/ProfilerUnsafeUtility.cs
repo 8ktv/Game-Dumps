@@ -9,8 +9,8 @@ using UnityEngine.Scripting;
 namespace Unity.Profiling.LowLevel.Unsafe;
 
 [UsedByNativeCode]
-[NativeHeader("Runtime/Profiler/ScriptBindings/ProfilerUnsafeUtility.bindings.h")]
 [IgnoredByDeepProfiler]
+[NativeHeader("Runtime/Profiler/ScriptBindings/ProfilerUnsafeUtility.bindings.h")]
 public static class ProfilerUnsafeUtility
 {
 	public struct TimestampConversionRatio
@@ -170,8 +170,8 @@ public static class ProfilerUnsafeUtility
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[ThreadSafe]
 	[UnityEngine.Scripting.RequiredMember]
+	[ThreadSafe]
 	internal unsafe static extern IntPtr CreateMarker__Unmanaged(byte* name, int nameLen, ushort categoryId, MarkerFlags flags, int metadataCount);
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -286,8 +286,8 @@ public static class ProfilerUnsafeUtility
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[UnityEngine.Scripting.RequiredMember]
 	[ThreadSafe]
+	[UnityEngine.Scripting.RequiredMember]
 	internal unsafe static extern void* CreateCounterValue__Unmanaged(out IntPtr counterPtr, byte* name, int nameLen, ushort categoryId, MarkerFlags flags, byte dataType, byte dataUnit, int dataSize, ProfilerCounterOptions counterOptions);
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -395,8 +395,14 @@ public static class ProfilerUnsafeUtility
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[ThreadSafe(ThrowsException = true)]
 	[NativeConditional("ENABLE_MEM_PROFILER")]
+	[UnityEngine.Scripting.RequiredMember]
+	[ThreadSafe(ThrowsException = false)]
+	internal unsafe static extern IntPtr GetOrCreateMemLabel__Unmanaged(byte* areaName, int areaNameLen, byte* objectName, int objectNameLen);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[NativeConditional("ENABLE_MEM_PROFILER")]
+	[ThreadSafe(ThrowsException = true)]
 	internal static extern long GetMemLabelRelatedMemorySize(IntPtr label);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]

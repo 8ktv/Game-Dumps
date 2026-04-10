@@ -54,8 +54,8 @@ public struct PhysicsScene : IEquatable<PhysicsScene>
 		return IsValid_Internal(this);
 	}
 
-	[StaticAccessor("GetPhysicsManager()", StaticAccessorType.Dot)]
 	[NativeMethod("IsPhysicsSceneValid")]
+	[StaticAccessor("GetPhysicsManager()", StaticAccessorType.Dot)]
 	private static bool IsValid_Internal(PhysicsScene physicsScene)
 	{
 		return IsValid_Internal_Injected(ref physicsScene);
@@ -67,7 +67,7 @@ public struct PhysicsScene : IEquatable<PhysicsScene>
 		return new PhysicsScene
 		{
 			m_index = 0,
-			m_version = 1
+			m_version = 0
 		};
 	}
 
@@ -118,6 +118,18 @@ public struct PhysicsScene : IEquatable<PhysicsScene>
 		{
 			Physics.Simulate_Internal(this, step, stages, options);
 		}
+	}
+
+	[StaticAccessor("GetPhysicsManager()", StaticAccessorType.Dot)]
+	[NativeMethod("ReleasePhysicsSceneSimulationBuffers")]
+	private static void ReleasePhysicsSceneSimulationBuffers_Internal(PhysicsScene handle)
+	{
+		ReleasePhysicsSceneSimulationBuffers_Internal_Injected(ref handle);
+	}
+
+	public void ReleaseLastSimulationStepBuffers()
+	{
+		ReleasePhysicsSceneSimulationBuffers_Internal(this);
 	}
 
 	public void InterpolateBodies()
@@ -257,7 +269,7 @@ public struct PhysicsScene : IEquatable<PhysicsScene>
 	}
 
 	[FreeFunction("Physics::OverlapCapsuleNonAlloc")]
-	private static int OverlapCapsuleNonAlloc_Internal(PhysicsScene physicsScene, Vector3 point0, Vector3 point1, float radius, [Unmarshalled] Collider[] results, int layerMask, QueryTriggerInteraction queryTriggerInteraction)
+	private static int OverlapCapsuleNonAlloc_Internal(PhysicsScene physicsScene, Vector3 point0, Vector3 point1, float radius, [UnityMarshalAs(NativeType.ScriptingObjectPtr)] Collider[] results, int layerMask, QueryTriggerInteraction queryTriggerInteraction)
 	{
 		return OverlapCapsuleNonAlloc_Internal_Injected(ref physicsScene, ref point0, ref point1, radius, results, layerMask, queryTriggerInteraction);
 	}
@@ -314,7 +326,7 @@ public struct PhysicsScene : IEquatable<PhysicsScene>
 	}
 
 	[FreeFunction("Physics::OverlapSphereNonAlloc")]
-	private static int OverlapSphereNonAlloc_Internal(PhysicsScene physicsScene, Vector3 position, float radius, [Unmarshalled] Collider[] results, int layerMask, QueryTriggerInteraction queryTriggerInteraction)
+	private static int OverlapSphereNonAlloc_Internal(PhysicsScene physicsScene, Vector3 position, float radius, [UnityMarshalAs(NativeType.ScriptingObjectPtr)] Collider[] results, int layerMask, QueryTriggerInteraction queryTriggerInteraction)
 	{
 		return OverlapSphereNonAlloc_Internal_Injected(ref physicsScene, ref position, radius, results, layerMask, queryTriggerInteraction);
 	}
@@ -354,7 +366,7 @@ public struct PhysicsScene : IEquatable<PhysicsScene>
 	}
 
 	[FreeFunction("Physics::OverlapBoxNonAlloc")]
-	private static int OverlapBoxNonAlloc_Internal(PhysicsScene physicsScene, Vector3 center, Vector3 halfExtents, [Unmarshalled] Collider[] results, Quaternion orientation, int mask, QueryTriggerInteraction queryTriggerInteraction)
+	private static int OverlapBoxNonAlloc_Internal(PhysicsScene physicsScene, Vector3 center, Vector3 halfExtents, [UnityMarshalAs(NativeType.ScriptingObjectPtr)] Collider[] results, Quaternion orientation, int mask, QueryTriggerInteraction queryTriggerInteraction)
 	{
 		return OverlapBoxNonAlloc_Internal_Injected(ref physicsScene, ref center, ref halfExtents, results, ref orientation, mask, queryTriggerInteraction);
 	}
@@ -404,6 +416,9 @@ public struct PhysicsScene : IEquatable<PhysicsScene>
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern bool IsEmpty_Internal_Injected([In] ref PhysicsScene physicsScene);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void ReleasePhysicsSceneSimulationBuffers_Internal_Injected([In] ref PhysicsScene handle);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern bool Internal_RaycastTest_Injected([In] ref PhysicsScene physicsScene, [In] ref Ray ray, float maxDistance, int layerMask, QueryTriggerInteraction queryTriggerInteraction);

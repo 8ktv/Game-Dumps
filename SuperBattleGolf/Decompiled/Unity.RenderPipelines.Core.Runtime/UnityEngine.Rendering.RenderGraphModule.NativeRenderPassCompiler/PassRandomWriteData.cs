@@ -11,7 +11,7 @@ internal readonly struct PassRandomWriteData
 
 	public readonly bool preserveCounterValue;
 
-	public PassRandomWriteData(ResourceHandle resource, int index, bool preserveCounterValue)
+	public PassRandomWriteData(in ResourceHandle resource, int index, bool preserveCounterValue)
 	{
 		this.resource = resource;
 		this.index = index;

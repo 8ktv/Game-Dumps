@@ -2,8 +2,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.TextCore.Text;
 
-[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule", "UnityEngine.IMGUIModule" })]
 [NativeHeader("Modules/TextCoreTextEngine/Native/TextElementInfo.h")]
+[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule", "UnityEngine.IMGUIModule" })]
 internal struct NativeTextElementInfo
 {
 	public int glyphID;

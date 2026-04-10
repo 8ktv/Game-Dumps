@@ -1,7 +1,6 @@
 #define UNITY_ASSERTIONS
 using System;
 using System.Collections.Generic;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.UIElements.Layout;
 
 namespace UnityEngine.UIElements.UIR;
@@ -23,7 +22,9 @@ internal class RenderTreeCompositor : IDisposable
 
 		private RenderTree m_RenderTree;
 
-		private PostProcessingPass m_Effect;
+		private PostProcessingPass m_FilterPass;
+
+		private int m_FilterPassIndex;
 
 		private FilterFunction m_Filter;
 
@@ -33,7 +34,7 @@ internal class RenderTreeCompositor : IDisposable
 
 		public Vector4 drawSourceTexOffsets;
 
-		public RenderTexture dstTexture;
+		public RenderTreeAtlas.AtlasBlock dstAtlasBlock;
 
 		public TextureId dstTextureId;
 
@@ -53,15 +54,18 @@ internal class RenderTreeCompositor : IDisposable
 
 		public RenderTree renderTree => m_RenderTree;
 
-		public PostProcessingPass effect => m_Effect;
+		public PostProcessingPass FilterPass => m_FilterPass;
+
+		public int FilterPassIndex => m_FilterPassIndex;
 
 		public FilterFunction filter => m_Filter;
 
-		public void Init(VisualElement ve, in PostProcessingPass effect, FilterFunction filter)
+		public void Init(VisualElement ve, in PostProcessingPass filterPass, int filterPassIndex, FilterFunction filter)
 		{
 			m_Type = DrawOperationType.Effect;
 			m_VisualElement = ve;
-			m_Effect = effect;
+			m_FilterPass = filterPass;
+			m_FilterPassIndex = filterPassIndex;
 			m_Filter = filter;
 			m_RenderTree = ve.nestedRenderData.renderTree;
 			InitPointers();
@@ -89,9 +93,9 @@ internal class RenderTreeCompositor : IDisposable
 			m_Type = DrawOperationType.Undefined;
 			m_VisualElement = null;
 			m_RenderTree = null;
-			m_Effect = default(PostProcessingPass);
+			m_FilterPass = default(PostProcessingPass);
 			m_Filter = default(FilterFunction);
-			dstTexture = null;
+			dstAtlasBlock = default(RenderTreeAtlas.AtlasBlock);
 			dstTextureId = TextureId.invalid;
 		}
 
@@ -112,11 +116,13 @@ internal class RenderTreeCompositor : IDisposable
 
 	private DrawOperation m_RootOperation;
 
-	private List<RenderTexture> m_AllocatedRenderTextures = new List<RenderTexture>();
+	private List<RenderTexture> m_AllocatedTextures = new List<RenderTexture>();
 
 	private MaterialPropertyBlock m_Block = new MaterialPropertyBlock();
 
 	private ObjectPool<DrawOperation> m_DrawOperationPool = new ObjectPool<DrawOperation>(() => new DrawOperation());
+
+	private static Vector4[] s_UVRects = new Vector4[1];
 
 	protected bool disposed { get; private set; }
 
@@ -140,6 +146,44 @@ internal class RenderTreeCompositor : IDisposable
 	{
 		m_RootOperation = m_DrawOperationPool.Get();
 		m_RootOperation.Init(rootRenderTree);
+		for (RenderTree renderTree = rootRenderTree.firstChild; renderTree != null; renderTree = renderTree.nextSibling)
+		{
+			AddChildrenOperations_DepthFirst(m_RootOperation, renderTree);
+		}
+	}
+
+	private void AddChildrenOperations_DepthFirst(DrawOperation parentOperation, RenderTree renderTree)
+	{
+		VisualElement owner = renderTree.rootRenderData.owner;
+		if (!(owner.resolvedStyle.filter is List<FilterFunction> list))
+		{
+			throw new InvalidOperationException("Filter IEnumerable is not a List<FilterFunction>");
+		}
+		for (int num = list.Count - 1; num >= 0; num--)
+		{
+			FilterFunctionDefinition definition = list[num].GetDefinition();
+			if (definition?.passes != null)
+			{
+				for (int num2 = definition.passes.Length - 1; num2 >= 0; num2--)
+				{
+					PostProcessingPass filterPass = definition.passes[num2];
+					if (!(filterPass.material == null))
+					{
+						DrawOperation drawOperation = m_DrawOperationPool.Get();
+						drawOperation.Init(owner, in filterPass, num2, list[num]);
+						parentOperation.AddChild(drawOperation);
+						parentOperation = drawOperation;
+					}
+				}
+			}
+		}
+		DrawOperation drawOperation2 = m_DrawOperationPool.Get();
+		drawOperation2.Init(renderTree);
+		parentOperation.AddChild(drawOperation2);
+		for (RenderTree renderTree2 = renderTree.firstChild; renderTree2 != null; renderTree2 = renderTree2.nextSibling)
+		{
+			AddChildrenOperations_DepthFirst(drawOperation2, renderTree2);
+		}
 	}
 
 	private static PostProcessingMargins GetReadMargins(PostProcessingPass effect, FilterFunction func)
@@ -160,7 +204,7 @@ internal class RenderTreeCompositor : IDisposable
 		return effect.writeMargins;
 	}
 
-	private static void UpdateDrawBounds_PostOrder(DrawOperation op)
+	private void UpdateDrawBounds_PostOrder(DrawOperation op)
 	{
 		Rect? rect = null;
 		switch (op.type)
@@ -208,42 +252,25 @@ internal class RenderTreeCompositor : IDisposable
 		if (rect.HasValue)
 		{
 			Rect value = rect.Value;
-			PostProcessingMargins margins = default(PostProcessingMargins);
-			PostProcessingMargins margins2 = default(PostProcessingMargins);
+			PostProcessingMargins postProcessingMargins = default(PostProcessingMargins);
+			PostProcessingMargins postProcessingMargins2 = default(PostProcessingMargins);
 			DrawOperation parent = op.parent;
 			RectInt bounds;
 			if (parent != null && parent.type == DrawOperationType.Effect)
 			{
-				margins = GetReadMargins(parent.effect, parent.filter);
-				margins2 = GetWriteMargins(parent.effect, parent.filter);
-				Rect rect3 = UIRUtility.InflateByMargins(UIRUtility.InflateByMargins(value, margins), margins2);
+				postProcessingMargins = GetReadMargins(parent.FilterPass, parent.filter);
+				postProcessingMargins2 = GetWriteMargins(parent.FilterPass, parent.filter);
+				Rect rect3 = UIRUtility.InflateByMargins(UIRUtility.InflateByMargins(value, postProcessingMargins), postProcessingMargins2);
 				bounds = UIRUtility.CastToRectInt(rect3);
+				Rect r = value;
+				r = UIRUtility.InflateByMargins(r, postProcessingMargins2);
+				op.parent.drawSourceBounds = UIRUtility.CastToRectInt(r);
+				float scaledPixelsPerPoint = op.renderTree.rootRenderData.owner.scaledPixelsPerPoint;
+				op.parent.drawSourceTexOffsets = new Vector4(postProcessingMargins.left * scaledPixelsPerPoint, postProcessingMargins.top * scaledPixelsPerPoint, postProcessingMargins.right * scaledPixelsPerPoint, postProcessingMargins.bottom * scaledPixelsPerPoint);
 			}
 			else
 			{
 				bounds = UIRUtility.CastToRectInt(value);
-			}
-			DrawOperation parent2 = op.parent;
-			if (parent2 != null && parent2.type == DrawOperationType.Effect)
-			{
-				Rect r = value;
-				r = UIRUtility.InflateByMargins(r, margins2);
-				op.parent.drawSourceBounds = UIRUtility.CastToRectInt(r);
-				Vector4 drawSourceTexOffsets = new Vector4(margins.left, margins.top, margins.right, margins.bottom);
-				if (bounds.width > 0 && bounds.height > 0)
-				{
-					float num = 1f / (float)bounds.width;
-					float num2 = 1f / (float)bounds.height;
-					drawSourceTexOffsets.x *= num;
-					drawSourceTexOffsets.y *= num2;
-					drawSourceTexOffsets.z *= num;
-					drawSourceTexOffsets.w *= num2;
-				}
-				else
-				{
-					drawSourceTexOffsets = Vector4.zero;
-				}
-				op.parent.drawSourceTexOffsets = drawSourceTexOffsets;
 			}
 			op.bounds = bounds;
 		}
@@ -251,10 +278,23 @@ internal class RenderTreeCompositor : IDisposable
 		{
 			op.bounds = RectInt.zero;
 		}
-		DrawOperation parent3 = op.parent;
-		if (parent3 != null && parent3.type == DrawOperationType.RenderTree)
+		if (op.parent == null)
 		{
-			op.renderTree.quadRect = op.bounds;
+			return;
+		}
+		int width = op.bounds.width;
+		int height = op.bounds.height;
+		float scaledPixelsPerPoint2 = op.renderTree.rootRenderData.owner.scaledPixelsPerPoint;
+		width = Mathf.CeilToInt((float)width * scaledPixelsPerPoint2);
+		height = Mathf.CeilToInt((float)height * scaledPixelsPerPoint2);
+		if (RenderTreeAtlas.ReserveSize(width, height, out var block))
+		{
+			op.dstAtlasBlock = block;
+			if (op.parent.type == DrawOperationType.RenderTree)
+			{
+				op.renderTree.quadRect = op.bounds;
+				op.renderTree.quadUVRect = block.uvRect;
+			}
 		}
 	}
 
@@ -299,65 +339,105 @@ internal class RenderTreeCompositor : IDisposable
 			return;
 		}
 		Debug.Assert(bounds.height > 0);
-		GraphicsFormat colorFormat = ((QualitySettings.activeColorSpace == ColorSpace.Linear) ? GraphicsFormat.R8G8B8A8_SRGB : GraphicsFormat.R8G8B8A8_UNorm);
-		RenderTextureDescriptor desc = new RenderTextureDescriptor(bounds.width, bounds.height, colorFormat, GraphicsFormat.D24_UNorm_S8_UInt);
-		op.dstTexture = RenderTexture.GetTemporary(desc);
-		m_AllocatedRenderTextures.Add(op.dstTexture);
-		if (op.dstTextureId.IsValid())
+		bool forceGammaRendering = m_RenderTreeManager.forceGammaRendering;
+		DrawOperation parent = op.parent;
+		bool flag = parent != null && parent.type == DrawOperationType.RenderTree;
+		if (RenderTreeAtlas.CreateTextureForAtlasBlock(ref op.dstAtlasBlock, forceGammaRendering && !flag, out var allocatedNewTexture))
 		{
-			m_RenderTreeManager.textureRegistry.UpdateDynamic(op.dstTextureId, op.dstTexture);
+			if (allocatedNewTexture)
+			{
+				m_AllocatedTextures.Add(op.dstAtlasBlock.texture);
+			}
+			if (op.dstTextureId.IsValid())
+			{
+				m_RenderTreeManager.textureRegistry.UpdateDynamic(op.dstTextureId, op.dstAtlasBlock.texture);
+			}
+			switch (op.type)
+			{
+			case DrawOperationType.Effect:
+				try
+				{
+					Debug.Assert(op.firstChild != null, "An effect draw operation must have at least one child operation to render from.");
+					RenderTexture active = RenderTexture.active;
+					RenderTexture texture = op.dstAtlasBlock.texture;
+					RenderTexture.active = texture;
+					RectInt rect = op.dstAtlasBlock.rect;
+					RenderTreeAtlas.AtlasBlock dstAtlasBlock = op.firstChild.dstAtlasBlock;
+					Rect uvRect = dstAtlasBlock.uvRect;
+					Material material = op.FilterPass.material;
+					if (forceGammaRendering && flag)
+					{
+						material.EnableKeyword("_UIE_OUTPUT_LINEAR");
+					}
+					else
+					{
+						material.DisableKeyword("_UIE_OUTPUT_LINEAR");
+					}
+					material.SetPass(op.FilterPass.passIndex);
+					m_Block.SetTexture("_MainTex", dstAtlasBlock.texture);
+					s_UVRects[0] = new Vector4(uvRect.x, uvRect.y, uvRect.width, uvRect.height);
+					m_Block.SetVectorArray("unity_uie_UVRect", s_UVRects);
+					bool readsGamma = QualitySettings.activeColorSpace == ColorSpace.Gamma || forceGammaRendering;
+					if (op.FilterPass.applySettingsCallback != null)
+					{
+						op.FilterPass.applySettingsCallback(m_Block, new FilterPassContext
+						{
+							filterFunction = op.filter,
+							filterPassIndex = op.FilterPassIndex,
+							readsGamma = readsGamma,
+							writesGamma = (QualitySettings.activeColorSpace == ColorSpace.Gamma || (forceGammaRendering && flag)),
+							scaledPixelsPerPoint = op.visualElement.scaledPixelsPerPoint
+						});
+					}
+					else
+					{
+						ApplyEffectParameters(op.FilterPass, op.filter, op.visualElement, readsGamma);
+					}
+					Utility.SetPropertyBlock(m_Block);
+					Matrix4x4 mat = ProjectionUtils.Ortho(bounds.xMin, bounds.xMax, bounds.yMax, bounds.yMin, 0f, 1f);
+					GL.LoadProjectionMatrix(mat);
+					GL.modelview = Matrix4x4.identity;
+					RectInt drawSourceBounds = op.drawSourceBounds;
+					Vector4 drawSourceTexOffsets = op.drawSourceTexOffsets;
+					float num = dstAtlasBlock.texture.width;
+					float num2 = dstAtlasBlock.texture.height;
+					Rect rect2 = new Rect(uvRect.x + drawSourceTexOffsets.x / num, uvRect.y + drawSourceTexOffsets.y / num2, uvRect.width - (drawSourceTexOffsets.x + drawSourceTexOffsets.z) / num, uvRect.height - (drawSourceTexOffsets.y + drawSourceTexOffsets.w) / num2);
+					GL.Viewport(new Rect(rect.xMin, rect.yMin, rect.width, rect.height));
+					GL.Begin(7);
+					GL.TexCoord2(rect2.xMin, rect2.yMin);
+					GL.MultiTexCoord2(1, 0f, 0f);
+					GL.Vertex3(drawSourceBounds.xMin, drawSourceBounds.yMax, 0.5f);
+					GL.TexCoord2(rect2.xMin, rect2.yMax);
+					GL.MultiTexCoord2(1, 0f, 0f);
+					GL.Vertex3(drawSourceBounds.xMin, drawSourceBounds.yMin, 0.5f);
+					GL.TexCoord2(rect2.xMax, rect2.yMax);
+					GL.MultiTexCoord2(1, 0f, 0f);
+					GL.Vertex3(drawSourceBounds.xMax, drawSourceBounds.yMin, 0.5f);
+					GL.TexCoord2(rect2.xMax, rect2.yMin);
+					GL.MultiTexCoord2(1, 0f, 0f);
+					GL.Vertex3(drawSourceBounds.xMax, drawSourceBounds.yMax, 0.5f);
+					GL.End();
+					RenderTexture.active = active;
+					break;
+				}
+				catch
+				{
+					break;
+				}
+			case DrawOperationType.RenderTree:
+				m_RenderTreeManager.RenderSingleTree(op.renderTree, op.dstAtlasBlock.texture, op.dstAtlasBlock.rect, UIRUtility.CastToRect(bounds));
+				break;
+			default:
+				throw new NotImplementedException();
+			}
 		}
-		switch (op.type)
+		else
 		{
-		case DrawOperationType.Effect:
-			try
-			{
-				RenderTexture active = RenderTexture.active;
-				RenderTexture.active = op.dstTexture;
-				GL.Clear(clearDepth: false, clearColor: true, Color.clear);
-				op.effect.material.SetPass(op.effect.passIndex);
-				m_Block.SetTexture("_MainTex", op.firstChild.dstTexture);
-				if (op.effect.prepareMaterialPropertyBlockCallback != null)
-				{
-					op.effect.prepareMaterialPropertyBlockCallback(m_Block, op.filter);
-				}
-				else
-				{
-					ApplyEffectParameters(op.effect, op.filter, op.visualElement);
-				}
-				Utility.SetPropertyBlock(m_Block);
-				Matrix4x4 mat = ProjectionUtils.Ortho(bounds.xMin, bounds.xMax, bounds.yMax, bounds.yMin, 0f, 1f);
-				GL.LoadProjectionMatrix(mat);
-				GL.modelview = Matrix4x4.identity;
-				RectInt drawSourceBounds = op.drawSourceBounds;
-				Vector4 drawSourceTexOffsets = op.drawSourceTexOffsets;
-				GL.Viewport(new Rect(0f, 0f, bounds.width, bounds.height));
-				GL.Begin(7);
-				GL.TexCoord2(drawSourceTexOffsets.x, drawSourceTexOffsets.w);
-				GL.Vertex3(drawSourceBounds.xMin, drawSourceBounds.yMax, 0.5f);
-				GL.TexCoord2(drawSourceTexOffsets.x, 1f - drawSourceTexOffsets.y);
-				GL.Vertex3(drawSourceBounds.xMin, drawSourceBounds.yMin, 0.5f);
-				GL.TexCoord2(1f - drawSourceTexOffsets.z, 1f - drawSourceTexOffsets.y);
-				GL.Vertex3(drawSourceBounds.xMax, drawSourceBounds.yMin, 0.5f);
-				GL.TexCoord2(1f - drawSourceTexOffsets.z, drawSourceTexOffsets.w);
-				GL.Vertex3(drawSourceBounds.xMax, drawSourceBounds.yMax, 0.5f);
-				GL.End();
-				RenderTexture.active = active;
-				break;
-			}
-			catch
-			{
-				break;
-			}
-		case DrawOperationType.RenderTree:
-			m_RenderTreeManager.RenderSingleTree(op.renderTree, op.dstTexture, bounds);
-			break;
-		default:
-			throw new NotImplementedException();
+			Debug.LogError($"Failed to create a texture for draw operation with bounds {bounds}.");
 		}
 	}
 
-	private void ApplyEffectParameters(PostProcessingPass effect, FilterFunction filter, VisualElement source)
+	private void ApplyEffectParameters(PostProcessingPass effect, FilterFunction filter, VisualElement source, bool readsGamma)
 	{
 		if (effect.parameterBindings == null)
 		{
@@ -375,7 +455,7 @@ internal class RenderTreeCompositor : IDisposable
 			}
 			else if (filterParameter.type == FilterParameterType.Color)
 			{
-				m_Block.SetColor(parameterBinding.name, filterParameter.colorValue);
+				m_Block.SetVector(parameterBinding.name, readsGamma ? filterParameter.colorValue : filterParameter.colorValue.linear);
 			}
 		}
 	}
@@ -387,11 +467,11 @@ internal class RenderTreeCompositor : IDisposable
 			CleanupOperation_PostOrder(m_RootOperation);
 			m_RootOperation = null;
 		}
-		for (int i = 0; i < m_AllocatedRenderTextures.Count; i++)
+		foreach (RenderTexture allocatedTexture in m_AllocatedTextures)
 		{
-			RenderTexture.ReleaseTemporary(m_AllocatedRenderTextures[i]);
+			RenderTexture.ReleaseTemporary(allocatedTexture);
 		}
-		m_AllocatedRenderTextures.Clear();
+		m_AllocatedTextures.Clear();
 	}
 
 	private void CleanupOperation_PostOrder(DrawOperation op)

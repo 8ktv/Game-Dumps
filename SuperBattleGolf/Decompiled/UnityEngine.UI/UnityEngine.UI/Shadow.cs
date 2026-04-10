@@ -3,7 +3,7 @@ using UnityEngine.Pool;
 
 namespace UnityEngine.UI;
 
-[AddComponentMenu("UI/Effects/Shadow", 80)]
+[AddComponentMenu("UI (Canvas)/Effects/Shadow", 80)]
 public class Shadow : BaseMeshEffect
 {
 	[SerializeField]

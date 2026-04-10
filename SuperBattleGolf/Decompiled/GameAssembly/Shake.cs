@@ -4,7 +4,7 @@ using UnityEngine;
 public class Shake : MonoBehaviour
 {
 	[SerializeField]
-	private CameraShakeType shakeType;
+	private CameraShakeType shakeType = CameraShakeType.POSITION;
 
 	[SerializeField]
 	private Transform shakeTarget;

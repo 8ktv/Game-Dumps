@@ -1219,7 +1219,7 @@ public static class InputControlExtensions
 		}
 		foreach (InputControl item in eventPtr.EnumerateControls(Enumerate.IgnoreControlsInDefaultState, null, magnitude))
 		{
-			if (!buttonControlsOnly || item.isButton)
+			if (item.HasValueChangeInEvent(eventPtr) && (!buttonControlsOnly || item.isButton))
 			{
 				return item;
 			}

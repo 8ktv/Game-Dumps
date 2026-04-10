@@ -103,9 +103,9 @@ public struct RewindableAllocator : AllocatorManager.IAllocator, IDisposable
 	}
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	internal delegate int Try_000009DF_0024PostfixBurstDelegate(IntPtr state, ref AllocatorManager.Block block);
+	internal delegate int Try_000009E0_0024PostfixBurstDelegate(IntPtr state, ref AllocatorManager.Block block);
 
-	internal static class Try_000009DF_0024BurstDirectCall
+	internal static class Try_000009E0_0024BurstDirectCall
 	{
 		private static IntPtr Pointer;
 
@@ -114,7 +114,7 @@ public struct RewindableAllocator : AllocatorManager.IAllocator, IDisposable
 		{
 			if (Pointer == (IntPtr)0)
 			{
-				Pointer = BurstCompiler.CompileFunctionPointer<Try_000009DF_0024PostfixBurstDelegate>(Try).Value;
+				Pointer = BurstCompiler.CompileFunctionPointer<Try_000009E0_0024PostfixBurstDelegate>(Try).Value;
 			}
 			P_0 = Pointer;
 		}
@@ -380,7 +380,7 @@ public struct RewindableAllocator : AllocatorManager.IAllocator, IDisposable
 	[MonoPInvokeCallback(typeof(AllocatorManager.TryFunction))]
 	internal static int Try(IntPtr state, ref AllocatorManager.Block block)
 	{
-		return Try_000009DF_0024BurstDirectCall.Invoke(state, ref block);
+		return Try_000009E0_0024BurstDirectCall.Invoke(state, ref block);
 	}
 
 	[GenerateTestsForBurstCompatibility(GenericTypeArguments = new Type[] { typeof(int) })]

@@ -3,11 +3,12 @@ using System;
 using System.Collections.Generic;
 using Unity.Profiling;
 using UnityEngine.Bindings;
+using UnityEngine.TextCore.Text;
 using UnityEngine.UIElements.Layout;
 
 namespace UnityEngine.UIElements;
 
-[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEditor.UIToolkitAuthoringModule" })]
 internal class UIElementsUtility : IUIElementsUtility
 {
 	private static Stack<IMGUIContainer> s_ContainerStack = new Stack<IMGUIContainer>();
@@ -41,6 +42,14 @@ internal class UIElementsUtility : IUIElementsUtility
 	private static readonly ProfilerMarker s_EventProfilerMarker = new ProfilerMarker(s_EventProfilerMarkerName);
 
 	internal static char[] s_Modifiers = new char[5] { '&', '%', '^', '#', '_' };
+
+	internal static readonly HashSet<StyleSheet> s_StyleSheetsRequiringRebuilding = new HashSet<StyleSheet>();
+
+	internal static readonly HashSet<string> s_ReimportedStyleSheetsPath = new HashSet<string>();
+
+	internal static readonly List<StyleSheet> s_StyleSheetsRebuildList = new List<StyleSheet>();
+
+	internal static readonly List<string> s_ReimportedStyleSheetsPathList = new List<string>();
 
 	public static bool isOSXContextualMenuPlatform
 	{
@@ -177,6 +186,7 @@ internal class UIElementsUtility : IUIElementsUtility
 				repaintCallback(value.ownerObject);
 			}
 		}
+		TextGenerationInfo.OnRepaintEnd();
 	}
 
 	public static void RegisterCachedPanel(int instanceID, Panel panel)
@@ -325,6 +335,7 @@ internal class UIElementsUtility : IUIElementsUtility
 		return result;
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIToolkitAuthoringModule" })]
 	internal static void GetAllPanels(List<Panel> panels, ContextType contextType)
 	{
 		Dictionary<int, Panel>.Enumerator panelsIterator = GetPanelsIterator();
@@ -371,5 +382,46 @@ internal class UIElementsUtility : IUIElementsUtility
 			}
 		}
 		return text;
+	}
+
+	internal static void MarkStyleSheetAsChanged(StyleSheet styleSheet)
+	{
+		if ((bool)styleSheet)
+		{
+			s_StyleSheetsRequiringRebuilding.Add(styleSheet);
+		}
+	}
+
+	internal static void MarkStyleSheetAsChanged(string styleSheetPath)
+	{
+		if (!string.IsNullOrEmpty(styleSheetPath))
+		{
+			s_ReimportedStyleSheetsPath.Add(styleSheetPath);
+		}
+	}
+
+	internal static void RebuildDirtyStyleSheets()
+	{
+		if (s_StyleSheetsRequiringRebuilding.Count == 0)
+		{
+			return;
+		}
+		try
+		{
+			StyleCache.ClearStyleCache();
+			s_StyleSheetsRebuildList.AddRange(s_StyleSheetsRequiringRebuilding);
+			s_ReimportedStyleSheetsPathList.AddRange(s_ReimportedStyleSheetsPath);
+			foreach (StyleSheet s_StyleSheetsRebuild in s_StyleSheetsRebuildList)
+			{
+				s_StyleSheetsRebuild.RebuildIfNecessary();
+			}
+		}
+		finally
+		{
+			s_StyleSheetsRebuildList.Clear();
+			s_StyleSheetsRequiringRebuilding.Clear();
+			s_ReimportedStyleSheetsPathList.Clear();
+			s_ReimportedStyleSheetsPath.Clear();
+		}
 	}
 }

@@ -112,4 +112,31 @@ public class ItemHittableSettings : ScriptableObject
 	[field: SerializeField]
 	[field: DisplayIf("OrbitalLaserHasMinUpwardsKnockbackSpeed", true)]
 	public float OrbitalLaserMinMinUpwardsKnockbackSpeed { get; private set; }
+
+	[field: Header("Rocket driver")]
+	[field: SerializeField]
+	public float RocketDriverSwingPostHitSpinHorizontalKnockbackSpeed { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverSwingPostHitSpinUpwardsKnockbackSpeed { get; private set; }
+
+	[field: Header("Freeze bomb")]
+	[field: SerializeField]
+	public bool IsAffectedByFreezeBomb { get; private set; }
+
+	[field: SerializeField]
+	[field: DisplayIf("IsAffectedByFreezeBomb", true)]
+	public bool AutoCalculateFreezeBombIceBlock { get; private set; }
+
+	[field: SerializeField]
+	[field: DisplayIf("IsAffectedByFreezeBomb", true, "AutoCalculateFreezeBombIceBlock", false, DisplayIfAttribute.Type.And)]
+	public Vector3 FreezeBombIceBlockLocalCenter { get; private set; }
+
+	[field: SerializeField]
+	[field: DisplayIf("IsAffectedByFreezeBomb", true, "AutoCalculateFreezeBombIceBlock", false, DisplayIfAttribute.Type.And)]
+	public Vector3 FreezeBombIceBlockSize { get; private set; }
+
+	[field: SerializeField]
+	[field: DisplayIf("IsAffectedByFreezeBomb", true, "AutoCalculateFreezeBombIceBlock", true, DisplayIfAttribute.Type.And)]
+	public Vector3 FreezeBombIceBlockMargins { get; private set; }
 }

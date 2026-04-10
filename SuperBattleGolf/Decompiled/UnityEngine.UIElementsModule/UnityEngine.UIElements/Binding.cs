@@ -13,24 +13,24 @@ public abstract class Binding
 	[ExcludeFromDocs]
 	public abstract class UxmlSerializedData : UnityEngine.UIElements.UxmlSerializedData
 	{
+		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 		[HideInInspector]
 		[SerializeField]
-		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 		internal string property;
 
 		[SerializeField]
-		[HideInInspector]
 		[Tooltip("This informs the binding system of whether the binding object should be updated on every frame, when a change occurs in the source or on every frame if change detection is impossible, and when explicitly marked as dirty.")]
+		[HideInInspector]
 		private BindingUpdateTrigger updateTrigger;
 
-		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags property_UxmlAttributeFlags;
 
 		[SerializeField]
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags updateTrigger_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]

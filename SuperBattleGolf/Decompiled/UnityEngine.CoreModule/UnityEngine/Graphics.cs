@@ -10,11 +10,11 @@ using UnityEngine.Rendering;
 
 namespace UnityEngine;
 
+[NativeHeader("Runtime/Shaders/ComputeShader.h")]
 [NativeHeader("Runtime/Graphics/GraphicsScriptBindings.h")]
+[NativeHeader("Runtime/Graphics/CopyTexture.h")]
 [NativeHeader("Runtime/Graphics/ColorGamut.h")]
 [NativeHeader("Runtime/Camera/LightProbeProxyVolume.h")]
-[NativeHeader("Runtime/Graphics/CopyTexture.h")]
-[NativeHeader("Runtime/Shaders/ComputeShader.h")]
 [NativeHeader("Runtime/Misc/PlayerSettings.h")]
 public class Graphics
 {
@@ -1192,7 +1192,7 @@ public class Graphics
 		}
 	}
 
-	private static RenderInstancedDataLayout GetCachedRenderInstancedDataLayout(Type type)
+	internal static RenderInstancedDataLayout GetCachedRenderInstancedDataLayout(Type type)
 	{
 		int hashCode = type.GetHashCode();
 		if (!s_RenderInstancedDataLayouts.TryGetValue(hashCode, out var value))

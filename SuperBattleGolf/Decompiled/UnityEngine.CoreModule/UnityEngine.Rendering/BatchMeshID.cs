@@ -4,9 +4,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Rendering;
 
+[RequiredByNativeCode(Optional = true, GenerateProxy = true)]
 [NativeHeader("Runtime/Camera/BatchRendererGroup.h")]
 [NativeClass("BatchMeshID")]
-[RequiredByNativeCode(Optional = true, GenerateProxy = true)]
 public struct BatchMeshID : IEquatable<BatchMeshID>
 {
 	public static readonly BatchMeshID Null = new BatchMeshID

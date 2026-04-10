@@ -5,8 +5,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.DedicatedServer;
 
-[StaticAccessor("DedicatedServerBindings", StaticAccessorType.DoubleColon)]
 [NativeHeader("Runtime/Export/DedicatedServer/Arguments.bindings.h")]
+[StaticAccessor("DedicatedServerBindings", StaticAccessorType.DoubleColon)]
 public static class Arguments
 {
 	public enum ArgumentErrorPolicy
@@ -132,8 +132,8 @@ public static class Arguments
 		}
 	}
 
-	[NativeConditional("PLATFORM_SERVER")]
 	[FreeFunction("DedicatedServerBindings::GetBoolArgument")]
+	[NativeConditional("PLATFORM_SERVER")]
 	internal unsafe static bool GetBoolArgument(string arg)
 	{
 		//The blocks IL_0029 are reachable both inside and outside the pinned region starting at IL_0018. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -180,8 +180,8 @@ public static class Arguments
 		}
 	}
 
-	[NativeConditional("PLATFORM_SERVER")]
 	[FreeFunction("DedicatedServerBindings::GetStringArgument")]
+	[NativeConditional("PLATFORM_SERVER")]
 	internal unsafe static bool GetStringArgument(string arg, out string stringValue)
 	{
 		//The blocks IL_0029 are reachable both inside and outside the pinned region starting at IL_0018. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -309,8 +309,8 @@ public static class Arguments
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[NativeConditional("PLATFORM_SERVER")]
 	[FreeFunction("DedicatedServerBindings::SetArgumentErrorPolicy")]
+	[NativeConditional("PLATFORM_SERVER")]
 	internal static extern void SetArgumentErrorPolicy(ArgumentErrorPolicy policy);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]

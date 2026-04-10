@@ -8,10 +8,10 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [NativeHeader("Runtime/2D/Common/SpriteDataAccess.h")]
-[ExcludeFromPreset]
-[NativeHeader("Runtime/2D/Common/ScriptBindings/SpritesMarshalling.h")]
-[NativeHeader("Runtime/Graphics/SpriteUtility.h")]
 [NativeType("Runtime/Graphics/SpriteFrame.h")]
+[NativeHeader("Runtime/2D/Common/ScriptBindings/SpritesMarshalling.h")]
+[ExcludeFromPreset]
+[NativeHeader("Runtime/Graphics/SpriteUtility.h")]
 public sealed class Sprite : Object
 {
 	public Bounds bounds
@@ -152,7 +152,7 @@ public sealed class Sprite : Object
 	public Vector2[] vertices
 	{
 		[FreeFunction("SpriteAccessLegacy::GetSpriteVertices", HasExplicitThis = true)]
-		[return: Unmarshalled]
+		[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 		get
 		{
 			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -167,7 +167,7 @@ public sealed class Sprite : Object
 	public ushort[] triangles
 	{
 		[FreeFunction("SpriteAccessLegacy::GetSpriteIndices", HasExplicitThis = true)]
-		[return: Unmarshalled]
+		[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 		get
 		{
 			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -182,7 +182,7 @@ public sealed class Sprite : Object
 	public Vector2[] uv
 	{
 		[FreeFunction("SpriteAccessLegacy::GetSpriteUVs", HasExplicitThis = true)]
-		[return: Unmarshalled]
+		[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 		get
 		{
 			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -291,7 +291,7 @@ public sealed class Sprite : Object
 	}
 
 	[FreeFunction("SpritesBindings::CreateSprite", ThrowsException = true)]
-	internal static Sprite CreateSprite(Texture2D texture, Rect rect, Vector2 pivot, float pixelsPerUnit, uint extrude, SpriteMeshType meshType, Vector4 border, bool generateFallbackPhysicsShape, [Unmarshalled] SecondarySpriteTexture[] secondaryTexture)
+	internal static Sprite CreateSprite(Texture2D texture, Rect rect, Vector2 pivot, float pixelsPerUnit, uint extrude, SpriteMeshType meshType, Vector4 border, bool generateFallbackPhysicsShape, [UnityMarshalAs(NativeType.ScriptingObjectPtr)] SecondarySpriteTexture[] secondaryTexture)
 	{
 		return Unmarshal.UnmarshalUnityObject<Sprite>(CreateSprite_Injected(MarshalledUnityObject.Marshal(texture), ref rect, ref pivot, pixelsPerUnit, extrude, meshType, ref border, generateFallbackPhysicsShape, secondaryTexture));
 	}
@@ -317,7 +317,7 @@ public sealed class Sprite : Object
 	}
 
 	[FreeFunction("SpritesBindings::GetSecondaryTextures", ThrowsException = true, HasExplicitThis = true)]
-	public int GetSecondaryTextures([Unmarshalled][NotNull] SecondarySpriteTexture[] secondaryTexture)
+	public int GetSecondaryTextures([NotNull][UnityMarshalAs(NativeType.ScriptingObjectPtr)] SecondarySpriteTexture[] secondaryTexture)
 	{
 		if (secondaryTexture == null)
 		{
@@ -352,7 +352,7 @@ public sealed class Sprite : Object
 	}
 
 	[FreeFunction("SpritesBindings::GetScriptableObjects", ThrowsException = true, HasExplicitThis = true)]
-	public uint GetScriptableObjects([NotNull][Unmarshalled] ScriptableObject[] scriptableObjects)
+	public uint GetScriptableObjects([UnityMarshalAs(NativeType.ScriptingObjectPtr)][NotNull] ScriptableObject[] scriptableObjects)
 	{
 		if (scriptableObjects == null)
 		{
@@ -446,6 +446,16 @@ public sealed class Sprite : Object
 		return physicsShape.Count;
 	}
 
+	public ReadOnlySpan<Vector2> GetPhysicsShape(int shapeIdx)
+	{
+		int physicsShapeCount = GetPhysicsShapeCount();
+		if (shapeIdx < 0 || shapeIdx >= physicsShapeCount)
+		{
+			throw new IndexOutOfRangeException($"Index({shapeIdx}) is out of bounds(0 - {physicsShapeCount - 1})");
+		}
+		return GetPhysicsShapeSpanImpl(this, shapeIdx);
+	}
+
 	[FreeFunction("SpritesBindings::GetPhysicsShape", ThrowsException = true)]
 	private unsafe static void GetPhysicsShapeImpl(Sprite sprite, int shapeIdx, [NotNull] List<Vector2> physicsShape)
 	{
@@ -474,6 +484,13 @@ public sealed class Sprite : Object
 		{
 			physicsShape2.Unmarshal(list);
 		}
+	}
+
+	[FreeFunction("SpritesBindings::GetPhysicsShape", ThrowsException = true)]
+	private static ReadOnlySpan<Vector2> GetPhysicsShapeSpanImpl(Sprite sprite, int shapeIdx)
+	{
+		GetPhysicsShapeSpanImpl_Injected(MarshalledUnityObject.Marshal(sprite), shapeIdx, out var ret);
+		return ManagedSpanWrapper.ToReadOnlySpan<Vector2>(ret);
 	}
 
 	public void OverridePhysicsShape(IList<Vector2[]> physicsShapes)
@@ -552,6 +569,7 @@ public sealed class Sprite : Object
 		}
 	}
 
+	[VisibleToOtherModules]
 	internal static Sprite Create(Rect rect, Vector2 pivot, float pixelsToUnits, Texture2D texture)
 	{
 		return CreateSpriteWithoutTextureScripting(rect, pivot, pixelsToUnits, texture);
@@ -718,6 +736,9 @@ public sealed class Sprite : Object
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void GetPhysicsShapeImpl_Injected(IntPtr sprite, int shapeIdx, ref BlittableListWrapper physicsShape);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void GetPhysicsShapeSpanImpl_Injected(IntPtr sprite, int shapeIdx, out ManagedSpanWrapper ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void OverridePhysicsShapeCount_Injected(IntPtr sprite, int physicsShapeCount);

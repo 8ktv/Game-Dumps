@@ -33,6 +33,12 @@ public class MainMenu : SingletonBehaviour<MainMenu>
 	[SerializeField]
 	private float introTimeout;
 
+	[SerializeField]
+	private GameObject skipProgress;
+
+	[SerializeField]
+	private Image skipProgressImage;
+
 	public Image background;
 
 	public Image backgroundBlend;
@@ -48,6 +54,10 @@ public class MainMenu : SingletonBehaviour<MainMenu>
 	private EventInstance musicInstance;
 
 	private bool finishedIntro;
+
+	private bool pressedAnyKey;
+
+	private float skipIntroTimer;
 
 	private static bool showedMenuOnStartup;
 
@@ -82,6 +92,7 @@ public class MainMenu : SingletonBehaviour<MainMenu>
 		{
 			PlayMusic();
 		}
+		GameManager.UpdateConsoleEnabled();
 		ColorOverlay.FadeOut(0.5f, BMath.EaseOut, Time.timeScale <= 0.25f).Forget();
 		LoadingScreen.Hide();
 		background.sprite = null;
@@ -107,12 +118,135 @@ public class MainMenu : SingletonBehaviour<MainMenu>
 			}
 			BNetworkManager.ConnectToSteamLobby(BNetworkManager.SteamLobbyIdToConnectToFromMainMenu, canExitCurrentLobby: false);
 		}
+		void ResetSkipIntro(bool showText = true)
+		{
+			skipIntroTimer = 0f;
+			skipProgressImage.fillAmount = 0f;
+			skipProgress.SetActive(showText);
+		}
+		bool ShouldCancelIntro()
+		{
+			if (!GameSettings.All.General.HasWatchedIntro)
+			{
+				return false;
+			}
+			if (finishedIntro)
+			{
+				return false;
+			}
+			Gamepad currentGamepad = InputManager.CurrentGamepad;
+			int num2;
+			if (currentGamepad == null || !currentGamepad.buttonWest.isPressed)
+			{
+				Gamepad currentGamepad2 = InputManager.CurrentGamepad;
+				if (currentGamepad2 == null || !currentGamepad2.buttonNorth.isPressed)
+				{
+					Gamepad currentGamepad3 = InputManager.CurrentGamepad;
+					if (currentGamepad3 == null || !currentGamepad3.buttonEast.isPressed)
+					{
+						Gamepad currentGamepad4 = InputManager.CurrentGamepad;
+						if (currentGamepad4 == null || !currentGamepad4.buttonSouth.isPressed)
+						{
+							Gamepad currentGamepad5 = InputManager.CurrentGamepad;
+							if (currentGamepad5 == null || !currentGamepad5.startButton.isPressed)
+							{
+								Gamepad currentGamepad6 = InputManager.CurrentGamepad;
+								if (currentGamepad6 == null || !currentGamepad6.selectButton.isPressed)
+								{
+									Gamepad currentGamepad7 = InputManager.CurrentGamepad;
+									if (currentGamepad7 == null || !currentGamepad7.leftShoulder.isPressed)
+									{
+										Gamepad currentGamepad8 = InputManager.CurrentGamepad;
+										if (currentGamepad8 == null || !currentGamepad8.rightShoulder.isPressed)
+										{
+											Gamepad currentGamepad9 = InputManager.CurrentGamepad;
+											if (currentGamepad9 == null || !currentGamepad9.leftTrigger.isPressed)
+											{
+												Gamepad currentGamepad10 = InputManager.CurrentGamepad;
+												if (currentGamepad10 == null || !currentGamepad10.rightTrigger.isPressed)
+												{
+													Gamepad currentGamepad11 = InputManager.CurrentGamepad;
+													if (currentGamepad11 == null || !currentGamepad11.leftStickButton.isPressed)
+													{
+														Gamepad currentGamepad12 = InputManager.CurrentGamepad;
+														if (currentGamepad12 == null || !currentGamepad12.rightStickButton.isPressed)
+														{
+															Gamepad currentGamepad13 = InputManager.CurrentGamepad;
+															if (currentGamepad13 == null || !currentGamepad13.dpad.up.isPressed)
+															{
+																Gamepad currentGamepad14 = InputManager.CurrentGamepad;
+																if (currentGamepad14 == null || !currentGamepad14.dpad.down.isPressed)
+																{
+																	Gamepad currentGamepad15 = InputManager.CurrentGamepad;
+																	if (currentGamepad15 == null || !currentGamepad15.dpad.left.isPressed)
+																	{
+																		num2 = ((InputManager.CurrentGamepad?.dpad.right.isPressed ?? false) ? 1 : 0);
+																		goto IL_01d3;
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			num2 = 1;
+			goto IL_01d3;
+			IL_01d3:
+			bool flag2 = (byte)num2 != 0;
+			Mouse current = Mouse.current;
+			int num3;
+			if (current == null || !current.leftButton.isPressed)
+			{
+				Mouse current2 = Mouse.current;
+				if (current2 == null || !current2.rightButton.isPressed)
+				{
+					Mouse current3 = Mouse.current;
+					if (current3 == null || !current3.middleButton.isPressed)
+					{
+						Mouse current4 = Mouse.current;
+						if (current4 == null || !current4.backButton.isPressed)
+						{
+							num3 = ((Mouse.current?.forwardButton.isPressed ?? false) ? 1 : 0);
+							goto IL_024d;
+						}
+					}
+				}
+			}
+			num3 = 1;
+			goto IL_024d;
+			IL_024d:
+			bool flag3 = (byte)num3 != 0;
+			if ((Keyboard.current?.anyKey.isPressed ?? false) || flag2 || flag3)
+			{
+				return true;
+			}
+			return false;
+		}
 		async void TimeOutIntro(float timeout)
 		{
-			for (float time = 0f; time < timeout; time += Time.deltaTime)
+			float time = 0f;
+			while (time < timeout)
 			{
 				await UniTask.Yield();
-				if (this == null || finishedIntro)
+				if (this == null)
+				{
+					return;
+				}
+				if (finishedIntro)
+				{
+					skipProgress.SetActive(value: false);
+					return;
+				}
+				time += Time.deltaTime;
+				if (TryUpdateSkipIntro())
 				{
 					return;
 				}
@@ -120,6 +254,27 @@ public class MainMenu : SingletonBehaviour<MainMenu>
 			OnIntroMenuShown();
 			startupPlayableDirector.gameObject.SetActive(value: true);
 			introOverlay.SetActive(value: true);
+		}
+		bool TryUpdateSkipIntro()
+		{
+			if (!ShouldCancelIntro())
+			{
+				ResetSkipIntro(pressedAnyKey);
+				return false;
+			}
+			pressedAnyKey = true;
+			skipIntroTimer += Time.deltaTime;
+			skipProgressImage.fillAmount = skipIntroTimer / 0.5f;
+			skipProgress.SetActive(value: true);
+			if (skipIntroTimer <= 0.5f)
+			{
+				return false;
+			}
+			OnIntroMenuShown();
+			startupPlayableDirector.gameObject.SetActive(value: false);
+			introOverlay.SetActive(value: false);
+			skipProgress.SetActive(value: false);
+			return true;
 		}
 	}
 
@@ -215,6 +370,7 @@ public class MainMenu : SingletonBehaviour<MainMenu>
 
 	public void OnIntroMenuShown()
 	{
+		GameSettings.All.General.HasWatchedIntro = true;
 		PlayMusic();
 		InputManager.DisableMode(InputMode.ForceDisabled);
 		finishedIntro = true;

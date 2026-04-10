@@ -3,8 +3,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Modules/Animation/HumanDescription.h")]
 [RequiredByNativeCode]
+[NativeHeader("Modules/Animation/HumanDescription.h")]
 [NativeType(CodegenOptions.Custom, "MonoHumanBone")]
 public struct HumanBone
 {

@@ -7,9 +7,9 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
+[NativeHeader("Modules/Terrain/Public/TerrainLayerScriptingInterface.h")]
 [NativeHeader("TerrainScriptingClasses.h")]
 [UsedByNativeCode]
-[NativeHeader("Modules/Terrain/Public/TerrainLayerScriptingInterface.h")]
 public sealed class TerrainLayer : Object
 {
 	public Texture2D diffuseTexture

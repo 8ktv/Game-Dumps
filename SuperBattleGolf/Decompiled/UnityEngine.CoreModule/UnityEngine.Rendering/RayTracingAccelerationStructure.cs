@@ -308,11 +308,7 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			throw new ArgumentNullException("instanceData");
 		}
-		if (config.material == null)
-		{
-			throw new ArgumentNullException("config.material");
-		}
-		if (!CheckMaterialEnablesInstancing(config.material))
+		if (config.material != null && !CheckMaterialEnablesInstancing(config.material))
 		{
 			throw new InvalidOperationException("config.material (" + config.material.name + ") needs to enable GPU Instancing for use with AddInstances.");
 		}
@@ -332,7 +328,7 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			throw new ArgumentOutOfRangeException("config.meshLod", "config.meshLod is out of range");
 		}
-		RenderInstancedDataLayout layout = new RenderInstancedDataLayout(typeof(T));
+		RenderInstancedDataLayout cachedRenderInstancedDataLayout = Graphics.GetCachedRenderInstancedDataLayout(typeof(T));
 		instanceCount = ((instanceCount == -1) ? instanceData.Length : instanceCount);
 		startInstance = Math.Clamp(startInstance, 0, Math.Max(0, instanceData.Length - 1));
 		instanceCount = Math.Clamp(instanceCount, 0, Math.Max(0, instanceData.Length - startInstance));
@@ -342,7 +338,7 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		}
 		fixed (T* ptr = instanceData)
 		{
-			return AddMeshInstances(config, (IntPtr)(ptr + startInstance), layout, (uint)instanceCount, id);
+			return AddMeshInstances(config, (IntPtr)(ptr + startInstance), cachedRenderInstancedDataLayout, (uint)instanceCount, id);
 		}
 	}
 
@@ -352,11 +348,7 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			throw new ArgumentNullException("instanceData");
 		}
-		if (config.material == null)
-		{
-			throw new ArgumentNullException("config.material");
-		}
-		if (!CheckMaterialEnablesInstancing(config.material))
+		if (config.material != null && !CheckMaterialEnablesInstancing(config.material))
 		{
 			throw new InvalidOperationException("config.material (" + config.material.name + ") needs to enable GPU Instancing for use with AddInstances.");
 		}
@@ -376,7 +368,7 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			throw new ArgumentOutOfRangeException("config.meshLod", "config.meshLod is out of range");
 		}
-		RenderInstancedDataLayout layout = new RenderInstancedDataLayout(typeof(T));
+		RenderInstancedDataLayout cachedRenderInstancedDataLayout = Graphics.GetCachedRenderInstancedDataLayout(typeof(T));
 		instanceCount = ((instanceCount == -1) ? instanceData.Count : instanceCount);
 		startInstance = Math.Clamp(startInstance, 0, Math.Max(0, instanceData.Count - 1));
 		instanceCount = Math.Clamp(instanceCount, 0, Math.Max(0, instanceData.Count - startInstance));
@@ -386,17 +378,13 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		}
 		fixed (T* ptr = NoAllocHelpers.ExtractArrayFromList(instanceData))
 		{
-			return AddMeshInstances(config, (IntPtr)(ptr + startInstance), layout, (uint)instanceCount, id);
+			return AddMeshInstances(config, (IntPtr)(ptr + startInstance), cachedRenderInstancedDataLayout, (uint)instanceCount, id);
 		}
 	}
 
 	public unsafe int AddInstances<T>(in RayTracingMeshInstanceConfig config, NativeArray<T> instanceData, [DefaultValue("-1")] int instanceCount = -1, [DefaultValue("0")] int startInstance = 0, uint id = uint.MaxValue) where T : unmanaged
 	{
-		if (config.material == null)
-		{
-			throw new ArgumentNullException("config.material");
-		}
-		if (!CheckMaterialEnablesInstancing(config.material))
+		if (config.material != null && !CheckMaterialEnablesInstancing(config.material))
 		{
 			throw new InvalidOperationException("config.material (" + config.material.name + ") needs to enable GPU Instancing for use with AddInstances.");
 		}
@@ -416,7 +404,7 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			throw new ArgumentOutOfRangeException("config.meshLod", "config.meshLod is out of range");
 		}
-		RenderInstancedDataLayout layout = new RenderInstancedDataLayout(typeof(T));
+		RenderInstancedDataLayout cachedRenderInstancedDataLayout = Graphics.GetCachedRenderInstancedDataLayout(typeof(T));
 		instanceCount = ((instanceCount == -1) ? instanceData.Length : instanceCount);
 		startInstance = Math.Clamp(startInstance, 0, Math.Max(0, instanceData.Length - 1));
 		instanceCount = Math.Clamp(instanceCount, 0, Math.Max(0, instanceData.Length - startInstance));
@@ -424,15 +412,11 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			throw new InvalidOperationException($"Instance count cannot exceed {Graphics.kMaxDrawMeshInstanceCount}.");
 		}
-		return AddMeshInstances(config, (IntPtr)((byte*)instanceData.GetUnsafeReadOnlyPtr() + (nint)startInstance * (nint)sizeof(T)), layout, (uint)instanceCount, id);
+		return AddMeshInstances(config, (IntPtr)((byte*)instanceData.GetUnsafeReadOnlyPtr() + (nint)startInstance * (nint)sizeof(T)), cachedRenderInstancedDataLayout, (uint)instanceCount, id);
 	}
 
 	public int AddInstancesIndirect(in RayTracingMeshInstanceConfig config, GraphicsBuffer instanceMatrices, int maxInstanceCount, GraphicsBuffer argsBuffer, [DefaultValue("0")] uint argsOffset = 0u, uint id = uint.MaxValue)
 	{
-		if (config.material == null)
-		{
-			throw new ArgumentNullException("config.material");
-		}
 		if (config.mesh == null)
 		{
 			throw new ArgumentNullException("config.mesh");
@@ -445,7 +429,7 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			throw new ArgumentNullException("argsBuffer");
 		}
-		if (!CheckMaterialEnablesInstancing(config.material))
+		if (config.material != null && !CheckMaterialEnablesInstancing(config.material))
 		{
 			throw new InvalidOperationException("config.material needs to enable instancing for use with AddInstancesIndirect.");
 		}
@@ -473,10 +457,6 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			throw new ArgumentOutOfRangeException("maxInstanceCount", maxInstanceCount, $"The value cannot exceed {instanceMatrices.count}.");
 		}
-		if (maxInstanceCount > Graphics.kMaxDrawMeshInstanceCount)
-		{
-			throw new ArgumentOutOfRangeException("maxInstanceCount", maxInstanceCount, $"The value cannot exceed {Graphics.kMaxDrawMeshInstanceCount}.");
-		}
 		if (maxInstanceCount < -1 || maxInstanceCount == 0)
 		{
 			throw new ArgumentOutOfRangeException("maxInstanceCount", maxInstanceCount, "The parameter must be either -1 or a positive value.");
@@ -498,10 +478,6 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 
 	public int AddInstancesIndirect(in RayTracingGeometryInstanceConfig config, GraphicsBuffer instanceMatrices, int maxInstanceCount, GraphicsBuffer argsBuffer, [DefaultValue("0")] uint argsOffset = 0u, uint id = uint.MaxValue)
 	{
-		if (config.material == null)
-		{
-			throw new ArgumentNullException("config.material");
-		}
 		if (instanceMatrices == null)
 		{
 			throw new ArgumentNullException("instanceMatrices");
@@ -510,7 +486,7 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			throw new ArgumentNullException("argsBuffer");
 		}
-		if (!CheckMaterialEnablesInstancing(config.material))
+		if (config.material != null && !CheckMaterialEnablesInstancing(config.material))
 		{
 			throw new InvalidOperationException("config.material needs to enable instancing for use with AddInstancesIndirect.");
 		}
@@ -520,11 +496,11 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		}
 		if (config.vertexCount == -1 && config.vertexStart >= config.vertexBuffer.count)
 		{
-			throw new ArgumentOutOfRangeException("config.vertexStart", config.vertexStart, $"Not enough vertices in the vertex buffer ({config.vertexBuffer.count}).");
+			throw new ArgumentOutOfRangeException("config.vertexStart", config.vertexStart, $"Addressing vertices outside of the vertex buffer ({config.vertexBuffer.count}).");
 		}
 		if (config.vertexCount != -1 && config.vertexStart + config.vertexCount > config.vertexBuffer.count)
 		{
-			throw new ArgumentOutOfRangeException("config.vertexStart", $"config.vertexStart ({config.vertexStart}) + config.vertexCount ({config.vertexCount}) is out of range. Not enough vertices in the vertex buffer ({config.vertexBuffer.count}).");
+			throw new ArgumentOutOfRangeException("config.vertexStart", $"config.vertexStart ({config.vertexStart}) is too large and is causing invalid vertices to be used. The vertex buffer contains {config.vertexBuffer.count} vertices.");
 		}
 		int num = ((config.vertexCount < 0) ? config.vertexBuffer.count : config.vertexCount);
 		if (num == 0)
@@ -535,7 +511,7 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			if (config.indexBuffer.count < 3)
 			{
-				throw new ArgumentOutOfRangeException("config.indexBuffer", config.indexBuffer.count, "The index buffer must contain at least 3 indices.");
+				throw new ArgumentException("config.indexBuffer", $"The index buffer must contain at least 3 indices. Currently using {config.indexBuffer.count} indices.");
 			}
 			if (config.indexCount == -1 && config.indexStart >= config.indexBuffer.count)
 			{
@@ -552,12 +528,19 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 			int num2 = ((config.indexCount < 0) ? config.indexBuffer.count : config.indexCount);
 			if (num2 % 3 != 0)
 			{
-				throw new ArgumentOutOfRangeException("config.indexBuffer", $"The amount of indices used must be a multiple of 3. Only triangle geometries are supported. Currently using {num2} indices.");
+				throw new ArgumentException("config.indexBuffer", $"The amount of indices used must be a multiple of 3. Only triangle geometries are supported. Currently using {num2} indices.");
 			}
 		}
-		else if (num % 3 != 0)
+		else
 		{
-			throw new ArgumentOutOfRangeException("config.vertexBuffer", string.Format("When {0}.{1} is null, the amount of vertices used must be a multiple of 3. Only triangle geometries are supported. Currently using {2} vertices.", "config", "indexBuffer", num));
+			if (num < 3)
+			{
+				throw new ArgumentException($"The amount of vertices used must be at least 3. Only triangle geometries are supported. Currently using {num} vertices.");
+			}
+			if (num % 3 != 0)
+			{
+				throw new ArgumentException("config.vertexBuffer", string.Format("When {0}.{1} is null, the amount of vertices used must be a multiple of 3. Only triangle geometries are supported. Currently using {2} vertices.", "config", "indexBuffer", num));
+			}
 		}
 		if (config.lightProbeUsage != LightProbeUsage.Off)
 		{
@@ -587,13 +570,13 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			throw new ArgumentOutOfRangeException("maxInstanceCount", maxInstanceCount, $"The value cannot exceed {instanceMatrices.count}.");
 		}
-		if (maxInstanceCount > Graphics.kMaxDrawMeshInstanceCount)
-		{
-			throw new ArgumentOutOfRangeException("maxInstanceCount", maxInstanceCount, $"The value cannot exceed {Graphics.kMaxDrawMeshInstanceCount}.");
-		}
 		if (maxInstanceCount < -1 || maxInstanceCount == 0)
 		{
 			throw new ArgumentOutOfRangeException("maxInstanceCount", maxInstanceCount, "The parameter must be either -1 or a positive value.");
+		}
+		if (maxInstanceCount == -1)
+		{
+			maxInstanceCount = instanceMatrices.count;
 		}
 		if (argsBuffer.target != GraphicsBuffer.Target.Raw)
 		{
@@ -603,11 +586,202 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			throw new ArgumentException(string.Format("{0} buffer must contain at least 2 uints at the {1} byte offset. The current size of the buffer is {2}.", "argsBuffer", argsOffset, argsBuffer.count * argsBuffer.stride));
 		}
+		return AddGeometryInstancesIndirect(in config, instanceMatrices, (uint)maxInstanceCount, argsBuffer, argsOffset, id);
+	}
+
+	public int AddInstancesIndirect(in RayTracingMultiGeometryInstanceConfig config, GraphicsBuffer instanceData, Type instanceType, GraphicsBuffer instanceIndices, int maxInstanceCount, GraphicsBuffer argsBuffer, [DefaultValue("0")] uint argsOffset = 0u, uint id = uint.MaxValue)
+	{
+		if (instanceData == null)
+		{
+			throw new ArgumentNullException("instanceData");
+		}
+		if (instanceIndices != null)
+		{
+			if ((instanceIndices.target & GraphicsBuffer.Target.Structured) == 0 && (instanceIndices.target & GraphicsBuffer.Target.Append) == 0)
+			{
+				throw new ArgumentException("instanceIndices must use GraphicsBuffer.Target.Structured or GraphicsBuffer.Target.Append flag.");
+			}
+			if (instanceIndices.stride != 4)
+			{
+				throw new ArgumentException(string.Format("When using instance indices, the element type for the {0} buffer must be int (4 bytes stride). The current stride is {1} bytes.", "instanceIndices", instanceIndices.stride));
+			}
+		}
+		if (argsBuffer == null)
+		{
+			throw new ArgumentNullException("argsBuffer");
+		}
+		if (config.materials == null)
+		{
+			throw new ArgumentNullException("config.materials");
+		}
+		if (config.materials.Length == 0)
+		{
+			throw new ArgumentException("config.materials needs to be contain at least one entry.");
+		}
+		for (int i = 0; i < config.materials.Length; i++)
+		{
+			if (config.materials[i] != null && !CheckMaterialEnablesInstancing(config.materials[i]))
+			{
+				throw new InvalidOperationException("config.material (" + config.materials[i].name + ") needs to enable GPU Instancing for use with AddInstancesIndirect.");
+			}
+		}
+		if (config.vertexBuffer == null)
+		{
+			throw new ArgumentNullException("config.vertexBuffer");
+		}
+		if (config.subGeometries == null)
+		{
+			throw new ArgumentNullException("config.subGeometries");
+		}
+		if (config.subGeometries.Length == 0)
+		{
+			throw new ArgumentException("config.subGeometries array needs to be contain at least one entry.");
+		}
+		if (config.indexBuffer != null && config.indexBuffer.count < 3)
+		{
+			throw new ArgumentException("config.indexBuffer", $"The index buffer must contain at least 3 indices. Currently using {config.indexBuffer.count} indices.");
+		}
+		if (config.subGeometriesValidation)
+		{
+			for (int j = 0; j < config.subGeometries.Length; j++)
+			{
+				ref RayTracingSubGeometryDesc reference = ref config.subGeometries[j];
+				int num = ((reference.vertexCount <= 0) ? config.vertexBuffer.count : reference.vertexCount);
+				if (reference.vertexStart >= config.vertexBuffer.count)
+				{
+					throw new ArgumentOutOfRangeException($"config.subGeometries[{j}].vertexStart", reference.vertexStart, $"Addressing vertices outside of the vertex buffer ({config.vertexBuffer.count}).");
+				}
+				if (reference.vertexStart + num > config.vertexBuffer.count)
+				{
+					throw new ArgumentOutOfRangeException($"config.subGeometries[{j}].vertexStart", $"config.subGeometries[{j}].vertexStart ({reference.vertexStart}) is too large and is causing invalid vertices to be used. Currently using {num} vertices starting from vertex {reference.vertexStart} but the vertex buffer contains only {config.vertexBuffer.count} vertices.");
+				}
+				if (config.indexBuffer != null)
+				{
+					if (reference.indexStart >= config.indexBuffer.count)
+					{
+						throw new ArgumentOutOfRangeException($"config.subGeometries[{j}].indexStart", reference.indexStart, $"The value exceeds the amount of indices ({config.indexBuffer.count}) in the index buffer.");
+					}
+					if (reference.indexCount > config.indexBuffer.count)
+					{
+						throw new ArgumentOutOfRangeException($"config.subGeometries[{j}].indexCount", reference.indexCount, $"The value exceeds the amount of indices ({config.indexBuffer.count}) in the index buffer.");
+					}
+					if (reference.indexStart + reference.indexCount > config.indexBuffer.count)
+					{
+						if (reference.indexStart == 0)
+						{
+							throw new ArgumentOutOfRangeException($"config.subGeometries[{j}].indexCount", $"The value exceeds the amount of indices ({config.indexBuffer.count}) in the index buffer.");
+						}
+						throw new ArgumentOutOfRangeException($"config.subGeometries[{j}].indexStart", "The value is too large and causes out of range indices to be used.");
+					}
+					if (reference.indexCount % 3 != 0)
+					{
+						throw new ArgumentException($"config.subGeometries[{j}].indexCount", "The amount of indices used must be a multiple of 3. Only triangle geometries are supported.");
+					}
+				}
+				else
+				{
+					if (num < 3)
+					{
+						throw new ArgumentException($"config.subGeometries[{j}].vertexCount", $"The amount of vertices used must be at least 3. Only triangle geometries are supported. Currently using {num} vertices.");
+					}
+					if (num % 3 != 0)
+					{
+						throw new ArgumentException("config.vertexBuffer", string.Format("When {0}.{1} is null, the amount of vertices used must be a multiple of 3. Only triangle geometries are supported. Currently using {2} vertices.", "config", "indexBuffer", num));
+					}
+				}
+			}
+		}
+		if (config.vertexAttributes == null)
+		{
+			throw new ArgumentNullException("config.vertexAttributes");
+		}
+		if (config.vertexAttributes.Length == 0)
+		{
+			throw new ArgumentException("config.vertexAttributes must contain at least one entry.");
+		}
+		if ((instanceData.target & GraphicsBuffer.Target.Raw) == 0)
+		{
+			throw new ArgumentException("target must use GraphicsBuffer.Target.Raw flag.");
+		}
+		int num2 = Marshal.SizeOf(instanceType);
+		int num3 = instanceData.stride * instanceData.count / num2;
+		if (maxInstanceCount < -1 || maxInstanceCount == 0)
+		{
+			throw new ArgumentException("maxInstanceCount", $"The value must be either -1 or a positive value. Currently using {maxInstanceCount} instances.");
+		}
 		if (maxInstanceCount == -1)
 		{
-			maxInstanceCount = instanceMatrices.count;
+			maxInstanceCount = num3;
 		}
-		return AddGeometryInstancesIndirect(in config, instanceMatrices, (uint)maxInstanceCount, argsBuffer, argsOffset, id);
+		if (instanceIndices != null && maxInstanceCount > instanceIndices.count)
+		{
+			maxInstanceCount = instanceIndices.count;
+		}
+		if (argsBuffer.target != GraphicsBuffer.Target.Raw)
+		{
+			throw new ArgumentException("argsBuffer buffer must use GraphicsBuffer.Target.Raw flag.");
+		}
+		if (argsBuffer.count * argsBuffer.stride < 8)
+		{
+			throw new ArgumentException(string.Format("{0} buffer must contain at least 2 unsigned integer values at the {1} byte offset. The current size of the buffer is {2}.", "argsBuffer", argsOffset, argsBuffer.count * argsBuffer.stride));
+		}
+		int num4 = 0;
+		int num5 = 0;
+		int num6 = 0;
+		try
+		{
+			num4 = Marshal.OffsetOf(instanceType, "objectToWorld").ToInt32();
+		}
+		catch (ArgumentException)
+		{
+			num4 = -1;
+		}
+		try
+		{
+			num5 = Marshal.OffsetOf(instanceType, "materialIndex").ToInt32();
+		}
+		catch (ArgumentException)
+		{
+			num5 = -1;
+		}
+		try
+		{
+			num6 = Marshal.OffsetOf(instanceType, "geometryIndex").ToInt32();
+		}
+		catch (ArgumentException)
+		{
+			num6 = -1;
+		}
+		if (num4 == -1)
+		{
+			throw new ArgumentException("T template structure must contain a field named objectToWorld.");
+		}
+		if (num4 % 4 != 0)
+		{
+			throw new ArgumentException("objectToWorld field offset must be a multiple of 4.");
+		}
+		if (num5 == -1)
+		{
+			throw new ArgumentException("T template structure must contain a field named materialIndex.");
+		}
+		if (num5 % 4 != 0)
+		{
+			throw new ArgumentException("materialIndex field offset must be a multiple of 4.");
+		}
+		if (num6 == -1)
+		{
+			throw new ArgumentException("T template structure must contain a field named geometryIndex.");
+		}
+		if (num6 % 4 != 0)
+		{
+			throw new ArgumentException("geometryIndex field offset must be a multiple of 4.");
+		}
+		return AddMultiGeometryInstancesIndirect(in config, instanceData, instanceIndices, num2, num4, num5, num6, (uint)maxInstanceCount, argsBuffer, argsOffset, id);
+	}
+
+	public int AddInstancesIndirect<T>(in RayTracingMultiGeometryInstanceConfig config, GraphicsBuffer instanceData, GraphicsBuffer instanceIndices, int maxInstanceCount, GraphicsBuffer argsBuffer, [DefaultValue("0")] uint argsOffset = 0u, uint id = uint.MaxValue)
+	{
+		return AddInstancesIndirect(in config, instanceData, typeof(T), instanceIndices, maxInstanceCount, argsBuffer, argsOffset, id);
 	}
 
 	public unsafe int AddInstances<T>(in RayTracingMeshInstanceConfig config, NativeSlice<T> instanceData, uint id = uint.MaxValue) where T : unmanaged
@@ -636,12 +810,12 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		{
 			throw new ArgumentOutOfRangeException("config.meshLod", "config.meshLod is out of range");
 		}
-		RenderInstancedDataLayout layout = new RenderInstancedDataLayout(typeof(T));
+		RenderInstancedDataLayout cachedRenderInstancedDataLayout = Graphics.GetCachedRenderInstancedDataLayout(typeof(T));
 		if (instanceData.Length > Graphics.kMaxDrawMeshInstanceCount)
 		{
 			throw new InvalidOperationException($"Instance count cannot exceed {Graphics.kMaxDrawMeshInstanceCount}.");
 		}
-		return AddMeshInstances(config, (IntPtr)instanceData.GetUnsafeReadOnlyPtr(), layout, (uint)instanceData.Length, id);
+		return AddMeshInstances(config, (IntPtr)instanceData.GetUnsafeReadOnlyPtr(), cachedRenderInstancedDataLayout, (uint)instanceData.Length, id);
 	}
 
 	public void RemoveInstance(Renderer targetRenderer)
@@ -1059,6 +1233,17 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 		return AddGeometryInstancesIndirect_Injected(intPtr, in config, (instanceMatrices == null) ? ((IntPtr)0) : GraphicsBuffer.BindingsMarshaller.ConvertToNative(instanceMatrices), maxInstanceCount, (argsBuffer == null) ? ((IntPtr)0) : GraphicsBuffer.BindingsMarshaller.ConvertToNative(argsBuffer), argsOffset, id);
 	}
 
+	[FreeFunction("RayTracingAccelerationStructure_Bindings::AddMultiGeometryInstancesIndirect", HasExplicitThis = true)]
+	private int AddMultiGeometryInstancesIndirect(in RayTracingMultiGeometryInstanceConfig config, GraphicsBuffer instanceData, GraphicsBuffer instanceIndices, int instanceSize, int objectToWorldOffset, int materialIndexOffset, int geometryIndexOffset, uint maxInstanceCount, GraphicsBuffer argsBuffer, uint argsOffset, uint id = uint.MaxValue)
+	{
+		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return AddMultiGeometryInstancesIndirect_Injected(intPtr, in config, (instanceData == null) ? ((IntPtr)0) : GraphicsBuffer.BindingsMarshaller.ConvertToNative(instanceData), (instanceIndices == null) ? ((IntPtr)0) : GraphicsBuffer.BindingsMarshaller.ConvertToNative(instanceIndices), instanceSize, objectToWorldOffset, materialIndexOffset, geometryIndexOffset, maxInstanceCount, (argsBuffer == null) ? ((IntPtr)0) : GraphicsBuffer.BindingsMarshaller.ConvertToNative(argsBuffer), argsOffset, id);
+	}
+
 	[FreeFunction("RayTracingAccelerationStructure_Bindings::AddAABBsInstance", HasExplicitThis = true)]
 	private int AddAABBsInstance(RayTracingAABBsInstanceConfig config, Matrix4x4 matrix, uint id = uint.MaxValue)
 	{
@@ -1195,6 +1380,9 @@ public sealed class RayTracingAccelerationStructure : IDisposable
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern int AddGeometryInstancesIndirect_Injected(IntPtr _unity_self, in RayTracingGeometryInstanceConfig config, IntPtr instanceMatrices, uint maxInstanceCount, IntPtr argsBuffer, uint argsOffset, uint id);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern int AddMultiGeometryInstancesIndirect_Injected(IntPtr _unity_self, in RayTracingMultiGeometryInstanceConfig config, IntPtr instanceData, IntPtr instanceIndices, int instanceSize, int objectToWorldOffset, int materialIndexOffset, int geometryIndexOffset, uint maxInstanceCount, IntPtr argsBuffer, uint argsOffset, uint id);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern int AddAABBsInstance_Injected(IntPtr _unity_self, [In] ref RayTracingAABBsInstanceConfig config, [In] ref Matrix4x4 matrix, uint id);

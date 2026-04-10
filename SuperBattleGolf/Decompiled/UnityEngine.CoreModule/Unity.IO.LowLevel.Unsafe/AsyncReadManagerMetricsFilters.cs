@@ -6,8 +6,8 @@ namespace Unity.IO.LowLevel.Unsafe;
 
 [StructLayout(LayoutKind.Sequential)]
 [RequiredByNativeCode]
-[NativeAsStruct]
 [NativeConditional("ENABLE_PROFILER")]
+[NativeAsStruct]
 public class AsyncReadManagerMetricsFilters
 {
 	[NativeName("typeIDs")]

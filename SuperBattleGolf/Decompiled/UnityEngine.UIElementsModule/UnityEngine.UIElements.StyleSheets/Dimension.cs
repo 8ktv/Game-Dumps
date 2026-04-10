@@ -88,38 +88,7 @@ internal struct Dimension : IEquatable<Dimension>
 
 	public override string ToString()
 	{
-		string text = string.Empty;
-		switch (unit)
-		{
-		case Unit.Pixel:
-			text = "px";
-			break;
-		case Unit.Percent:
-			text = "%";
-			break;
-		case Unit.Second:
-			text = "s";
-			break;
-		case Unit.Millisecond:
-			text = "ms";
-			break;
-		case Unit.Degree:
-			text = "deg";
-			break;
-		case Unit.Gradian:
-			text = "grad";
-			break;
-		case Unit.Radian:
-			text = "rad";
-			break;
-		case Unit.Turn:
-			text = "turn";
-			break;
-		case Unit.Unitless:
-			text = string.Empty;
-			break;
-		}
-		return value.ToString(CultureInfo.InvariantCulture.NumberFormat) + text;
+		return value.ToString(CultureInfo.InvariantCulture.NumberFormat) + StyleSheetUtility.GetDimensionUnitExportString(unit);
 	}
 
 	public bool IsLength()

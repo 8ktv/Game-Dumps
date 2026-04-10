@@ -5,7 +5,7 @@ using UnityEngine.Events;
 
 namespace UnityEngine.UI;
 
-[AddComponentMenu("UI/Scrollbar", 36)]
+[AddComponentMenu("UI (Canvas)/Scrollbar", 36)]
 [ExecuteAlways]
 [RequireComponent(typeof(RectTransform))]
 public class Scrollbar : Selectable, IBeginDragHandler, IEventSystemHandler, IDragHandler, IInitializePotentialDragHandler, ICanvasElement

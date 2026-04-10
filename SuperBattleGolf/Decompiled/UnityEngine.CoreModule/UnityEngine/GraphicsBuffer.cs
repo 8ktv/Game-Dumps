@@ -10,9 +10,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Shaders/GraphicsBuffer.h")]
-[NativeHeader("Runtime/Export/Graphics/GraphicsBuffer.bindings.h")]
 [UsedByNativeCode]
+[NativeHeader("Runtime/Export/Graphics/GraphicsBuffer.bindings.h")]
+[NativeHeader("Runtime/Shaders/GraphicsBuffer.h")]
 public sealed class GraphicsBuffer : IDisposable
 {
 	[Flags]
@@ -358,8 +358,8 @@ public sealed class GraphicsBuffer : IDisposable
 		InternalSetNativeData_Injected(intPtr, data, nativeBufferStartIndex, graphicsBufferStartIndex, count, elemSize);
 	}
 
-	[SecurityCritical]
 	[FreeFunction(Name = "GraphicsBuffer_Bindings::InternalSetData", HasExplicitThis = true, ThrowsException = true)]
+	[SecurityCritical]
 	private void InternalSetData(Array data, int managedBufferStartIndex, int graphicsBufferStartIndex, int count, int elemSize)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -402,8 +402,8 @@ public sealed class GraphicsBuffer : IDisposable
 		InternalGetData(data, managedBufferStartIndex, computeBufferStartIndex, count, Marshal.SizeOf(data.GetType().GetElementType()));
 	}
 
-	[FreeFunction(Name = "GraphicsBuffer_Bindings::InternalGetData", HasExplicitThis = true, ThrowsException = true)]
 	[SecurityCritical]
+	[FreeFunction(Name = "GraphicsBuffer_Bindings::InternalGetData", HasExplicitThis = true, ThrowsException = true)]
 	private void InternalGetData(Array data, int managedBufferStartIndex, int computeBufferStartIndex, int count, int elemSize)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);

@@ -612,7 +612,6 @@ public static class GeneratedNetworkCode
 		{
 			playerGuid = reader.ReadVarULong(),
 			joinIndex = reader.ReadVarInt(),
-			name = reader.ReadString(),
 			isConnected = reader.ReadBool(),
 			isHost = reader.ReadBool(),
 			isRespawning = reader.ReadBool(),
@@ -628,17 +627,20 @@ public static class GeneratedNetworkCode
 			eliminations = reader.ReadVarInt(),
 			matchKnockouts = reader.ReadVarInt(),
 			courseKnockouts = reader.ReadVarInt(),
+			matchKnockoutStreak = reader.ReadVarInt(),
 			courseKnockedOut = reader.ReadVarInt(),
 			matchKnockedOut = reader.ReadVarInt(),
 			wins = reader.ReadVarInt(),
 			finishes = reader.ReadVarInt(),
 			multiplayerFinishes = reader.ReadVarInt(),
+			multiplayerFirstPlaceStreak = reader.ReadVarInt(),
 			losses = reader.ReadVarInt(),
 			dominatingCount = reader.ReadVarInt(),
 			bestHoleScore = _Read_StrokesUnderParType(reader),
 			avgFinishTime = reader.ReadFloat(),
 			longestChipIn = reader.ReadFloat(),
-			itemPickups = reader.ReadVarInt()
+			itemPickups = reader.ReadVarInt(),
+			joinTimestamp = reader.ReadDouble()
 		};
 	}
 
@@ -656,7 +658,6 @@ public static class GeneratedNetworkCode
 	{
 		writer.WriteVarULong(value.playerGuid);
 		writer.WriteVarInt(value.joinIndex);
-		writer.WriteString(value.name);
 		writer.WriteBool(value.isConnected);
 		writer.WriteBool(value.isHost);
 		writer.WriteBool(value.isRespawning);
@@ -672,17 +673,20 @@ public static class GeneratedNetworkCode
 		writer.WriteVarInt(value.eliminations);
 		writer.WriteVarInt(value.matchKnockouts);
 		writer.WriteVarInt(value.courseKnockouts);
+		writer.WriteVarInt(value.matchKnockoutStreak);
 		writer.WriteVarInt(value.courseKnockedOut);
 		writer.WriteVarInt(value.matchKnockedOut);
 		writer.WriteVarInt(value.wins);
 		writer.WriteVarInt(value.finishes);
 		writer.WriteVarInt(value.multiplayerFinishes);
+		writer.WriteVarInt(value.multiplayerFirstPlaceStreak);
 		writer.WriteVarInt(value.losses);
 		writer.WriteVarInt(value.dominatingCount);
 		_Write_StrokesUnderParType(writer, value.bestHoleScore);
 		writer.WriteFloat(value.avgFinishTime);
 		writer.WriteFloat(value.longestChipIn);
 		writer.WriteVarInt(value.itemPickups);
+		writer.WriteDouble(value.joinTimestamp);
 	}
 
 	public static void _Write_PlayerMatchResolution(NetworkWriter writer, PlayerMatchResolution value)
@@ -787,6 +791,16 @@ public static class GeneratedNetworkCode
 		return (SwingProjectileState)reader.ReadVarInt();
 	}
 
+	public static void _Write_BreakableIceState(NetworkWriter writer, BreakableIceState value)
+	{
+		writer.WriteVarInt((int)value);
+	}
+
+	public static BreakableIceState _Read_BreakableIceState(NetworkReader reader)
+	{
+		return (BreakableIceState)reader.ReadVarInt();
+	}
+
 	public static void _Write_BoundsState(NetworkWriter writer, BoundsState value)
 	{
 		NetworkWriterExtensions.WriteByte(writer, (byte)value);
@@ -877,6 +891,16 @@ public static class GeneratedNetworkCode
 		return (ThrownUsedItemType)reader.ReadVarInt();
 	}
 
+	public static void _Write_RespawnTarget(NetworkWriter writer, RespawnTarget value)
+	{
+		writer.WriteVarInt((int)value);
+	}
+
+	public static RespawnTarget _Read_RespawnTarget(NetworkReader reader)
+	{
+		return (RespawnTarget)reader.ReadVarInt();
+	}
+
 	public static void _Write_GroundTerrainType(NetworkWriter writer, GroundTerrainType value)
 	{
 		writer.WriteVarInt((int)value);
@@ -898,12 +922,28 @@ public static class GeneratedNetworkCode
 		writer.WriteVarInt(value.coloredStarCount);
 	}
 
+	public static void _Write_PlayerMovement_002FKnockOutImmunity(NetworkWriter writer, PlayerMovement.KnockOutImmunity value)
+	{
+		writer.WriteBool(value.hasImmunity);
+		_Write_KnockOutVfxColor(writer, value.color);
+	}
+
+	public static void _Write_KnockOutVfxColor(NetworkWriter writer, KnockOutVfxColor value)
+	{
+		writer.WriteVarInt((int)value);
+	}
+
 	public static void _Write_StatusEffect(NetworkWriter writer, StatusEffect value)
 	{
 		writer.WriteVarInt((int)value);
 	}
 
 	public static void _Write_DivingState(NetworkWriter writer, DivingState value)
+	{
+		writer.WriteVarInt((int)value);
+	}
+
+	public static void _Write_DiveType(NetworkWriter writer, DiveType value)
 	{
 		writer.WriteVarInt((int)value);
 	}
@@ -937,6 +977,20 @@ public static class GeneratedNetworkCode
 		};
 	}
 
+	public static PlayerMovement.KnockOutImmunity _Read_PlayerMovement_002FKnockOutImmunity(NetworkReader reader)
+	{
+		return new PlayerMovement.KnockOutImmunity
+		{
+			hasImmunity = reader.ReadBool(),
+			color = _Read_KnockOutVfxColor(reader)
+		};
+	}
+
+	public static KnockOutVfxColor _Read_KnockOutVfxColor(NetworkReader reader)
+	{
+		return (KnockOutVfxColor)reader.ReadVarInt();
+	}
+
 	public static StatusEffect _Read_StatusEffect(NetworkReader reader)
 	{
 		return (StatusEffect)reader.ReadVarInt();
@@ -947,9 +1001,24 @@ public static class GeneratedNetworkCode
 		return (DivingState)reader.ReadVarInt();
 	}
 
+	public static DiveType _Read_DiveType(NetworkReader reader)
+	{
+		return (DiveType)reader.ReadVarInt();
+	}
+
 	public static RespawnState _Read_RespawnState(NetworkReader reader)
 	{
 		return (RespawnState)reader.ReadVarInt();
+	}
+
+	public static void _Write_SpectatorEmote(NetworkWriter writer, SpectatorEmote value)
+	{
+		writer.WriteVarInt((int)value);
+	}
+
+	public static SpectatorEmote _Read_SpectatorEmote(NetworkReader reader)
+	{
+		return (SpectatorEmote)reader.ReadVarInt();
 	}
 
 	public static void _Write_HoleOverviewCameraUi_002FState(NetworkWriter writer, HoleOverviewCameraUi.State value)
@@ -962,38 +1031,83 @@ public static class GeneratedNetworkCode
 		return (HoleOverviewCameraUi.State)reader.ReadVarInt();
 	}
 
-	public static void _Write_InfoFeed_002FGenericMessageData(NetworkWriter writer, InfoFeed.GenericMessageData value)
+	public static void _Write_InfoFeed_002FKnockoutMessageData(NetworkWriter writer, InfoFeed.KnockoutMessageData value)
 	{
-		writer.WriteString(value.preIconText);
-		writer.WriteString(value.postIconText);
-		_Write_InfoFeedIconSettings_002FType(writer, value.icon1);
-		_Write_InfoFeedIconSettings_002FType(writer, value.icon2);
+		writer.WriteVarULong(value.responsiblePlayer);
+		writer.WriteVarULong(value.knockedOutPlayer);
+		_Write_InfoFeedIconType(writer, value.icon);
 	}
 
-	public static void _Write_InfoFeedIconSettings_002FType(NetworkWriter writer, InfoFeedIconSettings.Type value)
+	public static void _Write_InfoFeedIconType(NetworkWriter writer, InfoFeedIconType value)
 	{
 		writer.WriteVarInt((int)value);
 	}
 
-	public static InfoFeed.GenericMessageData _Read_InfoFeed_002FGenericMessageData(NetworkReader reader)
+	public static InfoFeed.KnockoutMessageData _Read_InfoFeed_002FKnockoutMessageData(NetworkReader reader)
 	{
-		return new InfoFeed.GenericMessageData
+		return new InfoFeed.KnockoutMessageData
 		{
-			preIconText = reader.ReadString(),
-			postIconText = reader.ReadString(),
-			icon1 = _Read_InfoFeedIconSettings_002FType(reader),
-			icon2 = _Read_InfoFeedIconSettings_002FType(reader)
+			responsiblePlayer = reader.ReadVarULong(),
+			knockedOutPlayer = reader.ReadVarULong(),
+			icon = _Read_InfoFeedIconType(reader)
 		};
 	}
 
-	public static InfoFeedIconSettings.Type _Read_InfoFeedIconSettings_002FType(NetworkReader reader)
+	public static InfoFeedIconType _Read_InfoFeedIconType(NetworkReader reader)
 	{
-		return (InfoFeedIconSettings.Type)reader.ReadVarInt();
+		return (InfoFeedIconType)reader.ReadVarInt();
+	}
+
+	public static void _Write_InfoFeed_002FEliminationMessaqeData(NetworkWriter writer, InfoFeed.EliminationMessaqeData value)
+	{
+		writer.WriteVarULong(value.responsiblePlayer);
+		writer.WriteVarULong(value.knockedOutPlayer);
+		_Write_InfoFeedIconType(writer, value.icon);
+	}
+
+	public static InfoFeed.EliminationMessaqeData _Read_InfoFeed_002FEliminationMessaqeData(NetworkReader reader)
+	{
+		return new InfoFeed.EliminationMessaqeData
+		{
+			responsiblePlayer = reader.ReadVarULong(),
+			knockedOutPlayer = reader.ReadVarULong(),
+			icon = _Read_InfoFeedIconType(reader)
+		};
+	}
+
+	public static void _Write_InfoFeed_002FSelfEliminationMessageData(NetworkWriter writer, InfoFeed.SelfEliminationMessageData value)
+	{
+		writer.WriteVarULong(value.playerGuid);
+		_Write_InfoFeedIconType(writer, value.icon);
+	}
+
+	public static InfoFeed.SelfEliminationMessageData _Read_InfoFeed_002FSelfEliminationMessageData(NetworkReader reader)
+	{
+		return new InfoFeed.SelfEliminationMessageData
+		{
+			playerGuid = reader.ReadVarULong(),
+			icon = _Read_InfoFeedIconType(reader)
+		};
+	}
+
+	public static void _Write_InfoFeed_002FSelfKnockoutMessageData(NetworkWriter writer, InfoFeed.SelfKnockoutMessageData value)
+	{
+		writer.WriteVarULong(value.playerGuid);
+		_Write_InfoFeedIconType(writer, value.icon);
+	}
+
+	public static InfoFeed.SelfKnockoutMessageData _Read_InfoFeed_002FSelfKnockoutMessageData(NetworkReader reader)
+	{
+		return new InfoFeed.SelfKnockoutMessageData
+		{
+			playerGuid = reader.ReadVarULong(),
+			icon = _Read_InfoFeedIconType(reader)
+		};
 	}
 
 	public static void _Write_InfoFeed_002FFinishedHoleMessageData(NetworkWriter writer, InfoFeed.FinishedHoleMessageData value)
 	{
-		writer.WriteString(value.playerName);
+		writer.WriteVarULong(value.playerGuid);
 		writer.WriteVarInt(value.displayPlacement);
 	}
 
@@ -1001,27 +1115,27 @@ public static class GeneratedNetworkCode
 	{
 		return new InfoFeed.FinishedHoleMessageData
 		{
-			playerName = reader.ReadString(),
+			playerGuid = reader.ReadVarULong(),
 			displayPlacement = reader.ReadVarInt()
 		};
 	}
 
 	public static void _Write_InfoFeed_002FScoredOnDrivingRangeMessageData(NetworkWriter writer, InfoFeed.ScoredOnDrivingRangeMessageData value)
 	{
-		writer.WriteString(value.playerName);
+		writer.WriteVarULong(value.playerGuid);
 	}
 
 	public static InfoFeed.ScoredOnDrivingRangeMessageData _Read_InfoFeed_002FScoredOnDrivingRangeMessageData(NetworkReader reader)
 	{
 		return new InfoFeed.ScoredOnDrivingRangeMessageData
 		{
-			playerName = reader.ReadString()
+			playerGuid = reader.ReadVarULong()
 		};
 	}
 
 	public static void _Write_InfoFeed_002FStrokesMessageData(NetworkWriter writer, InfoFeed.StrokesMessageData value)
 	{
-		writer.WriteString(value.playerName);
+		writer.WriteVarULong(value.playerGuid);
 		_Write_StrokesUnderParType(writer, value.strokesUnderParType);
 		writer.WriteVarInt(value.strokesUnderPar);
 	}
@@ -1030,7 +1144,7 @@ public static class GeneratedNetworkCode
 	{
 		return new InfoFeed.StrokesMessageData
 		{
-			playerName = reader.ReadString(),
+			playerGuid = reader.ReadVarULong(),
 			strokesUnderParType = _Read_StrokesUnderParType(reader),
 			strokesUnderPar = reader.ReadVarInt()
 		};
@@ -1038,7 +1152,7 @@ public static class GeneratedNetworkCode
 
 	public static void _Write_InfoFeed_002FChipInMessageData(NetworkWriter writer, InfoFeed.ChipInMessageData value)
 	{
-		writer.WriteString(value.playerName);
+		writer.WriteVarULong(value.playerGuid);
 		writer.WriteFloat(value.distance);
 	}
 
@@ -1046,14 +1160,14 @@ public static class GeneratedNetworkCode
 	{
 		return new InfoFeed.ChipInMessageData
 		{
-			playerName = reader.ReadString(),
+			playerGuid = reader.ReadVarULong(),
 			distance = reader.ReadFloat()
 		};
 	}
 
 	public static void _Write_InfoFeed_002FSpeedrunMessageData(NetworkWriter writer, InfoFeed.SpeedrunMessageData value)
 	{
-		writer.WriteString(value.playerName);
+		writer.WriteVarULong(value.playerGuid);
 		writer.WriteFloat(value.time);
 	}
 
@@ -1061,38 +1175,53 @@ public static class GeneratedNetworkCode
 	{
 		return new InfoFeed.SpeedrunMessageData
 		{
-			playerName = reader.ReadString(),
+			playerGuid = reader.ReadVarULong(),
 			time = reader.ReadFloat()
 		};
 	}
 
 	public static void _Write_InfoFeed_002FDominatingMessageData(NetworkWriter writer, InfoFeed.DominatingMessageData value)
 	{
-		writer.WriteString(value.dominatingPlayerName);
-		writer.WriteString(value.dominatedPlayerName);
+		writer.WriteVarULong(value.dominatingPlayerGuid);
+		writer.WriteVarULong(value.dominatedPlayerGuid);
 	}
 
 	public static InfoFeed.DominatingMessageData _Read_InfoFeed_002FDominatingMessageData(NetworkReader reader)
 	{
 		return new InfoFeed.DominatingMessageData
 		{
-			dominatingPlayerName = reader.ReadString(),
-			dominatedPlayerName = reader.ReadString()
+			dominatingPlayerGuid = reader.ReadVarULong(),
+			dominatedPlayerGuid = reader.ReadVarULong()
 		};
 	}
 
 	public static void _Write_InfoFeed_002FRevengeMessageData(NetworkWriter writer, InfoFeed.RevengeMessageData value)
 	{
-		writer.WriteString(value.previouslyDominatedPlayerName);
-		writer.WriteString(value.previouslyDominatingPlayerName);
+		writer.WriteVarULong(value.previouslyDominatedPlayerGuid);
+		writer.WriteVarULong(value.previouslyDominatingPlayerGuid);
 	}
 
 	public static InfoFeed.RevengeMessageData _Read_InfoFeed_002FRevengeMessageData(NetworkReader reader)
 	{
 		return new InfoFeed.RevengeMessageData
 		{
-			previouslyDominatedPlayerName = reader.ReadString(),
-			previouslyDominatingPlayerName = reader.ReadString()
+			previouslyDominatedPlayerGuid = reader.ReadVarULong(),
+			previouslyDominatingPlayerGuid = reader.ReadVarULong()
+		};
+	}
+
+	public static void _Write_InfoFeed_002FComebackMessageData(NetworkWriter writer, InfoFeed.ComebackMessageData value)
+	{
+		writer.WriteVarULong(value.playerGuid);
+		writer.WriteVarInt(value.comebackBonus);
+	}
+
+	public static InfoFeed.ComebackMessageData _Read_InfoFeed_002FComebackMessageData(NetworkReader reader)
+	{
+		return new InfoFeed.ComebackMessageData
+		{
+			playerGuid = reader.ReadVarULong(),
+			comebackBonus = reader.ReadVarInt()
 		};
 	}
 
@@ -1139,6 +1268,41 @@ public static class GeneratedNetworkCode
 	public static MatchSetupRules.Preset _Read_MatchSetupRules_002FPreset(NetworkReader reader)
 	{
 		return (MatchSetupRules.Preset)reader.ReadVarInt();
+	}
+
+	public static void _Write_AchievementId(NetworkWriter writer, AchievementId value)
+	{
+		writer.WriteVarInt((int)value);
+	}
+
+	public static AchievementId _Read_AchievementId(NetworkReader reader)
+	{
+		return (AchievementId)reader.ReadVarInt();
+	}
+
+	public static VoteKickManager.Vote _Read_VoteKickManager_002FVote(NetworkReader reader)
+	{
+		return (VoteKickManager.Vote)reader.ReadVarInt();
+	}
+
+	public static void _Write_VoteKickManager_002FVote(NetworkWriter writer, VoteKickManager.Vote value)
+	{
+		writer.WriteVarInt((int)value);
+	}
+
+	public static void _Write_VoteKickManager_002FVoteResults(NetworkWriter writer, VoteKickManager.VoteResults value)
+	{
+		NetworkWriterExtensions.WriteByte(writer, value.yesVotes);
+		NetworkWriterExtensions.WriteByte(writer, value.noVotes);
+	}
+
+	public static VoteKickManager.VoteResults _Read_VoteKickManager_002FVoteResults(NetworkReader reader)
+	{
+		return new VoteKickManager.VoteResults
+		{
+			yesVotes = NetworkReaderExtensions.ReadByte(reader),
+			noVotes = NetworkReaderExtensions.ReadByte(reader)
+		};
 	}
 
 	public static void _Write_VfxType(NetworkWriter writer, VfxType value)
@@ -1309,6 +1473,7 @@ public static class GeneratedNetworkCode
 		Writer<ItemUseId>.write = _Write_ItemUseId;
 		Writer<PlayerInventory>.write = NetworkWriterExtensions.WriteNetworkBehaviour;
 		Writer<SwingProjectileState>.write = _Write_SwingProjectileState;
+		Writer<BreakableIceState>.write = _Write_BreakableIceState;
 		Writer<BoundsState>.write = _Write_BoundsState;
 		Writer<EliminationReason>.write = _Write_EliminationReason;
 		Writer<GolfCartInfo>.write = NetworkWriterExtensions.WriteNetworkBehaviour;
@@ -1318,16 +1483,24 @@ public static class GeneratedNetworkCode
 		Writer<InventorySlot>.write = _Write_InventorySlot;
 		Writer<LandmineArmType>.write = _Write_LandmineArmType;
 		Writer<ThrownUsedItemType>.write = _Write_ThrownUsedItemType;
+		Writer<RespawnTarget>.write = _Write_RespawnTarget;
 		Writer<GroundTerrainType>.write = _Write_GroundTerrainType;
 		Writer<TerrainLayer>.write = _Write_TerrainLayer;
 		Writer<KnockoutState>.write = _Write_KnockoutState;
 		Writer<PlayerMovement.KnockedOutVfxData>.write = _Write_PlayerMovement_002FKnockedOutVfxData;
+		Writer<PlayerMovement.KnockOutImmunity>.write = _Write_PlayerMovement_002FKnockOutImmunity;
+		Writer<KnockOutVfxColor>.write = _Write_KnockOutVfxColor;
 		Writer<StatusEffect>.write = _Write_StatusEffect;
 		Writer<DivingState>.write = _Write_DivingState;
+		Writer<DiveType>.write = _Write_DiveType;
 		Writer<RespawnState>.write = _Write_RespawnState;
+		Writer<SpectatorEmote>.write = _Write_SpectatorEmote;
 		Writer<HoleOverviewCameraUi.State>.write = _Write_HoleOverviewCameraUi_002FState;
-		Writer<InfoFeed.GenericMessageData>.write = _Write_InfoFeed_002FGenericMessageData;
-		Writer<InfoFeedIconSettings.Type>.write = _Write_InfoFeedIconSettings_002FType;
+		Writer<InfoFeed.KnockoutMessageData>.write = _Write_InfoFeed_002FKnockoutMessageData;
+		Writer<InfoFeedIconType>.write = _Write_InfoFeedIconType;
+		Writer<InfoFeed.EliminationMessaqeData>.write = _Write_InfoFeed_002FEliminationMessaqeData;
+		Writer<InfoFeed.SelfEliminationMessageData>.write = _Write_InfoFeed_002FSelfEliminationMessageData;
+		Writer<InfoFeed.SelfKnockoutMessageData>.write = _Write_InfoFeed_002FSelfKnockoutMessageData;
 		Writer<InfoFeed.FinishedHoleMessageData>.write = _Write_InfoFeed_002FFinishedHoleMessageData;
 		Writer<InfoFeed.ScoredOnDrivingRangeMessageData>.write = _Write_InfoFeed_002FScoredOnDrivingRangeMessageData;
 		Writer<InfoFeed.StrokesMessageData>.write = _Write_InfoFeed_002FStrokesMessageData;
@@ -1335,10 +1508,14 @@ public static class GeneratedNetworkCode
 		Writer<InfoFeed.SpeedrunMessageData>.write = _Write_InfoFeed_002FSpeedrunMessageData;
 		Writer<InfoFeed.DominatingMessageData>.write = _Write_InfoFeed_002FDominatingMessageData;
 		Writer<InfoFeed.RevengeMessageData>.write = _Write_InfoFeed_002FRevengeMessageData;
+		Writer<InfoFeed.ComebackMessageData>.write = _Write_InfoFeed_002FComebackMessageData;
 		Writer<LobbyMode>.write = _Write_LobbyMode;
 		Writer<MatchSetupRules.Rule>.write = _Write_MatchSetupRules_002FRule;
 		Writer<MatchSetupRules.ItemPoolId>.write = _Write_MatchSetupRules_002FItemPoolId;
 		Writer<MatchSetupRules.Preset>.write = _Write_MatchSetupRules_002FPreset;
+		Writer<AchievementId>.write = _Write_AchievementId;
+		Writer<VoteKickManager.Vote>.write = _Write_VoteKickManager_002FVote;
+		Writer<VoteKickManager.VoteResults>.write = _Write_VoteKickManager_002FVoteResults;
 		Writer<VfxType>.write = _Write_VfxType;
 		Writer<VfxManager.GunShotHitVfxData>.write = _Write_VfxManager_002FGunShotHitVfxData;
 		Reader<byte>.read = NetworkReaderExtensions.ReadByte;
@@ -1478,6 +1655,7 @@ public static class GeneratedNetworkCode
 		Reader<ItemUseId>.read = _Read_ItemUseId;
 		Reader<PlayerInventory>.read = NetworkReaderExtensions.ReadNetworkBehaviour<PlayerInventory>;
 		Reader<SwingProjectileState>.read = _Read_SwingProjectileState;
+		Reader<BreakableIceState>.read = _Read_BreakableIceState;
 		Reader<BoundsState>.read = _Read_BoundsState;
 		Reader<EliminationReason>.read = _Read_EliminationReason;
 		Reader<GolfCartInfo>.read = NetworkReaderExtensions.ReadNetworkBehaviour<GolfCartInfo>;
@@ -1487,16 +1665,24 @@ public static class GeneratedNetworkCode
 		Reader<InventorySlot>.read = _Read_InventorySlot;
 		Reader<LandmineArmType>.read = _Read_LandmineArmType;
 		Reader<ThrownUsedItemType>.read = _Read_ThrownUsedItemType;
+		Reader<RespawnTarget>.read = _Read_RespawnTarget;
 		Reader<GroundTerrainType>.read = _Read_GroundTerrainType;
 		Reader<TerrainLayer>.read = _Read_TerrainLayer;
 		Reader<KnockoutState>.read = _Read_KnockoutState;
 		Reader<PlayerMovement.KnockedOutVfxData>.read = _Read_PlayerMovement_002FKnockedOutVfxData;
+		Reader<PlayerMovement.KnockOutImmunity>.read = _Read_PlayerMovement_002FKnockOutImmunity;
+		Reader<KnockOutVfxColor>.read = _Read_KnockOutVfxColor;
 		Reader<StatusEffect>.read = _Read_StatusEffect;
 		Reader<DivingState>.read = _Read_DivingState;
+		Reader<DiveType>.read = _Read_DiveType;
 		Reader<RespawnState>.read = _Read_RespawnState;
+		Reader<SpectatorEmote>.read = _Read_SpectatorEmote;
 		Reader<HoleOverviewCameraUi.State>.read = _Read_HoleOverviewCameraUi_002FState;
-		Reader<InfoFeed.GenericMessageData>.read = _Read_InfoFeed_002FGenericMessageData;
-		Reader<InfoFeedIconSettings.Type>.read = _Read_InfoFeedIconSettings_002FType;
+		Reader<InfoFeed.KnockoutMessageData>.read = _Read_InfoFeed_002FKnockoutMessageData;
+		Reader<InfoFeedIconType>.read = _Read_InfoFeedIconType;
+		Reader<InfoFeed.EliminationMessaqeData>.read = _Read_InfoFeed_002FEliminationMessaqeData;
+		Reader<InfoFeed.SelfEliminationMessageData>.read = _Read_InfoFeed_002FSelfEliminationMessageData;
+		Reader<InfoFeed.SelfKnockoutMessageData>.read = _Read_InfoFeed_002FSelfKnockoutMessageData;
 		Reader<InfoFeed.FinishedHoleMessageData>.read = _Read_InfoFeed_002FFinishedHoleMessageData;
 		Reader<InfoFeed.ScoredOnDrivingRangeMessageData>.read = _Read_InfoFeed_002FScoredOnDrivingRangeMessageData;
 		Reader<InfoFeed.StrokesMessageData>.read = _Read_InfoFeed_002FStrokesMessageData;
@@ -1504,10 +1690,14 @@ public static class GeneratedNetworkCode
 		Reader<InfoFeed.SpeedrunMessageData>.read = _Read_InfoFeed_002FSpeedrunMessageData;
 		Reader<InfoFeed.DominatingMessageData>.read = _Read_InfoFeed_002FDominatingMessageData;
 		Reader<InfoFeed.RevengeMessageData>.read = _Read_InfoFeed_002FRevengeMessageData;
+		Reader<InfoFeed.ComebackMessageData>.read = _Read_InfoFeed_002FComebackMessageData;
 		Reader<LobbyMode>.read = _Read_LobbyMode;
 		Reader<MatchSetupRules.Rule>.read = _Read_MatchSetupRules_002FRule;
 		Reader<MatchSetupRules.ItemPoolId>.read = _Read_MatchSetupRules_002FItemPoolId;
 		Reader<MatchSetupRules.Preset>.read = _Read_MatchSetupRules_002FPreset;
+		Reader<AchievementId>.read = _Read_AchievementId;
+		Reader<VoteKickManager.Vote>.read = _Read_VoteKickManager_002FVote;
+		Reader<VoteKickManager.VoteResults>.read = _Read_VoteKickManager_002FVoteResults;
 		Reader<VfxType>.read = _Read_VfxType;
 		Reader<VfxManager.GunShotHitVfxData>.read = _Read_VfxManager_002FGunShotHitVfxData;
 	}

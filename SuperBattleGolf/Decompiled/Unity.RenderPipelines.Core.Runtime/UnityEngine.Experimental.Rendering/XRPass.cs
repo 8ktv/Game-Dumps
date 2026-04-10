@@ -34,21 +34,7 @@ public class XRPass
 
 	public bool isFirstCameraPass => multipassId == 0;
 
-	public bool isLastCameraPass
-	{
-		get
-		{
-			if ((multipassId != 1 || viewCount > 1) && (multipassId != 0 || viewCount <= 1))
-			{
-				if (multipassId == 0)
-				{
-					return viewCount == 0;
-				}
-				return false;
-			}
-			return true;
-		}
-	}
+	public bool isLastCameraPass { get; private set; }
 
 	public int multipassId { get; private set; }
 
@@ -101,6 +87,7 @@ public class XRPass
 		m_Views = new List<XRView>(2);
 		m_OcclusionMesh = new XROcclusionMesh(this);
 		m_VisibleMesh = new XRVisibleMesh(this);
+		isLastCameraPass = true;
 	}
 
 	public static XRPass CreateDefault(XRPassCreateInfo createInfo)
@@ -298,6 +285,7 @@ public class XRPass
 		m_OcclusionMesh.SetMaterial(createInfo.occlusionMeshMaterial);
 		occlusionMeshScale = createInfo.occlusionMeshScale;
 		foveatedRenderingInfo = createInfo.foveatedRenderingInfo;
+		isLastCameraPass = createInfo.isLastCameraPass;
 	}
 
 	internal void AddView(XRView xrView)

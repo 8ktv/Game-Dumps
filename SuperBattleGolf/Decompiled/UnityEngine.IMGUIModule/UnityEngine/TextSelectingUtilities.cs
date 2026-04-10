@@ -49,7 +49,46 @@ internal class TextSelectingUtilities
 
 	internal int m_SelectIndex = 0;
 
-	private static Dictionary<Event, TextSelectOp> s_KeySelectOps;
+	internal static readonly List<(TextEditingUtilities.KeyEvent keyEvent, TextSelectOp operation)> s_GlobalKeyMappings = new List<(TextEditingUtilities.KeyEvent, TextSelectOp)>
+	{
+		(new TextEditingUtilities.KeyEvent(KeyCode.LeftArrow, EventModifiers.Shift | EventModifiers.FunctionKey), TextSelectOp.SelectLeft),
+		(new TextEditingUtilities.KeyEvent(KeyCode.RightArrow, EventModifiers.Shift | EventModifiers.FunctionKey), TextSelectOp.SelectRight),
+		(new TextEditingUtilities.KeyEvent(KeyCode.UpArrow, EventModifiers.Shift | EventModifiers.FunctionKey), TextSelectOp.SelectUp),
+		(new TextEditingUtilities.KeyEvent(KeyCode.DownArrow, EventModifiers.Shift | EventModifiers.FunctionKey), TextSelectOp.SelectDown)
+	};
+
+	internal static readonly List<(TextEditingUtilities.KeyEvent keyEvent, TextSelectOp operation)> s_MacKeyMappings = new List<(TextEditingUtilities.KeyEvent, TextSelectOp)>
+	{
+		(new TextEditingUtilities.KeyEvent(KeyCode.Home, EventModifiers.Shift | EventModifiers.FunctionKey), TextSelectOp.SelectTextStart),
+		(new TextEditingUtilities.KeyEvent(KeyCode.End, EventModifiers.Shift | EventModifiers.FunctionKey), TextSelectOp.SelectTextEnd),
+		(new TextEditingUtilities.KeyEvent(KeyCode.LeftArrow, EventModifiers.Shift | EventModifiers.Control | EventModifiers.FunctionKey), TextSelectOp.ExpandSelectGraphicalLineStart),
+		(new TextEditingUtilities.KeyEvent(KeyCode.RightArrow, EventModifiers.Shift | EventModifiers.Control | EventModifiers.FunctionKey), TextSelectOp.ExpandSelectGraphicalLineEnd),
+		(new TextEditingUtilities.KeyEvent(KeyCode.UpArrow, EventModifiers.Shift | EventModifiers.Control | EventModifiers.FunctionKey), TextSelectOp.SelectParagraphBackward),
+		(new TextEditingUtilities.KeyEvent(KeyCode.DownArrow, EventModifiers.Shift | EventModifiers.Control | EventModifiers.FunctionKey), TextSelectOp.SelectParagraphForward),
+		(new TextEditingUtilities.KeyEvent(KeyCode.LeftArrow, EventModifiers.Shift | EventModifiers.Alt | EventModifiers.FunctionKey), TextSelectOp.SelectWordLeft),
+		(new TextEditingUtilities.KeyEvent(KeyCode.RightArrow, EventModifiers.Shift | EventModifiers.Alt | EventModifiers.FunctionKey), TextSelectOp.SelectWordRight),
+		(new TextEditingUtilities.KeyEvent(KeyCode.UpArrow, EventModifiers.Shift | EventModifiers.Alt | EventModifiers.FunctionKey), TextSelectOp.SelectParagraphBackward),
+		(new TextEditingUtilities.KeyEvent(KeyCode.DownArrow, EventModifiers.Shift | EventModifiers.Alt | EventModifiers.FunctionKey), TextSelectOp.SelectParagraphForward),
+		(new TextEditingUtilities.KeyEvent(KeyCode.LeftArrow, EventModifiers.Shift | EventModifiers.Command | EventModifiers.FunctionKey), TextSelectOp.ExpandSelectGraphicalLineStart),
+		(new TextEditingUtilities.KeyEvent(KeyCode.RightArrow, EventModifiers.Shift | EventModifiers.Command | EventModifiers.FunctionKey), TextSelectOp.ExpandSelectGraphicalLineEnd),
+		(new TextEditingUtilities.KeyEvent(KeyCode.UpArrow, EventModifiers.Shift | EventModifiers.Command | EventModifiers.FunctionKey), TextSelectOp.SelectTextStart),
+		(new TextEditingUtilities.KeyEvent(KeyCode.DownArrow, EventModifiers.Shift | EventModifiers.Command | EventModifiers.FunctionKey), TextSelectOp.SelectTextEnd),
+		(new TextEditingUtilities.KeyEvent(KeyCode.A, EventModifiers.Command), TextSelectOp.SelectAll),
+		(new TextEditingUtilities.KeyEvent(KeyCode.C, EventModifiers.Command), TextSelectOp.Copy)
+	};
+
+	internal static readonly List<(TextEditingUtilities.KeyEvent keyEvent, TextSelectOp operation)> s_WindowsLinuxKeyMappings = new List<(TextEditingUtilities.KeyEvent, TextSelectOp)>
+	{
+		(new TextEditingUtilities.KeyEvent(KeyCode.LeftArrow, EventModifiers.Shift | EventModifiers.Control | EventModifiers.FunctionKey), TextSelectOp.SelectToEndOfPreviousWord),
+		(new TextEditingUtilities.KeyEvent(KeyCode.RightArrow, EventModifiers.Shift | EventModifiers.Control | EventModifiers.FunctionKey), TextSelectOp.SelectToStartOfNextWord),
+		(new TextEditingUtilities.KeyEvent(KeyCode.UpArrow, EventModifiers.Shift | EventModifiers.Control | EventModifiers.FunctionKey), TextSelectOp.SelectParagraphBackward),
+		(new TextEditingUtilities.KeyEvent(KeyCode.DownArrow, EventModifiers.Shift | EventModifiers.Control | EventModifiers.FunctionKey), TextSelectOp.SelectParagraphForward),
+		(new TextEditingUtilities.KeyEvent(KeyCode.Home, EventModifiers.Shift | EventModifiers.FunctionKey), TextSelectOp.SelectGraphicalLineStart),
+		(new TextEditingUtilities.KeyEvent(KeyCode.End, EventModifiers.Shift | EventModifiers.FunctionKey), TextSelectOp.SelectGraphicalLineEnd),
+		(new TextEditingUtilities.KeyEvent(KeyCode.A, EventModifiers.Control), TextSelectOp.SelectAll),
+		(new TextEditingUtilities.KeyEvent(KeyCode.C, EventModifiers.Control), TextSelectOp.Copy),
+		(new TextEditingUtilities.KeyEvent(KeyCode.Insert, EventModifiers.Control | EventModifiers.FunctionKey), TextSelectOp.Copy)
+	};
 
 	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
 	internal Action OnCursorIndexChange;
@@ -179,20 +218,20 @@ internal class TextSelectingUtilities
 		this.textHandle = textHandle;
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
 	internal bool HandleKeyEvent(Event e)
 	{
-		InitKeyActions();
-		EventModifiers modifiers = e.modifiers;
-		e.modifiers &= ~EventModifiers.CapsLock;
-		if (s_KeySelectOps.ContainsKey(e))
+		return HandleKeyEvent(e.keyCode, e.modifiers);
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+	internal bool HandleKeyEvent(KeyCode key, EventModifiers modifiers)
+	{
+		TextSelectOp? textSelectOp = TextSelectOpFromEnum(key, modifiers, SystemInfo.operatingSystemFamily == OperatingSystemFamily.MacOSX);
+		if (textSelectOp.HasValue)
 		{
-			TextSelectOp operation = s_KeySelectOps[e];
-			PerformOperation(operation);
-			e.modifiers = modifiers;
+			PerformOperation(textSelectOp.Value);
 			return true;
 		}
-		e.modifiers = modifiers;
 		return false;
 	}
 
@@ -264,52 +303,25 @@ internal class TextSelectingUtilities
 		return false;
 	}
 
-	private static void MapKey(string key, TextSelectOp action)
+	internal static TextSelectOp? TextSelectOpFromEnum(KeyCode key, EventModifiers modifiers, bool IsMacOsFamily)
 	{
-		s_KeySelectOps[Event.KeyboardEvent(key)] = action;
-	}
-
-	private void InitKeyActions()
-	{
-		if (s_KeySelectOps == null)
+		modifiers &= ~EventModifiers.CapsLock;
+		TextEditingUtilities.KeyEvent keyEvent = new TextEditingUtilities.KeyEvent(key, modifiers);
+		foreach (var s_GlobalKeyMapping in s_GlobalKeyMappings)
 		{
-			s_KeySelectOps = new Dictionary<Event, TextSelectOp>();
-			MapKey("#left", TextSelectOp.SelectLeft);
-			MapKey("#right", TextSelectOp.SelectRight);
-			MapKey("#up", TextSelectOp.SelectUp);
-			MapKey("#down", TextSelectOp.SelectDown);
-			if (SystemInfo.operatingSystemFamily == OperatingSystemFamily.MacOSX)
+			if (s_GlobalKeyMapping.keyEvent == keyEvent)
 			{
-				MapKey("#home", TextSelectOp.SelectTextStart);
-				MapKey("#end", TextSelectOp.SelectTextEnd);
-				MapKey("#^left", TextSelectOp.ExpandSelectGraphicalLineStart);
-				MapKey("#^right", TextSelectOp.ExpandSelectGraphicalLineEnd);
-				MapKey("#^up", TextSelectOp.SelectParagraphBackward);
-				MapKey("#^down", TextSelectOp.SelectParagraphForward);
-				MapKey("#&left", TextSelectOp.SelectWordLeft);
-				MapKey("#&right", TextSelectOp.SelectWordRight);
-				MapKey("#&up", TextSelectOp.SelectParagraphBackward);
-				MapKey("#&down", TextSelectOp.SelectParagraphForward);
-				MapKey("#%left", TextSelectOp.ExpandSelectGraphicalLineStart);
-				MapKey("#%right", TextSelectOp.ExpandSelectGraphicalLineEnd);
-				MapKey("#%up", TextSelectOp.SelectTextStart);
-				MapKey("#%down", TextSelectOp.SelectTextEnd);
-				MapKey("%a", TextSelectOp.SelectAll);
-				MapKey("%c", TextSelectOp.Copy);
-			}
-			else
-			{
-				MapKey("#^left", TextSelectOp.SelectToEndOfPreviousWord);
-				MapKey("#^right", TextSelectOp.SelectToStartOfNextWord);
-				MapKey("#^up", TextSelectOp.SelectParagraphBackward);
-				MapKey("#^down", TextSelectOp.SelectParagraphForward);
-				MapKey("#home", TextSelectOp.SelectGraphicalLineStart);
-				MapKey("#end", TextSelectOp.SelectGraphicalLineEnd);
-				MapKey("^a", TextSelectOp.SelectAll);
-				MapKey("^c", TextSelectOp.Copy);
-				MapKey("^insert", TextSelectOp.Copy);
+				return s_GlobalKeyMapping.operation;
 			}
 		}
+		foreach (var item in IsMacOsFamily ? s_MacKeyMappings : s_WindowsLinuxKeyMappings)
+		{
+			if (item.keyEvent == keyEvent)
+			{
+				return item.operation;
+			}
+		}
+		return null;
 	}
 
 	public void ClearCursorPos()
@@ -621,39 +633,55 @@ internal class TextSelectingUtilities
 
 	public void MoveLineStart()
 	{
-		int num = ((selectIndex < cursorIndex) ? selectIndex : cursorIndex);
-		int num2 = num;
-		int num3;
-		while (num2-- != 0)
+		int num2;
+		if (textHandle.useAdvancedText)
 		{
-			if (m_TextElementInfos[num2].character == 10)
+			int num = cursorIndex;
+			textHandle.SelectToPreviousParagraph(ref num);
+			num2 = (selectIndex = num);
+			cursorIndex = num2;
+			return;
+		}
+		int num4 = ((selectIndex < cursorIndex) ? selectIndex : cursorIndex);
+		int num5 = num4;
+		while (num5-- != 0)
+		{
+			if (m_TextElementInfos[num5].character == 10)
 			{
-				num3 = (cursorIndex = num2 + 1);
-				selectIndex = num3;
+				num2 = (cursorIndex = num5 + 1);
+				selectIndex = num2;
 				return;
 			}
 		}
-		num3 = (cursorIndex = 0);
-		selectIndex = num3;
+		num2 = (cursorIndex = 0);
+		selectIndex = num2;
 	}
 
 	public void MoveLineEnd()
 	{
-		int num = ((selectIndex > cursorIndex) ? selectIndex : cursorIndex);
-		int i = num;
 		int num2;
-		int num3;
-		for (num2 = characterCount; i < num2; i++)
+		if (textHandle.useAdvancedText)
+		{
+			int num = cursorIndex;
+			textHandle.SelectToNextParagraph(ref num);
+			num2 = (selectIndex = num);
+			cursorIndex = num2;
+			return;
+		}
+		int num4 = ((selectIndex > cursorIndex) ? selectIndex : cursorIndex);
+		int i = num4;
+		int num5;
+		for (num5 = characterCount; i < num5; i++)
 		{
 			if (m_TextElementInfos[i].character == 10)
 			{
-				num3 = (cursorIndex = i);
-				selectIndex = num3;
+				num2 = (cursorIndex = i);
+				selectIndex = num2;
 				return;
 			}
 		}
-		num3 = (cursorIndex = num2);
-		selectIndex = num3;
+		num2 = (cursorIndex = num5);
+		selectIndex = num2;
 	}
 
 	public void MoveGraphicalLineStart()

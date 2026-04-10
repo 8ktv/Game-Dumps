@@ -3,8 +3,8 @@ using UnityEngine.Scripting;
 
 namespace Unity.Profiling;
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Method, AllowMultiple = false)]
 [RequiredByNativeCode]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Method, AllowMultiple = false)]
 public sealed class IgnoredByDeepProfilerAttribute : Attribute
 {
 }

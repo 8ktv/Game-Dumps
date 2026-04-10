@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 namespace TMPro;
 
-[AddComponentMenu("UI/TextMeshPro - Input Field", 11)]
+[AddComponentMenu("UI (Canvas)/TextMeshPro - Input Field", 11)]
 [HelpURL("https://docs.unity3d.com/Packages/com.unity.ugui@2.0/manual/TextMeshPro/index.html")]
 public class TMP_InputField : Selectable, IUpdateSelectedHandler, IEventSystemHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler, ISubmitHandler, ICancelHandler, ICanvasElement, ILayoutElement, IScrollHandler
 {
@@ -454,6 +454,7 @@ public class TMP_InputField : Selectable, IUpdateSelectedHandler, IEventSystemHa
 			case RuntimePlatform.GameCoreXboxOne:
 			case RuntimePlatform.PS5:
 			case RuntimePlatform.VisionOS:
+			case RuntimePlatform.Switch2:
 				return m_HideSoftKeyboard;
 			default:
 				return true;
@@ -476,6 +477,7 @@ public class TMP_InputField : Selectable, IUpdateSelectedHandler, IEventSystemHa
 			case RuntimePlatform.GameCoreXboxOne:
 			case RuntimePlatform.PS5:
 			case RuntimePlatform.VisionOS:
+			case RuntimePlatform.Switch2:
 				SetPropertyUtility.SetStruct(ref m_HideSoftKeyboard, value);
 				break;
 			default:
@@ -1277,6 +1279,7 @@ public class TMP_InputField : Selectable, IUpdateSelectedHandler, IEventSystemHa
 		case RuntimePlatform.GameCoreXboxSeries:
 		case RuntimePlatform.GameCoreXboxOne:
 		case RuntimePlatform.PS5:
+		case RuntimePlatform.Switch2:
 			return false;
 		case RuntimePlatform.WebGLPlayer:
 			if (m_SoftKeyboard != null)
@@ -1822,7 +1825,6 @@ public class TMP_InputField : Selectable, IUpdateSelectedHandler, IEventSystemHa
 					break;
 				}
 			}
-			OnDeselect(null);
 			return;
 		}
 		string text = m_SoftKeyboard.text;
@@ -1971,11 +1973,11 @@ public class TMP_InputField : Selectable, IUpdateSelectedHandler, IEventSystemHa
 			{
 				if (localPoint.y > rect.yMax)
 				{
-					MoveUp(shift: true, goToFirstChar: true);
+					MoveUp(shift: true, goToFirstChar: false);
 				}
 				else if (localPoint.y < rect.yMin)
 				{
-					MoveDown(shift: true, goToLastChar: true);
+					MoveDown(shift: true, goToLastChar: false);
 				}
 			}
 			else if (localPoint.x < rect.xMin)

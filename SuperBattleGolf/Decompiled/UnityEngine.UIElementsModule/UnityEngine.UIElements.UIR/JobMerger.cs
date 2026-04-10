@@ -7,6 +7,8 @@ namespace UnityEngine.UIElements.UIR;
 
 internal class JobMerger : IDisposable
 {
+	private static readonly MemoryLabel k_MemoryLabel = new MemoryLabel("UIElements", "Renderer.JobMerger");
+
 	private NativeArray<JobHandle> m_Jobs;
 
 	private int m_JobCount;
@@ -16,7 +18,7 @@ internal class JobMerger : IDisposable
 	public JobMerger(int capacity)
 	{
 		Debug.Assert(capacity > 1);
-		m_Jobs = new NativeArray<JobHandle>(capacity, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+		m_Jobs = new NativeArray<JobHandle>(capacity, k_MemoryLabel, NativeArrayOptions.UninitializedMemory);
 	}
 
 	public void Add(JobHandle job)

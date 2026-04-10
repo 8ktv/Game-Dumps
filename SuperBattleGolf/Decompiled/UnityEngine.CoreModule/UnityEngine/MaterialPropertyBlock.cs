@@ -7,10 +7,10 @@ using UnityEngine.Rendering;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Shaders/ComputeShader.h")]
-[NativeHeader("Runtime/Shaders/ShaderPropertySheet.h")]
-[NativeHeader("Runtime/Graphics/ShaderScriptBindings.h")]
 [NativeHeader("Runtime/Math/SphericalHarmonicsL2.h")]
+[NativeHeader("Runtime/Shaders/ShaderPropertySheet.h")]
+[NativeHeader("Runtime/Shaders/ComputeShader.h")]
+[NativeHeader("Runtime/Graphics/ShaderScriptBindings.h")]
 public sealed class MaterialPropertyBlock
 {
 	internal static class BindingsMarshaller
@@ -25,8 +25,8 @@ public sealed class MaterialPropertyBlock
 
 	public bool isEmpty
 	{
-		[ThreadSafe]
 		[NativeName("IsEmpty")]
+		[ThreadSafe]
 		get
 		{
 			IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -110,8 +110,8 @@ public sealed class MaterialPropertyBlock
 		return GetIntImpl_Injected(intPtr, name);
 	}
 
-	[NativeName("GetFloatFromScript")]
 	[ThreadSafe]
+	[NativeName("GetFloatFromScript")]
 	private float GetFloatImpl(int name)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -135,8 +135,8 @@ public sealed class MaterialPropertyBlock
 		return ret;
 	}
 
-	[ThreadSafe]
 	[NativeName("GetColorFromScript")]
+	[ThreadSafe]
 	private Color GetColorImpl(int name)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -148,8 +148,8 @@ public sealed class MaterialPropertyBlock
 		return ret;
 	}
 
-	[ThreadSafe]
 	[NativeName("GetMatrixFromScript")]
+	[ThreadSafe]
 	private Matrix4x4 GetMatrixImpl(int name)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -273,8 +273,8 @@ public sealed class MaterialPropertyBlock
 		SetIntImpl_Injected(intPtr, name, value);
 	}
 
-	[NativeName("SetFloatFromScript")]
 	[ThreadSafe]
+	[NativeName("SetFloatFromScript")]
 	private void SetFloatImpl(int name, float value)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -285,8 +285,8 @@ public sealed class MaterialPropertyBlock
 		SetFloatImpl_Injected(intPtr, name, value);
 	}
 
-	[ThreadSafe]
 	[NativeName("SetVectorFromScript")]
+	[ThreadSafe]
 	private void SetVectorImpl(int name, Vector4 value)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -309,8 +309,8 @@ public sealed class MaterialPropertyBlock
 		SetColorImpl_Injected(intPtr, name, ref value);
 	}
 
-	[ThreadSafe]
 	[NativeName("SetMatrixFromScript")]
+	[ThreadSafe]
 	private void SetMatrixImpl(int name, Matrix4x4 value)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -321,8 +321,8 @@ public sealed class MaterialPropertyBlock
 		SetMatrixImpl_Injected(intPtr, name, ref value);
 	}
 
-	[NativeName("SetTextureFromScript")]
 	[ThreadSafe]
+	[NativeName("SetTextureFromScript")]
 	private void SetTextureImpl(int name, [NotNull] Texture value)
 	{
 		if ((object)value == null)
@@ -363,8 +363,8 @@ public sealed class MaterialPropertyBlock
 		SetRenderTextureImpl_Injected(intPtr, name, intPtr2, element);
 	}
 
-	[ThreadSafe]
 	[NativeName("SetBufferFromScript")]
+	[ThreadSafe]
 	private void SetBufferImpl(int name, ComputeBuffer value)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -375,8 +375,8 @@ public sealed class MaterialPropertyBlock
 		SetBufferImpl_Injected(intPtr, name, (value == null) ? ((IntPtr)0) : ComputeBuffer.BindingsMarshaller.ConvertToNative(value));
 	}
 
-	[ThreadSafe]
 	[NativeName("SetBufferFromScript")]
+	[ThreadSafe]
 	private void SetGraphicsBufferImpl(int name, GraphicsBuffer value)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -387,8 +387,8 @@ public sealed class MaterialPropertyBlock
 		SetGraphicsBufferImpl_Injected(intPtr, name, (value == null) ? ((IntPtr)0) : GraphicsBuffer.BindingsMarshaller.ConvertToNative(value));
 	}
 
-	[NativeName("SetConstantBufferFromScript")]
 	[ThreadSafe]
+	[NativeName("SetConstantBufferFromScript")]
 	private void SetConstantBufferImpl(int name, ComputeBuffer value, int offset, int size)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -399,8 +399,8 @@ public sealed class MaterialPropertyBlock
 		SetConstantBufferImpl_Injected(intPtr, name, (value == null) ? ((IntPtr)0) : ComputeBuffer.BindingsMarshaller.ConvertToNative(value), offset, size);
 	}
 
-	[NativeName("SetConstantBufferFromScript")]
 	[ThreadSafe]
+	[NativeName("SetConstantBufferFromScript")]
 	private void SetConstantGraphicsBufferImpl(int name, GraphicsBuffer value, int offset, int size)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -411,8 +411,8 @@ public sealed class MaterialPropertyBlock
 		SetConstantGraphicsBufferImpl_Injected(intPtr, name, (value == null) ? ((IntPtr)0) : GraphicsBuffer.BindingsMarshaller.ConvertToNative(value), offset, size);
 	}
 
-	[ThreadSafe]
 	[NativeName("SetFloatArrayFromScript")]
+	[ThreadSafe]
 	private unsafe void SetFloatArrayImpl(int name, float[] values, int count)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -510,8 +510,8 @@ public sealed class MaterialPropertyBlock
 		return result;
 	}
 
-	[NativeName("GetMatrixArrayFromScript")]
 	[ThreadSafe]
+	[NativeName("GetMatrixArrayFromScript")]
 	private Matrix4x4[] GetMatrixArrayImpl(int name)
 	{
 		BlittableArrayWrapper ret = default(BlittableArrayWrapper);
@@ -534,8 +534,8 @@ public sealed class MaterialPropertyBlock
 		return result;
 	}
 
-	[ThreadSafe]
 	[NativeName("GetFloatArrayCountFromScript")]
+	[ThreadSafe]
 	private int GetFloatArrayCountImpl(int name)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -558,8 +558,8 @@ public sealed class MaterialPropertyBlock
 		return GetVectorArrayCountImpl_Injected(intPtr, name);
 	}
 
-	[NativeName("GetMatrixArrayCountFromScript")]
 	[ThreadSafe]
+	[NativeName("GetMatrixArrayCountFromScript")]
 	private int GetMatrixArrayCountImpl(int name)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -603,8 +603,8 @@ public sealed class MaterialPropertyBlock
 		}
 	}
 
-	[ThreadSafe]
 	[NativeName("ExtractVectorArrayFromScript")]
+	[ThreadSafe]
 	private unsafe void ExtractVectorArrayImpl(int name, [Out] Vector4[] val)
 	{
 		//The blocks IL_002c are reachable both inside and outside the pinned region starting at IL_0015. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -636,8 +636,8 @@ public sealed class MaterialPropertyBlock
 		}
 	}
 
-	[ThreadSafe]
 	[NativeName("ExtractMatrixArrayFromScript")]
+	[ThreadSafe]
 	private unsafe void ExtractMatrixArrayImpl(int name, [Out] Matrix4x4[] val)
 	{
 		//The blocks IL_002c are reachable both inside and outside the pinned region starting at IL_0015. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -669,8 +669,8 @@ public sealed class MaterialPropertyBlock
 		}
 	}
 
-	[FreeFunction("ConvertAndCopySHCoefficientArraysToPropertySheetFromScript")]
 	[ThreadSafe]
+	[FreeFunction("ConvertAndCopySHCoefficientArraysToPropertySheetFromScript")]
 	internal unsafe static void Internal_CopySHCoefficientArraysFrom(MaterialPropertyBlock properties, SphericalHarmonicsL2[] lightProbes, int sourceStart, int destStart, int count)
 	{
 		IntPtr properties2 = ((properties == null) ? ((IntPtr)0) : BindingsMarshaller.ConvertToNative(properties));

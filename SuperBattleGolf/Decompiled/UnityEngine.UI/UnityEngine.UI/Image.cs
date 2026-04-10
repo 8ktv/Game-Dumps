@@ -8,7 +8,7 @@ using UnityEngine.U2D;
 namespace UnityEngine.UI;
 
 [RequireComponent(typeof(CanvasRenderer))]
-[AddComponentMenu("UI/Image", 11)]
+[AddComponentMenu("UI (Canvas)/Image", 11)]
 public class Image : MaskableGraphic, ISerializationCallbackReceiver, ILayoutElement, ICanvasRaycastFilter
 {
 	public enum Type
@@ -1373,15 +1373,11 @@ public class Image : MaskableGraphic, ISerializationCallbackReceiver, ILayoutEle
 		localPoint.x += base.rectTransform.pivot.x * rect.width;
 		localPoint.y += base.rectTransform.pivot.y * rect.height;
 		localPoint = MapCoordinate(localPoint, rect);
-		float num = localPoint.x / (float)activeSprite.texture.width;
-		float num2 = localPoint.y / (float)activeSprite.texture.height;
-		if (num < 0f || num > 1f || num2 < 0f || num2 > 1f)
-		{
-			return true;
-		}
+		float u = localPoint.x / (float)activeSprite.texture.width;
+		float v = localPoint.y / (float)activeSprite.texture.height;
 		try
 		{
-			return activeSprite.texture.GetPixelBilinear(num, num2).a >= alphaHitTestMinimumThreshold;
+			return activeSprite.texture.GetPixelBilinear(u, v).a >= alphaHitTestMinimumThreshold;
 		}
 		catch (UnityException ex)
 		{

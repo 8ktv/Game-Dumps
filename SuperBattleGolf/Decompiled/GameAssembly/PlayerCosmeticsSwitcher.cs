@@ -818,7 +818,7 @@ public class PlayerCosmeticsSwitcher : MonoBehaviour
 		}
 		async UniTask UpdateTextureAndColor(PlayerCosmeticsMetadata metadata2, CancellationToken cancellationToken)
 		{
-			LoadedTextureOverride loadedTextureOverride = await SetTextureOverride(bodyRenderer, bodyTextureOverride, assetKey, CurrentBodyRuntimeKey, metadata2, skinColorProps, useTint: false, cancellationToken);
+			LoadedTextureOverride loadedTextureOverride = await SetTextureOverride(new Renderer[1] { bodyRenderer }, bodyTextureOverride, assetKey, CurrentBodyRuntimeKey, metadata2, skinColorProps, useTint: false, cancellationToken);
 			bodyTextureOverride = loadedTextureOverride;
 			if (!(this == null) && !cancellationToken.IsCancellationRequested)
 			{
@@ -880,12 +880,12 @@ public class PlayerCosmeticsSwitcher : MonoBehaviour
 			List<Material> value;
 			using (CollectionPool<List<Material>, Material>.Get(out value))
 			{
-				Renderer componentInChildren = currentModel.cosmetic.GetComponentInChildren<Renderer>();
+				Renderer[] componentsInChildren = currentModel.cosmetic.GetComponentsInChildren<Renderer>();
 				UpdateModelVisibility(currentModel);
 				matProps.Clear();
 				bool useTint = currentModel.cosmetic == null || !currentModel.cosmetic.requireSkinColorTint;
 				LoadedCosmetic loadedCosmetic = currentModel;
-				loadedCosmetic.textureOverride = await SetTextureOverride(componentInChildren, currentModel.textureOverride, assetKey, prevAssetKey, metadata, matProps, useTint, cancellationToken);
+				loadedCosmetic.textureOverride = await SetTextureOverride(componentsInChildren, currentModel.textureOverride, assetKey, prevAssetKey, metadata, matProps, useTint, cancellationToken);
 			}
 		}
 		metadataLoad.Release();
@@ -907,8 +907,9 @@ public class PlayerCosmeticsSwitcher : MonoBehaviour
 		return currentModel;
 	}
 
-	private async UniTask<LoadedTextureOverride> SetTextureOverride(Renderer renderer, LoadedTextureOverride texture, CosmeticKey assetKey, CosmeticKey prevAssetKey, PlayerCosmeticsMetadata metadata, MaterialPropertyBlock matProps, bool useTint = true, CancellationToken cancellationToken = default(CancellationToken))
+	private async UniTask<LoadedTextureOverride> SetTextureOverride(Renderer[] renderers, LoadedTextureOverride texture, CosmeticKey assetKey, CosmeticKey prevAssetKey, PlayerCosmeticsMetadata metadata, MaterialPropertyBlock matProps, bool useTint = true, CancellationToken cancellationToken = default(CancellationToken))
 	{
+		Renderer[] array;
 		if (metadata == null || metadata.variations == null)
 		{
 			texture?.UnloadTexture();
@@ -918,7 +919,14 @@ public class PlayerCosmeticsSwitcher : MonoBehaviour
 			{
 				matProps.SetPlayerIndex(playerMovement.PlayerInfo);
 			}
-			renderer.SetPropertyBlock(matProps);
+			array = renderers;
+			foreach (Renderer renderer in array)
+			{
+				if (renderer is MeshRenderer || renderer is SkinnedMeshRenderer)
+				{
+					renderer.SetPropertyBlock(matProps);
+				}
+			}
 			return null;
 		}
 		PlayerCosmeticsMetadata.Variation variation;
@@ -954,17 +962,39 @@ public class PlayerCosmeticsSwitcher : MonoBehaviour
 		{
 			matProps.SetTexture("_MainTex", texture.loadedTexture);
 		}
-		if (assetKey != null && variation.materialIndex >= 0)
-		{
-			renderer.SetPropertyBlock(matProps, variation.materialIndex);
-		}
-		else
-		{
-			renderer.SetPropertyBlock(matProps);
-		}
 		if (playerMovement != null)
 		{
-			renderer.gameObject.SetPlayerShaderIndexOnRenderers(playerMovement.PlayerInfo);
+			matProps.SetPlayerIndex(playerMovement.PlayerInfo);
+		}
+		array = renderers;
+		foreach (Renderer renderer2 in array)
+		{
+			if (!(renderer2 is MeshRenderer) && !(renderer2 is SkinnedMeshRenderer))
+			{
+				continue;
+			}
+			if (assetKey != null && variation.materialIndex >= 0)
+			{
+				renderer2.SetPropertyBlock(matProps, variation.materialIndex);
+				if (!(playerMovement != null))
+				{
+					continue;
+				}
+				MaterialPropertyBlock materialPropertyBlock = new MaterialPropertyBlock();
+				for (int j = 0; j < renderer2.sharedMaterials.Length; j++)
+				{
+					if (j != variation.materialIndex)
+					{
+						renderer2.GetPropertyBlock(materialPropertyBlock, j);
+						materialPropertyBlock.SetPlayerIndex(playerMovement.PlayerInfo);
+						renderer2.SetPropertyBlock(materialPropertyBlock, j);
+					}
+				}
+			}
+			else
+			{
+				renderer2.SetPropertyBlock(matProps);
+			}
 		}
 		return texture;
 	}

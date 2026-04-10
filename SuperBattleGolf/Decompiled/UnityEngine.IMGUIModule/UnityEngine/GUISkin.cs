@@ -7,8 +7,8 @@ namespace UnityEngine;
 
 [Serializable]
 [ExecuteInEditMode]
-[AssetFileNameExtension("guiskin", new string[] { })]
 [RequiredByNativeCode]
+[AssetFileNameExtension("guiskin", new string[] { })]
 public sealed class GUISkin : ScriptableObject
 {
 	internal delegate void SkinChangedDelegate();

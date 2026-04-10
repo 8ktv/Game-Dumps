@@ -86,6 +86,16 @@ internal static class DataBindingUtility
 		return false;
 	}
 
+	public static bool HasActiveBinding(in BindingId bindingId, VisualElement element)
+	{
+		if (DataBindingManager.TryGetBindingRequest(element, in bindingId, out var binding))
+		{
+			return binding != null;
+		}
+		DataBindingManager.BindingData bindingData;
+		return element.elementPanel.dataBindingManager.TryGetBindingData(element, in bindingId, out bindingData);
+	}
+
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal static bool TryGetDataSourceOrDataSourceTypeFromHierarchy(VisualElement element, out object dataSourceObject, out Type dataSourceType, out PropertyPath fullPath)
 	{

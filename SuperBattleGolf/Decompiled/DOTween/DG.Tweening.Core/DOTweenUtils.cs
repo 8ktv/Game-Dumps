@@ -20,8 +20,8 @@ public static class DOTweenUtils
 	{
 		Vector2 right = Vector2.right;
 		to -= from;
-		float num = Vector2.Angle(right, to);
-		if (Vector3.Cross(right, to).z > 0f)
+		float num = Vector2.Angle(right, (Vector2)to);
+		if (Vector3.Cross((Vector3)right, to).z > 0f)
 		{
 			num = 360f - num;
 		}

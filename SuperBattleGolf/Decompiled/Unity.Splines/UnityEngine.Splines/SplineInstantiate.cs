@@ -842,7 +842,7 @@ public class SplineInstantiate : SplineComponent
 				}
 				float3 forward = math.normalizesafe(GetAxis(m_Forward));
 				float3 up = math.normalizesafe(GetAxis(m_Up));
-				Quaternion quaternion = Quaternion.Inverse(Unity.Mathematics.quaternion.LookRotationSafe(forward, up));
+				Quaternion quaternion = Quaternion.Inverse((Quaternion)Unity.Mathematics.quaternion.LookRotationSafe(forward, up));
 				gameObject.transform.rotation = Unity.Mathematics.quaternion.LookRotationSafe(float2, @float) * quaternion;
 				float3 customUp = @float;
 				float3 customForward = float2;
@@ -853,7 +853,7 @@ public class SplineInstantiate : SplineComponent
 						GetCustomSpaceAxis(m_PositionOffset.space, upVector, tangent, gameObject.transform, out customUp, out customForward);
 					}
 					Vector3 nextOffset = m_PositionOffset.GetNextOffset();
-					Vector3 normalized = Vector3.Cross(customUp, customForward).normalized;
+					Vector3 normalized = Vector3.Cross((Vector3)customUp, (Vector3)customForward).normalized;
 					gameObject.transform.position += nextOffset.x * normalized + nextOffset.y * (Vector3)customUp + nextOffset.z * (Vector3)customForward;
 				}
 				if (m_ScaleOffset.hasOffset)
@@ -867,7 +867,7 @@ public class SplineInstantiate : SplineComponent
 					customUp = gameObject.transform.InverseTransformDirection(customUp).normalized;
 					customForward = gameObject.transform.InverseTransformDirection(customForward).normalized;
 					Vector3 nextOffset2 = m_ScaleOffset.GetNextOffset();
-					Vector3 normalized2 = Vector3.Cross(customUp, customForward).normalized;
+					Vector3 normalized2 = Vector3.Cross((Vector3)customUp, (Vector3)customForward).normalized;
 					gameObject.transform.localScale += nextOffset2.x * normalized2 + nextOffset2.y * (Vector3)customUp + nextOffset2.z * (Vector3)customForward;
 				}
 				if (!m_RotationOffset.hasOffset)
@@ -885,9 +885,9 @@ public class SplineInstantiate : SplineComponent
 					}
 				}
 				Vector3 nextOffset3 = m_RotationOffset.GetNextOffset();
-				Vector3 normalized3 = Vector3.Cross(customUp, customForward).normalized;
-				customForward = Quaternion.AngleAxis(nextOffset3.y, customUp) * Quaternion.AngleAxis(nextOffset3.x, normalized3) * customForward;
-				customUp = Quaternion.AngleAxis(nextOffset3.x, normalized3) * Quaternion.AngleAxis(nextOffset3.z, customForward) * customUp;
+				Vector3 normalized3 = Vector3.Cross((Vector3)customUp, (Vector3)customForward).normalized;
+				customForward = Quaternion.AngleAxis(nextOffset3.y, (Vector3)customUp) * Quaternion.AngleAxis(nextOffset3.x, normalized3) * customForward;
+				customUp = Quaternion.AngleAxis(nextOffset3.x, normalized3) * Quaternion.AngleAxis(nextOffset3.z, (Vector3)customForward) * customUp;
 				gameObject.transform.rotation = Unity.Mathematics.quaternion.LookRotationSafe(customForward, customUp) * quaternion;
 			}
 			num2 = num;

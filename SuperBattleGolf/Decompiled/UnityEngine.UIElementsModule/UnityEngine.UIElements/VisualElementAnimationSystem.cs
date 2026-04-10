@@ -23,16 +23,11 @@ internal class VisualElementAnimationSystem : BaseVisualTreeUpdater
 
 	private static readonly ProfilerMarker s_StylePropertyAnimationProfilerMarker = new ProfilerMarker(s_StylePropertyAnimationDescription);
 
-	private long lastUpdate;
+	private double lastUpdate;
 
 	public override ProfilerMarker profilerMarker => s_ProfilerMarker;
 
 	private static ProfilerMarker stylePropertyAnimationProfilerMarker => s_StylePropertyAnimationProfilerMarker;
-
-	private long CurrentTimeMs()
-	{
-		return Panel.TimeSinceStartupMs();
-	}
 
 	public void UnregisterAnimation(IValueAnimationUpdate anim)
 	{
@@ -68,7 +63,8 @@ internal class VisualElementAnimationSystem : BaseVisualTreeUpdater
 
 	public override void Update()
 	{
-		long num = Panel.TimeSinceStartupMs();
+		double num = base.panel.TimeSinceStartupSeconds();
+		long currentTimeMs = (long)(num * 1000.0);
 		if (m_IterationListDirty)
 		{
 			m_IterationList = m_Animations.ToList();
@@ -78,7 +74,7 @@ internal class VisualElementAnimationSystem : BaseVisualTreeUpdater
 		{
 			foreach (IValueAnimationUpdate iteration in m_IterationList)
 			{
-				iteration.Tick(num);
+				iteration.Tick(currentTimeMs);
 			}
 			m_HasNewAnimations = false;
 			lastUpdate = num;
@@ -86,7 +82,7 @@ internal class VisualElementAnimationSystem : BaseVisualTreeUpdater
 		IStylePropertyAnimationSystem styleAnimationSystem = base.panel.styleAnimationSystem;
 		using (stylePropertyAnimationProfilerMarker.Auto())
 		{
-			styleAnimationSystem.Update();
+			styleAnimationSystem.Update(num);
 		}
 	}
 

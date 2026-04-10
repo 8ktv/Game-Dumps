@@ -5,22 +5,22 @@ using UnityEngine.Bindings;
 
 namespace Unity.Baselib.LowLevel;
 
-[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_DynamicLibrary.gen.binding.h")]
 [NativeHeader("baselib/CSharp/BindingsUnity/Baselib_SystemFutex.gen.binding.h")]
-[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_Socket.gen.binding.h")]
 [NativeHeader("baselib/CSharp/BindingsUnity/Baselib_SystemSemaphore.gen.binding.h")]
+[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_FileIO.gen.binding.h")]
+[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_Memory.gen.binding.h")]
+[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_NetworkAddress.gen.binding.h")]
 [NativeHeader("baselib/CSharp/BindingsUnity/Baselib_Thread.gen.binding.h")]
 [NativeHeader("baselib/CSharp/BindingsUnity/Baselib_ThreadLocalStorage.gen.binding.h")]
 [NativeHeader("baselib/CSharp/BindingsUnity/Baselib_Timer.gen.binding.h")]
+[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_DynamicLibrary.gen.binding.h")]
 [NativeHeader("baselib/CSharp/BindingsUnity/Baselib_ErrorCode.gen.binding.h")]
 [NativeHeader("baselib/CSharp/BindingsUnity/Baselib_WakeupFallbackStrategy.gen.binding.h")]
-[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_RegisteredNetwork.gen.binding.h")]
-[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_NetworkAddress.gen.binding.h")]
-[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_Memory.gen.binding.h")]
 [NativeHeader("baselib/CSharp/BindingsUnity/Baselib_ErrorState.gen.binding.h")]
-[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_FileIO.gen.binding.h")]
-[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_SourceLocation.gen.binding.h")]
+[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_Socket.gen.binding.h")]
 [NativeHeader("baselib/CSharp/BindingsUnity/Baselib_HostnameLookup.gen.binding.h")]
+[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_SourceLocation.gen.binding.h")]
+[NativeHeader("baselib/CSharp/BindingsUnity/Baselib_RegisteredNetwork.gen.binding.h")]
 internal static class Binding
 {
 	public struct Baselib_DynamicLibrary_Handle

@@ -12,8 +12,8 @@ public class WebCam
 	public static extern WebCamMode Mode
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
 		[NativeName("GetWebCamMode")]
+		[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
 		get;
 	}
 }

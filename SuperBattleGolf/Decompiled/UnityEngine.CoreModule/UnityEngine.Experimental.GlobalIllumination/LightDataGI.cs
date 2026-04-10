@@ -1,3 +1,4 @@
+using System;
 using UnityEngine.Scripting;
 
 namespace UnityEngine.Experimental.GlobalIllumination;
@@ -5,9 +6,9 @@ namespace UnityEngine.Experimental.GlobalIllumination;
 [UsedByNativeCode]
 public struct LightDataGI
 {
-	public int instanceID;
+	public EntityId entityId;
 
-	public int cookieID;
+	public EntityId cookieTextureEntityId;
 
 	public float cookieScale;
 
@@ -37,10 +38,36 @@ public struct LightDataGI
 
 	public FalloffType falloff;
 
+	[Obsolete("Please use entityId instead.", false)]
+	public int instanceID
+	{
+		get
+		{
+			return entityId;
+		}
+		set
+		{
+			entityId = value;
+		}
+	}
+
+	[Obsolete("Please use cookieTextureEntityId instead.", false)]
+	public int cookieID
+	{
+		get
+		{
+			return cookieTextureEntityId;
+		}
+		set
+		{
+			cookieTextureEntityId = value;
+		}
+	}
+
 	public void Init(ref DirectionalLight light, ref Cookie cookie)
 	{
-		instanceID = light.instanceID;
-		cookieID = cookie.instanceID;
+		entityId = light.entityId;
+		cookieTextureEntityId = cookie.entityId;
 		cookieScale = cookie.scale;
 		color = light.color;
 		indirectColor = light.indirectColor;
@@ -59,8 +86,8 @@ public struct LightDataGI
 
 	public void Init(ref PointLight light, ref Cookie cookie)
 	{
-		instanceID = light.instanceID;
-		cookieID = cookie.instanceID;
+		entityId = light.entityId;
+		cookieTextureEntityId = cookie.entityId;
 		cookieScale = cookie.scale;
 		color = light.color;
 		indirectColor = light.indirectColor;
@@ -79,8 +106,8 @@ public struct LightDataGI
 
 	public void Init(ref SpotLight light, ref Cookie cookie)
 	{
-		instanceID = light.instanceID;
-		cookieID = cookie.instanceID;
+		entityId = light.entityId;
+		cookieTextureEntityId = cookie.entityId;
 		cookieScale = cookie.scale;
 		color = light.color;
 		indirectColor = light.indirectColor;
@@ -99,8 +126,8 @@ public struct LightDataGI
 
 	public void Init(ref RectangleLight light, ref Cookie cookie)
 	{
-		instanceID = light.instanceID;
-		cookieID = cookie.instanceID;
+		entityId = light.entityId;
+		cookieTextureEntityId = cookie.entityId;
 		cookieScale = cookie.scale;
 		color = light.color;
 		indirectColor = light.indirectColor;
@@ -119,8 +146,8 @@ public struct LightDataGI
 
 	public void Init(ref DiscLight light, ref Cookie cookie)
 	{
-		instanceID = light.instanceID;
-		cookieID = cookie.instanceID;
+		entityId = light.entityId;
+		cookieTextureEntityId = cookie.entityId;
 		cookieScale = cookie.scale;
 		color = light.color;
 		indirectColor = light.indirectColor;
@@ -139,8 +166,8 @@ public struct LightDataGI
 
 	public void Init(ref SpotLightBoxShape light, ref Cookie cookie)
 	{
-		instanceID = light.instanceID;
-		cookieID = cookie.instanceID;
+		entityId = light.entityId;
+		cookieTextureEntityId = cookie.entityId;
 		cookieScale = cookie.scale;
 		color = light.color;
 		indirectColor = light.indirectColor;
@@ -159,8 +186,8 @@ public struct LightDataGI
 
 	public void Init(ref SpotLightPyramidShape light, ref Cookie cookie)
 	{
-		instanceID = light.instanceID;
-		cookieID = cookie.instanceID;
+		entityId = light.entityId;
+		cookieTextureEntityId = cookie.entityId;
 		cookieScale = cookie.scale;
 		color = light.color;
 		indirectColor = light.indirectColor;
@@ -219,9 +246,16 @@ public struct LightDataGI
 		Init(ref light, ref cookie);
 	}
 
+	public void InitNoBake(EntityId lightEntityId)
+	{
+		entityId = lightEntityId;
+		mode = LightMode.Unknown;
+	}
+
+	[Obsolete("Please use InitNoBake with an EntityId argument instead.", false)]
 	public void InitNoBake(int lightInstanceID)
 	{
-		instanceID = lightInstanceID;
+		entityId = lightInstanceID;
 		mode = LightMode.Unknown;
 	}
 }

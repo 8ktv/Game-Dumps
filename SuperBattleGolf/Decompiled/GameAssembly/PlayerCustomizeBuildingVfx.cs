@@ -15,16 +15,18 @@ public class PlayerCustomizeBuildingVfx : MonoBehaviour
 
 	public float OpenDoorsCooldown => openDoorsCooldown;
 
-	public void OpenDoors()
+	public bool TryOpenDoors()
 	{
-		if (!(BMath.GetTimeSince(openDoorsTimestamp) < openDoorsCooldown))
+		if (BMath.GetTimeSince(openDoorsTimestamp) < openDoorsCooldown)
 		{
-			openDoorsTimestamp = Time.timeAsDouble;
-			for (int i = 0; i < doors.Length; i++)
-			{
-				doors[i].Open();
-			}
-			VfxManager.PlayPooledVfxLocalOnly(VfxType.DoubleDoorOpen, doorOpenVfxSource.position, doorOpenVfxSource.rotation);
+			return false;
 		}
+		openDoorsTimestamp = Time.timeAsDouble;
+		for (int i = 0; i < doors.Length; i++)
+		{
+			doors[i].Open();
+		}
+		VfxManager.PlayPooledVfxLocalOnly(VfxType.DoubleDoorOpen, doorOpenVfxSource.position, doorOpenVfxSource.rotation);
+		return true;
 	}
 }

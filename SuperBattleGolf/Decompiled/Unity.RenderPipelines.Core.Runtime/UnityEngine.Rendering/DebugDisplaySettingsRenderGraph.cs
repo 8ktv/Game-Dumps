@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine.Rendering.RenderGraphModule;
 
@@ -40,9 +41,10 @@ internal class DebugDisplaySettingsRenderGraph : IDebugDisplaySettingsData, IDeb
 	{
 		get
 		{
-			foreach (RenderGraph registeredRenderGraph in RenderGraph.GetRegisteredRenderGraphs())
+			foreach (KeyValuePair<RenderGraph, List<RenderGraph.DebugExecutionItem>> registeredExecution in RenderGraph.GetRegisteredExecutions())
 			{
-				if (registeredRenderGraph.areAnySettingsActive)
+				registeredExecution.Deconstruct(out var key, out var _);
+				if (key.areAnySettingsActive)
 				{
 					return true;
 				}

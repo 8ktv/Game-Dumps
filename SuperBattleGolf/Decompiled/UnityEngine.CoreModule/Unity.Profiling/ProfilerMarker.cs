@@ -10,12 +10,12 @@ using UnityEngine.Scripting;
 
 namespace Unity.Profiling;
 
-[IgnoredByDeepProfiler]
 [UsedByNativeCode]
+[IgnoredByDeepProfiler]
 public struct ProfilerMarker
 {
-	[IgnoredByDeepProfiler]
 	[UsedByNativeCode]
+	[IgnoredByDeepProfiler]
 	public struct AutoScope : IDisposable
 	{
 		[NativeDisableUnsafePtrRestriction]
@@ -28,6 +28,31 @@ public struct ProfilerMarker
 			if (m_Ptr != IntPtr.Zero)
 			{
 				ProfilerUnsafeUtility.BeginSample(markerPtr);
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal unsafe AutoScope(IntPtr markerPtr, string metadata)
+		{
+			m_Ptr = markerPtr;
+			if (!(m_Ptr != IntPtr.Zero))
+			{
+				return;
+			}
+			if (string.IsNullOrEmpty(metadata))
+			{
+				ProfilerUnsafeUtility.BeginSample(markerPtr);
+				return;
+			}
+			ProfilerMarkerData profilerMarkerData = new ProfilerMarkerData
+			{
+				Type = 9
+			};
+			fixed (char* ptr = metadata)
+			{
+				profilerMarkerData.Size = (uint)((metadata.Length + 1) * 2);
+				profilerMarkerData.Ptr = ptr;
+				ProfilerUnsafeUtility.BeginSampleWithMetadata(markerPtr, 1, &profilerMarkerData);
 			}
 		}
 
@@ -72,6 +97,18 @@ public struct ProfilerMarker
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public ProfilerMarker(string name, MarkerFlags flags)
+	{
+		m_Ptr = ProfilerUnsafeUtility.CreateMarker(name, 1, flags, 0);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public unsafe ProfilerMarker(char* name, int nameLen, MarkerFlags flags)
+	{
+		m_Ptr = ProfilerUnsafeUtility.CreateMarker(name, nameLen, 1, flags, 0);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public ProfilerMarker(ProfilerCategory category, string name, MarkerFlags flags)
 	{
 		m_Ptr = ProfilerUnsafeUtility.CreateMarker(name, category, flags, 0);
@@ -84,8 +121,8 @@ public struct ProfilerMarker
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	[Pure]
 	[Conditional("ENABLE_PROFILER")]
+	[Pure]
 	public void Begin()
 	{
 		ProfilerUnsafeUtility.BeginSample(m_Ptr);
@@ -99,8 +136,8 @@ public struct ProfilerMarker
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	[Pure]
 	[Conditional("ENABLE_PROFILER")]
+	[Pure]
 	public void End()
 	{
 		ProfilerUnsafeUtility.EndSample(m_Ptr);

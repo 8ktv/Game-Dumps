@@ -9,8 +9,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Graphics/CustomRenderTexture.h")]
 [UsedByNativeCode]
+[NativeHeader("Runtime/Graphics/CustomRenderTexture.h")]
 public sealed class CustomRenderTexture : RenderTexture
 {
 	public Material material

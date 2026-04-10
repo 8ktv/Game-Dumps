@@ -69,16 +69,13 @@ public class ContextualMenuManipulator : PointerManipulator
 
 	private void OnPointerDownEventOSX(IPointerEvent evt)
 	{
-		if (base.target.elementPanel?.contextualMenuManager != null)
-		{
-			base.target.elementPanel.contextualMenuManager.displayMenuHandledOSX = false;
-		}
 		ProcessPointerEvent(evt);
 	}
 
 	private void OnPointerUpEventOSX(IPointerEvent evt)
 	{
-		if (base.target.elementPanel?.contextualMenuManager == null || !base.target.elementPanel.contextualMenuManager.displayMenuHandledOSX)
+		ContextualMenuManager contextualMenuManager = base.target.elementPanel?.contextualMenuManager;
+		if (contextualMenuManager == null || !contextualMenuManager.displayMenuHandledOSX)
 		{
 			ProcessPointerEvent(evt);
 		}

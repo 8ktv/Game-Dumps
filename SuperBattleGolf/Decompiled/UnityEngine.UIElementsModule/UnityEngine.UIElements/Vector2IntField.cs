@@ -16,7 +16,6 @@ public class Vector2IntField : BaseCompositeField<Vector2Int, IntegerField, int>
 		[Conditional("UNITY_EDITOR")]
 		public new static void Register()
 		{
-			BaseCompositeField<Vector2Int, IntegerField, int>.UxmlSerializedData.Register();
 		}
 
 		public override object CreateInstance()

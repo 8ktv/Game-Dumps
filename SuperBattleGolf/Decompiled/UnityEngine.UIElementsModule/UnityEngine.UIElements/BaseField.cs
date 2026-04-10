@@ -16,17 +16,17 @@ public abstract class BaseField<TValueType> : BindableElement, INotifyValueChang
 		[SerializeField]
 		private string label;
 
+		[UxmlIgnore]
 		[SerializeField]
 		[HideInInspector]
-		[UxmlIgnore]
 		private UxmlAttributeFlags label_UxmlAttributeFlags;
 
 		[SerializeField]
 		private TValueType value;
 
-		[SerializeField]
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
+		[SerializeField]
 		private UxmlAttributeFlags value_UxmlAttributeFlags;
 
 		internal TValueType Value
@@ -86,6 +86,7 @@ public abstract class BaseField<TValueType> : BindableElement, INotifyValueChang
 		}
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIToolkitAuthoringModule" })]
 	internal static readonly BindingId valueProperty = "value";
 
 	internal static readonly BindingId labelProperty = "label";
@@ -128,8 +129,8 @@ public abstract class BaseField<TValueType> : BindableElement, INotifyValueChang
 
 	internal Action<ExpressionEvaluator.Expression> expressionEvaluated;
 
-	[DontCreateProperty]
 	[SerializeField]
+	[DontCreateProperty]
 	private TValueType m_Value;
 
 	private bool m_ShowMixedValue;
@@ -443,11 +444,6 @@ public abstract class BaseField<TValueType> : BindableElement, INotifyValueChang
 			return string.IsNullOrEmpty(labelElement.tooltip) ? labelElement.worldBound : base.worldBound;
 		}
 		return base.worldBound;
-	}
-
-	internal override Rect GetTooltipRect()
-	{
-		return ComputeTooltipRect();
 	}
 
 	internal TValueType ValidatedValue(TValueType value)

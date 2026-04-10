@@ -6,12 +6,12 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Animations;
 
+[NativeHeader("Runtime/Director/Core/HPlayableGraph.h")]
+[RequiredByNativeCode]
 [StaticAccessor("AnimationPlayableOutputBindings", StaticAccessorType.DoubleColon)]
 [NativeHeader("Modules/Animation/Director/AnimationPlayableOutput.h")]
 [NativeHeader("Modules/Animation/Animator.h")]
-[NativeHeader("Runtime/Director/Core/HPlayableGraph.h")]
 [NativeHeader("Runtime/Director/Core/HPlayableOutput.h")]
-[RequiredByNativeCode]
 [NativeHeader("Modules/Animation/ScriptBindings/AnimationPlayableOutput.bindings.h")]
 public struct AnimationPlayableOutput : IPlayableOutput
 {

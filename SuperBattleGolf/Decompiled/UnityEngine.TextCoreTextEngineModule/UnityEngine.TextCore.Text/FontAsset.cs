@@ -27,8 +27,6 @@ public class FontAsset : TextAsset
 		}
 	}
 
-	private static Dictionary<int, FontAsset> kFontAssetByInstanceId = new Dictionary<int, FontAsset>();
-
 	[SerializeField]
 	internal string m_SourceFontFileGUID;
 
@@ -48,8 +46,8 @@ public class FontAsset : TextAsset
 	[SerializeField]
 	internal bool InternalDynamicOS;
 
-	[SerializeField]
 	[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule", "UnityEngine.UIElementsModule" })]
+	[SerializeField]
 	internal bool IsEditorFont = false;
 
 	[SerializeField]
@@ -121,20 +119,20 @@ public class FontAsset : TextAsset
 	[FormerlySerializedAs("normalStyle")]
 	internal float m_RegularStyleWeight = 0f;
 
-	[FormerlySerializedAs("normalSpacingOffset")]
 	[SerializeField]
+	[FormerlySerializedAs("normalSpacingOffset")]
 	internal float m_RegularStyleSpacing = 0f;
 
 	[FormerlySerializedAs("boldStyle")]
 	[SerializeField]
 	internal float m_BoldStyleWeight = 0.75f;
 
-	[SerializeField]
 	[FormerlySerializedAs("boldSpacing")]
+	[SerializeField]
 	internal float m_BoldStyleSpacing = 7f;
 
-	[SerializeField]
 	[FormerlySerializedAs("italicStyle")]
+	[SerializeField]
 	internal byte m_ItalicStyleSlant = 35;
 
 	[SerializeField]
@@ -256,6 +254,10 @@ public class FontAsset : TextAsset
 		set
 		{
 			m_FaceInfo = value;
+			if (m_NativeFontAsset != IntPtr.Zero)
+			{
+				UpdateFaceInfo();
+			}
 		}
 	}
 
@@ -618,6 +620,11 @@ public class FontAsset : TextAsset
 		return m_AtlasRenderMode == GlyphRenderMode.RASTER_HINTED;
 	}
 
+	internal bool IsColor()
+	{
+		return ((GlyphRasterModes)m_AtlasRenderMode).HasFlag(GlyphRasterModes.RASTER_MODE_COLOR);
+	}
+
 	public static FontAsset CreateFontAsset(string familyName, string styleName, int pointSize = 90)
 	{
 		FontAsset fontAsset = CreateFontAssetInternal(familyName, styleName, pointSize);
@@ -638,7 +645,7 @@ public class FontAsset : TextAsset
 		return null;
 	}
 
-	internal static FontAsset? CreateFontAsset(string familyName, string styleName, int pointSize, int padding, GlyphRenderMode renderMode)
+	public static FontAsset? CreateFontAsset(string familyName, string styleName, int pointSize, int padding, GlyphRenderMode renderMode)
 	{
 		if (FontEngine.TryGetSystemFontReference(familyName, styleName, out var fontRef))
 		{
@@ -831,12 +838,6 @@ public class FontAsset : TextAsset
 		return fontAsset;
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
-	internal static FontAsset GetFontAssetByID(int id)
-	{
-		return kFontAssetByInstanceId[id];
-	}
-
 	private void RegisterCallbackInstance(FontAsset instance)
 	{
 		for (int i = 0; i < s_CallbackInstances.Count; i++)
@@ -857,9 +858,9 @@ public class FontAsset : TextAsset
 		s_CallbackInstances.Add(new WeakReference<FontAsset>(this));
 	}
 
-	private void OnDestroy()
+	internal override void OnDestroy()
 	{
-		kFontAssetByInstanceId.Remove(base.instanceID);
+		base.OnDestroy();
 		if (!m_IsClone)
 		{
 			DestroyAtlasTextures();
@@ -871,7 +872,7 @@ public class FontAsset : TextAsset
 		}
 		if (m_NativeFontAsset != IntPtr.Zero)
 		{
-			Destroy(m_NativeFontAsset);
+			Destroy(m_NativeFontAsset, MarshalledUnityObject.MarshalNotNull(this));
 			m_NativeFontAsset = IntPtr.Zero;
 		}
 	}
@@ -1463,6 +1464,19 @@ public class FontAsset : TextAsset
 		return GetGlyphIndex(unicode, out success);
 	}
 
+	internal Glyph GetGlyphInCache(uint glyphID)
+	{
+		if (m_GlyphLookupDictionary == null)
+		{
+			return null;
+		}
+		if (!glyphLookupTable.TryGetValue(glyphID, out var value))
+		{
+			return null;
+		}
+		return value;
+	}
+
 	internal uint GetGlyphIndex(uint unicode, out bool success)
 	{
 		success = true;
@@ -1867,6 +1881,71 @@ public class FontAsset : TextAsset
 		}
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+	internal bool TryAddGlyphs(List<uint> glyphsToAdd)
+	{
+		if (LoadFontFace() != FontEngineError.Success)
+		{
+			return false;
+		}
+		if (m_CharacterLookupDictionary == null || m_GlyphLookupDictionary == null)
+		{
+			ReadFontAssetDefinition();
+			glyphsToAdd.RemoveAll((uint glyphId) => m_GlyphLookupDictionary.ContainsKey(glyphId));
+			if (glyphsToAdd.Count == 0)
+			{
+				return true;
+			}
+		}
+		if (m_AtlasTextures[m_AtlasTextureIndex].width <= 1 || m_AtlasTextures[m_AtlasTextureIndex].height <= 1)
+		{
+			m_AtlasTextures[m_AtlasTextureIndex].Reinitialize(m_AtlasWidth, m_AtlasHeight);
+			FontEngine.ResetAtlasTexture(m_AtlasTextures[m_AtlasTextureIndex]);
+		}
+		bool flag = false;
+		while (!flag)
+		{
+			flag = FontEngine.TryAddGlyphsToTexture(glyphsToAdd, m_AtlasPadding, GlyphPackingMode.BestShortSideFit, m_FreeGlyphRects, m_UsedGlyphRects, m_AtlasRenderMode, m_AtlasTextures[m_AtlasTextureIndex], out var glyphs);
+			int additionalCapacity = glyphs.Length;
+			EnsureAdditionalCapacity(m_GlyphTable, additionalCapacity);
+			EnsureAdditionalCapacity(m_GlyphLookupDictionary, additionalCapacity);
+			EnsureAdditionalCapacity(m_GlyphIndexListNewlyAdded, additionalCapacity);
+			EnsureAdditionalCapacity(m_GlyphIndexList, additionalCapacity);
+			HashSet<uint> successfullyAddedGlyphIndices = new HashSet<uint>();
+			for (int num = 0; num < glyphs.Length && glyphs[num] != null; num++)
+			{
+				Glyph glyph = glyphs[num];
+				uint index = glyph.index;
+				glyph.atlasIndex = m_AtlasTextureIndex;
+				m_GlyphTable.Add(glyph);
+				m_GlyphLookupDictionary.Add(index, glyph);
+				m_GlyphIndexListNewlyAdded.Add(index);
+				m_GlyphIndexList.Add(index);
+				successfullyAddedGlyphIndices.Add(index);
+			}
+			if (successfullyAddedGlyphIndices.Count > 0)
+			{
+				glyphsToAdd.RemoveAll((uint id) => successfullyAddedGlyphIndices.Contains(id));
+			}
+			RegisterAtlasTextureForApply(m_AtlasTextures[m_AtlasTextureIndex]);
+			if (!m_IsMultiAtlasTexturesEnabled && !flag)
+			{
+				Debug.Log("Atlas is full, consider enabling multi-atlas textures in the Font Asset: " + base.name);
+				break;
+			}
+			if (!flag)
+			{
+				SetupNewAtlasTexture();
+			}
+		}
+		if (m_GetFontFeatures && m_GlyphIndexListNewlyAdded.Count > 0)
+		{
+			RegisterFontAssetForKerningUpdate(this);
+		}
+		FontEngine.SetTextureUploadMode(shouldUploadImmediately: true);
+		return flag;
+	}
+
 	public bool TryAddCharacters(string characters, bool includeFontFeatures = false)
 	{
 		string missingCharacters;
@@ -1907,7 +1986,7 @@ public class FontAsset : TextAsset
 		return m_VariantGlyphIndexes.TryGetValue((unicode, nextCharacter), out variantGlyphIndex);
 	}
 
-	internal bool TryAddGlyphInternal(uint glyphIndex, out Glyph glyph)
+	internal bool TryAddGlyphInternal(uint glyphIndex, out Glyph glyph, bool populateLigatures = true)
 	{
 		using (k_TryAddGlyphMarker.Auto())
 		{
@@ -1920,7 +1999,7 @@ public class FontAsset : TextAsset
 			{
 				return false;
 			}
-			return TryAddGlyphToAtlas(glyphIndex, out glyph);
+			return TryAddGlyphToAtlas(glyphIndex, out glyph, populateLigatures);
 		}
 	}
 
@@ -2211,6 +2290,7 @@ public class FontAsset : TextAsset
 
 	internal void UpdateGlyphAdjustmentRecords()
 	{
+		LoadFontFace();
 		GlyphPairAdjustmentRecord[] pairAdjustmentRecords = FontEngine.GetPairAdjustmentRecords(m_GlyphIndexListNewlyAdded);
 		if (pairAdjustmentRecords != null)
 		{
@@ -2336,13 +2416,22 @@ public class FontAsset : TextAsset
 	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
 	internal void EnsureNativeFontAssetIsCreated()
 	{
-		if (!(m_NativeFontAsset != IntPtr.Zero))
+		if (!(m_NativeFontAsset != IntPtr.Zero) && !JobsUtility.IsExecutingJob)
 		{
+			if (atlasPopulationMode == AtlasPopulationMode.Static && characterTable.Count > 0)
+			{
+				Debug.LogWarning("Advanced text system cannot use static font asset " + base.name + ".");
+				return;
+			}
+			if (atlasPopulationMode == AtlasPopulationMode.Dynamic && sourceFontFile == null)
+			{
+				Debug.LogWarning(base.name + " FontAsset is invalid. Please assign a Source Font File.");
+				return;
+			}
 			IntPtr[] fallbacks = GetFallbacks();
 			(IntPtr[], IntPtr[]) weightFallbacks = GetWeightFallbacks();
-			kFontAssetByInstanceId.TryAdd(base.instanceID, this);
 			Font sourceFont_EditorRef = null;
-			m_NativeFontAsset = Create(faceInfo, sourceFontFile, sourceFont_EditorRef, m_SourceFontFilePath, base.instanceID, fallbacks, weightFallbacks.Item1, weightFallbacks.Item2);
+			m_NativeFontAsset = Create(faceInfo, sourceFontFile, sourceFont_EditorRef, m_SourceFontFilePath, base.instanceID, fallbacks, weightFallbacks.Item1, weightFallbacks.Item2, m_AtlasRenderMode, MarshalledUnityObject.MarshalNotNull(this));
 		}
 	}
 
@@ -2362,6 +2451,11 @@ public class FontAsset : TextAsset
 		UpdateFaceInfo(nativeFontAsset, faceInfo);
 	}
 
+	internal void UpdateRenderMode()
+	{
+		UpdateRenderMode(nativeFontAsset, m_AtlasRenderMode);
+	}
+
 	internal IntPtr[] GetFallbacks()
 	{
 		List<IntPtr> list = new List<IntPtr>();
@@ -2377,11 +2471,7 @@ public class FontAsset : TextAsset
 				{
 					Debug.LogWarning("Advanced text system cannot use static font asset " + item.name + " as fallback.");
 				}
-				else if (HasRecursion(item))
-				{
-					Debug.LogWarning("Circular reference detected. Cannot add " + item.name + " to the fallbacks.");
-				}
-				else
+				else if (!HasRecursion(item))
 				{
 					list.Add(item.nativeFontAsset);
 				}
@@ -2498,7 +2588,7 @@ public class FontAsset : TextAsset
 		}
 	}
 
-	private unsafe static IntPtr Create(FaceInfo faceInfo, Font sourceFontFile, Font sourceFont_EditorRef, string sourceFontFilePath, int fontInstanceID, IntPtr[] fallbacks, IntPtr[] weightFallbacks, IntPtr[] italicFallbacks)
+	private unsafe static IntPtr Create(FaceInfo faceInfo, Font sourceFontFile, Font sourceFont_EditorRef, string sourceFontFilePath, EntityId fontEntityId, IntPtr[] fallbacks, IntPtr[] weightFallbacks, IntPtr[] italicFallbacks, GlyphRenderMode renderMode, IntPtr managedObject)
 	{
 		//The blocks IL_0037, IL_004c, IL_005a, IL_0072, IL_0080, IL_0098, IL_00a6 are reachable both inside and outside the pinned region starting at IL_0026. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
 		try
@@ -2507,7 +2597,7 @@ public class FontAsset : TextAsset
 			IntPtr sourceFont_EditorRef2 = MarshalledUnityObject.Marshal(sourceFont_EditorRef);
 			ManagedSpanWrapper managedSpanWrapper = default(ManagedSpanWrapper);
 			ref ManagedSpanWrapper sourceFontFilePath2;
-			int fontInstanceID2;
+			ref EntityId fontEntityId2;
 			Span<IntPtr> span;
 			ManagedSpanWrapper managedSpanWrapper2;
 			ref ManagedSpanWrapper fallbacks2;
@@ -2523,7 +2613,7 @@ public class FontAsset : TextAsset
 				{
 					managedSpanWrapper = new ManagedSpanWrapper(begin, readOnlySpan.Length);
 					sourceFontFilePath2 = ref managedSpanWrapper;
-					fontInstanceID2 = fontInstanceID;
+					fontEntityId2 = ref fontEntityId;
 					span = new Span<IntPtr>(fallbacks);
 					fixed (IntPtr* begin2 = span)
 					{
@@ -2538,14 +2628,14 @@ public class FontAsset : TextAsset
 							fixed (IntPtr* begin4 = span3)
 							{
 								italicFallbacks2 = new ManagedSpanWrapper(begin4, span3.Length);
-								return Create_Injected(ref faceInfo, intPtr, sourceFont_EditorRef2, ref sourceFontFilePath2, fontInstanceID2, ref fallbacks2, ref weightFallbacks2, ref italicFallbacks2);
+								return Create_Injected(ref faceInfo, intPtr, sourceFont_EditorRef2, ref sourceFontFilePath2, ref fontEntityId2, ref fallbacks2, ref weightFallbacks2, ref italicFallbacks2, renderMode, managedObject);
 							}
 						}
 					}
 				}
 			}
 			sourceFontFilePath2 = ref managedSpanWrapper;
-			fontInstanceID2 = fontInstanceID;
+			fontEntityId2 = ref fontEntityId;
 			span = new Span<IntPtr>(fallbacks);
 			fixed (IntPtr* begin2 = span)
 			{
@@ -2560,7 +2650,7 @@ public class FontAsset : TextAsset
 					fixed (IntPtr* begin4 = span3)
 					{
 						italicFallbacks2 = new ManagedSpanWrapper(begin4, span3.Length);
-						return Create_Injected(ref faceInfo, intPtr, sourceFont_EditorRef2, ref sourceFontFilePath2, fontInstanceID2, ref fallbacks2, ref weightFallbacks2, ref italicFallbacks2);
+						return Create_Injected(ref faceInfo, intPtr, sourceFont_EditorRef2, ref sourceFontFilePath2, ref fontEntityId2, ref fallbacks2, ref weightFallbacks2, ref italicFallbacks2, renderMode, managedObject);
 					}
 				}
 			}
@@ -2576,8 +2666,11 @@ public class FontAsset : TextAsset
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void UpdateRenderMode(IntPtr ptr, GlyphRenderMode renderMode);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction("FontAsset::Destroy")]
-	private static extern void Destroy(IntPtr ptr);
+	private static extern void Destroy(IntPtr ptr, IntPtr managedObject);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void UpdateFallbacks_Injected(IntPtr ptr, ref ManagedSpanWrapper fallbacks);
@@ -2586,7 +2679,7 @@ public class FontAsset : TextAsset
 	private static extern void UpdateWeightFallbacks_Injected(IntPtr ptr, ref ManagedSpanWrapper regularFallbacks, ref ManagedSpanWrapper italicFallbacks);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern IntPtr Create_Injected([In] ref FaceInfo faceInfo, IntPtr sourceFontFile, IntPtr sourceFont_EditorRef, ref ManagedSpanWrapper sourceFontFilePath, int fontInstanceID, ref ManagedSpanWrapper fallbacks, ref ManagedSpanWrapper weightFallbacks, ref ManagedSpanWrapper italicFallbacks);
+	private static extern IntPtr Create_Injected([In] ref FaceInfo faceInfo, IntPtr sourceFontFile, IntPtr sourceFont_EditorRef, ref ManagedSpanWrapper sourceFontFilePath, [In] ref EntityId fontEntityId, ref ManagedSpanWrapper fallbacks, ref ManagedSpanWrapper weightFallbacks, ref ManagedSpanWrapper italicFallbacks, GlyphRenderMode renderMode, IntPtr managedObject);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void UpdateFaceInfo_Injected(IntPtr ptr, [In] ref FaceInfo faceInfo);

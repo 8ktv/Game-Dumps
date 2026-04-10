@@ -15,37 +15,37 @@ public class DataBinding : Binding, IDataSourceProvider
 	public new class UxmlSerializedData : Binding.UxmlSerializedData
 	{
 		[Tooltip("The path to the value in the data source used by this binding. To see resolved bindings in the UI Builder, define a path that is compatible with the target source property.")]
-		[UxmlAttribute("data-source-path")]
 		[HideInInspector]
 		[SerializeField]
+		[UxmlAttribute("data-source-path")]
 		private string dataSourcePathString;
 
+		[HideInInspector]
 		[UxmlIgnore]
 		[SerializeField]
-		[HideInInspector]
 		private UxmlAttributeFlags dataSourcePathString_UxmlAttributeFlags;
 
-		[SerializeField]
 		[Tooltip("A data source is a collection of information. By default, a binding will inherit the existing data source from the hierarchy. You can instead define another object here as the data source, or define the type of property it may be if the source is not yet available.")]
-		[HideInInspector]
 		[DataSourceDrawer]
+		[HideInInspector]
+		[SerializeField]
 		private Object dataSource;
 
+		[SerializeField]
 		[HideInInspector]
 		[UxmlIgnore]
-		[SerializeField]
 		private UxmlAttributeFlags dataSource_UxmlAttributeFlags;
 
 		[UxmlAttribute("data-source-type")]
-		[SerializeField]
-		[HideInInspector]
-		[UxmlTypeReference(typeof(object))]
 		[Tooltip("A data source is a collection of information. By default, a binding will inherit the existing data source from the hierarchy. You can instead define another object here as the data source, or define the type of property it may be if the source is not yet available.")]
+		[SerializeField]
+		[UxmlTypeReference(typeof(object))]
+		[HideInInspector]
 		private string dataSourceTypeString;
 
 		[HideInInspector]
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags dataSourceTypeString_UxmlAttributeFlags;
 
 		[Tooltip("Controls how a binding is updated, which can include the direction in which data is written.")]
@@ -54,30 +54,30 @@ public class DataBinding : Binding, IDataSourceProvider
 		[SerializeField]
 		private BindingMode bindingMode;
 
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		[SerializeField]
 		private UxmlAttributeFlags bindingMode_UxmlAttributeFlags;
 
-		[ConverterDrawer(isConverterToSource = false)]
-		[SerializeField]
 		[UxmlAttribute("source-to-ui-converters")]
-		[UxmlAttributeBindingPath("uiToSourceConverters")]
+		[SerializeField]
 		[HideInInspector]
+		[ConverterDrawer(isConverterToSource = false)]
+		[UxmlAttributeBindingPath("uiToSourceConverters")]
 		[Tooltip("Define one or more converter groups for this binding that will be used between the data source to the target UI.")]
 		private string sourceToUiConvertersString;
 
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		[HideInInspector]
 		private UxmlAttributeFlags sourceToUiConvertersString_UxmlAttributeFlags;
 
-		[Tooltip("Define one or more converter groups for this binding that will be used between the target UI to the data source.")]
-		[UxmlAttributeBindingPath("sourceToUiConverters")]
+		[HideInInspector]
 		[ConverterDrawer(isConverterToSource = true)]
+		[UxmlAttributeBindingPath("sourceToUiConverters")]
+		[Tooltip("Define one or more converter groups for this binding that will be used between the target UI to the data source.")]
 		[SerializeField]
 		[UxmlAttribute("ui-to-source-converters")]
-		[HideInInspector]
 		private string uiToSourceConvertersString;
 
 		[SerializeField]

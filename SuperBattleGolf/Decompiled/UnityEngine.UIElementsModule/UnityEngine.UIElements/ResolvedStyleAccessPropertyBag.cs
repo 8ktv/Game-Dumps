@@ -63,6 +63,25 @@ internal class ResolvedStyleAccessPropertyBag : PropertyBag<ResolvedStyleAccess>
 		}
 	}
 
+	private class AspectRatioProperty : ResolvedRatioProperty
+	{
+		public override string Name => "aspectRatio";
+
+		public override string ussName => "aspect-ratio";
+
+		public override bool IsReadOnly => true;
+
+		public override Ratio GetValue(ref ResolvedStyleAccess container)
+		{
+			return ((IResolvedStyle)container).aspectRatio;
+		}
+
+		public override void SetValue(ref ResolvedStyleAccess container, Ratio value)
+		{
+			throw new InvalidOperationException();
+		}
+	}
+
 	private class BackgroundColorProperty : ResolvedColorProperty
 	{
 		public override string Name => "backgroundColor";
@@ -457,6 +476,25 @@ internal class ResolvedStyleAccessPropertyBag : PropertyBag<ResolvedStyleAccess>
 		}
 
 		public override void SetValue(ref ResolvedStyleAccess container, DisplayStyle value)
+		{
+			throw new InvalidOperationException();
+		}
+	}
+
+	private class FilterProperty : ResolvedListProperty<FilterFunction>
+	{
+		public override string Name => "filter";
+
+		public override string ussName => "filter";
+
+		public override bool IsReadOnly => true;
+
+		public override IEnumerable<FilterFunction> GetValue(ref ResolvedStyleAccess container)
+		{
+			return ((IResolvedStyle)container).filter;
+		}
+
+		public override void SetValue(ref ResolvedStyleAccess container, IEnumerable<FilterFunction> value)
 		{
 			throw new InvalidOperationException();
 		}
@@ -1222,6 +1260,25 @@ internal class ResolvedStyleAccessPropertyBag : PropertyBag<ResolvedStyleAccess>
 		}
 	}
 
+	private class UnityMaterialProperty : ResolvedMaterialDefinitionProperty
+	{
+		public override string Name => "unityMaterial";
+
+		public override string ussName => "-unity-material";
+
+		public override bool IsReadOnly => true;
+
+		public override MaterialDefinition GetValue(ref ResolvedStyleAccess container)
+		{
+			return ((IResolvedStyle)container).unityMaterial;
+		}
+
+		public override void SetValue(ref ResolvedStyleAccess container, MaterialDefinition value)
+		{
+			throw new InvalidOperationException();
+		}
+	}
+
 	private class UnityParagraphSpacingProperty : ResolvedFloatProperty
 	{
 		public override string Name => "unityParagraphSpacing";
@@ -1595,7 +1652,11 @@ internal class ResolvedStyleAccessPropertyBag : PropertyBag<ResolvedStyleAccess>
 	{
 	}
 
-	private abstract class ResolvedMaterialProperty : ResolvedStyleProperty<Material>
+	private abstract class ResolvedMaterialDefinitionProperty : ResolvedStyleProperty<MaterialDefinition>
+	{
+	}
+
+	private abstract class ResolvedRatioProperty : ResolvedStyleProperty<Ratio>
 	{
 	}
 
@@ -1605,11 +1666,12 @@ internal class ResolvedStyleAccessPropertyBag : PropertyBag<ResolvedStyleAccess>
 
 	public ResolvedStyleAccessPropertyBag()
 	{
-		m_PropertiesList = new List<IProperty<ResolvedStyleAccess>>(80);
-		m_PropertiesHash = new Dictionary<string, IProperty<ResolvedStyleAccess>>(240);
+		m_PropertiesList = new List<IProperty<ResolvedStyleAccess>>(83);
+		m_PropertiesHash = new Dictionary<string, IProperty<ResolvedStyleAccess>>(249);
 		AddProperty(new AlignContentProperty());
 		AddProperty(new AlignItemsProperty());
 		AddProperty(new AlignSelfProperty());
+		AddProperty(new AspectRatioProperty());
 		AddProperty(new BackgroundColorProperty());
 		AddProperty(new BackgroundImageProperty());
 		AddProperty(new BackgroundPositionXProperty());
@@ -1631,6 +1693,7 @@ internal class ResolvedStyleAccessPropertyBag : PropertyBag<ResolvedStyleAccess>
 		AddProperty(new BottomProperty());
 		AddProperty(new ColorProperty());
 		AddProperty(new DisplayProperty());
+		AddProperty(new FilterProperty());
 		AddProperty(new FlexBasisProperty());
 		AddProperty(new FlexDirectionProperty());
 		AddProperty(new FlexGrowProperty());
@@ -1671,6 +1734,7 @@ internal class ResolvedStyleAccessPropertyBag : PropertyBag<ResolvedStyleAccess>
 		AddProperty(new UnityFontProperty());
 		AddProperty(new UnityFontDefinitionProperty());
 		AddProperty(new UnityFontStyleAndWeightProperty());
+		AddProperty(new UnityMaterialProperty());
 		AddProperty(new UnityParagraphSpacingProperty());
 		AddProperty(new UnitySliceBottomProperty());
 		AddProperty(new UnitySliceLeftProperty());

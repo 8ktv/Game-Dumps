@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine.Bindings;
 using UnityEngine.UIElements.StyleSheets;
 
 namespace UnityEngine.UIElements;
 
+[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 internal interface IStylePropertyAnimations
 {
 	int runningAnimationCount { get; set; }
@@ -34,6 +36,8 @@ internal interface IStylePropertyAnimations
 
 	bool Start(StylePropertyId id, Rotate from, Rotate to, int durationMs, int delayMs, Func<float, float> easingCurve);
 
+	bool Start(StylePropertyId id, Ratio from, Ratio to, int durationMs, int delayMs, Func<float, float> easingCurve);
+
 	bool Start(StylePropertyId id, TransformOrigin from, TransformOrigin to, int durationMs, int delayMs, Func<float, float> easingCurve);
 
 	bool Start(StylePropertyId id, BackgroundPosition from, BackgroundPosition to, int durationMs, int delayMs, Func<float, float> easingCurve);
@@ -43,6 +47,8 @@ internal interface IStylePropertyAnimations
 	bool Start(StylePropertyId id, BackgroundSize from, BackgroundSize to, int durationMs, int delayMs, Func<float, float> easingCurve);
 
 	bool Start(StylePropertyId id, List<FilterFunction> from, List<FilterFunction> to, int durationMs, int delayMs, Func<float, float> easingCurve);
+
+	bool Start(StylePropertyId id, MaterialDefinition from, MaterialDefinition to, int durationMs, int delayMs, Func<float, float> easingCurve);
 
 	bool HasRunningAnimation(StylePropertyId id);
 

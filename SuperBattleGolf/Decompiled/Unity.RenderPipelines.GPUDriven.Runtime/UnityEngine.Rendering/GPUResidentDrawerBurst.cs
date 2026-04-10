@@ -11,7 +11,7 @@ namespace UnityEngine.Rendering;
 internal static class GPUResidentDrawerBurst
 {
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	internal delegate void ClassifyMaterials_000000EA_0024PostfixBurstDelegate(in NativeArray<int> materialIDs, in NativeParallelHashMap<int, BatchMaterialID>.ReadOnly batchMaterialHash, ref NativeList<int> supportedMaterialIDs, ref NativeList<int> unsupportedMaterialIDs, ref NativeList<GPUDrivenPackedMaterialData> supportedPackedMaterialDatas);
+	internal delegate void ClassifyMaterials_000000EA_0024PostfixBurstDelegate(in NativeArray<EntityId> materialIDs, in NativeParallelHashMap<EntityId, BatchMaterialID>.ReadOnly batchMaterialHash, ref NativeList<EntityId> supportedMaterialIDs, ref NativeList<EntityId> unsupportedMaterialIDs, ref NativeList<GPUDrivenPackedMaterialData> supportedPackedMaterialDatas);
 
 	internal static class ClassifyMaterials_000000EA_0024BurstDirectCall
 	{
@@ -34,14 +34,14 @@ internal static class GPUResidentDrawerBurst
 			return result;
 		}
 
-		public unsafe static void Invoke(in NativeArray<int> materialIDs, in NativeParallelHashMap<int, BatchMaterialID>.ReadOnly batchMaterialHash, ref NativeList<int> supportedMaterialIDs, ref NativeList<int> unsupportedMaterialIDs, ref NativeList<GPUDrivenPackedMaterialData> supportedPackedMaterialDatas)
+		public unsafe static void Invoke(in NativeArray<EntityId> materialIDs, in NativeParallelHashMap<EntityId, BatchMaterialID>.ReadOnly batchMaterialHash, ref NativeList<EntityId> supportedMaterialIDs, ref NativeList<EntityId> unsupportedMaterialIDs, ref NativeList<GPUDrivenPackedMaterialData> supportedPackedMaterialDatas)
 		{
 			if (BurstCompiler.IsEnabled)
 			{
 				IntPtr functionPointer = GetFunctionPointer();
 				if (functionPointer != (IntPtr)0)
 				{
-					((delegate* unmanaged[Cdecl]<ref NativeArray<int>, ref NativeParallelHashMap<int, BatchMaterialID>.ReadOnly, ref NativeList<int>, ref NativeList<int>, ref NativeList<GPUDrivenPackedMaterialData>, void>)functionPointer)(ref materialIDs, ref batchMaterialHash, ref supportedMaterialIDs, ref unsupportedMaterialIDs, ref supportedPackedMaterialDatas);
+					((delegate* unmanaged[Cdecl]<ref NativeArray<EntityId>, ref NativeParallelHashMap<EntityId, BatchMaterialID>.ReadOnly, ref NativeList<EntityId>, ref NativeList<EntityId>, ref NativeList<GPUDrivenPackedMaterialData>, void>)functionPointer)(ref materialIDs, ref batchMaterialHash, ref supportedMaterialIDs, ref unsupportedMaterialIDs, ref supportedPackedMaterialDatas);
 					return;
 				}
 			}
@@ -50,7 +50,7 @@ internal static class GPUResidentDrawerBurst
 	}
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	internal delegate void FindUnsupportedRenderers_000000EB_0024PostfixBurstDelegate(in NativeArray<int> unsupportedMaterials, in NativeArray<SmallIntegerArray>.ReadOnly materialIDArrays, in NativeArray<int>.ReadOnly rendererGroups, ref NativeList<int> unsupportedRenderers);
+	internal delegate void FindUnsupportedRenderers_000000EB_0024PostfixBurstDelegate(in NativeArray<EntityId> unsupportedMaterials, in NativeArray<SmallEntityIdArray>.ReadOnly materialIDArrays, in NativeArray<EntityId>.ReadOnly rendererGroups, ref NativeList<EntityId> unsupportedRenderers);
 
 	internal static class FindUnsupportedRenderers_000000EB_0024BurstDirectCall
 	{
@@ -73,14 +73,14 @@ internal static class GPUResidentDrawerBurst
 			return result;
 		}
 
-		public unsafe static void Invoke(in NativeArray<int> unsupportedMaterials, in NativeArray<SmallIntegerArray>.ReadOnly materialIDArrays, in NativeArray<int>.ReadOnly rendererGroups, ref NativeList<int> unsupportedRenderers)
+		public unsafe static void Invoke(in NativeArray<EntityId> unsupportedMaterials, in NativeArray<SmallEntityIdArray>.ReadOnly materialIDArrays, in NativeArray<EntityId>.ReadOnly rendererGroups, ref NativeList<EntityId> unsupportedRenderers)
 		{
 			if (BurstCompiler.IsEnabled)
 			{
 				IntPtr functionPointer = GetFunctionPointer();
 				if (functionPointer != (IntPtr)0)
 				{
-					((delegate* unmanaged[Cdecl]<ref NativeArray<int>, ref NativeArray<SmallIntegerArray>.ReadOnly, ref NativeArray<int>.ReadOnly, ref NativeList<int>, void>)functionPointer)(ref unsupportedMaterials, ref materialIDArrays, ref rendererGroups, ref unsupportedRenderers);
+					((delegate* unmanaged[Cdecl]<ref NativeArray<EntityId>, ref NativeArray<SmallEntityIdArray>.ReadOnly, ref NativeArray<EntityId>.ReadOnly, ref NativeList<EntityId>, void>)functionPointer)(ref unsupportedMaterials, ref materialIDArrays, ref rendererGroups, ref unsupportedRenderers);
 					return;
 				}
 			}
@@ -89,7 +89,7 @@ internal static class GPUResidentDrawerBurst
 	}
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	internal delegate void GetMaterialsWithChangedPackedMaterial_000000EC_0024PostfixBurstDelegate(in NativeArray<int> materialIDs, in NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas, in NativeParallelHashMap<int, GPUDrivenPackedMaterialData>.ReadOnly packedMaterialHash, ref NativeHashSet<int> filteredMaterials);
+	internal delegate void GetMaterialsWithChangedPackedMaterial_000000EC_0024PostfixBurstDelegate(in NativeArray<EntityId> materialIDs, in NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas, in NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData>.ReadOnly packedMaterialHash, ref NativeHashSet<EntityId> filteredMaterials);
 
 	internal static class GetMaterialsWithChangedPackedMaterial_000000EC_0024BurstDirectCall
 	{
@@ -112,14 +112,14 @@ internal static class GPUResidentDrawerBurst
 			return result;
 		}
 
-		public unsafe static void Invoke(in NativeArray<int> materialIDs, in NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas, in NativeParallelHashMap<int, GPUDrivenPackedMaterialData>.ReadOnly packedMaterialHash, ref NativeHashSet<int> filteredMaterials)
+		public unsafe static void Invoke(in NativeArray<EntityId> materialIDs, in NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas, in NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData>.ReadOnly packedMaterialHash, ref NativeHashSet<EntityId> filteredMaterials)
 		{
 			if (BurstCompiler.IsEnabled)
 			{
 				IntPtr functionPointer = GetFunctionPointer();
 				if (functionPointer != (IntPtr)0)
 				{
-					((delegate* unmanaged[Cdecl]<ref NativeArray<int>, ref NativeArray<GPUDrivenPackedMaterialData>, ref NativeParallelHashMap<int, GPUDrivenPackedMaterialData>.ReadOnly, ref NativeHashSet<int>, void>)functionPointer)(ref materialIDs, ref packedMaterialDatas, ref packedMaterialHash, ref filteredMaterials);
+					((delegate* unmanaged[Cdecl]<ref NativeArray<EntityId>, ref NativeArray<GPUDrivenPackedMaterialData>, ref NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData>.ReadOnly, ref NativeHashSet<EntityId>, void>)functionPointer)(ref materialIDs, ref packedMaterialDatas, ref packedMaterialHash, ref filteredMaterials);
 					return;
 				}
 			}
@@ -129,33 +129,33 @@ internal static class GPUResidentDrawerBurst
 
 	[BurstCompile(DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
 	[MonoPInvokeCallback(typeof(UnityEngine_002ERendering_002EClassifyMaterials_000000EA_0024PostfixBurstDelegate))]
-	public static void ClassifyMaterials(in NativeArray<int> materialIDs, in NativeParallelHashMap<int, BatchMaterialID>.ReadOnly batchMaterialHash, ref NativeList<int> supportedMaterialIDs, ref NativeList<int> unsupportedMaterialIDs, ref NativeList<GPUDrivenPackedMaterialData> supportedPackedMaterialDatas)
+	public static void ClassifyMaterials(in NativeArray<EntityId> materialIDs, in NativeParallelHashMap<EntityId, BatchMaterialID>.ReadOnly batchMaterialHash, ref NativeList<EntityId> supportedMaterialIDs, ref NativeList<EntityId> unsupportedMaterialIDs, ref NativeList<GPUDrivenPackedMaterialData> supportedPackedMaterialDatas)
 	{
 		ClassifyMaterials_000000EA_0024BurstDirectCall.Invoke(in materialIDs, in batchMaterialHash, ref supportedMaterialIDs, ref unsupportedMaterialIDs, ref supportedPackedMaterialDatas);
 	}
 
 	[BurstCompile(DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
 	[MonoPInvokeCallback(typeof(UnityEngine_002ERendering_002EFindUnsupportedRenderers_000000EB_0024PostfixBurstDelegate))]
-	public static void FindUnsupportedRenderers(in NativeArray<int> unsupportedMaterials, in NativeArray<SmallIntegerArray>.ReadOnly materialIDArrays, in NativeArray<int>.ReadOnly rendererGroups, ref NativeList<int> unsupportedRenderers)
+	public static void FindUnsupportedRenderers(in NativeArray<EntityId> unsupportedMaterials, in NativeArray<SmallEntityIdArray>.ReadOnly materialIDArrays, in NativeArray<EntityId>.ReadOnly rendererGroups, ref NativeList<EntityId> unsupportedRenderers)
 	{
 		FindUnsupportedRenderers_000000EB_0024BurstDirectCall.Invoke(in unsupportedMaterials, in materialIDArrays, in rendererGroups, ref unsupportedRenderers);
 	}
 
 	[BurstCompile(DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
 	[MonoPInvokeCallback(typeof(UnityEngine_002ERendering_002EGetMaterialsWithChangedPackedMaterial_000000EC_0024PostfixBurstDelegate))]
-	public static void GetMaterialsWithChangedPackedMaterial(in NativeArray<int> materialIDs, in NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas, in NativeParallelHashMap<int, GPUDrivenPackedMaterialData>.ReadOnly packedMaterialHash, ref NativeHashSet<int> filteredMaterials)
+	public static void GetMaterialsWithChangedPackedMaterial(in NativeArray<EntityId> materialIDs, in NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas, in NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData>.ReadOnly packedMaterialHash, ref NativeHashSet<EntityId> filteredMaterials)
 	{
 		GetMaterialsWithChangedPackedMaterial_000000EC_0024BurstDirectCall.Invoke(in materialIDs, in packedMaterialDatas, in packedMaterialHash, ref filteredMaterials);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[BurstCompile(DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
-	internal static void ClassifyMaterials_0024BurstManaged(in NativeArray<int> materialIDs, in NativeParallelHashMap<int, BatchMaterialID>.ReadOnly batchMaterialHash, ref NativeList<int> supportedMaterialIDs, ref NativeList<int> unsupportedMaterialIDs, ref NativeList<GPUDrivenPackedMaterialData> supportedPackedMaterialDatas)
+	internal static void ClassifyMaterials_0024BurstManaged(in NativeArray<EntityId> materialIDs, in NativeParallelHashMap<EntityId, BatchMaterialID>.ReadOnly batchMaterialHash, ref NativeList<EntityId> supportedMaterialIDs, ref NativeList<EntityId> unsupportedMaterialIDs, ref NativeList<GPUDrivenPackedMaterialData> supportedPackedMaterialDatas)
 	{
-		NativeList<int> nativeList = new NativeList<int>(4, Allocator.Temp);
-		foreach (int materialID in materialIDs)
+		NativeList<EntityId> nativeList = new NativeList<EntityId>(4, Allocator.Temp);
+		foreach (EntityId materialID in materialIDs)
 		{
-			int value = materialID;
+			EntityId value = materialID;
 			if (batchMaterialHash.ContainsKey(value))
 			{
 				nativeList.Add(in value);
@@ -178,15 +178,15 @@ internal static class GPUResidentDrawerBurst
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[BurstCompile(DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
-	internal static void FindUnsupportedRenderers_0024BurstManaged(in NativeArray<int> unsupportedMaterials, in NativeArray<SmallIntegerArray>.ReadOnly materialIDArrays, in NativeArray<int>.ReadOnly rendererGroups, ref NativeList<int> unsupportedRenderers)
+	internal static void FindUnsupportedRenderers_0024BurstManaged(in NativeArray<EntityId> unsupportedMaterials, in NativeArray<SmallEntityIdArray>.ReadOnly materialIDArrays, in NativeArray<EntityId>.ReadOnly rendererGroups, ref NativeList<EntityId> unsupportedRenderers)
 	{
 		for (int i = 0; i < materialIDArrays.Length; i++)
 		{
-			SmallIntegerArray smallIntegerArray = materialIDArrays[i];
-			int value = rendererGroups[i];
-			for (int j = 0; j < smallIntegerArray.Length; j++)
+			SmallEntityIdArray smallEntityIdArray = materialIDArrays[i];
+			EntityId value = rendererGroups[i];
+			for (int j = 0; j < smallEntityIdArray.Length; j++)
 			{
-				int value2 = smallIntegerArray[j];
+				EntityId value2 = smallEntityIdArray[j];
 				if (unsupportedMaterials.Contains(value2))
 				{
 					unsupportedRenderers.Add(in value);
@@ -198,15 +198,15 @@ internal static class GPUResidentDrawerBurst
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[BurstCompile(DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
-	internal static void GetMaterialsWithChangedPackedMaterial_0024BurstManaged(in NativeArray<int> materialIDs, in NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas, in NativeParallelHashMap<int, GPUDrivenPackedMaterialData>.ReadOnly packedMaterialHash, ref NativeHashSet<int> filteredMaterials)
+	internal static void GetMaterialsWithChangedPackedMaterial_0024BurstManaged(in NativeArray<EntityId> materialIDs, in NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas, in NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData>.ReadOnly packedMaterialHash, ref NativeHashSet<EntityId> filteredMaterials)
 	{
 		for (int i = 0; i < materialIDs.Length; i++)
 		{
-			int num = materialIDs[i];
+			EntityId entityId = materialIDs[i];
 			GPUDrivenPackedMaterialData other = packedMaterialDatas[i];
-			if (!packedMaterialHash.TryGetValue(num, out var item) || !item.Equals(other))
+			if (!packedMaterialHash.TryGetValue(entityId, out var item) || !item.Equals(other))
 			{
-				filteredMaterials.Add(num);
+				filteredMaterials.Add(entityId);
 			}
 		}
 	}

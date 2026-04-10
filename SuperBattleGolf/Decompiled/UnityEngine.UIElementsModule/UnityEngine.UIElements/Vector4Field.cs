@@ -16,7 +16,6 @@ public class Vector4Field : BaseCompositeField<Vector4, FloatField, float>
 		[Conditional("UNITY_EDITOR")]
 		public new static void Register()
 		{
-			BaseCompositeField<Vector4, FloatField, float>.UxmlSerializedData.Register();
 		}
 
 		public override object CreateInstance()

@@ -10,10 +10,25 @@ public class GolfBallSettings : ScriptableObject
 	public float GroundFullStopMaxPitch { get; private set; }
 
 	[field: SerializeField]
+	public float GroundFullRollMinPitch { get; private set; }
+
+	[field: SerializeField]
 	public float FullStopMinDampingSpeed { get; private set; }
 
 	[field: SerializeField]
 	public float FullStopMaxDampingSpeed { get; private set; }
+
+	[field: SerializeField]
+	public AnimationCurve GroundFullStopToFullRollCurve { get; private set; }
+
+	[field: SerializeField]
+	public float FullStopRollingDownhillStartTime { get; private set; }
+
+	[field: SerializeField]
+	public float FullStopRollingDownhillEndTime { get; private set; }
+
+	[field: SerializeField]
+	public float FullStopRollingDownhillEndDampingSpeedFactor { get; private set; }
 
 	[field: SerializeField]
 	public float FullStopLinearDamping { get; private set; }
@@ -28,6 +43,9 @@ public class GolfBallSettings : ScriptableObject
 	public float LinearAirDragFactor { get; private set; }
 
 	[field: SerializeField]
+	public float RocketDriverSwingLinearAirDragFactor { get; private set; }
+
+	[field: SerializeField]
 	public float AirFrictionAngularDamping { get; private set; }
 
 	[field: SerializeField]
@@ -38,10 +56,6 @@ public class GolfBallSettings : ScriptableObject
 	public Material NotAllowedMaterial { get; private set; }
 
 	public float StationaryStateSpeedThresholdSquared { get; private set; }
-
-	public float FullStopMinDampingSpeedSquared { get; private set; }
-
-	public float FullStopMaxDampingSpeedSquared { get; private set; }
 
 	private void OnValidate()
 	{
@@ -56,7 +70,5 @@ public class GolfBallSettings : ScriptableObject
 	private void Initialize()
 	{
 		StationaryStateSpeedThresholdSquared = StationaryStateSpeedThreshold * StationaryStateSpeedThreshold;
-		FullStopMinDampingSpeedSquared = FullStopMinDampingSpeed * FullStopMinDampingSpeed;
-		FullStopMaxDampingSpeedSquared = FullStopMaxDampingSpeed * FullStopMaxDampingSpeed;
 	}
 }

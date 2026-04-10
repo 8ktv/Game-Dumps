@@ -72,9 +72,15 @@ internal class StylePropertyValueMatcher : BaseStyleMatcher
 		return false;
 	}
 
-	protected override bool MatchNumber()
+	protected override bool MatchNumber(Expression exp)
 	{
-		return current.handle.valueType == StyleValueType.Float;
+		StylePropertyValue stylePropertyValue = current;
+		if (stylePropertyValue.handle.valueType == StyleValueType.Float)
+		{
+			float num = stylePropertyValue.sheet.ReadFloat(stylePropertyValue.handle);
+			return exp.min <= num && num <= exp.max;
+		}
+		return false;
 	}
 
 	protected override bool MatchInteger()
@@ -154,6 +160,19 @@ internal class StylePropertyValueMatcher : BaseStyleMatcher
 	}
 
 	protected override bool MatchFilterFunction()
+	{
+		int valueIndex = current.handle.valueIndex;
+		MoveNext();
+		StylePropertyValue stylePropertyValue = current;
+		int num = (int)stylePropertyValue.sheet.ReadFloat(stylePropertyValue.handle);
+		for (int i = 0; i < num; i++)
+		{
+			MoveNext();
+		}
+		return true;
+	}
+
+	protected override bool MatchMaterialPropertyValue()
 	{
 		int valueIndex = current.handle.valueIndex;
 		MoveNext();

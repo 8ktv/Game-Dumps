@@ -6,8 +6,8 @@ using UnityEngine.Scripting.APIUpdating;
 namespace UnityEngine.PlayerLoop;
 
 [StructLayout(LayoutKind.Sequential, Size = 1)]
-[MovedFrom("UnityEngine.Experimental.PlayerLoop")]
 [RequiredByNativeCode]
+[MovedFrom("UnityEngine.Experimental.PlayerLoop")]
 public struct EarlyUpdate
 {
 	[StructLayout(LayoutKind.Sequential, Size = 1)]
@@ -224,6 +224,12 @@ public struct EarlyUpdate
 	[StructLayout(LayoutKind.Sequential, Size = 1)]
 	[RequiredByNativeCode]
 	public struct PerformanceAnalyticsUpdate
+	{
+	}
+
+	[StructLayout(LayoutKind.Sequential, Size = 1)]
+	[RequiredByNativeCode]
+	public struct TilemapRendererEarlyUpdate
 	{
 	}
 }

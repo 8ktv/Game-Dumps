@@ -40,13 +40,13 @@ public static class BoundsExtensions
 			Vector3 vector = camera.WorldToScreenPoint(position);
 			if (flag)
 			{
-				result = new Rect(vector, Vector2.zero);
+				result = new Rect((Vector2)vector, Vector2.zero);
 				flag = false;
 			}
 			else
 			{
-				result.min = Vector3.Min(result.min, vector);
-				result.max = Vector3.Max(result.max, vector);
+				result.min = Vector3.Min((Vector3)result.min, vector);
+				result.max = Vector3.Max((Vector3)result.max, vector);
 			}
 		}
 		return result;

@@ -106,7 +106,7 @@ public sealed class ProbeVolumeBakingSet : ScriptableObject, ISerializationCallb
 	private List<string> m_SceneGUIDs = new List<string>();
 
 	[SerializeField]
-	[Obsolete("This is now contained in the SceneBakeData structure")]
+	[Obsolete("This is now contained in the SceneBakeData structure. #from(2023.3)")]
 	[FormerlySerializedAs("scenesToNotBake")]
 	internal List<string> obsoleteScenesToNotBake = new List<string>();
 

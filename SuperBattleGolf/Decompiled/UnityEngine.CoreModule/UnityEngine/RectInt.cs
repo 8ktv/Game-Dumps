@@ -18,7 +18,7 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 
 		private Vector2Int _current;
 
-		public Vector2Int Current
+		public readonly Vector2Int Current
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get
@@ -27,7 +27,7 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 			}
 		}
 
-		object IEnumerator.Current
+		readonly object IEnumerator.Current
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get
@@ -37,11 +37,12 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public PositionEnumerator(Vector2Int min, Vector2Int max)
+		public PositionEnumerator(in Vector2Int min, in Vector2Int max)
 		{
-			_min = (_current = min);
+			_min = min;
 			_max = max;
-			Reset();
+			_current = _min;
+			_current.x--;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -95,10 +96,12 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 
 	private int m_Height;
 
+	private static readonly RectInt kZero = new RectInt(0, 0, 0, 0);
+
 	public int x
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_XMin;
 		}
@@ -112,7 +115,7 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 	public int y
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_YMin;
 		}
@@ -123,19 +126,23 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 		}
 	}
 
-	public Vector2 center
+	public readonly Vector2 center
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
 		{
-			return new Vector2((float)x + (float)m_Width / 2f, (float)y + (float)m_Height / 2f);
+			return new Vector2
+			{
+				x = (float)m_XMin + (float)m_Width * 0.5f,
+				y = (float)m_YMin + (float)m_Height * 0.5f
+			};
 		}
 	}
 
 	public Vector2Int min
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return new Vector2Int(xMin, yMin);
 		}
@@ -150,7 +157,7 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 	public Vector2Int max
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return new Vector2Int(xMax, yMax);
 		}
@@ -165,7 +172,7 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 	public int width
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_Width;
 		}
@@ -179,7 +186,7 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 	public int height
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_Height;
 		}
@@ -193,9 +200,9 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 	public int xMin
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
-			return Math.Min(m_XMin, m_XMin + m_Width);
+			return Mathf.Min(m_XMin, m_XMin + m_Width);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		set
@@ -209,9 +216,9 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 	public int yMin
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
-			return Math.Min(m_YMin, m_YMin + m_Height);
+			return Mathf.Min(m_YMin, m_YMin + m_Height);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		set
@@ -225,9 +232,9 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 	public int xMax
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
-			return Math.Max(m_XMin, m_XMin + m_Width);
+			return Mathf.Max(m_XMin, m_XMin + m_Width);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		set
@@ -239,9 +246,9 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 	public int yMax
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
-			return Math.Max(m_YMin, m_YMin + m_Height);
+			return Mathf.Max(m_YMin, m_YMin + m_Height);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		set
@@ -253,7 +260,7 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 	public Vector2Int position
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return new Vector2Int(m_XMin, m_YMin);
 		}
@@ -268,7 +275,7 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 	public Vector2Int size
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return new Vector2Int(m_Width, m_Height);
 		}
@@ -280,9 +287,16 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 		}
 	}
 
-	public static RectInt zero => new RectInt(0, 0, 0, 0);
+	public static RectInt zero
+	{
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		get
+		{
+			return kZero;
+		}
+	}
 
-	public PositionEnumerator allPositionsWithin
+	public readonly PositionEnumerator allPositionsWithin
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
@@ -293,6 +307,13 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void SetMinMax(Vector2Int minPosition, Vector2Int maxPosition)
+	{
+		min = minPosition;
+		max = maxPosition;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public void SetMinMax(in Vector2Int minPosition, in Vector2Int maxPosition)
 	{
 		min = minPosition;
 		max = maxPosition;
@@ -317,38 +338,82 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public RectInt(in Vector2Int position, in Vector2Int size)
+	{
+		m_XMin = position.x;
+		m_YMin = position.y;
+		m_Width = size.x;
+		m_Height = size.y;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void ClampToBounds(RectInt bounds)
 	{
-		position = new Vector2Int(Math.Max(Math.Min(bounds.xMax, position.x), bounds.xMin), Math.Max(Math.Min(bounds.yMax, position.y), bounds.yMin));
-		size = new Vector2Int(Math.Min(bounds.xMax - position.x, size.x), Math.Min(bounds.yMax - position.y, size.y));
+		int val = bounds.xMin;
+		int num = bounds.xMax;
+		int val2 = bounds.yMin;
+		int num2 = bounds.yMax;
+		m_XMin = Math.Max(Math.Min(num, m_XMin), val);
+		m_YMin = Math.Max(Math.Min(num2, m_YMin), val2);
+		m_Width = Math.Min(num - m_XMin, m_Width);
+		m_Height = Math.Min(num2 - m_YMin, m_Height);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public bool Contains(Vector2Int position)
+	public void ClampToBounds(in RectInt bounds)
 	{
-		return position.x >= xMin && position.y >= yMin && position.x < xMax && position.y < yMax;
+		int val = bounds.xMin;
+		int num = bounds.xMax;
+		int val2 = bounds.yMin;
+		int num2 = bounds.yMax;
+		m_XMin = Math.Max(Math.Min(num, m_XMin), val);
+		m_YMin = Math.Max(Math.Min(num2, m_YMin), val2);
+		m_Width = Math.Min(num - m_XMin, m_Width);
+		m_Height = Math.Min(num2 - m_YMin, m_Height);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public bool Overlaps(RectInt other)
+	public readonly bool Contains(Vector2Int position)
+	{
+		int num = position.x;
+		int num2 = position.y;
+		return num >= xMin && num2 >= yMin && num < xMax && num2 < yMax;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public readonly bool Contains(in Vector2Int position)
+	{
+		int num = position.x;
+		int num2 = position.y;
+		return num >= xMin && num2 >= yMin && num < xMax && num2 < yMax;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public readonly bool Overlaps(RectInt other)
 	{
 		return other.xMin < xMax && other.xMax > xMin && other.yMin < yMax && other.yMax > yMin;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override string ToString()
+	public readonly bool Overlaps(in RectInt other)
+	{
+		return other.xMin < xMax && other.xMax > xMin && other.yMin < yMax && other.yMax > yMin;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public override readonly string ToString()
 	{
 		return ToString(null, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format)
+	public readonly string ToString(string format)
 	{
 		return ToString(format, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format, IFormatProvider formatProvider)
+	public readonly string ToString(string format, IFormatProvider formatProvider)
 	{
 		if (formatProvider == null)
 		{
@@ -366,31 +431,37 @@ public struct RectInt : IEquatable<RectInt>, IFormattable
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static bool operator ==(RectInt lhs, RectInt rhs)
 	{
-		return lhs.x == rhs.x && lhs.y == rhs.y && lhs.width == rhs.width && lhs.height == rhs.height;
+		return lhs.m_XMin == rhs.m_XMin && lhs.m_YMin == rhs.m_YMin && lhs.m_Width == rhs.m_Width && lhs.m_Height == rhs.m_Height;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override int GetHashCode()
+	public override readonly int GetHashCode()
 	{
-		int hashCode = x.GetHashCode();
-		int hashCode2 = y.GetHashCode();
-		int hashCode3 = width.GetHashCode();
-		int hashCode4 = height.GetHashCode();
+		int hashCode = m_XMin.GetHashCode();
+		int hashCode2 = m_YMin.GetHashCode();
+		int hashCode3 = m_Width.GetHashCode();
+		int hashCode4 = m_Height.GetHashCode();
 		return hashCode ^ (hashCode2 << 4) ^ (hashCode2 >> 28) ^ (hashCode3 >> 4) ^ (hashCode3 << 28) ^ (hashCode4 >> 4) ^ (hashCode4 << 28);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override bool Equals(object other)
+	public override readonly bool Equals(object other)
 	{
-		if (!(other is RectInt))
+		if (other is RectInt other2)
 		{
-			return false;
+			return Equals(in other2);
 		}
-		return Equals((RectInt)other);
+		return false;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public bool Equals(RectInt other)
+	public readonly bool Equals(RectInt other)
+	{
+		return m_XMin == other.m_XMin && m_YMin == other.m_YMin && m_Width == other.m_Width && m_Height == other.m_Height;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public readonly bool Equals(in RectInt other)
 	{
 		return m_XMin == other.m_XMin && m_YMin == other.m_YMin && m_Width == other.m_Width && m_Height == other.m_Height;
 	}

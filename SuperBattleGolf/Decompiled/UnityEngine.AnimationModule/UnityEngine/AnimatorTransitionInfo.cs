@@ -3,8 +3,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[RequiredByNativeCode]
 [NativeHeader("Modules/Animation/AnimatorInfo.h")]
+[RequiredByNativeCode]
 public struct AnimatorTransitionInfo
 {
 	[NativeName("fullPathHash")]

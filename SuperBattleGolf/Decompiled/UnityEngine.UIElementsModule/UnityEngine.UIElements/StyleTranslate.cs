@@ -2,10 +2,13 @@ using System;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleTranslate : IStyleValue<Translate>, IEquatable<StyleTranslate>
 {
+	[SerializeField]
 	private Translate m_Value;
 
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
 	public Translate value

@@ -5,11 +5,11 @@ using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine.Rendering;
 
-[UsedByNativeCode]
-[NativeHeader("Runtime/Graphics/RayTracing/RayTracingAccelerationStructure.h")]
-[NativeHeader("Runtime/Export/Graphics/RayTracingAccelerationStructure.bindings.h")]
 [MovedFrom("UnityEngine.Experimental.Rendering")]
+[NativeHeader("Runtime/Export/Graphics/RayTracingAccelerationStructure.bindings.h")]
+[NativeHeader("Runtime/Graphics/RayTracing/RayTracingAccelerationStructure.h")]
 [Flags]
+[UsedByNativeCode]
 public enum RayTracingSubMeshFlags
 {
 	Disabled = 0,

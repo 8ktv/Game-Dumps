@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using UnityEngine.Experimental.Rendering;
 
 namespace UnityEngine.Rendering.RenderGraphModule.NativeRenderPassCompiler;
 
@@ -26,6 +27,8 @@ internal struct ResourceUnversionedData
 
 	public readonly int msaaSamples;
 
+	public readonly GraphicsFormat graphicsFormat;
+
 	public int latestVersionNumber;
 
 	public readonly bool clear;
@@ -34,13 +37,15 @@ internal struct ResourceUnversionedData
 
 	public readonly bool bindMS;
 
+	public TextureUVOriginSelection textureUVOrigin;
+
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string GetName(CompilerContextData ctx, ResourceHandle h)
+	public string GetName(CompilerContextData ctx, in ResourceHandle h)
 	{
-		return ctx.GetResourceName(h);
+		return ctx.GetResourceName(in h);
 	}
 
-	public ResourceUnversionedData(IRenderGraphResource rll, ref RenderTargetInfo info, ref TextureDesc desc, bool isResourceShared)
+	public ResourceUnversionedData(TextureResource rll, ref RenderTargetInfo info, ref TextureDesc desc, bool isResourceShared)
 	{
 		isImported = rll.imported;
 		isShared = isResourceShared;
@@ -53,10 +58,12 @@ internal struct ResourceUnversionedData
 		height = info.height;
 		volumeDepth = info.volumeDepth;
 		msaaSamples = info.msaaSamples;
-		latestVersionNumber = rll.version;
+		latestVersionNumber = (int)rll.writeCount;
 		clear = desc.clearBuffer;
 		discard = desc.discardBuffer;
 		bindMS = info.bindMS;
+		textureUVOrigin = rll.textureUVOrigin;
+		graphicsFormat = desc.format;
 	}
 
 	public ResourceUnversionedData(IRenderGraphResource rll, ref BufferDesc _, bool isResourceShared)
@@ -72,10 +79,12 @@ internal struct ResourceUnversionedData
 		height = -1;
 		volumeDepth = -1;
 		msaaSamples = -1;
-		latestVersionNumber = rll.version;
+		latestVersionNumber = (int)rll.writeCount;
 		clear = false;
 		discard = false;
 		bindMS = false;
+		textureUVOrigin = TextureUVOriginSelection.Unknown;
+		graphicsFormat = GraphicsFormat.None;
 	}
 
 	public ResourceUnversionedData(IRenderGraphResource rll, ref RayTracingAccelerationStructureDesc _, bool isResourceShared)
@@ -91,10 +100,12 @@ internal struct ResourceUnversionedData
 		height = -1;
 		volumeDepth = -1;
 		msaaSamples = -1;
-		latestVersionNumber = rll.version;
+		latestVersionNumber = (int)rll.writeCount;
 		clear = false;
 		discard = false;
 		bindMS = false;
+		textureUVOrigin = TextureUVOriginSelection.Unknown;
+		graphicsFormat = GraphicsFormat.None;
 	}
 
 	public void InitializeNullResource()
@@ -102,5 +113,6 @@ internal struct ResourceUnversionedData
 		firstUsePassID = -1;
 		lastUsePassID = -1;
 		lastWritePassID = -1;
+		textureUVOrigin = TextureUVOriginSelection.Unknown;
 	}
 }

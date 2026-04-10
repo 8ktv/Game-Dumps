@@ -7,8 +7,8 @@ using UnityEngine.Scripting;
 
 namespace Unity.Jobs.LowLevel.Unsafe;
 
-[NativeType(Header = "Runtime/Jobs/ScriptBindings/JobsBindings.h")]
 [NativeHeader("Runtime/Jobs/JobSystem.h")]
+[NativeType(Header = "Runtime/Jobs/ScriptBindings/JobsBindings.h")]
 public static class JobsUtility
 {
 	public struct JobScheduleParameters
@@ -41,7 +41,7 @@ public static class JobsUtility
 	public static extern bool IsExecutingJob
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		[NativeMethod(IsFreeFunction = true, IsThreadSafe = true)]
+		[NativeMethod(Name = "GetIsExecutingScriptingJob", IsFreeFunction = true, IsThreadSafe = true)]
 		get;
 	}
 
@@ -91,16 +91,16 @@ public static class JobsUtility
 	public static extern int ThreadIndex
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		[BurstAuthorizedExternalMethod]
 		[FreeFunction("GetJobWorkerIndex", IsThreadSafe = true)]
+		[BurstAuthorizedExternalMethod]
 		get;
 	}
 
 	public static extern int ThreadIndexCount
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		[BurstAuthorizedExternalMethod]
 		[FreeFunction("GetJobWorkerIndexCount", IsThreadSafe = true)]
+		[BurstAuthorizedExternalMethod]
 		get;
 	}
 
@@ -153,8 +153,8 @@ public static class JobsUtility
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[NativeMethod(IsThreadSafe = true, IsFreeFunction = true)]
 	[Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS")]
+	[NativeMethod(IsThreadSafe = true, IsFreeFunction = true)]
 	public unsafe static extern void PatchBufferMinMaxRanges(IntPtr bufferRangePatchData, void* jobdata, int startIndex, int rangeSize);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]

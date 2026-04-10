@@ -14,4 +14,10 @@ public struct GradientColorKey
 		color = col;
 		this.time = time;
 	}
+
+	public GradientColorKey(in Color col, float time)
+	{
+		color = col;
+		this.time = time;
+	}
 }

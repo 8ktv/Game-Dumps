@@ -1,6 +1,7 @@
 #define DEBUG_DRAW
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Cysharp.Threading.Tasks;
 using FMODUnity;
@@ -8,6 +9,7 @@ using Mirror;
 using Mirror.RemoteCalls;
 using Unity.Collections;
 using UnityEngine;
+using UnityEngine.Pool;
 
 public class Landmine : NetworkBehaviour
 {
@@ -37,6 +39,8 @@ public class Landmine : NetworkBehaviour
 	private float remainingArmingTime;
 
 	private bool isExploded;
+
+	private Entity attachedEntity;
 
 	[CVar("drawLandmineDebug", "", "", false, true)]
 	private static bool drawLandmineDebug;
@@ -102,6 +106,7 @@ public class Landmine : NetworkBehaviour
 		AsEntity.AsHittable.WasHitByDive += OnServerWasHitByDive;
 		AsEntity.AsHittable.WasHitByItem += OnServerWasHitByItem;
 		AsEntity.AsHittable.WasHitByRocketLauncherBackBlast += OnServerWasHitByRocketLauncherBackBlast;
+		AsEntity.AsHittable.WasHitByRocketDriverSwingPostHitSpin += OnServerWasHitByRocketDriverSwingPostHitSpin;
 		AsEntity.AsHittable.HitAsSwingProjectile += OnServerHitAsSwingProjectile;
 	}
 
@@ -118,7 +123,12 @@ public class Landmine : NetworkBehaviour
 			AsEntity.AsHittable.WasHitByDive -= OnServerWasHitByDive;
 			AsEntity.AsHittable.WasHitByItem -= OnServerWasHitByItem;
 			AsEntity.AsHittable.WasHitByRocketLauncherBackBlast -= OnServerWasHitByRocketLauncherBackBlast;
+			AsEntity.AsHittable.WasHitByRocketDriverSwingPostHitSpin -= OnServerWasHitByRocketDriverSwingPostHitSpin;
 			AsEntity.AsHittable.HitAsSwingProjectile -= OnServerHitAsSwingProjectile;
+			if (attachedEntity != null)
+			{
+				attachedEntity.WillBeDestroyed -= OnAttachedEntityWillBeDestroyed;
+			}
 		}
 	}
 
@@ -132,13 +142,13 @@ public class Landmine : NetworkBehaviour
 
 	private void OnCollisionEnter(Collision collision)
 	{
-		if (NetworkServer.active && isArmed && !(collision.rigidbody == null) && (!collision.collider.TryGetComponentInParent<Hittable>(out var foundComponent, includeInactive: true) || ((!foundComponent.AsEntity.IsPlayer || AsEntity.AsHittable.SwingProjectileState == SwingProjectileState.None || !foundComponent.AsEntity.PlayerInfo.IsElectromagnetShieldActive) && CanExplodeOnCollisionWith(foundComponent))))
+		if (NetworkServer.active && isArmed && !(collision.rigidbody == null) && !(collision.relativeVelocity.sqrMagnitude < 0.001f) && (!collision.collider.TryGetComponentInParent<Hittable>(out var foundComponent, includeInactive: true) || (!WillBeReflectedOnCollision(foundComponent.AsEntity) && CanExplodeOnCollisionWith(foundComponent))))
 		{
 			ServerExplode();
 		}
 	}
 
-	public void Initialize(LandmineArmType armType, PlayerInventory owner, ItemUseId itemUseId)
+	public void ServerInitialize(LandmineArmType armType, PlayerInventory owner, ItemUseId itemUseId)
 	{
 		Owner = owner;
 		this.itemUseId = itemUseId;
@@ -150,20 +160,35 @@ public class Landmine : NetworkBehaviour
 		{
 		case LandmineArmType.Planted:
 			NetworkisPlanted = true;
-			ArmDelayed(GameManager.ItemSettings.LandminePlantingArmDelay);
+			ServerArmDelayed(GameManager.ItemSettings.LandminePlantingArmDelay);
 			break;
 		case LandmineArmType.Tossed:
-			ArmWhenStationary(GameManager.ItemSettings.LandmineTossingMinArmDelay, GameManager.ItemSettings.LandmineTossingMaxArmDelay, GameManager.ItemSettings.LandmineTossingMaxArmSpeed);
+			ServerArmWhenStationary(GameManager.ItemSettings.LandmineTossingMinArmDelay, GameManager.ItemSettings.LandmineTossingMaxArmDelay, GameManager.ItemSettings.LandmineTossingMaxArmSpeed);
 			break;
 		}
 	}
 
-	private void ArmDelayed(float delay)
+	[Server]
+	private void ServerArmDelayed(float delay)
 	{
-		if (ShouldArm())
+		if (!NetworkServer.active)
 		{
-			CancelArming();
+			Debug.LogWarning("[Server] function 'System.Void Landmine::ServerArmDelayed(System.Single)' called when server was not active");
+		}
+		else if (ShouldArm())
+		{
+			ServerCancelArming();
 			armingRoutine = StartCoroutine(ArmDelayedRoutine(delay));
+		}
+		IEnumerator ArmDelayedRoutine(float num)
+		{
+			isArming = true;
+			for (remainingArmingTime = num; remainingArmingTime > 0f; remainingArmingTime -= Time.deltaTime)
+			{
+				yield return null;
+			}
+			isArming = false;
+			NetworkisArmed = true;
 		}
 		bool ShouldArm()
 		{
@@ -187,12 +212,29 @@ public class Landmine : NetworkBehaviour
 		}
 	}
 
-	private void ArmWhenStationary(float minDelay, float maxDelay, float maxSpeedSquared)
+	[Server]
+	private void ServerArmWhenStationary(float minDelay, float maxDelay, float maxSpeedSquared)
 	{
-		if (ShouldArm())
+		if (!NetworkServer.active)
 		{
-			CancelArming();
+			Debug.LogWarning("[Server] function 'System.Void Landmine::ServerArmWhenStationary(System.Single,System.Single,System.Single)' called when server was not active");
+		}
+		else if (ShouldArm())
+		{
+			ServerCancelArming();
 			armingRoutine = StartCoroutine(ArmWhenStationaryRoutine(minDelay, maxDelay, maxSpeedSquared));
+		}
+		IEnumerator ArmWhenStationaryRoutine(float num2, float num, float num3)
+		{
+			isArming = true;
+			isArmingWhenStationary = true;
+			for (float time = 0f; time < num && (!(time > num2) || !(AsEntity.Rigidbody.linearVelocity.sqrMagnitude <= num3)); time += Time.deltaTime)
+			{
+				yield return null;
+			}
+			isArming = false;
+			isArmingWhenStationary = false;
+			NetworkisArmed = true;
 		}
 		bool ShouldArm()
 		{
@@ -208,9 +250,14 @@ public class Landmine : NetworkBehaviour
 		}
 	}
 
-	private void CancelArming()
+	[Server]
+	private void ServerCancelArming()
 	{
-		if (isArming)
+		if (!NetworkServer.active)
+		{
+			Debug.LogWarning("[Server] function 'System.Void Landmine::ServerCancelArming()' called when server was not active");
+		}
+		else if (isArming)
 		{
 			isArming = false;
 			isArmingWhenStationary = false;
@@ -221,57 +268,80 @@ public class Landmine : NetworkBehaviour
 		}
 	}
 
-	private IEnumerator ArmDelayedRoutine(float delay)
+	[Server]
+	public void ServerProcessDetectedColliders(NativeSlice<ColliderHit> detectedColliderBuffer)
 	{
-		isArming = true;
-		for (remainingArmingTime = delay; remainingArmingTime > 0f; remainingArmingTime -= Time.deltaTime)
+		if (!NetworkServer.active)
 		{
-			yield return null;
+			Debug.LogWarning("[Server] function 'System.Void Landmine::ServerProcessDetectedColliders(Unity.Collections.NativeSlice`1<UnityEngine.ColliderHit>)' called when server was not active");
+			return;
 		}
-		isArming = false;
-		NetworkisArmed = true;
-	}
-
-	private IEnumerator ArmWhenStationaryRoutine(float minDelay, float maxDelay, float maxSpeedSquared)
-	{
-		isArming = true;
-		isArmingWhenStationary = true;
-		for (float time = 0f; time < maxDelay && (!(time > minDelay) || !(AsEntity.Rigidbody.linearVelocity.sqrMagnitude <= maxSpeedSquared)); time += Time.deltaTime)
+		HashSet<Entity> value;
+		using (CollectionPool<HashSet<Entity>, Entity>.Get(out value))
 		{
-			yield return null;
-		}
-		isArming = false;
-		isArmingWhenStationary = false;
-		NetworkisArmed = true;
-	}
-
-	public void ProcessDetectedColliders(NativeSlice<ColliderHit> detectedColliderBuffer)
-	{
-		PlayerGolfer.processedEntityBuffer.Clear();
-		foreach (ColliderHit item in detectedColliderBuffer)
-		{
-			if (item.collider == null)
+			Vector3 worldPosition = Vector3.negativeInfinity;
+			foreach (ColliderHit item in detectedColliderBuffer)
 			{
-				break;
-			}
-			Entity foundComponent;
-			if (item.collider.attachedRigidbody != null)
-			{
-				if (item.collider.attachedRigidbody == AsEntity.Rigidbody || !item.collider.attachedRigidbody.TryGetComponentInParent<Entity>(out foundComponent, includeInactive: true))
+				if (item.collider == null)
+				{
+					break;
+				}
+				Entity foundComponent;
+				if (item.collider.attachedRigidbody != null)
+				{
+					if (item.collider.attachedRigidbody == AsEntity.Rigidbody || !item.collider.attachedRigidbody.TryGetComponentInParent<Entity>(out foundComponent, includeInactive: true))
+					{
+						continue;
+					}
+				}
+				else if (!item.collider.TryGetComponentInParent<Entity>(out foundComponent, includeInactive: true))
 				{
 					continue;
 				}
-			}
-			else if (!item.collider.TryGetComponentInParent<Entity>(out foundComponent, includeInactive: true))
-			{
-				continue;
-			}
-			if (foundComponent.HasRigidbody && PlayerGolfer.processedEntityBuffer.Add(foundComponent) && (foundComponent.IsPlayer ? foundComponent.PlayerInfo.Movement.SyncedVelocity : foundComponent.Rigidbody.linearVelocity).sqrMagnitude >= GameManager.ItemSettings.LandmineDetectionMinSpeedSquared)
-			{
-				ServerExplode();
-				break;
+				if (!foundComponent.HasRigidbody || !value.Add(foundComponent))
+				{
+					continue;
+				}
+				if ((foundComponent.IsPlayer ? foundComponent.PlayerInfo.Movement.SyncedVelocity : foundComponent.Rigidbody.linearVelocity).sqrMagnitude >= GameManager.ItemSettings.LandmineDetectionMinSpeedSquared)
+				{
+					ServerExplode();
+					break;
+				}
+				if (!WillBeReflectedOnCollision(foundComponent))
+				{
+					if (float.IsNegativeInfinity(worldPosition.x))
+					{
+						worldPosition = base.transform.TransformPoint(GameManager.ItemSettings.LandmineLocalCenter);
+					}
+					if (foundComponent.TryGetClosestPointOnAllActiveColliders(worldPosition, out var _, out var distanceSquared) && distanceSquared < GameManager.ItemSettings.LandmineCollisionRangeSquared)
+					{
+						ServerExplode();
+						break;
+					}
+				}
 			}
 		}
+	}
+
+	private bool WillBeReflectedOnCollision(Entity entity)
+	{
+		if (entity == AsEntity)
+		{
+			return false;
+		}
+		if (!entity.IsPlayer)
+		{
+			return false;
+		}
+		if (AsEntity.AsHittable.SwingProjectileState == SwingProjectileState.None)
+		{
+			return false;
+		}
+		if (!entity.PlayerInfo.IsElectromagnetShieldActive)
+		{
+			return false;
+		}
+		return true;
 	}
 
 	[Server]
@@ -283,43 +353,62 @@ public class Landmine : NetworkBehaviour
 		}
 		else
 		{
-			if (isExploded || AsEntity.IsDestroyed)
+			if (!CanExplode())
 			{
 				return;
 			}
 			isExploded = true;
 			int num = Physics.OverlapSphereNonAlloc(base.transform.position, GameManager.ItemSettings.LandmineExplosionRange, layerMask: GameManager.LayerSettings.LandmineHittablesMask, results: PlayerGolfer.overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
-			PlayerGolfer.processedHittableBuffer.Clear();
-			for (int i = 0; i < num; i++)
+			HashSet<Hittable> value;
+			using (CollectionPool<HashSet<Hittable>, Hittable>.Get(out value))
 			{
-				if (PlayerGolfer.overlappingColliderBuffer[i].TryGetComponentInParent<Hittable>(out var foundComponent, includeInactive: true) && !(foundComponent == AsEntity.AsHittable) && PlayerGolfer.processedHittableBuffer.Add(foundComponent))
+				for (int i = 0; i < num; i++)
 				{
-					if (!foundComponent.TryGetClosestPointOnAllActiveColliders(base.transform.position, out var closestPoint, out var distanceSquared))
+					if (PlayerGolfer.overlappingColliderBuffer[i].TryGetComponentInParent<Hittable>(out var foundComponent, includeInactive: true) && !(foundComponent == AsEntity.AsHittable) && value.Add(foundComponent))
 					{
-						distanceSquared = 0f;
-						closestPoint = ((!foundComponent.AsEntity.HasRigidbody) ? foundComponent.transform.position : foundComponent.AsEntity.Rigidbody.worldCenterOfMass);
-					}
-					Vector3 direction = closestPoint - base.transform.position;
-					foundComponent.HitWithItem(ItemType.Landmine, itemUseId, foundComponent.transform.InverseTransformPoint(closestPoint), direction, foundComponent.transform.InverseTransformPoint(base.transform.position), BMath.Sqrt(distanceSquared), Owner, isReflected: false, isPlanted, canHitWithNoUser: true);
-					if (drawLandmineDebug)
-					{
-						BDebug.DrawLine(base.transform.position, closestPoint, Color.yellow, 5f);
+						if (!foundComponent.TryGetClosestPointOnAllActiveColliders(base.transform.position, out var closestPoint, out var distanceSquared))
+						{
+							distanceSquared = 0f;
+							closestPoint = ((!foundComponent.AsEntity.HasRigidbody) ? foundComponent.transform.position : foundComponent.AsEntity.Rigidbody.worldCenterOfMass);
+						}
+						Vector3 direction = closestPoint - base.transform.position;
+						foundComponent.HitWithItem(ItemType.Landmine, itemUseId, foundComponent.transform.InverseTransformPoint(closestPoint), direction, foundComponent.transform.InverseTransformPoint(base.transform.position), BMath.Sqrt(distanceSquared), Owner, isReflected: false, isPlanted, canHitWithNoUser: true);
+						if (drawLandmineDebug)
+						{
+							BDebug.DrawLine(base.transform.position, closestPoint, Color.yellow, 5f);
+						}
 					}
 				}
-			}
-			OnExploded();
-			foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
-			{
-				if (value != NetworkServer.localConnection)
+				OnExploded();
+				foreach (NetworkConnectionToClient value2 in NetworkServer.connections.Values)
 				{
-					RpcInformExploded(value);
+					if (value2 != NetworkServer.localConnection)
+					{
+						RpcInformExploded(value2);
+					}
 				}
+				if (drawLandmineDebug)
+				{
+					BDebug.DrawWireSphere(base.transform.position, GameManager.ItemSettings.LandmineExplosionRange, Color.red, 5f, drawInsideLines: true);
+				}
+				AsEntity.DestroyEntity();
 			}
-			if (drawLandmineDebug)
+		}
+		bool CanExplode()
+		{
+			if (isExploded)
 			{
-				BDebug.DrawWireSphere(base.transform.position, GameManager.ItemSettings.LandmineExplosionRange, Color.red, 5f, drawInsideLines: true);
+				return false;
 			}
-			AsEntity.DestroyEntity();
+			if (AsEntity.IsDestroyed)
+			{
+				return false;
+			}
+			if (AsEntity.AsHittable.IsFrozen)
+			{
+				return false;
+			}
+			return true;
 		}
 	}
 
@@ -368,7 +457,7 @@ public class Landmine : NetworkBehaviour
 		return false;
 	}
 
-	private void OnServerWasHitByGolfSwing(PlayerGolfer hitter, Vector3 worldDirection, float power)
+	private void OnServerWasHitByGolfSwing(PlayerGolfer hitter, Vector3 worldDirection, float power, bool isRocketDriver)
 	{
 		if (isArmed)
 		{
@@ -376,7 +465,7 @@ public class Landmine : NetworkBehaviour
 		}
 		else
 		{
-			ArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
+			ServerArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
 		}
 	}
 
@@ -388,7 +477,7 @@ public class Landmine : NetworkBehaviour
 		}
 		else
 		{
-			ArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
+			ServerArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
 		}
 	}
 
@@ -400,12 +489,16 @@ public class Landmine : NetworkBehaviour
 		}
 		else
 		{
-			ArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
+			ServerArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
 		}
 	}
 
 	private void OnServerWasHitByItem(PlayerInventory itemUser, ItemType itemType, ItemUseId itemUseId, Vector3 direction, float distance, bool isReflected)
 	{
+		if (itemType == ItemType.FreezeBomb)
+		{
+			return;
+		}
 		if (isArmed)
 		{
 			if (itemType == ItemType.RocketLauncher || itemType == ItemType.Landmine || itemType == ItemType.OrbitalLaser)
@@ -419,7 +512,7 @@ public class Landmine : NetworkBehaviour
 		}
 		else
 		{
-			ArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
+			ServerArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
 		}
 	}
 
@@ -431,7 +524,19 @@ public class Landmine : NetworkBehaviour
 		}
 		else
 		{
-			ArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
+			ServerArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
+		}
+	}
+
+	private void OnServerWasHitByRocketDriverSwingPostHitSpin(PlayerGolfer hitter, Vector3 direction)
+	{
+		if (isArmed)
+		{
+			ServerExplode();
+		}
+		else
+		{
+			ServerArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
 		}
 	}
 
@@ -439,7 +544,7 @@ public class Landmine : NetworkBehaviour
 	{
 		if (!isArmed)
 		{
-			ArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
+			ServerArmDelayed(GameManager.ItemSettings.LandmineHitArmDelay);
 		}
 		else if (CanExplodeOnCollisionWith(hitHittable))
 		{
@@ -476,6 +581,60 @@ public class Landmine : NetworkBehaviour
 	{
 		AsEntity.AsItem.SetIsPickupSuppressed(isPlanted);
 		AsEntity.AsItem.AsEntity.Rigidbody.isKinematic = isPlanted;
+		if (!(!wasPlanted && isPlanted))
+		{
+			return;
+		}
+		int num = Physics.OverlapSphereNonAlloc(base.transform.position + Vector3.up * GameManager.ItemSettings.LandminePlantingOffsetIntoGround, GameManager.ItemSettings.LandminePlantingCollisionCheckRange, layerMask: GameManager.LayerSettings.LandmineDynamicPlantablesMask, results: PlayerGolfer.overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
+		HashSet<Entity> value;
+		using (CollectionPool<HashSet<Entity>, Entity>.Get(out value))
+		{
+			float num2 = GameManager.ItemSettings.LandmineDetectionRange * GameManager.ItemSettings.LandmineDetectionRange;
+			float num3 = float.MaxValue;
+			Entity entity = null;
+			for (int i = 0; i < num; i++)
+			{
+				if (PlayerGolfer.overlappingColliderBuffer[i].TryGetComponentInParent<Entity>(out var foundComponent, includeInactive: true) && !(foundComponent == AsEntity) && value.Add(foundComponent))
+				{
+					if (!foundComponent.TryGetClosestPointOnAllActiveColliders(base.transform.position, out var closestPoint, out var distanceSquared))
+					{
+						distanceSquared = 0f;
+						closestPoint = ((!foundComponent.HasRigidbody) ? foundComponent.transform.position : foundComponent.Rigidbody.worldCenterOfMass);
+					}
+					if (!(distanceSquared > num2) && distanceSquared < num3)
+					{
+						num3 = distanceSquared;
+						entity = foundComponent;
+					}
+				}
+			}
+			if (!(entity != null))
+			{
+				return;
+			}
+			float landminePlantingCollisionCheckRange = GameManager.ItemSettings.LandminePlantingCollisionCheckRange;
+			if (entity.TryGetComponent<BreakableIce>(out var _))
+			{
+				Ray ray = new Ray(base.transform.position + Vector3.up * landminePlantingCollisionCheckRange, Vector3.down);
+				bool flag = Physics.Raycast(ray, landminePlantingCollisionCheckRange, GameManager.LayerSettings.TerrainMask, QueryTriggerInteraction.Ignore);
+				if (drawLandmineDebug)
+				{
+					BDebug.DrawRay(ray.origin, ray.direction * landminePlantingCollisionCheckRange, flag ? Color.green : Color.red, 5f);
+				}
+				if (!flag)
+				{
+					attachedEntity = entity;
+					attachedEntity.WillBeDestroyed += OnAttachedEntityWillBeDestroyed;
+				}
+			}
+		}
+	}
+
+	private void OnAttachedEntityWillBeDestroyed()
+	{
+		attachedEntity.WillBeDestroyed -= OnAttachedEntityWillBeDestroyed;
+		attachedEntity = null;
+		NetworkisPlanted = false;
 	}
 
 	public Landmine()

@@ -4,7 +4,7 @@ namespace UnityEngine.Experimental.GlobalIllumination;
 
 public struct DirectionalLight
 {
-	public int instanceID;
+	public EntityId entityId;
 
 	public bool shadow;
 
@@ -22,4 +22,17 @@ public struct DirectionalLight
 
 	[Obsolete("Directional lights support cookies now. In order to position the cookie projection in the world, a position and full orientation are necessary. Use the position and orientation members instead of the direction parameter.", true)]
 	public Vector3 direction;
+
+	[Obsolete("Please use entityId instead.", false)]
+	public int instanceID
+	{
+		get
+		{
+			return entityId;
+		}
+		set
+		{
+			entityId = value;
+		}
+	}
 }

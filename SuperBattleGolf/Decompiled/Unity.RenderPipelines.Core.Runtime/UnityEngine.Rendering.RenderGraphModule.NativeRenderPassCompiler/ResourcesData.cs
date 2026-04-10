@@ -12,13 +12,13 @@ internal class ResourcesData
 
 	public NativeList<ResourceReaderData>[] readerData;
 
-	public int MaxVersions;
+	public int[] MaxVersions;
 
-	public int MaxReaders;
+	public int[] MaxReaders;
 
 	public DynamicArray<Name>[] resourceNames;
 
-	public ref ResourceVersionedData this[ResourceHandle h] => ref versionedData[h.iType].ElementAt(Index(h));
+	public ref ResourceVersionedData this[ResourceHandle h] => ref versionedData[h.iType].ElementAt(Index(in h));
 
 	public ResourcesData()
 	{
@@ -26,6 +26,8 @@ internal class ResourcesData
 		versionedData = new NativeList<ResourceVersionedData>[3];
 		readerData = new NativeList<ResourceReaderData>[3];
 		resourceNames = new DynamicArray<Name>[3];
+		MaxVersions = new int[3];
+		MaxReaders = new int[3];
 		for (int i = 0; i < 3; i++)
 		{
 			resourceNames[i] = new DynamicArray<Name>(0);
@@ -63,12 +65,12 @@ internal class ResourcesData
 
 	public void Initialize(RenderGraphResourceRegistry resources)
 	{
-		uint num = 0u;
-		uint num2 = 0u;
 		for (int i = 0; i < 3; i++)
 		{
 			RenderGraphResourceType type = (RenderGraphResourceType)i;
 			int resourceCount = resources.GetResourceCount(type);
+			uint num = 0u;
+			uint num2 = 0u;
 			AllocateAndResizeNativeListIfNeeded(ref unversionedData[i], resourceCount, NativeArrayOptions.UninitializedMemory);
 			resourceNames[i].Resize(resourceCount, keepContent: true);
 			if (resourceCount > 0)
@@ -87,10 +89,11 @@ internal class ResourcesData
 				{
 				case 0:
 				{
+					TextureResource textureResource = resourceLowLevel as TextureResource;
 					resources.GetRenderTargetInfo(in res, out var outInfo);
-					ref TextureDesc desc3 = ref (resourceLowLevel as TextureResource).desc;
+					ref TextureDesc desc3 = ref textureResource.desc;
 					bool isResourceShared3 = resources.IsRenderGraphResourceShared(in res);
-					unversionedData[i][j] = new ResourceUnversionedData(resourceLowLevel, ref outInfo, ref desc3, isResourceShared3);
+					unversionedData[i][j] = new ResourceUnversionedData(textureResource, ref outInfo, ref desc3, isResourceShared3);
 					break;
 				}
 				case 1:
@@ -113,23 +116,23 @@ internal class ResourcesData
 				num = Math.Max(num, resourceLowLevel.readCount);
 				num2 = Math.Max(num2, resourceLowLevel.writeCount);
 			}
-			MaxReaders = (int)(num + 1);
-			MaxVersions = (int)(num2 + 1);
-			AllocateAndResizeNativeListIfNeeded(ref versionedData[i], MaxVersions * resourceCount, NativeArrayOptions.ClearMemory);
-			AllocateAndResizeNativeListIfNeeded(ref readerData[i], MaxVersions * MaxReaders * resourceCount, NativeArrayOptions.ClearMemory);
+			MaxReaders[i] = (int)(num + 1);
+			MaxVersions[i] = (int)(num2 + 1);
+			AllocateAndResizeNativeListIfNeeded(ref versionedData[i], MaxVersions[i] * resourceCount, NativeArrayOptions.ClearMemory);
+			AllocateAndResizeNativeListIfNeeded(ref readerData[i], MaxVersions[i] * MaxReaders[i] * resourceCount, NativeArrayOptions.ClearMemory);
 		}
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public int Index(ResourceHandle h)
+	public int Index(in ResourceHandle h)
 	{
-		return h.index * MaxVersions + h.version;
+		return h.index * MaxVersions[h.iType] + h.version;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public int IndexReader(ResourceHandle h, int readerID)
+	public int IndexReader(in ResourceHandle h, int readerID)
 	{
-		return (h.index * MaxVersions + h.version) * MaxReaders + readerID;
+		return (h.index * MaxVersions[h.iType] + h.version) * MaxReaders[h.iType] + readerID;
 	}
 
 	public void Dispose()

@@ -46,6 +46,42 @@ internal static class UIPainter2D
 		SetStrokeGradient_Injected(handle, (gradient == null) ? ((IntPtr)0) : Gradient.BindingsMarshaller.ConvertToNative(gradient));
 	}
 
+	public static FillGradient GetFillGradient(IntPtr handle)
+	{
+		GetFillGradient_Injected(handle, out var ret);
+		return ret;
+	}
+
+	public static void SetFillGradient(IntPtr handle, FillGradient gradient)
+	{
+		SetFillGradient_Injected(handle, ref gradient);
+	}
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	public static extern bool HasFillGradient(IntPtr handle);
+
+	public static void SetStrokeFillGradient(IntPtr handle, FillGradient gradient)
+	{
+		SetStrokeFillGradient_Injected(handle, ref gradient);
+	}
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	public static extern bool HasStrokeFillGradient(IntPtr handle);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	public static extern void SetHasFillTexture(IntPtr handle, bool hasFillTexture);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	public static extern bool HasFillTexture(IntPtr handle);
+
+	internal static void SetFillTransform(IntPtr handle, Matrix4x4 fillTransform)
+	{
+		SetFillTransform_Injected(handle, ref fillTransform);
+	}
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	internal static extern void SetOpacity(IntPtr handle, float opacity);
+
 	public static Color GetFillColor(IntPtr handle)
 	{
 		GetFillColor_Injected(handle, out var ret);
@@ -74,6 +110,25 @@ internal static class UIPainter2D
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	public static extern void SetMiterLimit(IntPtr handle, float value);
+
+	public unsafe static void SetDashPattern(IntPtr handle, ReadOnlySpan<float> value)
+	{
+		ReadOnlySpan<float> readOnlySpan = value;
+		fixed (float* begin = readOnlySpan)
+		{
+			ManagedSpanWrapper value2 = new ManagedSpanWrapper(begin, readOnlySpan.Length);
+			SetDashPattern_Injected(handle, ref value2);
+		}
+	}
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	public static extern void SetDashGapPattern(IntPtr handle, float dash, float gap);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	public static extern float GetDashOffset(IntPtr handle);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	public static extern void SetDashOffset(IntPtr handle, float value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	public static extern void BeginPath(IntPtr handle);
@@ -117,9 +172,9 @@ internal static class UIPainter2D
 		return ret;
 	}
 
-	public static MeshWriteDataInterface Stroke(IntPtr handle)
+	public static MeshWriteDataInterface Stroke(IntPtr handle, bool isDetached)
 	{
-		Stroke_Injected(handle, out var ret);
+		Stroke_Injected(handle, isDetached, out var ret);
 		return ret;
 	}
 
@@ -158,10 +213,25 @@ internal static class UIPainter2D
 	private static extern void SetStrokeGradient_Injected(IntPtr handle, IntPtr gradient);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void GetFillGradient_Injected(IntPtr handle, out FillGradient ret);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void SetFillGradient_Injected(IntPtr handle, [In] ref FillGradient gradient);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void SetStrokeFillGradient_Injected(IntPtr handle, [In] ref FillGradient gradient);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void SetFillTransform_Injected(IntPtr handle, [In] ref Matrix4x4 fillTransform);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void GetFillColor_Injected(IntPtr handle, out Color ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void SetFillColor_Injected(IntPtr handle, [In] ref Color value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void SetDashPattern_Injected(IntPtr handle, ref ManagedSpanWrapper value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void MoveTo_Injected(IntPtr handle, [In] ref Vector2 pos);
@@ -185,7 +255,7 @@ internal static class UIPainter2D
 	private static extern void GetBBox_Injected(IntPtr handle, out Rect ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void Stroke_Injected(IntPtr handle, out MeshWriteDataInterface ret);
+	private static extern void Stroke_Injected(IntPtr handle, bool isDetached, out MeshWriteDataInterface ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void Fill_Injected(IntPtr handle, FillRule fillRule, out MeshWriteDataInterface ret);

@@ -8,7 +8,7 @@ using UnityEngine.InputSystem.Utilities;
 namespace UnityEngine.InputSystem;
 
 [AddComponentMenu("Input/Player Input Manager")]
-[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.14/manual/PlayerInputManager.html")]
+[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.18/manual/PlayerInputManager.html")]
 public class PlayerInputManager : MonoBehaviour
 {
 	[Serializable]

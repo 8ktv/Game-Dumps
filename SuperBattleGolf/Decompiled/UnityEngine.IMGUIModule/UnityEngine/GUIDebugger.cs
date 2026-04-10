@@ -33,8 +33,8 @@ internal class GUIDebugger
 	[NativeConditional("UNITY_EDITOR")]
 	public static extern void LogLayoutEndGroup();
 
-	[StaticAccessor("GetGUIDebuggerManager()", StaticAccessorType.Dot)]
 	[NativeConditional("UNITY_EDITOR")]
+	[StaticAccessor("GetGUIDebuggerManager()", StaticAccessorType.Dot)]
 	public unsafe static void LogBeginProperty(string targetTypeAssemblyQualifiedName, string path, Rect position)
 	{
 		//The blocks IL_0029, IL_0036, IL_0044, IL_0052, IL_0057 are reachable both inside and outside the pinned region starting at IL_0018. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.

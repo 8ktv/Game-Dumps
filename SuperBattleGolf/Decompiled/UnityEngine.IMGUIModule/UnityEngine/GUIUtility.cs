@@ -7,12 +7,12 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Input/InputManager.h")]
 [NativeHeader("Runtime/Camera/RenderLayers/GUITexture.h")]
-[NativeHeader("Runtime/Utilities/CopyPaste.h")]
+[NativeHeader("Runtime/Input/InputManager.h")]
 [NativeHeader("Runtime/Input/InputBindings.h")]
 [NativeHeader("Modules/IMGUI/GUIManager.h")]
 [NativeHeader("Modules/IMGUI/GUIUtility.h")]
+[NativeHeader("Runtime/Utilities/CopyPaste.h")]
 public class GUIUtility
 {
 	internal static int s_ControlCount = 0;
@@ -57,7 +57,7 @@ public class GUIUtility
 	internal static extern float pixelsPerPoint
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+		[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule", "UnityEditor.UIToolkitAuthoringModule" })]
 		get;
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
@@ -603,7 +603,7 @@ public class GUIUtility
 		Matrix4x4 matrix = GUI.matrix;
 		GUI.matrix = Matrix4x4.identity;
 		Vector2 vector = GUIClip.Unclip(pivotPoint);
-		Matrix4x4 matrix4x = Matrix4x4.TRS(vector, Quaternion.Euler(0f, 0f, angle), Vector3.one) * Matrix4x4.TRS(-vector, Quaternion.identity, Vector3.one);
+		Matrix4x4 matrix4x = Matrix4x4.TRS((Vector3)vector, Quaternion.Euler(0f, 0f, angle), Vector3.one) * Matrix4x4.TRS((Vector3)(-vector), Quaternion.identity, Vector3.one);
 		GUI.matrix = matrix4x * matrix;
 	}
 
@@ -612,7 +612,7 @@ public class GUIUtility
 		WarnOnGUI();
 		Matrix4x4 matrix = GUI.matrix;
 		Vector2 vector = GUIClip.Unclip(pivotPoint);
-		Matrix4x4 matrix4x = Matrix4x4.TRS(vector, Quaternion.identity, new Vector3(scale.x, scale.y, 1f)) * Matrix4x4.TRS(-vector, Quaternion.identity, Vector3.one);
+		Matrix4x4 matrix4x = Matrix4x4.TRS((Vector3)vector, Quaternion.identity, new Vector3(scale.x, scale.y, 1f)) * Matrix4x4.TRS((Vector3)(-vector), Quaternion.identity, Vector3.one);
 		GUI.matrix = matrix4x * matrix;
 	}
 

@@ -86,7 +86,7 @@ internal class RenderData
 
 	public float backgroundAlpha;
 
-	public BasicNode<TextureEntry> textures;
+	public BasicNode<GraphicEntry> graphicEntries;
 
 	public bool pendingRepaint;
 
@@ -267,7 +267,7 @@ internal class RenderData
 		textCoreSettingsID = UIRVEShaderInfoAllocator.defaultTextCoreSettings;
 		compositeOpacity = float.MaxValue;
 		backgroundAlpha = 0f;
-		textures = null;
+		graphicEntries = null;
 		pendingRepaint = false;
 		pendingHierarchicalRepaint = false;
 		clippingRect = Rect.zero;
@@ -294,7 +294,7 @@ internal class RenderData
 		lastTailCommand = null;
 		headMesh = null;
 		tailMesh = null;
-		textures = null;
+		graphicEntries = null;
 	}
 
 	internal void UpdateClippingRect()

@@ -8,8 +8,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[NativeHeader("Modules/Physics/BatchCommands/CapsulecastCommand.h")]
 [NativeHeader("Runtime/Jobs/ScriptBindings/JobsBindingsTypes.h")]
+[NativeHeader("Modules/Physics/BatchCommands/CapsulecastCommand.h")]
 public struct CapsulecastCommand
 {
 	public QueryParameters queryParameters;

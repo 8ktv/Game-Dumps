@@ -5,11 +5,11 @@ namespace UnityEngine.Rendering.RenderGraphModule;
 
 [DebuggerDisplay("RayTracingAccelerationStructure ({handle.index})")]
 [MovedFrom(true, "UnityEngine.Experimental.Rendering.RenderGraphModule", "UnityEngine.Rendering.RenderGraphModule", null)]
-public struct RayTracingAccelerationStructureHandle
+public readonly struct RayTracingAccelerationStructureHandle
 {
 	private static RayTracingAccelerationStructureHandle s_NullHandle;
 
-	internal ResourceHandle handle;
+	internal readonly ResourceHandle handle;
 
 	public static RayTracingAccelerationStructureHandle nullHandle => s_NullHandle;
 

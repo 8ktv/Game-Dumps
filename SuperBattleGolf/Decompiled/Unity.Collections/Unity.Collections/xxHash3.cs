@@ -295,9 +295,9 @@ public static class xxHash3
 	}
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	internal unsafe delegate ulong Hash64Long_00000A6A_0024PostfixBurstDelegate(byte* input, byte* dest, long length, byte* secret);
+	internal unsafe delegate ulong Hash64Long_00000A6B_0024PostfixBurstDelegate(byte* input, byte* dest, long length, byte* secret);
 
-	internal static class Hash64Long_00000A6A_0024BurstDirectCall
+	internal static class Hash64Long_00000A6B_0024BurstDirectCall
 	{
 		private static IntPtr Pointer;
 
@@ -306,7 +306,7 @@ public static class xxHash3
 		{
 			if (Pointer == (IntPtr)0)
 			{
-				Pointer = BurstCompiler.CompileFunctionPointer<Hash64Long_00000A6A_0024PostfixBurstDelegate>(Hash64Long).Value;
+				Pointer = BurstCompiler.CompileFunctionPointer<Hash64Long_00000A6B_0024PostfixBurstDelegate>(Hash64Long).Value;
 			}
 			P_0 = Pointer;
 		}
@@ -333,9 +333,9 @@ public static class xxHash3
 	}
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	internal unsafe delegate void Hash128Long_00000A71_0024PostfixBurstDelegate(byte* input, byte* dest, long length, byte* secret, out uint4 result);
+	internal unsafe delegate void Hash128Long_00000A72_0024PostfixBurstDelegate(byte* input, byte* dest, long length, byte* secret, out uint4 result);
 
-	internal static class Hash128Long_00000A71_0024BurstDirectCall
+	internal static class Hash128Long_00000A72_0024BurstDirectCall
 	{
 		private static IntPtr Pointer;
 
@@ -344,7 +344,7 @@ public static class xxHash3
 		{
 			if (Pointer == (IntPtr)0)
 			{
-				Pointer = BurstCompiler.CompileFunctionPointer<Hash128Long_00000A71_0024PostfixBurstDelegate>(Hash128Long).Value;
+				Pointer = BurstCompiler.CompileFunctionPointer<Hash128Long_00000A72_0024PostfixBurstDelegate>(Hash128Long).Value;
 			}
 			P_0 = Pointer;
 		}
@@ -717,10 +717,10 @@ public static class xxHash3
 	}
 
 	[BurstCompile]
-	[MonoPInvokeCallback(typeof(Unity_002ECollections_002EHash64Long_00000A6A_0024PostfixBurstDelegate))]
+	[MonoPInvokeCallback(typeof(Unity_002ECollections_002EHash64Long_00000A6B_0024PostfixBurstDelegate))]
 	private unsafe static ulong Hash64Long(byte* input, byte* dest, long length, byte* secret)
 	{
-		return Hash64Long_00000A6A_0024BurstDirectCall.Invoke(input, dest, length, secret);
+		return Hash64Long_00000A6B_0024BurstDirectCall.Invoke(input, dest, length, secret);
 	}
 
 	private unsafe static void Hash128Len1To3(byte* input, long length, byte* secret, ulong seed, out uint4 result)
@@ -837,10 +837,10 @@ public static class xxHash3
 	}
 
 	[BurstCompile]
-	[MonoPInvokeCallback(typeof(Unity_002ECollections_002EHash128Long_00000A71_0024PostfixBurstDelegate))]
+	[MonoPInvokeCallback(typeof(Unity_002ECollections_002EHash128Long_00000A72_0024PostfixBurstDelegate))]
 	private unsafe static void Hash128Long(byte* input, byte* dest, long length, byte* secret, out uint4 result)
 	{
-		Hash128Long_00000A71_0024BurstDirectCall.Invoke(input, dest, length, secret, out result);
+		Hash128Long_00000A72_0024BurstDirectCall.Invoke(input, dest, length, secret, out result);
 	}
 
 	internal static uint2 ToUint2(ulong u)

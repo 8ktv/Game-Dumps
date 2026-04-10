@@ -30,6 +30,22 @@ internal static class FontAssetUtilities
 		bool flag2 = (fontStyle & FontStyles.Italic) == FontStyles.Italic;
 		if (flag2 || fontWeight != TextFontWeight.Regular)
 		{
+			if (!flag && sourceFontAsset.m_CharacterLookupDictionary == null)
+			{
+				return null;
+			}
+			if (sourceFontAsset.GetCharacterInLookupCache(unicode, fontStyle, fontWeight, out character))
+			{
+				if (character.textAsset != null)
+				{
+					return character;
+				}
+				if (!flag)
+				{
+					return null;
+				}
+				sourceFontAsset.RemoveCharacterInLookupCache(unicode, fontStyle, fontWeight);
+			}
 			FontWeightPair[] fontWeightTable = sourceFontAsset.fontWeightTable;
 			int textFontWeightIndex = TextUtilities.GetTextFontWeightIndex(fontWeight);
 			FontAsset fontAsset = (flag2 ? fontWeightTable[textFontWeightIndex].italicTypeface : fontWeightTable[textFontWeightIndex].regularTypeface);

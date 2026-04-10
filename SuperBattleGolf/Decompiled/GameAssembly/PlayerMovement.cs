@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Brimstone.Geometry;
 using Cysharp.Threading.Tasks;
+using FMOD.Studio;
 using FMODUnity;
 using Mirror;
 using Mirror.RemoteCalls;
@@ -28,10 +29,29 @@ public class PlayerMovement : NetworkBehaviour
 		}
 	}
 
-	private const float speedBoostEffectCooldown = 0.5f;
+	public struct KnockOutImmunity
+	{
+		public bool hasImmunity;
 
-	[SerializeField]
-	private PlayerMovementSettings settings;
+		public KnockOutVfxColor color;
+
+		public static KnockOutImmunity Get(KnockOutVfxColor color)
+		{
+			return new KnockOutImmunity
+			{
+				hasImmunity = true,
+				color = color
+			};
+		}
+
+		public static KnockOutImmunity Reset(KnockOutImmunity prev)
+		{
+			prev.hasImmunity = false;
+			return prev;
+		}
+	}
+
+	private const float speedBoostEffectCooldown = 0.5f;
 
 	[SerializeField]
 	private CapsuleCollider uprightCollider;
@@ -82,7 +102,7 @@ public class PlayerMovement : NetworkBehaviour
 
 	private float gravityFactor;
 
-	private float horizontalDragFactor;
+	private float horizontalDrag;
 
 	private float rotationDragFactor;
 
@@ -101,7 +121,7 @@ public class PlayerMovement : NetworkBehaviour
 
 	private bool wasGrounded;
 
-	[SyncVar]
+	[SyncVar(hook = "OnIsGroundedChanged")]
 	private bool isGrounded;
 
 	[SyncVar]
@@ -116,10 +136,14 @@ public class PlayerMovement : NetworkBehaviour
 
 	private Vector3 ungroundedLastGroundedAtAllPosition;
 
+	private bool lastUngroundedDueToJumpPad;
+
 	private Vector3 anchorVelocity;
 
 	[SyncVar(hook = "OnIsWadingInWaterChanged")]
 	private bool isWadingInWater;
+
+	private bool wasWadingInWaterWhenLastGrounded;
 
 	private float groundTime;
 
@@ -146,8 +170,8 @@ public class PlayerMovement : NetworkBehaviour
 
 	private Coroutine knockoutRecoveryRoutine;
 
-	[SyncVar(hook = "OnHasKnockoutImmunityChanged")]
-	private bool hasKnockoutImmunity;
+	[SyncVar(hook = "OnKnockoutImmunityStatusChanged")]
+	private KnockOutImmunity knockoutImmunityStatus;
 
 	private Coroutine knockoutImmunityRoutine;
 
@@ -155,19 +179,36 @@ public class PlayerMovement : NetworkBehaviour
 
 	private PoolableParticleSystem knockoutImmunityVfx;
 
+	private double longKnockoutImmunityIncrementTimestamp;
+
+	private int recentKnockoutImmunityCount;
+
+	private double lastHitByDaveTimestamp = double.MinValue;
+
+	private int recentHitsByDiveCount;
+
 	[SyncVar(hook = "OnStatusEffectsChanged")]
 	private StatusEffect statusEffects;
+
+	private float continuousSpeedBoostTime;
 
 	private double speedBoostAdditionTimestamp;
 
 	[SyncVar(hook = "OnDivingStateChanged")]
 	private DivingState divingState;
 
+	[SyncVar(hook = "OnDiveTypeChanged")]
+	private DiveType diveType;
+
 	private double diveOnGroundTimestampLocal;
 
 	private double diveStartTimestamp;
 
 	private readonly HashSet<Hittable> diveHitHittables = new HashSet<Hittable>();
+
+	private PoolableParticleSystem rocketDriverSwingMissTrailVfx;
+
+	private EventInstance rocketDriverSwingMissTrailSound;
 
 	private bool isDrowning;
 
@@ -178,6 +219,8 @@ public class PlayerMovement : NetworkBehaviour
 
 	private float localPlayerOutOfBoundsRemainingTime;
 
+	private double localPlayerExplorerAchievementLastOutOfBoundsTimestamp;
+
 	private Quaternion straightenedSpine1Rotation;
 
 	private double airhornHeadShakeStartTimestamp = double.MinValue;
@@ -187,6 +230,12 @@ public class PlayerMovement : NetworkBehaviour
 	private float strafeStrength;
 
 	private Coroutine strafeStrengthBlendRoutine;
+
+	private Vector3 previousWorldCenterOfMass;
+
+	private Vector3 previousVelocity;
+
+	private Vector3 previousAngularVelocity;
 
 	private readonly HashSet<GolfCartInfo> golfCartsUnableToKnockOut = new HashSet<GolfCartInfo>();
 
@@ -212,6 +261,12 @@ public class PlayerMovement : NetworkBehaviour
 
 	private AntiCheatRateChecker serverGolfCartKnockoutEffectsCommandRateLimiter;
 
+	private AntiCheatRateChecker serverRestartInformCommandRateLimiter;
+
+	private bool isKnockoutProtectedFromLocalPlayer;
+
+	private Dictionary<ulong, double> knockoutTimePerPlayerGuid = new Dictionary<ulong, double>();
+
 	[CVar("drawPlayerGroundingDebug", "", "", false, true)]
 	private static bool drawPlayerGroundingDebug;
 
@@ -224,17 +279,21 @@ public class PlayerMovement : NetworkBehaviour
 	[CVar("noclip", "Zip zap zoop around the level", "", false, true, callback = "NoClipChanged")]
 	private static bool noClipEnabled;
 
+	public Action<bool, bool> _Mirror_SyncVarHookDelegate_isGrounded;
+
 	public Action<bool, bool> _Mirror_SyncVarHookDelegate_isWadingInWater;
 
 	public Action<bool, bool> _Mirror_SyncVarHookDelegate_isVisible;
 
 	public Action<KnockedOutVfxData, KnockedOutVfxData> _Mirror_SyncVarHookDelegate_knockedOutVfxData;
 
-	public Action<bool, bool> _Mirror_SyncVarHookDelegate_hasKnockoutImmunity;
+	public Action<KnockOutImmunity, KnockOutImmunity> _Mirror_SyncVarHookDelegate_knockoutImmunityStatus;
 
 	public Action<StatusEffect, StatusEffect> _Mirror_SyncVarHookDelegate_statusEffects;
 
 	public Action<DivingState, DivingState> _Mirror_SyncVarHookDelegate_divingState;
+
+	public Action<DiveType, DiveType> _Mirror_SyncVarHookDelegate_diveType;
 
 	public Action<RespawnState, RespawnState> _Mirror_SyncVarHookDelegate_respawnState;
 
@@ -254,11 +313,13 @@ public class PlayerMovement : NetworkBehaviour
 
 	public double IsKnockedOutTimestamp { get; private set; } = double.MinValue;
 
+	public KnockOutImmunity KnockoutImmunityStatus => knockoutImmunityStatus;
+
 	public float SpeedBoostRemainingTime { get; private set; }
 
 	public DivingState DivingState => divingState;
 
-	public DiveType DiveType { get; private set; }
+	public DiveType DiveType => diveType;
 
 	public double TimeSinceDiveGrounded
 	{
@@ -276,9 +337,11 @@ public class PlayerMovement : NetworkBehaviour
 
 	public bool IsRespawning => respawnState != RespawnState.None;
 
-	public PlayerMovementSettings Settings => settings;
-
 	public CapsuleCollider UprightCollider => uprightCollider;
+
+	public CapsuleCollider DivingCollider => divingCollider;
+
+	public CapsuleCollider HittableCollider => hittableCollider;
 
 	public bool IsGrounded => isGrounded;
 
@@ -409,7 +472,7 @@ public class PlayerMovement : NetworkBehaviour
 		[param: In]
 		set
 		{
-			GeneratedSyncVarSetter(value, ref isGrounded, 2uL, null);
+			GeneratedSyncVarSetter(value, ref isGrounded, 2uL, _Mirror_SyncVarHookDelegate_isGrounded);
 		}
 	}
 
@@ -491,16 +554,16 @@ public class PlayerMovement : NetworkBehaviour
 		}
 	}
 
-	public bool NetworkhasKnockoutImmunity
+	public KnockOutImmunity NetworkknockoutImmunityStatus
 	{
 		get
 		{
-			return hasKnockoutImmunity;
+			return knockoutImmunityStatus;
 		}
 		[param: In]
 		set
 		{
-			GeneratedSyncVarSetter(value, ref hasKnockoutImmunity, 256uL, _Mirror_SyncVarHookDelegate_hasKnockoutImmunity);
+			GeneratedSyncVarSetter(value, ref knockoutImmunityStatus, 256uL, _Mirror_SyncVarHookDelegate_knockoutImmunityStatus);
 		}
 	}
 
@@ -530,6 +593,19 @@ public class PlayerMovement : NetworkBehaviour
 		}
 	}
 
+	public DiveType NetworkdiveType
+	{
+		get
+		{
+			return diveType;
+		}
+		[param: In]
+		set
+		{
+			GeneratedSyncVarSetter(value, ref diveType, 2048uL, _Mirror_SyncVarHookDelegate_diveType);
+		}
+	}
+
 	public RespawnState NetworkrespawnState
 	{
 		get
@@ -539,13 +615,15 @@ public class PlayerMovement : NetworkBehaviour
 		[param: In]
 		set
 		{
-			GeneratedSyncVarSetter(value, ref respawnState, 2048uL, _Mirror_SyncVarHookDelegate_respawnState);
+			GeneratedSyncVarSetter(value, ref respawnState, 4096uL, _Mirror_SyncVarHookDelegate_respawnState);
 		}
 	}
 
 	public event Action IsGroundedChanged;
 
 	public event Action IsKnockedOutOrRecoveringChanged;
+
+	public event Action HasKnockoutImmunityChanged;
 
 	public event Action IsVisibleChanged;
 
@@ -571,8 +649,8 @@ public class PlayerMovement : NetworkBehaviour
 	{
 		PlayerInfo = GetComponent<PlayerInfo>();
 		rigidbody = GetComponent<Rigidbody>();
-		speed = settings.DefaultMoveSpeed;
-		verticalTerminalVelocity = settings.DefaultTerminalFallingSpeed;
+		speed = GameManager.PlayerMovementSettings.DefaultMoveSpeed;
+		verticalTerminalVelocity = GameManager.PlayerMovementSettings.DefaultTerminalFallingSpeed;
 		base.transform.GetPositionAndRotation(out initialPosition, out initialRotation);
 		syncDirection = SyncDirection.ClientToServer;
 		GetComponentsInChildren(includeInactive: false, renderers);
@@ -584,6 +662,7 @@ public class PlayerMovement : NetworkBehaviour
 	{
 		PlayerInfo.LevelBoundsTracker.LocalBoundsStateChanged += OnLocalBoundsStateChanged;
 		PlayerInfo.AnimatorIo.Footstep += OnFootstep;
+		CourseManager.PlayerDominationsChanged += OnPlayerDominationsChanged;
 	}
 
 	public void OnWillBeDestroyed()
@@ -594,6 +673,8 @@ public class PlayerMovement : NetworkBehaviour
 			knockedOutVfx = null;
 		}
 		UpdateKnockoutImmunityVfx();
+		UpdateRocketDriverSwingMissTrailEffects();
+		CourseManager.PlayerDominationsChanged -= OnPlayerDominationsChanged;
 		if (!BNetworkManager.IsChangingSceneOrShuttingDown)
 		{
 			PlayerInfo.LevelBoundsTracker.LocalBoundsStateChanged -= OnLocalBoundsStateChanged;
@@ -603,15 +684,16 @@ public class PlayerMovement : NetworkBehaviour
 
 	public override void OnStartServer()
 	{
-		serverKnockoutBlockedCommandRateLimiter = new AntiCheatRateChecker("Knockout blocked", base.connectionToClient.connectionId, 0.025f, 10, 20, 0.5f);
-		serverInformKnockedOutCommandRateLimiter = new AntiCheatRateChecker("Inform knocked out", base.connectionToClient.connectionId, settings.KnockoutDefaultGroundDuration * 0.5f, 5, 10, settings.KnockoutDefaultGroundDuration * 2f);
+		serverKnockoutBlockedCommandRateLimiter = new AntiCheatRateChecker("Knockout blocked", base.connectionToClient.connectionId, 0.025f, 20, 50, 0.5f);
+		serverInformKnockedOutCommandRateLimiter = new AntiCheatRateChecker("Inform knocked out", base.connectionToClient.connectionId, GameManager.PlayerMovementSettings.KnockoutDefaultGroundDuration * 0.5f, 5, 10, GameManager.PlayerMovementSettings.KnockoutDefaultGroundDuration * 2f);
 		serverRespawnEffectCommandRateLimiter = new AntiCheatRateChecker("Respawn effect", base.connectionToClient.connectionId, 0.5f * (GameManager.MatchSettings.RespawnPostEliminationDelay + GameManager.MatchSettings.RespawnAnimationDuration), 5, 10, (GameManager.MatchSettings.RespawnPostEliminationDelay + GameManager.MatchSettings.RespawnAnimationDuration) * 2f);
 		serverInformGroundedCommandRateLimiter = new AntiCheatRateChecker("Inform grounded", base.connectionToClient.connectionId, 0.05f, 10, 30, 1f, 3);
 		serverSpringBootsLandingCommandRateLimiter = new AntiCheatRateChecker("Spring boots landing", base.connectionToClient.connectionId, 1f, 5, 10, 2f);
-		serverInformTeleportedCommandRateLimiter = new AntiCheatRateChecker("Inform teleported", base.connectionToClient.connectionId, 0.1f, 5, 10, 2f);
+		serverInformTeleportedCommandRateLimiter = new AntiCheatRateChecker("Inform teleported", base.connectionToClient.connectionId, 0.05f, 10, 30, 2f);
 		serverSpeedBoostEffectCommandRateLimiter = new AntiCheatRateChecker("Speed boost effect", base.connectionToClient.connectionId, 0.25f, 5, 10, 1f);
 		serverOutOfBoundsEliminationExplosionCommandRateLimiter = new AntiCheatRateChecker("Out of bounds elimination explosion", base.connectionToClient.connectionId, GameManager.GolfSettings.OutOfBoundsEliminationTime * 0.5f, 5, 10, GameManager.GolfSettings.OutOfBoundsEliminationTime * 2f);
-		serverGolfCartKnockoutEffectsCommandRateLimiter = new AntiCheatRateChecker("Golf cart knockout effects", base.connectionToClient.connectionId, 0.05f, 10, 20, 0.5f, 3);
+		serverGolfCartKnockoutEffectsCommandRateLimiter = new AntiCheatRateChecker("Golf cart knockout effects", base.connectionToClient.connectionId, 0.025f, 20, 50, 0.5f, 3);
+		serverRestartInformCommandRateLimiter = new AntiCheatRateChecker("Player restart inform", base.connectionToClient.connectionId, 0.5f * (GameManager.MatchSettings.RespawnPostEliminationDelay + GameManager.MatchSettings.RespawnAnimationDuration), 5, 10, (GameManager.MatchSettings.RespawnPostEliminationDelay + GameManager.MatchSettings.RespawnAnimationDuration) * 2f);
 		PlayerInfo.LevelBoundsTracker.AuthoritativeBoundsStateChanged += OnServerBoundsStateChanged;
 	}
 
@@ -644,8 +726,11 @@ public class PlayerMovement : NetworkBehaviour
 		PlayerInfo.AsHittable.WillApplyDiveHitPhysics += OnLocalPlayerWillApplyDiveHitPhysics;
 		PlayerInfo.AsHittable.WillApplyItemHitPhysics += OnLocalPlayerWillApplyItemHitPhysics;
 		PlayerInfo.AsHittable.WillApplyRocketLauncherBackBlastHitPhysics += OnLocalPlayerWillApplyRocketLauncherBackBlastHitPhysics;
+		PlayerInfo.AsHittable.WillApplyRocketDriverSwingPostHitSpinHitPhysics += OnLocalPlayerWillWillApplyRocketDriverSwingPostHitSpinHitPhysics;
 		PlayerInfo.AsHittable.WillApplyReturnedBallHitPhysics += OnLocalPlayerWillApplyReturnedBallHitPhysics;
 		PlayerInfo.AsHittable.WillApplyScoreKnockbackPhysics += OnLocalPlayerWillApplyScoreKnockbackPhysics;
+		PlayerInfo.AsHittable.WillApplyJumpPadPhysics += OnLocalPlayerWillApplyJumpPadPhysics;
+		PlayerInfo.AsHittable.IsFrozenChanged += OnLocalPlayerIsFrozenChanged;
 		PlayerCustomizationMenu.OnOpened += LocalPlayerUpdateVisibility;
 		PlayerCustomizationMenu.OnClosed += LocalPlayerUpdateVisibility;
 	}
@@ -668,8 +753,11 @@ public class PlayerMovement : NetworkBehaviour
 			PlayerInfo.AsHittable.WillApplyDiveHitPhysics -= OnLocalPlayerWillApplyDiveHitPhysics;
 			PlayerInfo.AsHittable.WillApplyItemHitPhysics -= OnLocalPlayerWillApplyItemHitPhysics;
 			PlayerInfo.AsHittable.WillApplyRocketLauncherBackBlastHitPhysics -= OnLocalPlayerWillApplyRocketLauncherBackBlastHitPhysics;
+			PlayerInfo.AsHittable.WillApplyRocketDriverSwingPostHitSpinHitPhysics -= OnLocalPlayerWillWillApplyRocketDriverSwingPostHitSpinHitPhysics;
 			PlayerInfo.AsHittable.WillApplyReturnedBallHitPhysics -= OnLocalPlayerWillApplyReturnedBallHitPhysics;
 			PlayerInfo.AsHittable.WillApplyScoreKnockbackPhysics -= OnLocalPlayerWillApplyScoreKnockbackPhysics;
+			PlayerInfo.AsHittable.WillApplyJumpPadPhysics -= OnLocalPlayerWillApplyJumpPadPhysics;
+			PlayerInfo.AsHittable.IsFrozenChanged -= OnLocalPlayerIsFrozenChanged;
 		}
 	}
 
@@ -733,14 +821,14 @@ public class PlayerMovement : NetworkBehaviour
 				{
 					diveHitHittables.Add(asHittable);
 					ContactPoint contact = collision.GetContact(0);
-					Vector3 relativeHitVelocity = Vector3.Dot(rigidbody.GetPointVelocity(contact.point) - asHittable.AsEntity.GetNetworkedPointVelocity(contact.point), contact.normal) * contact.normal;
+					Vector3 relativeHitVelocity = Vector3.Dot(contact.point.GetPointVelocity(previousWorldCenterOfMass, previousVelocity, previousAngularVelocity) - asHittable.AsEntity.GetNetworkedPointVelocity(contact.point), contact.normal) * contact.normal;
 					asHittable.HitWithDive(relativeHitVelocity, this);
 				}
 			}
 		}
 		void HandleGolfCartCollision()
 		{
-			if (!IsKnockedOutOrRecovering && !(hitEntity.AsGolfCart == golfCartBeingEntered) && !golfCartsUnableToKnockOut.Contains(hitEntity.AsGolfCart) && !(hitEntity.GetNetworkedVelocity().sqrMagnitude < GameManager.GolfCartSettings.RunOverPlayerKnockoutMinSpeedSquared))
+			if (!IsKnockedOutOrRecovering && !PlayerInfo.AsHittable.IsFrozen && !(hitEntity.AsGolfCart == golfCartBeingEntered) && !golfCartsUnableToKnockOut.Contains(hitEntity.AsGolfCart) && !(hitEntity.GetNetworkedVelocity().sqrMagnitude < GameManager.GolfCartSettings.RunOverPlayerKnockoutMinSpeedSquared))
 			{
 				float sqrMagnitude = collision.relativeVelocity.sqrMagnitude;
 				if (!(sqrMagnitude < GameManager.GolfCartSettings.RunOverPlayerKnockoutMinRelativeSpeedSquared))
@@ -815,6 +903,14 @@ public class PlayerMovement : NetworkBehaviour
 				{
 					RemoveStatusEffect(StatusEffect.SpeedBoost);
 				}
+				else
+				{
+					continuousSpeedBoostTime += Time.deltaTime;
+					if (continuousSpeedBoostTime > (float)GameManager.Achievements.CaffeinatedSpeedBoostTime && !SingletonBehaviour<DrivingRangeManager>.HasInstance && CourseManager.CountActivePlayers() > 1)
+					{
+						GameManager.AchievementsManager.Unlock(AchievementId.Caffeinated);
+					}
+				}
 			}
 		}
 		void UpdateVfx()
@@ -863,29 +959,35 @@ public class PlayerMovement : NetworkBehaviour
 			ApplyGravity();
 		}
 		UpdateRotationParameters();
-		UpdatePhysicsFactors();
-		if (IsKnockedOutOrRecovering)
+		UpdatePhysicsParameters();
+		if (!PlayerInfo.AsHittable.IsFrozen)
 		{
-			UpdateKnockOutState();
-		}
-		else if (divingState != DivingState.None)
-		{
-			UpdateDivingState();
-		}
-		else
-		{
-			ApplyRotation();
-			ApplyMovement();
-			ApplyHorizontalDrag();
-			if (!isGrounded)
+			if (IsKnockedOutOrRecovering)
 			{
-				ApplyVerticalDrag();
+				UpdateKnockOutState();
 			}
-			ApplyRotationDrag();
+			else if (divingState != DivingState.None)
+			{
+				UpdateDivingState();
+			}
+			else
+			{
+				ApplyRotation();
+				ApplyMovement();
+				ApplyHorizontalDrag();
+				if (!isGrounded)
+				{
+					ApplyVerticalDrag();
+				}
+				ApplyRotationDrag();
+			}
 		}
 		ApplyElectromagnetShieldRepulsion();
 		movementSensitivityFactor = (isGrounded ? 1f : 0.2f);
 		PlayerInfo.AnimatorIo.SetLocalVelocity(base.transform.InverseTransformDirection(Velocity), Time.fixedDeltaTime);
+		previousWorldCenterOfMass = rigidbody.worldCenterOfMass;
+		previousVelocity = rigidbody.linearVelocity;
+		previousAngularVelocity = rigidbody.angularVelocity;
 		NetworksyncedVelocity = rigidbody.linearVelocity;
 		void ApplyElectromagnetShieldRepulsion()
 		{
@@ -909,10 +1011,10 @@ public class PlayerMovement : NetworkBehaviour
 						vector = rigidbody.centerOfMass;
 					}
 					float value = BMath.Sqrt(sqrMagnitude);
-					float toMin = (IsKnockedOutOrRecovering ? GameManager.ItemSettings.ElectromagnetShieldMaxPlayerKnockedOutRepulsionAcceleration : ((!isGrounded) ? GameManager.ItemSettings.ElectromagnetShieldMaxPlayerDefaultRepulsionAcceleration : GameManager.ItemSettings.ElectromagnetShieldMaxPlayerGroundedRepulsionAcceleration));
+					float toMin = ((IsKnockedOutOrRecovering || PlayerInfo.AsHittable.IsFrozen) ? GameManager.ItemSettings.ElectromagnetShieldMaxPlayerKnockedOutRepulsionAcceleration : ((!isGrounded) ? GameManager.ItemSettings.ElectromagnetShieldMaxPlayerDefaultRepulsionAcceleration : GameManager.ItemSettings.ElectromagnetShieldMaxPlayerGroundedRepulsionAcceleration));
 					Vector3 normalized = (vector - position).normalized;
 					float num = BMath.RemapClamped(0f, activeShield.ElectromagnetShieldCollider.radius, toMin, 0f, value);
-					if (IsKnockedOutOrRecovering)
+					if (IsKnockedOutOrRecovering || PlayerInfo.AsHittable.IsFrozen)
 					{
 						rigidbody.AddForceAtPosition(num * normalized, vector, ForceMode.Acceleration);
 					}
@@ -925,7 +1027,7 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		void EnsureRotationConstraints()
 		{
-			if (!IsKnockedOut)
+			if (!IsKnockedOut && !PlayerInfo.AsHittable.IsFrozen)
 			{
 				Yaw = Yaw;
 			}
@@ -944,7 +1046,7 @@ public class PlayerMovement : NetworkBehaviour
 			{
 				zero -= Vector3.up;
 			}
-			float num = settings.DefaultMoveSpeed * (Keyboard.current.leftShiftKey.isPressed ? 6f : 2f);
+			float num = GameManager.PlayerMovementSettings.DefaultMoveSpeed * (Keyboard.current.leftShiftKey.isPressed ? 6f : 2f);
 			Velocity = zero.normalized * num;
 		}
 		void UpdateTimers()
@@ -969,16 +1071,7 @@ public class PlayerMovement : NetworkBehaviour
 				PlayerInfo.AnimatorIo.SetKnockoutWorldUpNormalizedLocalYaw(yawDeg / 180f);
 			}
 		}
-		if (PlayerInfo.AnimatorIo.SpineStraighteningWeight <= 0f)
-		{
-			straightenedSpine1Rotation = PlayerInfo.Spine1Bone.rotation;
-		}
-		else
-		{
-			Quaternion b = GetTargetSpine1Rotation();
-			straightenedSpine1Rotation = Quaternion.Slerp(straightenedSpine1Rotation, b, 12f * Time.deltaTime);
-			PlayerInfo.Spine1Bone.rotation = Quaternion.SlerpUnclamped(PlayerInfo.Spine1Bone.rotation, straightenedSpine1Rotation, PlayerInfo.AnimatorIo.SpineStraighteningWeight);
-		}
+		UpdateSpineStraightening();
 		ApplyAirhornAirShake();
 		void ApplyAirhornAirShake()
 		{
@@ -999,29 +1092,56 @@ public class PlayerMovement : NetworkBehaviour
 			base.transform.SetPositionAndRotation(position, rotation);
 			rigidbody.position = position;
 			rigidbody.rotation = rotation;
-			PlayerInfo.AnimatorIo.SetGolfCartSteering(movement.SmoothedSteering);
-			PlayerInfo.AnimatorIo.SetGolfCartAcceleration(movement.SmoothedLocalAcceleration);
+			if (!movement.AsEntity.AsHittable.IsFrozen)
+			{
+				PlayerInfo.AnimatorIo.SetGolfCartSteering(movement.SmoothedSteering);
+				PlayerInfo.AnimatorIo.SetGolfCartAcceleration(movement.SmoothedLocalAcceleration);
+			}
 		}
+	}
+
+	private void UpdateSpineStraightening()
+	{
+		if (PlayerInfo.AnimatorIo.SpineStraighteningWeight <= 0f)
+		{
+			straightenedSpine1Rotation = PlayerInfo.Spine1Bone.rotation;
+			return;
+		}
+		Quaternion b = GetTargetSpine1Rotation();
+		straightenedSpine1Rotation = Quaternion.Slerp(straightenedSpine1Rotation, b, 12f * Time.deltaTime);
+		Vector3 eulerAngles = straightenedSpine1Rotation.eulerAngles;
+		float y = eulerAngles.y;
+		float y2 = PlayerInfo.Spine1Bone.rotation.eulerAngles.y;
+		float value = (y - y2).WrapAngleDeg();
+		value = BMath.Clamp(value, -55f, 55f);
+		float y3 = (y2 + value).WrapAngleDeg();
+		straightenedSpine1Rotation = Quaternion.Euler(eulerAngles.x, y3, eulerAngles.z);
+		PlayerInfo.Spine1Bone.rotation = Quaternion.SlerpUnclamped(PlayerInfo.Spine1Bone.rotation, straightenedSpine1Rotation, PlayerInfo.AnimatorIo.SpineStraighteningWeight);
 		Quaternion GetTargetSpine1Rotation()
 		{
 			Vector3 vector = PlayerInfo.HipBone.eulerAngles.WrapAngleDeg();
 			if (PlayerInfo.NetworkedEquippedItem == ItemType.DuelingPistol)
 			{
 				float num = (base.isLocalPlayer ? BMath.Max(17.5f, PlayerInfo.AnimatorIo.AimingYawOffset) : PlayerInfo.AnimatorIo.AimingYawOffset);
-				float y = (Yaw + num + 65f).WrapAngleDeg();
-				return Quaternion.Euler(0f, y, 0f);
+				float y4 = (Yaw + num + 65f).WrapAngleDeg();
+				return Quaternion.Euler(0f, y4, 0f);
 			}
 			if (PlayerInfo.NetworkedEquippedItem == ItemType.ElephantGun)
 			{
 				float num2 = ((base.isLocalPlayer && !PlayerInfo.Inventory.IsUsingItemAtAll) ? BMath.Max(12.5f, PlayerInfo.AnimatorIo.AimingYawOffset) : PlayerInfo.AnimatorIo.AimingYawOffset);
-				float y2 = (Yaw + num2 + 55f).WrapAngleDeg();
-				return Quaternion.Euler(0f, y2, 0f);
+				float y5 = (Yaw + num2 + 55f).WrapAngleDeg();
+				return Quaternion.Euler(0f, y5, 0f);
 			}
 			if (PlayerInfo.NetworkedEquippedItem == ItemType.RocketLauncher)
 			{
 				float num3 = (base.isLocalPlayer ? BMath.Max(15f, PlayerInfo.AnimatorIo.AimingYawOffset) : PlayerInfo.AnimatorIo.AimingYawOffset);
-				float y3 = (Yaw + num3 + 23f).WrapAngleDeg();
-				return Quaternion.Euler(0f, y3, 0f);
+				float y6 = (Yaw + num3 + 23f).WrapAngleDeg();
+				return Quaternion.Euler(0f, y6, 0f);
+			}
+			if (PlayerInfo.NetworkedEquippedItem == ItemType.FreezeBomb)
+			{
+				float y7 = (Yaw + (base.isLocalPlayer ? 57f : 47f)).WrapAngleDeg();
+				return Quaternion.Euler(0f, y7, 0f);
 			}
 			return Quaternion.Euler(vector.x * 0.65f, Yaw, vector.z * 0.65f);
 		}
@@ -1042,22 +1162,26 @@ public class PlayerMovement : NetworkBehaviour
 		return TryDiveInternal(DiveType.Regular);
 	}
 
-	private bool TryDiveInternal(DiveType type, Vector3 forcedDirection = default(Vector3))
+	private bool TryDiveInternal(DiveType type, Vector3 forcedVector = default(Vector3))
 	{
 		bool isElephantGunDive = type.IsElephantGunDive();
 		if (!CanDive())
 		{
 			return false;
 		}
-		DiveType = type;
+		NetworkdiveType = type;
 		SetDivingState(DivingState.Diving);
 		diveStartTimestamp = Time.timeAsDouble;
 		PlayerInfo.AnimatorIo.Dive(type);
 		Unground();
-		IsInSpringBootsJump = false;
+		SetIsInSpringBootsJump(isInJump: false, fromLanding: false);
 		if (isElephantGunDive)
 		{
 			ApplyElephantGunDive();
+		}
+		else if (type == DiveType.RocketDriverSwingMiss)
+		{
+			ApplyRocketDriverSwingMissDive();
 		}
 		else
 		{
@@ -1066,14 +1190,14 @@ public class PlayerMovement : NetworkBehaviour
 		return true;
 		void ApplyElephantGunDive()
 		{
-			if (forcedDirection.sqrMagnitude < 0.001f)
+			if (forcedVector.sqrMagnitude < 0.001f)
 			{
-				Debug.LogError("An elephant gun dive should always receive a direction", base.gameObject);
+				Debug.LogError("An elephant gun dive should always receive a vector", base.gameObject);
 			}
 			else
 			{
-				Vector3 normalized = forcedDirection.normalized;
-				Vector3 vector = forcedDirection.normalized * GameManager.ItemSettings.ElephantGunShotDiveSpeed;
+				Vector3 normalized = forcedVector.normalized;
+				Vector3 vector = forcedVector.normalized * GameManager.ItemSettings.ElephantGunShotDiveSpeed;
 				float num = (Yaw = (vector.IsWithin01DegFrom(Vector3.up) ? Yaw : (vector.GetYawDeg() + 180f).WrapAngleDeg()));
 				targetYaw = num;
 				Vector3 linearVelocity = rigidbody.linearVelocity;
@@ -1090,11 +1214,25 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		void ApplyRegularDive()
 		{
-			Vector3 vector = ((forcedDirection.sqrMagnitude > 0.001f) ? forcedDirection.Horizontalized().normalized : ((!(MoveVectorMagnitude > 0.1f)) ? base.transform.forward.Horizontalized().normalized : worldMoveVector3d.Horizontalized().normalized));
+			Vector3 vector = ((forcedVector.sqrMagnitude > 0.001f) ? forcedVector.Horizontalized().normalized : ((!(MoveVectorMagnitude > 0.1f)) ? base.transform.forward.Horizontalized().normalized : worldMoveVector3d.Horizontalized().normalized));
 			float num = (Yaw = vector.GetYawDeg());
 			targetYaw = num;
-			rigidbody.linearVelocity = settings.DiveHorizontalSpeed * vector + settings.DiveUpwardsSpeed * Vector3.up;
+			rigidbody.linearVelocity = GameManager.PlayerMovementSettings.DiveHorizontalSpeed * vector + GameManager.PlayerMovementSettings.DiveUpwardsSpeed * Vector3.up;
 			rigidbody.angularVelocity = Vector3.zero;
+		}
+		void ApplyRocketDriverSwingMissDive()
+		{
+			if (forcedVector.sqrMagnitude < 0.001f)
+			{
+				Debug.LogError("A rocket driver swing miss dive should always receive a vector", base.gameObject);
+			}
+			else
+			{
+				float num = (Yaw = forcedVector.GetYawDeg());
+				targetYaw = num;
+				rigidbody.linearVelocity = forcedVector;
+				rigidbody.angularVelocity = Vector3.zero;
+			}
 		}
 		bool CanDive()
 		{
@@ -1118,6 +1256,10 @@ public class PlayerMovement : NetworkBehaviour
 			{
 				return false;
 			}
+			if (PlayerInfo.AsHittable.IsFrozen)
+			{
+				return false;
+			}
 			if (PlayerInfo.AsSpectator.IsSpectating)
 			{
 				return false;
@@ -1136,9 +1278,9 @@ public class PlayerMovement : NetworkBehaviour
 
 	public bool TryKnockOut(PlayerInfo responsiblePlayer, KnockoutType knockoutType, bool isLegSweep, Vector3 localOrigin, float distance, Vector3 incomingVelocityChange, bool canBeBlockedByElectromagnetShield, ItemUseId itemUseId, bool fromSpecialState, bool canFallbackToUnground, out bool isNewKnockout)
 	{
-		if (!CanBeKnockedOut())
+		if (!CanBeKnockedOutBy(responsiblePlayer, canBeBlockedByElectromagnetShield, playBlockedEffects: true))
 		{
-			if (canFallbackToUnground && Velocity.y + incomingVelocityChange.y > settings.VerticalVelocityGroundingThreshold)
+			if (canFallbackToUnground && Velocity.y + incomingVelocityChange.y > GameManager.PlayerMovementSettings.VerticalVelocityGroundingThreshold)
 			{
 				Unground();
 			}
@@ -1157,30 +1299,44 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			wasLastKnockoutLegSweep = isLegSweep;
 			RemoveStatusEffect(StatusEffect.SpeedBoost);
-			IsInSpringBootsJump = false;
+			SetIsInSpringBootsJump(isInJump: false, fromLanding: false);
 			PlayerInfo.AnimatorIo.KnockOut(isLegSweep);
 			CmdInformKnockedOut(responsiblePlayer, knockoutType, localOrigin, distance, effectivelyEquippedItem, itemUseId, fromSpecialState);
 		}
 		isNewKnockout = !isKnockedOut;
 		return true;
-		bool CanBeKnockedOut()
+	}
+
+	private bool CanBeKnockedOutBy(PlayerInfo player, bool canBeBlockedByElectromagnetShield, bool playBlockedEffects)
+	{
+		if (knockoutImmunityStatus.hasImmunity || IsKnockoutProtectedFromPlayer(player))
 		{
-			if (hasKnockoutImmunity)
+			if (playBlockedEffects)
 			{
 				PlayKnockoutBlockedEffectForAllClients();
-				return false;
 			}
-			if (canBeBlockedByElectromagnetShield && PlayerInfo.IsElectromagnetShieldActive)
-			{
-				return false;
-			}
-			return true;
+			return false;
 		}
-		void PlayKnockoutBlockedEffectForAllClients()
+		if (PlayerInfo.AsHittable.IsFrozen)
 		{
-			PlayKnockoutBlockedEffectInternal();
-			CmdPlayKnockoutBlockedEffectForAllClients();
+			return false;
 		}
+		if (canBeBlockedByElectromagnetShield && PlayerInfo.IsElectromagnetShieldActive)
+		{
+			return false;
+		}
+		return true;
+	}
+
+	public bool CanBeFrozenBy(PlayerInfo player, bool playBlockedEffects)
+	{
+		return CanBeKnockedOutBy(player, canBeBlockedByElectromagnetShield: true, playBlockedEffects);
+	}
+
+	private void PlayKnockoutBlockedEffectForAllClients()
+	{
+		PlayKnockoutBlockedEffectInternal();
+		CmdPlayKnockoutBlockedEffectForAllClients();
 	}
 
 	[Command]
@@ -1206,13 +1362,38 @@ public class PlayerMovement : NetworkBehaviour
 
 	private void PlayKnockoutBlockedEffectInternal()
 	{
-		if (VfxPersistentData.TryGetPooledVfx(VfxType.KnockOutBlocked, out var particleSystem))
+		PlayEffectAtEndOfFrame();
+		void PlayEffect()
 		{
-			particleSystem.transform.SetParent(PlayerInfo.ChestBone);
-			particleSystem.transform.localPosition = Vector3.zero;
-			particleSystem.Play();
+			if (VfxPersistentData.TryGetPooledVfx(VfxType.KnockOutBlocked, out var particleSystem))
+			{
+				UpdateColor(particleSystem);
+				particleSystem.transform.SetParent(PlayerInfo.ChestBone);
+				particleSystem.transform.localPosition = Vector3.zero;
+				particleSystem.Play();
+			}
+			PlayerInfo.PlayerAudio.PlayKnockoutImmunityBlockedKnockoutLocalOnly();
 		}
-		PlayerInfo.PlayerAudio.PlayKnockoutImmunityBlockedKnockoutLocalOnly();
+		async void PlayEffectAtEndOfFrame()
+		{
+			await UniTask.WaitForEndOfFrame();
+			await UniTask.WaitForEndOfFrame();
+			if (!(this == null))
+			{
+				PlayEffect();
+			}
+		}
+		void UpdateColor(PoolableParticleSystem knockoutBlockedVfx)
+		{
+			if (isKnockoutProtectedFromLocalPlayer || knockoutImmunityVfx == null || !knockoutImmunityVfx.IsPlaying)
+			{
+				knockoutBlockedVfx.GetComponent<KnockOutVfxVisuals>().SetColor(KnockOutVfxColor.Red);
+			}
+			else if (knockoutImmunityVfx != null)
+			{
+				knockoutBlockedVfx.GetComponent<KnockOutVfxVisuals>().SetColor(knockoutImmunityVfx.GetComponent<KnockOutVfxVisuals>().CurrentColor);
+			}
+		}
 	}
 
 	[Command]
@@ -1235,19 +1416,47 @@ public class PlayerMovement : NetworkBehaviour
 		NetworkWriterPool.Return(writer);
 	}
 
+	[Server]
+	public void ServerInformKnockedOut(PlayerInfo responsiblePlayer, KnockoutType knockoutType, Vector3 localOrigin, float distance, ItemType heldItem, ItemUseId itemUseId, bool fromSpecialState)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogWarning("[Server] function 'System.Void PlayerMovement::ServerInformKnockedOut(PlayerInfo,KnockoutType,UnityEngine.Vector3,System.Single,ItemType,ItemUseId,System.Boolean)' called when server was not active");
+		}
+		else
+		{
+			InformKnockedOutInternal(responsiblePlayer, knockoutType, localOrigin, distance, heldItem, itemUseId, fromSpecialState);
+		}
+	}
+
+	private void InformKnockedOutInternal(PlayerInfo responsiblePlayer, KnockoutType knockoutType, Vector3 localOrigin, float distance, ItemType heldItem, ItemUseId itemUseId, bool fromSpecialState)
+	{
+		if (serverInformKnockedOutCommandRateLimiter.RegisterHit())
+		{
+			this.knockoutType = knockoutType;
+			CourseManager.InformPlayerKnockedOut(this, responsiblePlayer, knockoutType, out var knockoutCounted);
+			if (responsiblePlayer == PlayerInfo)
+			{
+				CourseManager.MarkLatestValidKnockout(PlayerInfo, itemUseId);
+			}
+			else if (knockoutCounted)
+			{
+				CourseManager.MarkLatestValidKnockout(PlayerInfo, itemUseId);
+				bool authoritativeIsOnGreen = PlayerInfo.LevelBoundsTracker.AuthoritativeIsOnGreen;
+				responsiblePlayer.RpcInformKnockedOutOtherPlayer(knockoutType, localOrigin, distance, heldItem, authoritativeIsOnGreen, fromSpecialState);
+			}
+		}
+	}
+
 	public void AlignWithCameraImmediately()
 	{
-		float yawDeg = GameManager.Camera.transform.forward.GetYawDeg();
-		float yaw = Yaw;
-		Yaw = yawDeg;
-		targetYaw = yawDeg;
+		float num = (Yaw = GameManager.Camera.transform.forward.GetYawDeg());
+		targetYaw = num;
 		base.transform.rotation = rigidbody.rotation;
 		if (PlayerInfo.AnimatorIo.SpineStraighteningWeight > 0f)
 		{
-			float num = (Yaw - yaw).WrapAngleDeg();
-			Vector3 eulerAngles = straightenedSpine1Rotation.eulerAngles;
-			eulerAngles.y += num;
-			straightenedSpine1Rotation = Quaternion.Euler(eulerAngles);
+			PlayerInfo.AnimatorIo.UpdateAimingAngleInstantly();
+			UpdateSpineStraightening();
 		}
 	}
 
@@ -1278,7 +1487,7 @@ public class PlayerMovement : NetworkBehaviour
 		return new Bounds(uprightCollider.center, new Vector3(uprightCollider.radius, uprightCollider.height + uprightCollider.radius, uprightCollider.radius));
 	}
 
-	public bool TryBeginRespawn(bool isRestart)
+	public bool TryBeginRespawn(bool isRestart, RespawnTarget respawnTarget)
 	{
 		if (!base.isLocalPlayer && !base.isServer)
 		{
@@ -1291,25 +1500,31 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		if (!base.isLocalPlayer)
 		{
-			RpcBeginRespawn(isRestart);
+			RpcBeginRespawn(isRestart, respawnTarget);
 		}
 		else
 		{
-			LocalPlayerBeginRespawn(isRestart);
+			LocalPlayerBeginRespawn(isRestart, respawnTarget);
+		}
+		if (isRestart)
+		{
+			VfxManager.ServerPlayPooledVfxForAllClients(VfxType.PlayerRestart, base.transform.position, Quaternion.identity);
+			ServerPlayRestartSoundForAllClients();
 		}
 		return true;
 	}
 
 	[TargetRpc]
-	private void RpcBeginRespawn(bool isRestart)
+	private void RpcBeginRespawn(bool isRestart, RespawnTarget respawnTarget)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteBool(isRestart);
-		SendTargetRPCInternal(null, "System.Void PlayerMovement::RpcBeginRespawn(System.Boolean)", 1262436934, writer, 0);
+		GeneratedNetworkCode._Write_RespawnTarget(writer, respawnTarget);
+		SendTargetRPCInternal(null, "System.Void PlayerMovement::RpcBeginRespawn(System.Boolean,RespawnTarget)", -703314959, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
-	private void LocalPlayerBeginRespawn(bool isRestart)
+	private void LocalPlayerBeginRespawn(bool isRestart, RespawnTarget respawnTarget)
 	{
 		if (!base.isLocalPlayer)
 		{
@@ -1350,7 +1565,15 @@ public class PlayerMovement : NetworkBehaviour
 			LocalPlayerUpdateVisibility();
 			LocalPlayerUpdateIsOutOfBoundsMessageShown();
 			RemoveStatusEffect(StatusEffect.SpeedBoost);
-			yield return new WaitForSeconds(GameManager.MatchSettings.RespawnPostEliminationDelay);
+			double startTime = Time.timeAsDouble;
+			while (BMath.GetTimeSince(startTime) < GameManager.MatchSettings.RespawnPostEliminationDelay)
+			{
+				yield return null;
+				if (PlayerInfo.ActiveGolfCartSeat.IsValid())
+				{
+					PlayerInfo.ExitGolfCart(GolfCartExitType.Default);
+				}
+			}
 			NetworkrespawnState = RespawnState.ActivelyRespawning;
 			rigidbody.isKinematic = true;
 			if (!isRestart && PlayerInfo.AsGolfer.LocalPlayerLatestImmediateEliminationReason == EliminationReason.FellIntoWater)
@@ -1373,27 +1596,21 @@ public class PlayerMovement : NetworkBehaviour
 			rigidbody.isKinematic = false;
 			LocalPlayerUpdateVisibility();
 			LocalPlayerUpdateIsOutOfBoundsMessageShown();
-			if (isRestart && !SingletonBehaviour<DrivingRangeManager>.HasInstance && PlayerInfo.AsGolfer.OwnBall != null)
+			if (isRestart)
 			{
-				PlayerInfo.AsGolfer.CmdRestartBall();
+				if (respawnTarget != RespawnTarget.Ball && !SingletonBehaviour<DrivingRangeManager>.HasInstance && PlayerInfo.AsGolfer.OwnBall != null)
+				{
+					PlayerInfo.AsGolfer.CmdRestartBall();
+				}
+				CmdClientInformRestarted();
 			}
+			StartKnockoutImmunity(fromPlayerAggression: false);
 		}
 		void TeleportToRespawnPosition(out Checkpoint checkpoint)
 		{
-			Vector3 respawnPosition;
-			Quaternion rotation;
-			if (CheckpointManager.TryGetLocalPlayerActiveCheckpoint(out checkpoint))
-			{
-				respawnPosition = checkpoint.GetRespawnPosition();
-				rotation = checkpoint.transform.rotation;
-			}
-			else
-			{
-				respawnPosition = initialPosition;
-				rotation = initialRotation;
-			}
-			Teleport(respawnPosition, rotation, resetState: true);
-			PlayerInfo.LevelBoundsTracker.CmdInformTeleportedIntoBounds(respawnPosition, rotation);
+			GetRespawnPosition(respawnTarget, out checkpoint, out var position, out var rotation);
+			Teleport(position, rotation, resetState: true);
+			PlayerInfo.LevelBoundsTracker.CmdInformTeleportedIntoBounds(position, rotation);
 			UpdateGroundingState(suppressLandingAnimation: true);
 			if (!base.isServer)
 			{
@@ -1401,6 +1618,39 @@ public class PlayerMovement : NetworkBehaviour
 			}
 			PlayerMovement.LocalPlayerTeleportedToRespawnPosition?.Invoke();
 		}
+	}
+
+	public void GetRespawnPosition(RespawnTarget respawnTarget, out Checkpoint checkpoint, out Vector3 position, out Quaternion rotation)
+	{
+		checkpoint = null;
+		if (respawnTarget == RespawnTarget.TeeOrCheckpoint && CheckpointManager.TryGetLocalPlayerActiveCheckpoint(out checkpoint))
+		{
+			position = checkpoint.GetRespawnPosition();
+			rotation = checkpoint.transform.rotation;
+		}
+		else if (respawnTarget == RespawnTarget.Ball && PlayerInfo.AsGolfer.OwnBall != null && PlayerInfo.AsGolfer.OwnBall.IsStationary)
+		{
+			position = PlayerInfo.AsGolfer.OwnBall.transform.position;
+			rotation = initialRotation;
+		}
+		else
+		{
+			position = initialPosition;
+			rotation = initialRotation;
+		}
+	}
+
+	[Command]
+	private void CmdClientInformRestarted()
+	{
+		if (base.isServer && base.isClient)
+		{
+			UserCode_CmdClientInformRestarted();
+			return;
+		}
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendCommandInternal("System.Void PlayerMovement::CmdClientInformRestarted()", -434584613, writer, 0);
+		NetworkWriterPool.Return(writer);
 	}
 
 	[Command]
@@ -1483,6 +1733,37 @@ public class PlayerMovement : NetworkBehaviour
 			return false;
 		}
 		return true;
+	}
+
+	[Server]
+	private void ServerPlayRestartSoundForAllClients()
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogWarning("[Server] function 'System.Void PlayerMovement::ServerPlayRestartSoundForAllClients()' called when server was not active");
+			return;
+		}
+		PlayRestartSoundInternal();
+		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
+		{
+			if (value != NetworkServer.localConnection)
+			{
+				RpcPlayRestartSound(value);
+			}
+		}
+	}
+
+	[TargetRpc]
+	private void RpcPlayRestartSound(NetworkConnectionToClient connection)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendTargetRPCInternal(connection, "System.Void PlayerMovement::RpcPlayRestartSound(Mirror.NetworkConnectionToClient)", 1392793859, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	private void PlayRestartSoundInternal()
+	{
+		RuntimeManager.PlayOneShot(GameManager.AudioSettings.PlayerRestartEvent, base.transform.position);
 	}
 
 	[TargetRpc]
@@ -1685,12 +1966,24 @@ public class PlayerMovement : NetworkBehaviour
 		async void TemporarilyIgnoreKnockoutsFrom(GolfCartInfo item)
 		{
 			golfCartsUnableToKnockOut.Add(item);
-			await UniTask.WaitForSeconds(settings.ExitedGolfcartKnockoutImmunityDuration);
+			await UniTask.WaitForSeconds(GameManager.PlayerMovementSettings.ExitedGolfcartKnockoutImmunityDuration);
 			if (!(this == null))
 			{
 				golfCartsUnableToKnockOut.Remove(item);
 			}
 		}
+	}
+
+	public void InformMissedRocketDriverSwing(Vector3 swingDirection, float swingNormalizedPower)
+	{
+		Vector3 forcedVector = BMath.Remap(GameManager.ItemSettings.RocketDriverBaseNormalizedSwingPower, GameManager.ItemSettings.RocketDriverFullNormalizedSwingPower, GameManager.ItemSettings.RocketDriverBaseSwingMissDiveSpeed, GameManager.ItemSettings.RocketDriverFullSwingMissDiveSpeed, swingNormalizedPower) * swingDirection;
+		forcedVector.y = BMath.Max(GameManager.ItemSettings.RocketDriverSwingMissMinUpwardsSpeed, forcedVector.y);
+		TryDiveInternal(DiveType.RocketDriverSwingMiss, forcedVector);
+	}
+
+	public void InformFrozeGolfCart(int otherPassengerCount)
+	{
+		AddSpeedBoost(GameManager.PlayerMovementSettings.KnockOutSpeedBoostDuration * (float)otherPassengerCount);
 	}
 
 	private void ProcessMovementInput()
@@ -1708,7 +2001,7 @@ public class PlayerMovement : NetworkBehaviour
 			vector2 = moveVector2d;
 			if (ShouldClampToWalkingSpeed())
 			{
-				vector2 *= settings.WalkSpeedFactor;
+				vector2 *= GameManager.PlayerMovementSettings.WalkSpeedFactor;
 			}
 		}
 		OrbitCameraModule orbitModule;
@@ -1782,7 +2075,7 @@ public class PlayerMovement : NetworkBehaviour
 
 	private void UpdateTargetYaw()
 	{
-		if (isGrounded && divingState == DivingState.None)
+		if ((isGrounded || PlayerInfo.Inventory.IsAimingItem) && divingState == DivingState.None)
 		{
 			if ((PlayerInfo.AsGolfer.IsAimingSwing || PlayerInfo.Inventory.IsAimingItem) && CameraModuleController.TryGetOrbitModule(out var orbitModule))
 			{
@@ -1814,7 +2107,7 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		else if (PlayerInfo.AsGolfer.IsAimingSwing || PlayerInfo.Inventory.IsAimingItem)
 		{
-			rotationSpeedFactor = settings.AimingRotationSpeedFactor;
+			rotationSpeedFactor = GameManager.PlayerMovementSettings.AimingRotationSpeedFactor;
 		}
 		else if (turningOnADime)
 		{
@@ -1834,7 +2127,7 @@ public class PlayerMovement : NetworkBehaviour
 	{
 		if (CanRotate())
 		{
-			float num = settings.MaxPlayerRotationSpeedDeg * rotationSpeedFactor;
+			float num = GameManager.PlayerMovementSettings.MaxPlayerRotationSpeedDeg * rotationSpeedFactor;
 			float to = BMath.Clamp((targetYaw - Yaw).WrapAngleDeg() / Time.fixedDeltaTime, 0f - num, num);
 			YawSpeedDeg = BMath.LerpClamped(YawSpeedDeg, to, 5f * Time.fixedDeltaTime);
 		}
@@ -1870,7 +2163,7 @@ public class PlayerMovement : NetworkBehaviour
 			{
 				vector = projection;
 			}
-			float num = BMath.Max(0f, 1f - horizontalDragFactor * settings.DefaultHorizontalDrag * Time.fixedDeltaTime);
+			float num = BMath.Max(0f, 1f - horizontalDrag * Time.fixedDeltaTime);
 			Vector3 vector2;
 			if (num <= 0.001f)
 			{
@@ -1893,10 +2186,10 @@ public class PlayerMovement : NetworkBehaviour
 		speed = BMath.LerpClamped(speed, num, movementAccelerationChangeSpeed * Time.fixedDeltaTime);
 		float GetTargetSpeedInAir()
 		{
-			float num2 = (IsInSpringBootsJump ? GameManager.ItemSettings.SpringBootsJumpMovementSpeed : settings.DefaultMoveSpeed);
+			float num2 = (IsInSpringBootsJump ? GameManager.ItemSettings.SpringBootsJumpMovementSpeed : ((!wasWadingInWaterWhenLastGrounded) ? GameManager.PlayerMovementSettings.DefaultMoveSpeed : GameManager.PlayerMovementSettings.WadingInWaterSpeed));
 			if (statusEffects.HasEffect(StatusEffect.SpeedBoost))
 			{
-				return num2 * settings.SpeedBoostSpeedFactor;
+				return num2 * GameManager.PlayerMovementSettings.SpeedBoostSpeedFactor;
 			}
 			return num2;
 		}
@@ -1904,20 +2197,20 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			if (PlayerInfo.AsGolfer.IsChargingSwing)
 			{
-				return settings.SwingChargingSpeed;
+				return GameManager.PlayerMovementSettings.SwingChargingSpeed;
 			}
 			if (PlayerInfo.AsGolfer.IsAimingSwing)
 			{
-				return settings.SwingAimingSpeed;
+				return GameManager.PlayerMovementSettings.SwingAimingSpeed;
 			}
 			if (turningOnADime)
 			{
-				return settings.DefaultMoveSpeed * 0.1f;
+				return GameManager.PlayerMovementSettings.DefaultMoveSpeed * 0.1f;
 			}
-			float num2 = (isWadingInWater ? settings.WadingInWaterSpeed : settings.DefaultMoveSpeed);
+			float num2 = (isWadingInWater ? GameManager.PlayerMovementSettings.WadingInWaterSpeed : GameManager.PlayerMovementSettings.DefaultMoveSpeed);
 			if (statusEffects.HasEffect(StatusEffect.SpeedBoost))
 			{
-				return num2 * settings.SpeedBoostSpeedFactor;
+				return num2 * GameManager.PlayerMovementSettings.SpeedBoostSpeedFactor;
 			}
 			return num2;
 		}
@@ -1925,7 +2218,7 @@ public class PlayerMovement : NetworkBehaviour
 
 	private void ApplyHorizontalDrag()
 	{
-		float num = BMath.Max(0f, 1f - horizontalDragFactor * settings.DefaultHorizontalDrag * Time.fixedDeltaTime);
+		float num = BMath.Max(0f, 1f - horizontalDrag * Time.fixedDeltaTime);
 		if (isGrounded && groundTime > 0.1f)
 		{
 			Vector3 vector = Velocity.ProjectOnPlane(GroundData.normal);
@@ -1960,36 +2253,26 @@ public class PlayerMovement : NetworkBehaviour
 
 	private void UpdateKnockOutState()
 	{
-		bool isGrounded;
 		if (IsKnockedOut && knockoutState != KnockoutState.Recovering)
 		{
-			isGrounded = TryFindGroundWhileKnockedOut(out knockoutGroundRaycastHit);
+			bool flag = TryFindGroundWhileKnockedOut(out knockoutGroundRaycastHit);
 			if (ShouldBeginRecovering())
 			{
 				RecoverFromKnockout();
-				return;
 			}
-			SetKnockOutState(isGrounded ? KnockoutState.OnGround : KnockoutState.InAir);
-			ApplyKnockoutDrag();
-		}
-		void ApplyKnockoutDrag()
-		{
-			if (!isGrounded)
+			else
 			{
-				float num = BMath.Max(0f, 1f - settings.KnockOutAirLinearDamping * Time.fixedDeltaTime);
-				Velocity *= num;
-				float num2 = BMath.Max(0f, 1f - settings.KnockOutAirAngularDamping * Time.fixedDeltaTime);
-				rigidbody.angularVelocity *= num2;
+				SetKnockOutState(flag ? KnockoutState.OnGround : KnockoutState.InAir);
 			}
 		}
 		bool ShouldBeginRecovering()
 		{
-			if (BMath.GetTimeSince(IsKnockedOutTimestamp) >= settings.KnockoutTimeOutDuration)
+			if (BMath.GetTimeSince(IsKnockedOutTimestamp) >= GameManager.PlayerMovementSettings.KnockoutTimeOutDuration)
 			{
 				return true;
 			}
 			float timeSince = BMath.GetTimeSince(knockoutTimestamp);
-			float num = ((knockoutType == KnockoutType.ReturnedBall) ? settings.KnockoutBallReturnedGroundDuration : settings.KnockoutDefaultGroundDuration);
+			float num = ((knockoutType == KnockoutType.ReturnedBall) ? GameManager.PlayerMovementSettings.KnockoutBallReturnedGroundDuration : GameManager.PlayerMovementSettings.KnockoutDefaultGroundDuration);
 			if (timeSince < num)
 			{
 				float num2 = timeSince / num;
@@ -2018,11 +2301,11 @@ public class PlayerMovement : NetworkBehaviour
 					hit = raycastHit;
 				}
 			}
-			bool flag = hit.distance < float.MaxValue;
+			bool flag2 = hit.distance < float.MaxValue;
 			if (drawPlayerGroundingDebug)
 			{
-				float num2 = (flag ? hit.distance : 0.2f);
-				Color color = (flag ? Color.red : Color.green);
+				float num2 = (flag2 ? hit.distance : 0.2f);
+				Color color = (flag2 ? Color.red : Color.green);
 				BDebug.DrawCapsuleCast(item, item2, uprightCollider.radius, Vector3.down * num2, color);
 			}
 			return hit.distance < float.MaxValue;
@@ -2037,30 +2320,26 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		if (divingState == DivingState.GettingUp)
 		{
-			if (BMath.GetTimeSince(DivingStateTimestamp) >= settings.DiveGetUpDuration)
+			if (BMath.GetTimeSince(DivingStateTimestamp) >= GameManager.PlayerMovementSettings.DiveGetUpDuration)
 			{
 				SetDivingState(DivingState.None);
 			}
 			return;
 		}
 		RaycastHit hit;
-		bool isGrounded = TryFindGroundWhileDiving(out hit);
+		bool flag = TryFindGroundWhileDiving(out hit);
 		if (ShouldStartGettingUp())
 		{
 			SetDivingState(DivingState.GettingUp);
-			return;
 		}
-		SetDivingState((!isGrounded) ? DivingState.Diving : DivingState.OnGround);
-		ApplyDivingDrag();
-		void ApplyDivingDrag()
+		else if (flag)
 		{
-			if (!isGrounded)
-			{
-				float num = BMath.Max(0f, 1f - settings.KnockOutAirLinearDamping * Time.fixedDeltaTime);
-				Velocity *= num;
-				float num2 = BMath.Max(0f, 1f - settings.KnockOutAirAngularDamping * Time.fixedDeltaTime);
-				rigidbody.angularVelocity *= num2;
-			}
+			UpdateGroundData(hit, hit.point);
+			SetDivingState(DivingState.OnGround);
+		}
+		else
+		{
+			SetDivingState(DivingState.Diving);
 		}
 		bool ShouldStartGettingUp()
 		{
@@ -2072,7 +2351,7 @@ public class PlayerMovement : NetworkBehaviour
 			{
 				return true;
 			}
-			if (divingState != DivingState.OnGround && BMath.GetTimeSince(diveStartTimestamp) > settings.DiveTimeOut)
+			if (divingState != DivingState.OnGround && BMath.GetTimeSince(diveStartTimestamp) > GameManager.PlayerMovementSettings.DiveTimeOut)
 			{
 				return true;
 			}
@@ -2080,7 +2359,7 @@ public class PlayerMovement : NetworkBehaviour
 			{
 				return false;
 			}
-			if (BMath.GetTimeSince(DivingStateTimestamp) < settings.DiveMinGroundTimeToGetUp)
+			if (BMath.GetTimeSince(DivingStateTimestamp) < GameManager.PlayerMovementSettings.DiveMinGroundTimeToGetUp)
 			{
 				return false;
 			}
@@ -2119,11 +2398,11 @@ public class PlayerMovement : NetworkBehaviour
 					reference = raycastHit;
 				}
 			}
-			bool flag = reference.distance < float.MaxValue;
+			bool flag2 = reference.distance < float.MaxValue;
 			if (drawPlayerGroundingDebug)
 			{
-				float num4 = (flag ? reference.distance : num);
-				Color color = (flag ? Color.red : Color.green);
+				float num4 = (flag2 ? reference.distance : num);
+				Color color = (flag2 ? Color.red : Color.green);
 				BDebug.DrawCapsuleCast(item, item2, num2, Vector3.down * num4, color);
 			}
 			return reference.distance < float.MaxValue;
@@ -2135,7 +2414,7 @@ public class PlayerMovement : NetworkBehaviour
 		JumpType jumpType = GetJumpType();
 		bool num = PlayerInfo.Inventory.TryUseSpringBoots();
 		Vector3 vector = Velocity;
-		float num2 = (num ? GameManager.ItemSettings.SpringBootsJumpUpwardsSpeed : settings.JumpUpwardsSpeed);
+		float num2 = (num ? GameManager.ItemSettings.SpringBootsJumpUpwardsSpeed : GameManager.PlayerMovementSettings.JumpUpwardsSpeed);
 		if (vector.y <= 0f)
 		{
 			vector.y = num2;
@@ -2157,7 +2436,7 @@ public class PlayerMovement : NetworkBehaviour
 				vector = vector.ProjectOnPlane(rawWorldMoveVector3d);
 			}
 			vector += vector2;
-			IsInSpringBootsJump = true;
+			SetIsInSpringBootsJump(isInJump: true, fromLanding: false);
 		}
 		Velocity = vector;
 		Unground();
@@ -2203,10 +2482,25 @@ public class PlayerMovement : NetworkBehaviour
 		}
 	}
 
+	private void SetIsInSpringBootsJump(bool isInJump, bool fromLanding)
+	{
+		bool isInSpringBootsJump = IsInSpringBootsJump;
+		IsInSpringBootsJump = isInJump;
+		if (IsInSpringBootsJump != isInSpringBootsJump && !IsInSpringBootsJump)
+		{
+			PlayerInfo.Inventory.InformNoLongerInSpringBootsJump(fromLanding);
+		}
+	}
+
 	private void UpdateGroundingState(bool suppressLandingAnimation)
 	{
 		wasGrounded = isGrounded;
 		NetworkisGrounded = PerformGroundCheck();
+		if (isGrounded && PhysicsManager.JumpPadsByCollider.TryGetValue(GroundData.collider, out var value) && value.TryTriggerJumpFor(PlayerInfo.AsHittable))
+		{
+			PlayerInfo.AnimatorIo.BeginJump(JumpType.Stationary);
+			return;
+		}
 		anchorVelocity = ((isGrounded && GroundData.hasRigidbody) ? GroundData.rigidbody.linearVelocity : Vector3.zero);
 		if (isGrounded && MoveVectorMagnitude > 0.1f)
 		{
@@ -2225,10 +2519,15 @@ public class PlayerMovement : NetworkBehaviour
 			}
 			if (IsInSpringBootsJump)
 			{
-				IsInSpringBootsJump = false;
+				SetIsInSpringBootsJump(isInJump: false, fromLanding: true);
 				PlaySpringBootsLandingForAllClients(base.transform.position);
 			}
 			CmdInformGrounded();
+		}
+		else
+		{
+			wasWadingInWaterWhenLastGrounded = isWadingInWater;
+			lastUngroundedDueToJumpPad = false;
 		}
 		UpdateIsGroundedAtAll();
 		PlayerInfo.Inventory.InformLocalPlayerGroundedChanged();
@@ -2266,7 +2565,7 @@ public class PlayerMovement : NetworkBehaviour
 				return false;
 			}
 			float currentOutOfBoundsHazardWorldHeightLocalOnly = PlayerInfo.LevelBoundsTracker.CurrentOutOfBoundsHazardWorldHeightLocalOnly;
-			if (Position.y + settings.ShallowWaterWadingHeightThreshold > currentOutOfBoundsHazardWorldHeightLocalOnly)
+			if (Position.y + GameManager.PlayerMovementSettings.ShallowWaterWadingHeightThreshold > currentOutOfBoundsHazardWorldHeightLocalOnly)
 			{
 				return false;
 			}
@@ -2316,23 +2615,72 @@ public class PlayerMovement : NetworkBehaviour
 		PlayerInfo.Inventory.InformOfSpringBootsLanding(worldPosition);
 	}
 
-	private void UpdatePhysicsFactors()
+	private void UpdatePhysicsParameters()
 	{
-		horizontalDragFactor = 1f;
-		gravityFactor = 1f;
+		horizontalDrag = GameManager.PlayerMovementSettings.DefaultHorizontalDrag;
+		gravityFactor = (IsKnockedOutOrRecovering ? GameManager.PlayerMovementSettings.KnockOutGravityFactor : 1f);
 		if (isDrowning)
 		{
-			horizontalDragFactor = 0.25f;
+			horizontalDrag = GameManager.PlayerMovementSettings.DrowningHorizontalDrag;
 		}
 		else if (isGrounded)
 		{
-			horizontalDragFactor = 2f;
+			if (groundTerrainType != GroundTerrainType.NotTerrain && TerrainManager.Settings.LayerSettings.TryGetValue(groundTerrainDominantGlobalLayer, out var value) && value.DoesOverridePlayerDrag)
+			{
+				horizontalDrag = value.PlayerOverrideDrag;
+			}
+			else
+			{
+				horizontalDrag = GameManager.PlayerMovementSettings.GroundedHorizontalDrag;
+			}
 		}
 		else
 		{
-			horizontalDragFactor = 0.1f;
+			horizontalDrag = GameManager.PlayerMovementSettings.AirHorizontalDrag;
 		}
 		UpdateRotationDragFactor();
+		UpdateRigidbodyDamping();
+		void UpdateRigidbodyDamping()
+		{
+			if (IsKnockedOut)
+			{
+				if (knockoutState == KnockoutState.OnGround)
+				{
+					rigidbody.linearDamping = GameManager.PlayerMovementSettings.KnockOutGroundLinearDamping;
+					rigidbody.angularDamping = GameManager.PlayerMovementSettings.KnockOutGroundAngularDamping;
+				}
+				else if (knockoutState == KnockoutState.InAir)
+				{
+					rigidbody.linearDamping = GameManager.PlayerMovementSettings.KnockOutAirLinearDamping;
+					rigidbody.angularDamping = GameManager.PlayerMovementSettings.KnockOutAirAngularDamping;
+				}
+			}
+			else if (divingState != DivingState.None)
+			{
+				if (divingState == DivingState.Diving)
+				{
+					rigidbody.linearDamping = GameManager.PlayerMovementSettings.DivingAirLinearDamping;
+					rigidbody.angularDamping = GameManager.PlayerMovementSettings.DivingAirAngularDamping;
+				}
+				else if (divingState == DivingState.OnGround)
+				{
+					if (groundTerrainType != GroundTerrainType.NotTerrain && TerrainManager.Settings.LayerSettings.TryGetValue(groundTerrainDominantGlobalLayer, out var value2) && value2.DoesOverridePlayerDiveDamping)
+					{
+						rigidbody.linearDamping = value2.PlayerOverrideDiveDamping;
+					}
+					else
+					{
+						rigidbody.linearDamping = GameManager.PlayerMovementSettings.DivingGroundLinearDamping;
+					}
+					rigidbody.angularDamping = GameManager.PlayerMovementSettings.DivingGroundAngularDamping;
+				}
+			}
+			else
+			{
+				rigidbody.linearDamping = 0f;
+				rigidbody.angularDamping = 0f;
+			}
+		}
 	}
 
 	private void UpdateRotationDragFactor()
@@ -2343,10 +2691,26 @@ public class PlayerMovement : NetworkBehaviour
 
 	private void UpdateSpecialStatePhysics()
 	{
+		if (PlayerInfo.AsHittable.IsFrozen)
+		{
+			rigidbody.constraints = RigidbodyConstraints.None;
+			rigidbody.useGravity = true;
+		}
+		else if (IsKnockedOut)
+		{
+			rigidbody.constraints = RigidbodyConstraints.None;
+		}
+		else if (knockoutState == KnockoutState.Recovering)
+		{
+			rigidbody.constraints = (RigidbodyConstraints)80;
+		}
+		else
+		{
+			rigidbody.constraints = (RigidbodyConstraints)80;
+			rigidbody.useGravity = false;
+		}
 		if (!IsKnockedOut && divingState == DivingState.None)
 		{
-			rigidbody.linearDamping = 0f;
-			rigidbody.angularDamping = 0f;
 			uprightCollider.sharedMaterial = PhysicsManager.Settings.PlayerMaterial;
 			divingCollider.sharedMaterial = PhysicsManager.Settings.PlayerMaterial;
 		}
@@ -2354,31 +2718,11 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			uprightCollider.sharedMaterial = PhysicsManager.Settings.PlayerKnockedOutMaterial;
 			divingCollider.sharedMaterial = PhysicsManager.Settings.PlayerKnockedOutMaterial;
-			if (knockoutState == KnockoutState.OnGround)
-			{
-				rigidbody.linearDamping = settings.KnockOutGroundLinearDamping;
-				rigidbody.angularDamping = settings.KnockOutGroundAngularDamping;
-			}
-			else if (knockoutState == KnockoutState.InAir)
-			{
-				rigidbody.linearDamping = settings.KnockOutAirLinearDamping;
-				rigidbody.angularDamping = settings.KnockOutAirAngularDamping;
-			}
 		}
 		else if (divingState != DivingState.None)
 		{
 			uprightCollider.sharedMaterial = PhysicsManager.Settings.PlayerDivingMaterial;
 			divingCollider.sharedMaterial = PhysicsManager.Settings.PlayerDivingMaterial;
-			if (divingState == DivingState.Diving)
-			{
-				rigidbody.linearDamping = settings.DivingAirLinearDamping;
-				rigidbody.angularDamping = settings.DivingAirAngularDamping;
-			}
-			else if (knockoutState == KnockoutState.InAir)
-			{
-				rigidbody.linearDamping = settings.DivingGroundLinearDamping;
-				rigidbody.angularDamping = settings.DivingGroundAngularDamping;
-			}
 		}
 	}
 
@@ -2388,7 +2732,7 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			return false;
 		}
-		float additionalGroundCheckDistance = ((wasGrounded && Velocity.y <= 1f) ? settings.GroundCheckDistanceAdditionWhenGrounded : 0f);
+		float additionalGroundCheckDistance = ((wasGrounded && Velocity.y <= 1f) ? GameManager.PlayerMovementSettings.GroundCheckDistanceAdditionWhenGrounded : 0f);
 		if (!TryFindGround(additionalGroundCheckDistance, out var groundingRayHitInfo, out var contactPoint))
 		{
 			return false;
@@ -2427,7 +2771,7 @@ public class PlayerMovement : NetworkBehaviour
 		else
 		{
 			Vector3 normal = groundingRayHitInfo.normal;
-			flag2 = 90f + normal.GetPitchDeg() <= settings.UngroundableGroundPitchThreshold;
+			flag2 = 90f + normal.GetPitchDeg() <= GameManager.PlayerMovementSettings.UngroundableGroundPitchThreshold;
 			if (flag2)
 			{
 				num2 = groundingRayHitInfo.distance;
@@ -2449,10 +2793,10 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			groundingRayHitInfo.distance = num;
 			Quaternion quaternion = Quaternion.AngleAxis(base.transform.forward.GetYawDeg(), Vector3.up);
-			for (int i = 0; i < settings.AdditionalGroundingRaycastCount; i++)
+			for (int i = 0; i < GameManager.PlayerMovementSettings.AdditionalGroundingRaycastCount; i++)
 			{
-				float angle = MathF.PI * 2f * (float)i * settings.InverseAdditionalGroundingRaycastCount;
-				ray.origin = uprightCollider.bounds.center + quaternion * new Vector3(BMath.Sin(angle), 0f, BMath.Cos(angle)) * settings.AdditionalGroundingRaycastsRadius;
+				float angle = MathF.PI * 2f * (float)i * GameManager.PlayerMovementSettings.InverseAdditionalGroundingRaycastCount;
+				ray.origin = uprightCollider.bounds.center + quaternion * new Vector3(BMath.Sin(angle), 0f, BMath.Cos(angle)) * GameManager.PlayerMovementSettings.AdditionalGroundingRaycastsRadius;
 				box.center = ray.origin;
 				if (box.Check(GameManager.LayerSettings.PlayerGroundableMask))
 				{
@@ -2475,7 +2819,7 @@ public class PlayerMovement : NetworkBehaviour
 					continue;
 				}
 				Vector3 normal2 = bestHit.normal;
-				if (90f + normal2.GetPitchDeg() <= settings.UngroundableGroundPitchThreshold && !(bestHit.distance >= num2))
+				if (90f + normal2.GetPitchDeg() <= GameManager.PlayerMovementSettings.UngroundableGroundPitchThreshold && !(bestHit.distance >= num2))
 				{
 					groundingRayHitInfo = bestHit;
 					num2 = bestHit.distance;
@@ -2510,15 +2854,15 @@ public class PlayerMovement : NetworkBehaviour
 
 	private void UpdateGroundData(RaycastHit groundingRayHitInfo, Vector3 contactPoint)
 	{
-		TerrainEdgeDetail foundComponent;
+		TerrainAddition foundComponent;
 		if (groundingRayHitInfo.collider is TerrainCollider)
 		{
 			NetworkgroundTerrainType = GroundTerrainType.Terrain;
 			NetworkgroundTerrainDominantGlobalLayer = TerrainManager.GetDominantGlobalLayerAtPoint(contactPoint);
 		}
-		else if (groundingRayHitInfo.collider.TryGetComponentInParent<TerrainEdgeDetail>(out foundComponent, includeInactive: true))
+		else if (groundingRayHitInfo.collider.TryGetComponentInParent<TerrainAddition>(out foundComponent, includeInactive: true))
 		{
-			NetworkgroundTerrainType = GroundTerrainType.TerrainEdgeDetail;
+			NetworkgroundTerrainType = GroundTerrainType.TerrainAddition;
 			NetworkgroundTerrainDominantGlobalLayer = foundComponent.TerrainLayer;
 		}
 		else
@@ -2602,12 +2946,12 @@ public class PlayerMovement : NetworkBehaviour
 
 	private float GetBaseGravitySpeedDelta()
 	{
-		return Physics.gravity.y * settings.BaseGravityFactor * gravityFactor * Time.fixedDeltaTime;
+		return Physics.gravity.y * GameManager.PlayerMovementSettings.BaseGravityFactor * gravityFactor * Time.fixedDeltaTime;
 	}
 
 	private void UpdateTerminalVelocity()
 	{
-		verticalTerminalVelocity = settings.DefaultTerminalFallingSpeed;
+		verticalTerminalVelocity = GameManager.PlayerMovementSettings.DefaultTerminalFallingSpeed;
 	}
 
 	private Vector3 GetNextFrameGroundPoint(float velocityFactor = 1f)
@@ -2631,14 +2975,24 @@ public class PlayerMovement : NetworkBehaviour
 		}
 	}
 
-	public void Unground()
+	public void Unground(bool fromJumpPad = false)
 	{
 		bool flag = isGrounded;
 		NetworkisGrounded = false;
+		if (fromJumpPad)
+		{
+			lastUngroundedDueToJumpPad = true;
+		}
 		if (isGrounded != flag)
 		{
 			groundTime = 0f;
+			wasWadingInWaterWhenLastGrounded = isWadingInWater;
+			if (!fromJumpPad)
+			{
+				lastUngroundedDueToJumpPad = false;
+			}
 			UpdateIsGroundedAtAll();
+			UpdateWaterState();
 			PlayerInfo.Inventory.InformLocalPlayerGroundedChanged();
 			PlayerInfo.AnimatorIo.SetIsGrounded(isGrounded);
 			this.IsGroundedChanged?.Invoke();
@@ -2660,7 +3014,7 @@ public class PlayerMovement : NetworkBehaviour
 			{
 				ungroundedLastGroundedAtAllPosition = base.transform.position;
 			}
-			else if (!flag2 && !SingletonBehaviour<DrivingRangeManager>.HasInstance && CourseManager.CountActivePlayers() > 1 && (base.transform.position - ungroundedLastGroundedAtAllPosition).sqrMagnitude >= GameManager.Achievements.FrogLegsDistanceSquared)
+			else if (!flag2 && !lastUngroundedDueToJumpPad && !SingletonBehaviour<DrivingRangeManager>.HasInstance && CourseManager.CountActivePlayers() > 1 && (base.transform.position - ungroundedLastGroundedAtAllPosition).sqrMagnitude >= GameManager.Achievements.FrogLegsDistanceSquared)
 			{
 				GameManager.AchievementsManager.Unlock(AchievementId.FrogLegs);
 			}
@@ -2796,7 +3150,7 @@ public class PlayerMovement : NetworkBehaviour
 			rigidbody.linearVelocity = Vector3.zero;
 			rigidbody.angularVelocity = Vector3.zero;
 			PlayerInfo.AnimatorIo.SetKnockoutRecoveryType(knockoutRecoveryType);
-			yield return new WaitForSeconds(settings.KnockoutRecoveryDuration);
+			yield return new WaitForSeconds(GameManager.PlayerMovementSettings.KnockoutRecoveryDuration);
 			SetKnockOutState(KnockoutState.None);
 		}
 		bool ShouldRecoverInstantly()
@@ -2836,8 +3190,6 @@ public class PlayerMovement : NetworkBehaviour
 			if (IsKnockedOutOrRecovering)
 			{
 				knockoutTimestamp = Time.timeAsDouble;
-				rigidbody.constraints = RigidbodyConstraints.None;
-				rigidbody.useGravity = true;
 				Unground();
 				SetDivingState(DivingState.None);
 				PlayerInfo.CancelEmote(canHideEmoteMenu: true);
@@ -2846,9 +3198,6 @@ public class PlayerMovement : NetworkBehaviour
 			}
 			else
 			{
-				rigidbody.constraints = (RigidbodyConstraints)80;
-				rigidbody.useGravity = false;
-				EnsureNoTilt();
 				PlayerInfo.AnimatorIo.RecoverFromKnockOut();
 				NetworkknockedOutVfxData = KnockedOutVfxData.None;
 				UpdateGroundingState(suppressLandingAnimation: true);
@@ -2856,58 +3205,88 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		if (knockoutState != KnockoutState.Recovering && state == KnockoutState.Recovering)
 		{
-			rigidbody.constraints = (RigidbodyConstraints)80;
-			rigidbody.useGravity = true;
-			EnsureNoTilt();
 			NetworkknockedOutVfxData = KnockedOutVfxData.None;
 		}
 		if (this.knockoutState == KnockoutState.Recovering || (this.knockoutState == KnockoutState.None && knockoutState != KnockoutState.Recovering))
 		{
-			if (knockoutImmunityRoutine != null)
-			{
-				StopCoroutine(knockoutImmunityRoutine);
-			}
-			knockoutImmunityRoutine = StartCoroutine(KnockoutImmunityRoutine());
+			StartKnockoutImmunity(fromPlayerAggression: true);
 		}
 		UpdateSpecialStatePhysics();
 		UpdateIsGroundedAtAll();
 		PlayerInfo.AnimatorIo.SetKnockoutState(this.knockoutState);
 		this.IsKnockedOutOrRecoveringChanged?.Invoke();
 		PlayerInfo.Cosmetics.Switcher.SetKnockedOut(IsKnockedOut);
-		async void EnsureNoTilt()
+	}
+
+	private void StartKnockoutImmunity(bool fromPlayerAggression)
+	{
+		if (knockoutImmunityRoutine != null)
 		{
-			while (base.transform.eulerAngles.x != 0f || base.transform.eulerAngles.z != 0f)
+			StopCoroutine(knockoutImmunityRoutine);
+		}
+		knockoutImmunityRoutine = StartCoroutine(KnockoutImmunityRoutine());
+		bool IsStillInPlayerAgressionImmunity(float duration)
+		{
+			if (knockoutState == KnockoutState.Recovering)
 			{
-				Quaternion rotation = Quaternion.Euler(0f, Yaw, 0f);
-				base.transform.rotation = rotation;
-				rigidbody.rotation = rotation;
-				await UniTask.Yield(PlayerLoopTiming.LastFixedUpdate);
-				if (this == null || IsKnockedOutOrRecovering)
-				{
-					break;
-				}
+				return true;
 			}
+			if (!IsKnockedOutOrRecovering && BMath.GetTimeSince(IsKnockedOutTimestamp) < duration)
+			{
+				return true;
+			}
+			if (!PlayerInfo.AsHittable.IsFrozen && BMath.GetTimeSince(PlayerInfo.AsHittable.IsFrozenChangeTimestamp) < duration)
+			{
+				return true;
+			}
+			if ((float)recentHitsByDiveCount >= GameManager.PlayerMovementSettings.RepeatedDiveHitCountForKnockoutImmunity && BMath.GetTimeSince(lastHitByDaveTimestamp) < duration)
+			{
+				return true;
+			}
+			return false;
 		}
 		IEnumerator KnockoutImmunityRoutine()
 		{
-			NetworkhasKnockoutImmunity = true;
-			while (this.knockoutState == KnockoutState.Recovering || (!IsKnockedOutOrRecovering && BMath.GetTimeSince(IsKnockedOutTimestamp) < settings.PostKnockoutImmunityDuration))
+			if (fromPlayerAggression)
 			{
-				yield return null;
+				if (BMath.GetTimeSince(longKnockoutImmunityIncrementTimestamp) > GameManager.PlayerMovementSettings.KnockoutImmunityLongDurationCooldown)
+				{
+					recentKnockoutImmunityCount = 0;
+				}
+				recentKnockoutImmunityCount++;
+				longKnockoutImmunityIncrementTimestamp = Time.timeAsDouble;
+				bool flag = recentKnockoutImmunityCount < GameManager.PlayerMovementSettings.MinKnockoutImmunityCountBeforeLongDuration;
+				float duration = (flag ? GameManager.PlayerMovementSettings.PostKnockoutImmunityDuration : GameManager.PlayerMovementSettings.PostKnockoutImmunityLongDuration);
+				NetworkknockoutImmunityStatus = KnockOutImmunity.Get((!flag) ? KnockOutVfxColor.Orange : KnockOutVfxColor.Blue);
+				while (IsStillInPlayerAgressionImmunity(duration))
+				{
+					yield return null;
+				}
 			}
-			NetworkhasKnockoutImmunity = false;
+			else
+			{
+				NetworkknockoutImmunityStatus = KnockOutImmunity.Get(KnockOutVfxColor.Blue);
+				double timestamp = Time.timeAsDouble;
+				while (BMath.GetTimeSince(timestamp) < GameManager.PlayerMovementSettings.PostKnockoutImmunityDuration)
+				{
+					yield return null;
+				}
+			}
+			NetworkknockoutImmunityStatus = KnockOutImmunity.Reset(knockoutImmunityStatus);
+			recentHitsByDiveCount = 0;
 		}
 	}
 
 	private void CancelKnockoutImmunity()
 	{
-		if (hasKnockoutImmunity)
+		if (knockoutImmunityStatus.hasImmunity)
 		{
 			if (knockoutImmunityRoutine != null)
 			{
 				StopCoroutine(knockoutImmunityRoutine);
 			}
-			NetworkhasKnockoutImmunity = false;
+			NetworkknockoutImmunityStatus = KnockOutImmunity.Reset(knockoutImmunityStatus);
+			recentHitsByDiveCount = 0;
 		}
 	}
 
@@ -2956,6 +3335,10 @@ public class PlayerMovement : NetworkBehaviour
 			{
 				UpdateGroundingState(suppressLandingAnimation: true);
 			}
+			if (diveType == DiveType.RocketDriverSwingMiss && this.divingState == DivingState.OnGround)
+			{
+				NetworkdiveType = DiveType.Regular;
+			}
 			UpdateIsGroundedAtAll();
 			PlayerInfo.Inventory.InformLocalPlayerDivingStateChanged();
 			PlayerInfo.AnimatorIo.SetDivingState(state);
@@ -2968,7 +3351,7 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			this.isDrowning = isDrowning;
 			PlayerInfo.AnimatorIo.SetIsDrowning(isDrowning);
-			if (isDrowning && !PlayerInfo.LevelBoundsTracker.IsInWaterLocalOnly(0.5f))
+			if (isDrowning && !PlayerInfo.LevelBoundsTracker.IsInWaterLocalOnly(out var _, 0.5f))
 			{
 				Teleport(PlayerInfo.AsGolfer.LocalPlayerLatestEliminationPosition, base.transform.rotation, resetState: true);
 			}
@@ -2977,10 +3360,12 @@ public class PlayerMovement : NetworkBehaviour
 	}
 
 	[TargetRpc]
-	public void RpcInformKnockedOutOtherPlayer()
+	public void RpcInformKnockedOutOtherPlayer(PlayerInfo knockedOutPlayer, bool addSpeedBoost)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
-		SendTargetRPCInternal(null, "System.Void PlayerMovement::RpcInformKnockedOutOtherPlayer()", -448654721, writer, 0);
+		writer.WriteNetworkBehaviour(knockedOutPlayer);
+		writer.WriteBool(addSpeedBoost);
+		SendTargetRPCInternal(null, "System.Void PlayerMovement::RpcInformKnockedOutOtherPlayer(PlayerInfo,System.Boolean)", -768549841, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
@@ -3000,7 +3385,7 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			Debug.LogError("Only the local player is allowed to add a speed boost to themselves", base.gameObject);
 		}
-		else if (!IsKnockedOutOrRecovering || !(BMath.GetTimeSince(knockoutTimestamp) < settings.KnockoutDisallowSpeedBoostDuration))
+		else if (!(duration <= 0f) && (!IsKnockedOutOrRecovering || !(BMath.GetTimeSince(knockoutTimestamp) < GameManager.PlayerMovementSettings.KnockoutDisallowSpeedBoostDuration)) && (!PlayerInfo.AsHittable.IsFrozen || !(BMath.GetTimeSince(PlayerInfo.AsHittable.IsFrozenChangeTimestamp) < GameManager.PlayerMovementSettings.KnockoutDisallowSpeedBoostDuration)))
 		{
 			AddSpeedBoostAtEndOfFrame(duration);
 		}
@@ -3011,7 +3396,7 @@ public class PlayerMovement : NetworkBehaviour
 			{
 				bool flag = statusEffects.HasEffect(StatusEffect.SpeedBoost);
 				AddStatusEffect(StatusEffect.SpeedBoost);
-				SpeedBoostRemainingTime = (flag ? BMath.Min(SpeedBoostRemainingTime + num, settings.MaxSpeedBoostDuration) : BMath.Min(num, settings.MaxSpeedBoostDuration));
+				SpeedBoostRemainingTime = (flag ? BMath.Min(SpeedBoostRemainingTime + num, GameManager.PlayerMovementSettings.MaxSpeedBoostDuration) : BMath.Min(num, GameManager.PlayerMovementSettings.MaxSpeedBoostDuration));
 				if (BMath.GetTimeSince(speedBoostAdditionTimestamp) >= 0.5f)
 				{
 					PlaySpeedBoostEffectsForAllClients();
@@ -3033,7 +3418,11 @@ public class PlayerMovement : NetworkBehaviour
 			{
 				return false;
 			}
-			if (IsKnockedOutOrRecovering && BMath.GetTimeSince(knockoutTimestamp) < settings.KnockoutDisallowSpeedBoostDuration)
+			if (IsKnockedOutOrRecovering && BMath.GetTimeSince(knockoutTimestamp) < GameManager.PlayerMovementSettings.KnockoutDisallowSpeedBoostDuration)
+			{
+				return false;
+			}
+			if (PlayerInfo.AsHittable.IsFrozen && BMath.GetTimeSince(PlayerInfo.AsHittable.IsFrozenChangeTimestamp) < GameManager.PlayerMovementSettings.KnockoutDisallowSpeedBoostDuration)
 			{
 				return false;
 			}
@@ -3090,10 +3479,12 @@ public class PlayerMovement : NetworkBehaviour
 		if (!base.isLocalPlayer)
 		{
 			Debug.LogError("Only the local player is allowed to remove their own status effects", base.gameObject);
+			return;
 		}
-		else
+		NetworkstatusEffects = statusEffects & ~statusEffect;
+		if (statusEffect == StatusEffect.SpeedBoost)
 		{
-			NetworkstatusEffects = statusEffects & ~statusEffect;
+			continuousSpeedBoostTime = 0f;
 		}
 	}
 
@@ -3237,6 +3628,7 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			LocalPlayerUpdateOutOfBoundsMessageRemainingTime();
 		}
+		UpdateExplorerAchievementProgress();
 		if (base.isServer && !NoClipEnabled && PlayerInfo.AsGolfer.IsInitialized && isVisible && PlayerInfo.LevelBoundsTracker.AuthoritativeBoundsState.HasFlag(BoundsState.OutOfBounds) && !(BMath.GetTimeSince(PlayerInfo.AsGolfer.ServerOutOfBoundsTimerEliminationTimestamp) < 2f))
 		{
 			float timeSince = BMath.GetTimeSince(PlayerInfo.LevelBoundsTracker.OutOfBoundsTimestamp);
@@ -3252,6 +3644,18 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			PlayOutOfBoundsEliminationExplosionInternal();
 			CmdPlayOutOfBoundsEliminationExplosionForAllClients();
+		}
+		void UpdateExplorerAchievementProgress()
+		{
+			if (base.isLocalPlayer && isVisible && !SingletonBehaviour<DrivingRangeManager>.HasInstance && PlayerInfo.LevelBoundsTracker.AuthoritativeBoundsState.HasFlag(BoundsState.OutOfBounds))
+			{
+				BMath.Wrap(BMath.GetTimeSince(localPlayerExplorerAchievementLastOutOfBoundsTimestamp), GameManager.Achievements.ExplorerOutOfBoundsTimeStep, out var wrapCount);
+				if (wrapCount > 0 && CourseManager.CountActivePlayers() > 1)
+				{
+					GameManager.AchievementsManager.IncrementProgress(AchievementId.Explorer, GameManager.Achievements.ExplorerOutOfBoundsTimeStep * wrapCount);
+					localPlayerExplorerAchievementLastOutOfBoundsTimestamp = Time.timeAsDouble;
+				}
+			}
 		}
 	}
 
@@ -3335,17 +3739,26 @@ public class PlayerMovement : NetworkBehaviour
 	private void UpdateKnockoutImmunityVfx()
 	{
 		bool flag = knockoutImmunityVfx != null;
-		bool flag2 = ShouldPlay();
-		if (flag2 != flag)
+		bool isPlaying = ShouldPlay();
+		bool wasKnockoutProtectedFromLocalPlayer = false;
+		if (!base.isLocalPlayer)
 		{
-			if (flag2)
-			{
-				PlayVfx();
-			}
-			else
-			{
-				ClearVfx();
-			}
+			wasKnockoutProtectedFromLocalPlayer = isKnockoutProtectedFromLocalPlayer;
+			isKnockoutProtectedFromLocalPlayer = IsKnockoutProtectedFromPlayer(GameManager.LocalPlayerInfo);
+			isPlaying |= isKnockoutProtectedFromLocalPlayer;
+		}
+		isPlaying &= !PlayerInfo.AsEntity.IsDestroyed;
+		if (isPlaying == flag)
+		{
+			UpdateColor();
+		}
+		else if (isPlaying)
+		{
+			PlayVfx();
+		}
+		else
+		{
+			ClearVfx();
 		}
 		void ClearVfx()
 		{
@@ -3356,6 +3769,7 @@ public class PlayerMovement : NetworkBehaviour
 			}
 			if (!PlayerInfo.AsEntity.IsDestroyed && VfxPersistentData.TryGetPooledVfx(VfxType.KnockOutShieldEnd, out var particleSystem))
 			{
+				particleSystem.GetComponent<KnockOutVfxVisuals>().SetColor(wasKnockoutProtectedFromLocalPlayer ? KnockOutVfxColor.Red : knockoutImmunityStatus.color);
 				particleSystem.transform.SetParent(PlayerInfo.ChestBone);
 				particleSystem.transform.localPosition = Vector3.zero;
 				particleSystem.Play();
@@ -3365,6 +3779,7 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			if (knockoutImmunityVfx == null && VfxPersistentData.TryGetPooledVfx(VfxType.KnockOutShield, out knockoutImmunityVfx))
 			{
+				UpdateColor();
 				knockoutImmunityVfx.transform.SetParent(PlayerInfo.ChestBone);
 				knockoutImmunityVfx.transform.localPosition = Vector3.zero;
 				knockoutImmunityVfx.Play();
@@ -3372,11 +3787,7 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		bool ShouldPlay()
 		{
-			if (!hasKnockoutImmunity)
-			{
-				return false;
-			}
-			if (PlayerInfo.AsEntity.IsDestroyed)
+			if (!knockoutImmunityStatus.hasImmunity)
 			{
 				return false;
 			}
@@ -3386,6 +3797,56 @@ public class PlayerMovement : NetworkBehaviour
 			}
 			return true;
 		}
+		void UpdateColor()
+		{
+			if (isPlaying && knockoutImmunityVfx != null)
+			{
+				knockoutImmunityVfx.GetComponent<KnockOutVfxVisuals>().SetColor(isKnockoutProtectedFromLocalPlayer ? KnockOutVfxColor.Red : knockoutImmunityStatus.color);
+			}
+		}
+	}
+
+	private void UpdateCanPassThroughDynamicBalls()
+	{
+		SetCollidersCanPassThrough(ShouldPassThrough());
+		static void SetColliderCanPassThrough(Collider collider, bool canPassThrough)
+		{
+			if (canPassThrough)
+			{
+				collider.excludeLayers = (int)collider.excludeLayers | (int)GameManager.LayerSettings.DynamicBallMask;
+			}
+			else
+			{
+				collider.excludeLayers = (int)collider.excludeLayers & ~(int)GameManager.LayerSettings.DynamicBallMask;
+			}
+		}
+		void SetCollidersCanPassThrough(bool canPassThrough)
+		{
+			SetColliderCanPassThrough(uprightCollider, canPassThrough);
+			SetColliderCanPassThrough(divingCollider, canPassThrough);
+			SetColliderCanPassThrough(hittableCollider, canPassThrough);
+		}
+		bool ShouldPassThrough()
+		{
+			return knockoutImmunityStatus.hasImmunity;
+		}
+	}
+
+	public bool IsKnockoutProtectedFromPlayer(PlayerInfo otherPlayer)
+	{
+		if (otherPlayer == null || otherPlayer == PlayerInfo)
+		{
+			return false;
+		}
+		if (!CourseManager.PlayerKnockoutStreaks.TryGetValue(new CourseManager.PlayerPair(otherPlayer.PlayerId.Guid, PlayerInfo.PlayerId.Guid), out var value))
+		{
+			return false;
+		}
+		if (value < 6)
+		{
+			return false;
+		}
+		return true;
 	}
 
 	private bool CanGround()
@@ -3402,7 +3863,11 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			return false;
 		}
-		if (!isGrounded && Velocity.y >= settings.VerticalVelocityGroundingThreshold)
+		if (PlayerInfo.AsHittable.IsFrozen)
+		{
+			return false;
+		}
+		if (!isGrounded && Velocity.y >= GameManager.PlayerMovementSettings.VerticalVelocityGroundingThreshold)
 		{
 			return false;
 		}
@@ -3495,11 +3960,83 @@ public class PlayerMovement : NetworkBehaviour
 		VfxManager.PlayPooledVfxLocalOnly(VfxType.GolfCartCollision, vector, Quaternion.identity);
 	}
 
+	private void UpdateRocketDriverSwingMissTrailEffects()
+	{
+		bool flag = rocketDriverSwingMissTrailVfx != null;
+		bool flag2 = ShouldPlay();
+		if (flag2 != flag)
+		{
+			if (rocketDriverSwingMissTrailSound.isValid())
+			{
+				rocketDriverSwingMissTrailSound.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+			}
+			if (flag2)
+			{
+				PlayVfx();
+			}
+			else
+			{
+				ClearVfx();
+			}
+		}
+		void ClearVfx()
+		{
+			if (rocketDriverSwingMissTrailVfx != null)
+			{
+				rocketDriverSwingMissTrailVfx.Stop();
+				rocketDriverSwingMissTrailVfx = null;
+			}
+			if (!BNetworkManager.IsChangingSceneOrShuttingDown)
+			{
+				RuntimeManager.PlayOneShot(GameManager.AudioSettings.RocketDriverTrailStopEvent, base.transform.position);
+			}
+		}
+		void PlayVfx()
+		{
+			if (rocketDriverSwingMissTrailVfx == null && VfxPersistentData.TryGetPooledVfx(VfxType.RocketDriverTrail, out rocketDriverSwingMissTrailVfx))
+			{
+				rocketDriverSwingMissTrailVfx.transform.SetParent(PlayerInfo.ChestBone);
+				rocketDriverSwingMissTrailVfx.transform.localPosition = Vector3.zero;
+				rocketDriverSwingMissTrailVfx.Play();
+			}
+			rocketDriverSwingMissTrailSound = RuntimeManager.CreateInstance(GameManager.AudioSettings.RocketDriverTrailLoopEvent);
+			RuntimeManager.AttachInstanceToGameObject(rocketDriverSwingMissTrailSound, base.gameObject);
+			rocketDriverSwingMissTrailSound.start();
+			rocketDriverSwingMissTrailSound.release();
+		}
+		bool ShouldPlay()
+		{
+			if (PlayerInfo.AsEntity.IsDestroyed)
+			{
+				return false;
+			}
+			if (divingState != DivingState.Diving)
+			{
+				return false;
+			}
+			if (diveType != DiveType.RocketDriverSwingMiss)
+			{
+				return false;
+			}
+			if (!isVisible)
+			{
+				return false;
+			}
+			return true;
+		}
+	}
+
 	private void OnLocalBoundsStateChanged(BoundsState previousState, BoundsState currentState)
 	{
-		bool flag = previousState.HasState(BoundsState.InMainOutOfBoundsHazard | BoundsState.InSecondaryOutOfBoundsHazard);
-		bool flag2 = currentState.HasState(BoundsState.InMainOutOfBoundsHazard | BoundsState.InSecondaryOutOfBoundsHazard);
-		if (flag2 != flag && flag2 && ((!currentState.HasState(BoundsState.InMainOutOfBoundsHazard)) ? (PlayerInfo.LevelBoundsTracker.CurrentSecondaryHazardLocalOnly.Type == OutOfBoundsHazard.Water) : (MainOutOfBoundsHazard.Type == OutOfBoundsHazard.Water)))
+		bool flag = previousState.HasFlag(BoundsState.OutOfBounds);
+		bool flag2 = currentState.HasFlag(BoundsState.OutOfBounds);
+		bool flag3 = previousState.HasState(BoundsState.InMainOutOfBoundsHazard | BoundsState.InSecondaryOutOfBoundsHazard);
+		bool flag4 = currentState.HasState(BoundsState.InMainOutOfBoundsHazard | BoundsState.InSecondaryOutOfBoundsHazard);
+		if (flag2 != flag && flag2)
+		{
+			localPlayerExplorerAchievementLastOutOfBoundsTimestamp = Time.timeAsDouble;
+		}
+		if (flag4 != flag3 && flag4 && ((!currentState.HasState(BoundsState.InMainOutOfBoundsHazard)) ? (PlayerInfo.LevelBoundsTracker.CurrentSecondaryHazardLocalOnly.Type == OutOfBoundsHazard.Water) : (MainOutOfBoundsHazard.Type == OutOfBoundsHazard.Water)))
 		{
 			Vector3 position = PlayerInfo.ChestBone.position;
 			position.y = PlayerInfo.LevelBoundsTracker.CurrentOutOfBoundsHazardWorldHeightLocalOnly;
@@ -3527,6 +4064,10 @@ public class PlayerMovement : NetworkBehaviour
 	private void OnLocalPlayerBoundsStateChanged(BoundsState previousState, BoundsState currentState)
 	{
 		LocalPlayerUpdateIsOutOfBoundsMessageShown();
+		if (diveType == DiveType.RocketDriverSwingMiss && currentState.IsInOutOfBoundsHazard())
+		{
+			NetworkdiveType = DiveType.Regular;
+		}
 	}
 
 	private void OnLocalPlayerMatchResolutionChanged(PlayerMatchResolution previousResolution, PlayerMatchResolution currentResolution)
@@ -3554,20 +4095,20 @@ public class PlayerMovement : NetworkBehaviour
 		LocalPlayerUpdateIsOutOfBoundsMessageShown();
 	}
 
-	private void OnLocalPlayerWillApplyGolfSwingHitPhysics(PlayerGolfer hitter, float power, Vector3 hitLocalPosition, Vector3 localOrigin, Vector3 incomingVelocityChange)
+	private void OnLocalPlayerWillApplyGolfSwingHitPhysics(PlayerGolfer hitter, float power, Vector3 hitLocalPosition, Vector3 localOrigin, Vector3 incomingVelocityChange, bool isRocketDriver)
 	{
-		if (!TryKnockOut(hitter.PlayerInfo, KnockoutType.Swing, power < 0.2f, localOrigin, 0f, incomingVelocityChange, canBeBlockedByElectromagnetShield: true, ItemUseId.Invalid, fromSpecialState: false, canFallbackToUnground: true, out var _) && PlayerInfo.IsElectromagnetShieldActive)
+		if (!TryKnockOut(hitter.PlayerInfo, isRocketDriver ? KnockoutType.RocketDriverSwing : KnockoutType.Swing, power < 0.2f, localOrigin, 0f, incomingVelocityChange, canBeBlockedByElectromagnetShield: true, ItemUseId.Invalid, fromSpecialState: false, canFallbackToUnground: true, out var _) && PlayerInfo.IsElectromagnetShieldActive)
 		{
 			Vector3 vector = base.transform.TransformPoint(hitLocalPosition);
 			PlayerInfo.PlayElectromagnetShieldHitForAllClients(vector - PlayerInfo.ElectromagnetShieldCollider.transform.position);
 		}
 	}
 
-	private void OnLocalPlayerWillApplySwingProjectileHitPhysics(Hittable hitter, Vector3 localHitPosition, Vector3 projectileSwingHitPosition, Vector3 incomingVelocityChange)
+	private void OnLocalPlayerWillApplySwingProjectileHitPhysics(Hittable hitter, Vector3 localHitPosition, Vector3 projectileSwingHitPosition, Vector3 incomingVelocityChange, bool wasSwungByRocketDriver)
 	{
-		KnockoutType knockoutType = ((hitter.SwingProjectileState != SwingProjectileState.ReflectedProjectile) ? KnockoutType.SwingProjectile : KnockoutType.ReflectedSwingProjectile);
+		KnockoutType knockoutType = ((hitter.SwingProjectileState == SwingProjectileState.ReflectedProjectile) ? KnockoutType.ReflectedSwingProjectile : ((!wasSwungByRocketDriver) ? KnockoutType.SwingProjectile : KnockoutType.RocketDriverSwingProjectile));
 		Vector3 vector = base.transform.TransformPoint(localHitPosition);
-		if (TryKnockOut(hitter.ResponsibleSwingProjectilePlayer.PlayerInfo, knockoutType, isLegSweep: false, localHitPosition, (vector - projectileSwingHitPosition).magnitude, incomingVelocityChange, canBeBlockedByElectromagnetShield: true, ItemUseId.Invalid, fromSpecialState: false, canFallbackToUnground: true, out var isNewKnockout) && isNewKnockout && knockoutType == KnockoutType.SwingProjectile && hitter.ResponsibleSwingProjectilePlayer == PlayerInfo.AsGolfer && PlayerInfo.AsGolfer.OwnBall != null && hitter == PlayerInfo.AsGolfer.OwnBall.AsEntity.AsHittable)
+		if (TryKnockOut(hitter.ResponsibleSwingProjectilePlayer.PlayerInfo, knockoutType, isLegSweep: false, localHitPosition, (vector - projectileSwingHitPosition).magnitude, incomingVelocityChange, canBeBlockedByElectromagnetShield: true, ItemUseId.Invalid, fromSpecialState: false, canFallbackToUnground: true, out var isNewKnockout) && isNewKnockout && (knockoutType == KnockoutType.SwingProjectile || knockoutType == KnockoutType.RocketDriverSwingProjectile) && hitter.ResponsibleSwingProjectilePlayer == PlayerInfo.AsGolfer && PlayerInfo.AsGolfer.OwnBall != null && hitter == PlayerInfo.AsGolfer.OwnBall.AsEntity.AsHittable)
 		{
 			GameManager.AchievementsManager.Unlock(AchievementId.HowIsThatEvenPossible);
 		}
@@ -3575,7 +4116,28 @@ public class PlayerMovement : NetworkBehaviour
 
 	private void OnLocalPlayerWillApplyDiveHitPhysics(PlayerMovement hitter, Vector3 appliedVelocity)
 	{
-		if (isGrounded && Vector3.Dot(GroundData.normal, appliedVelocity) > 0f)
+		if (!isGrounded)
+		{
+			return;
+		}
+		if (BMath.GetTimeSince(lastHitByDaveTimestamp) >= GameManager.PlayerMovementSettings.RepeatedDiveHitKnockoutImmunityTimeWindow)
+		{
+			recentHitsByDiveCount = 0;
+		}
+		if (!knockoutImmunityStatus.hasImmunity && (hitter == null || !IsKnockoutProtectedFromPlayer(hitter.PlayerInfo)))
+		{
+			recentHitsByDiveCount++;
+			lastHitByDaveTimestamp = Time.timeAsDouble;
+			if ((float)recentHitsByDiveCount >= GameManager.PlayerMovementSettings.RepeatedDiveHitCountForKnockoutImmunity)
+			{
+				StartKnockoutImmunity(fromPlayerAggression: true);
+			}
+		}
+		if (knockoutImmunityStatus.hasImmunity || (hitter != null && IsKnockoutProtectedFromPlayer(hitter.PlayerInfo)))
+		{
+			PlayKnockoutBlockedEffectForAllClients();
+		}
+		else if (Vector3.Dot(GroundData.normal, appliedVelocity) > 0f)
 		{
 			Unground();
 		}
@@ -3605,6 +4167,9 @@ public class PlayerMovement : NetworkBehaviour
 				knockoutType = KnockoutType.OrbitalLaserPeriphery;
 			}
 			break;
+		case ItemType.RocketDriver:
+			knockoutType = KnockoutType.RocketDriverSwing;
+			break;
 		}
 		if (knockoutType >= KnockoutType.Swing)
 		{
@@ -3631,6 +4196,15 @@ public class PlayerMovement : NetworkBehaviour
 		}
 	}
 
+	private void OnLocalPlayerWillWillApplyRocketDriverSwingPostHitSpinHitPhysics(PlayerGolfer hitter, Vector3 hitLocalPosition, Vector3 localOrigin, Vector3 incomingVelocityChange)
+	{
+		if (!TryKnockOut(hitter.PlayerInfo, KnockoutType.RocketDriverSwingPostHitSpin, isLegSweep: false, localOrigin, localOrigin.magnitude, incomingVelocityChange, canBeBlockedByElectromagnetShield: true, ItemUseId.Invalid, fromSpecialState: false, canFallbackToUnground: true, out var _) && PlayerInfo.IsElectromagnetShieldActive)
+		{
+			Vector3 vector = base.transform.TransformPoint(hitLocalPosition);
+			PlayerInfo.PlayElectromagnetShieldHitForAllClients(vector - PlayerInfo.ElectromagnetShieldCollider.transform.position);
+		}
+	}
+
 	private void OnLocalPlayerWillApplyReturnedBallHitPhysics(Vector3 incomingVelocityChange)
 	{
 		if (!TryKnockOut(PlayerInfo, KnockoutType.ReturnedBall, isLegSweep: false, Vector3.zero, 0f, incomingVelocityChange, canBeBlockedByElectromagnetShield: true, ItemUseId.Invalid, fromSpecialState: false, canFallbackToUnground: false, out var _) && PlayerInfo.IsElectromagnetShieldActive)
@@ -3644,20 +4218,67 @@ public class PlayerMovement : NetworkBehaviour
 		Unground();
 	}
 
+	private void OnLocalPlayerWillApplyJumpPadPhysics()
+	{
+		Unground(fromJumpPad: true);
+	}
+
+	private void OnLocalPlayerIsFrozenChanged()
+	{
+		if (PlayerInfo.AsHittable.IsFrozen)
+		{
+			RecoverFromKnockout();
+			SetDivingState(DivingState.None);
+			RemoveStatusEffect(StatusEffect.SpeedBoost);
+			SetIsInSpringBootsJump(isInJump: false, fromLanding: false);
+			Unground();
+		}
+		else
+		{
+			StartKnockoutImmunity(fromPlayerAggression: true);
+		}
+		UpdateSpecialStatePhysics();
+		PlayerInfo.AnimatorIo.SetIsFrozen(PlayerInfo.AsHittable.IsFrozen);
+	}
+
+	private void OnIsGroundedChanged(bool wasGrounded, bool isGrounded)
+	{
+		if (!base.isLocalPlayer)
+		{
+			this.IsGroundedChanged?.Invoke();
+		}
+	}
+
 	private void OnIsWadingInWaterChanged(bool wasWading, bool isWading)
 	{
 		PlayerInfo.Vfx.SetIsWadingInWater(isWadingInWater);
 		PlayerInfo.Vfx.SetWadingWaterWorldHeight(PlayerInfo.LevelBoundsTracker.CurrentOutOfBoundsHazardWorldHeightLocalOnly);
-		if (base.isLocalPlayer)
+		if (!base.isLocalPlayer)
 		{
-			PlayerInfo.AnimatorIo.SetIsWadingInWater(isWadingInWater);
+			return;
 		}
+		if (isWading)
+		{
+			Vector3 vector = Velocity.Horizontalized();
+			float magnitude = vector.magnitude;
+			float num = GameManager.PlayerMovementSettings.DefaultMoveSpeed * 1.25f;
+			if (statusEffects.HasEffect(StatusEffect.SpeedBoost))
+			{
+				num *= GameManager.PlayerMovementSettings.SpeedBoostSpeedFactor;
+			}
+			if (magnitude > GameManager.PlayerMovementSettings.WadingInWaterSpeed && magnitude <= num)
+			{
+				Velocity = vector * GameManager.PlayerMovementSettings.WadingInWaterSpeed / magnitude + Velocity.Verticalized();
+			}
+		}
+		PlayerInfo.AnimatorIo.SetIsWadingInWater(isWadingInWater);
 	}
 
 	private void OnIsVisibleChanged(bool wasVisible, bool isVisible)
 	{
 		ApplyVisibility();
 		UpdateKnockoutImmunityVfx();
+		UpdateRocketDriverSwingMissTrailEffects();
 		this.IsVisibleChanged?.Invoke();
 	}
 
@@ -3701,16 +4322,21 @@ public class PlayerMovement : NetworkBehaviour
 		}
 	}
 
-	private void OnHasKnockoutImmunityChanged(bool hadImmunity, bool hasImmunity)
+	private void OnKnockoutImmunityStatusChanged(KnockOutImmunity previousStatus, KnockOutImmunity currentStatus)
 	{
 		UpdateKnockoutImmunityVfx();
-		if (hasImmunity)
+		if (currentStatus.hasImmunity)
 		{
 			PlayerInfo.PlayerAudio.PlayKnockoutImmunityStartLocalOnly();
 		}
 		else
 		{
 			PlayerInfo.PlayerAudio.PlayKnockoutImmunityEndLocalOnly();
+		}
+		if (currentStatus.hasImmunity != previousStatus.hasImmunity)
+		{
+			UpdateCanPassThroughDynamicBalls();
+			this.HasKnockoutImmunityChanged?.Invoke();
 		}
 	}
 
@@ -3742,6 +4368,12 @@ public class PlayerMovement : NetworkBehaviour
 			diveOnGroundTimestampLocal = Time.timeAsDouble;
 		}
 		UpdateEnabledColliders();
+		UpdateRocketDriverSwingMissTrailEffects();
+	}
+
+	private void OnDiveTypeChanged(DiveType previousType, DiveType currentType)
+	{
+		UpdateRocketDriverSwingMissTrailEffects();
 	}
 
 	private void OnRespawnStateChanged(RespawnState previousState, RespawnState currentState)
@@ -3765,14 +4397,24 @@ public class PlayerMovement : NetworkBehaviour
 		PlayerMovement.AnyPlayerIsRespawningChanged?.Invoke(this);
 	}
 
+	private void OnPlayerDominationsChanged(SyncSet<CourseManager.PlayerPair>.Operation operation, CourseManager.PlayerPair pair)
+	{
+		if (!(GameManager.LocalPlayerId == null) && pair.playerAGuid == GameManager.LocalPlayerId.Guid && pair.playerBGuid == PlayerInfo.PlayerId.Guid)
+		{
+			UpdateKnockoutImmunityVfx();
+		}
+	}
+
 	public PlayerMovement()
 	{
+		_Mirror_SyncVarHookDelegate_isGrounded = OnIsGroundedChanged;
 		_Mirror_SyncVarHookDelegate_isWadingInWater = OnIsWadingInWaterChanged;
 		_Mirror_SyncVarHookDelegate_isVisible = OnIsVisibleChanged;
 		_Mirror_SyncVarHookDelegate_knockedOutVfxData = OnKnockedOutVfxDataChanged;
-		_Mirror_SyncVarHookDelegate_hasKnockoutImmunity = OnHasKnockoutImmunityChanged;
+		_Mirror_SyncVarHookDelegate_knockoutImmunityStatus = OnKnockoutImmunityStatusChanged;
 		_Mirror_SyncVarHookDelegate_statusEffects = OnStatusEffectsChanged;
 		_Mirror_SyncVarHookDelegate_divingState = OnDivingStateChanged;
+		_Mirror_SyncVarHookDelegate_diveType = OnDiveTypeChanged;
 		_Mirror_SyncVarHookDelegate_respawnState = OnRespawnStateChanged;
 	}
 
@@ -3781,6 +4423,7 @@ public class PlayerMovement : NetworkBehaviour
 		consoleSpeedFactor = 1f;
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerMovement), "System.Void PlayerMovement::CmdPlayKnockoutBlockedEffectForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayKnockoutBlockedEffectForAllClients__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerMovement), "System.Void PlayerMovement::CmdInformKnockedOut(PlayerInfo,KnockoutType,UnityEngine.Vector3,System.Single,ItemType,ItemUseId,System.Boolean)", InvokeUserCode_CmdInformKnockedOut__PlayerInfo__KnockoutType__Vector3__Single__ItemType__ItemUseId__Boolean, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerMovement), "System.Void PlayerMovement::CmdClientInformRestarted()", InvokeUserCode_CmdClientInformRestarted, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerMovement), "System.Void PlayerMovement::CmdPlayRespawnEffectsForAllClients(Checkpoint,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayRespawnEffectsForAllClients__Checkpoint__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerMovement), "System.Void PlayerMovement::CmdInformGrounded()", InvokeUserCode_CmdInformGrounded, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerMovement), "System.Void PlayerMovement::CmdPlaySpringBootsLandingForAllClients(UnityEngine.Vector3,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlaySpringBootsLandingForAllClients__Vector3__NetworkConnectionToClient, requiresAuthority: true);
@@ -3790,14 +4433,15 @@ public class PlayerMovement : NetworkBehaviour
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerMovement), "System.Void PlayerMovement::CmdPlayGolfCartKnockoutEffectsForAllClients(UnityEngine.Vector3,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayGolfCartKnockoutEffectsForAllClients__Vector3__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcInformSpawned(UnityEngine.Vector3,UnityEngine.Quaternion)", InvokeUserCode_RpcInformSpawned__Vector3__Quaternion);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcPlayKnockoutBlockedEffect(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayKnockoutBlockedEffect__NetworkConnectionToClient);
-		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcBeginRespawn(System.Boolean)", InvokeUserCode_RpcBeginRespawn__Boolean);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcBeginRespawn(System.Boolean,RespawnTarget)", InvokeUserCode_RpcBeginRespawn__Boolean__RespawnTarget);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcPlayRespawnEffects(Mirror.NetworkConnectionToClient,Checkpoint)", InvokeUserCode_RpcPlayRespawnEffects__NetworkConnectionToClient__Checkpoint);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcPlayRestartSound(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayRestartSound__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcSetIsForceHidden(System.Boolean)", InvokeUserCode_RpcSetIsForceHidden__Boolean);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcPlaySpringBootsLanding(Mirror.NetworkConnectionToClient,UnityEngine.Vector3)", InvokeUserCode_RpcPlaySpringBootsLanding__NetworkConnectionToClient__Vector3);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcSetOutOfBoundsMessageRemainingTime(System.Single)", InvokeUserCode_RpcSetOutOfBoundsMessageRemainingTime__Single);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcReturnToBounds(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcReturnToBounds__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcInformedTeleported(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,UnityEngine.Quaternion)", InvokeUserCode_RpcInformedTeleported__NetworkConnectionToClient__Vector3__Quaternion);
-		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcInformKnockedOutOtherPlayer()", InvokeUserCode_RpcInformKnockedOutOtherPlayer);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcInformKnockedOutOtherPlayer(PlayerInfo,System.Boolean)", InvokeUserCode_RpcInformKnockedOutOtherPlayer__PlayerInfo__Boolean);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcPlaySpeedBoostEffects(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlaySpeedBoostEffects__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcPlayOutOfBoundsEliminationExplosion(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayOutOfBoundsEliminationExplosion__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerMovement), "System.Void PlayerMovement::RpcPlayGolfCartKnockoutEffects(Mirror.NetworkConnectionToClient,UnityEngine.Vector3)", InvokeUserCode_RpcPlayGolfCartKnockoutEffects__NetworkConnectionToClient__Vector3);
@@ -3882,21 +4526,7 @@ public class PlayerMovement : NetworkBehaviour
 
 	protected void UserCode_CmdInformKnockedOut__PlayerInfo__KnockoutType__Vector3__Single__ItemType__ItemUseId__Boolean(PlayerInfo responsiblePlayer, KnockoutType knockoutType, Vector3 localOrigin, float distance, ItemType heldItem, ItemUseId itemUseId, bool fromSpecialState)
 	{
-		if (serverInformKnockedOutCommandRateLimiter.RegisterHit())
-		{
-			this.knockoutType = knockoutType;
-			CourseManager.InformPlayerKnockedOut(this, responsiblePlayer, knockoutType, out var knockoutCounted);
-			if (responsiblePlayer == PlayerInfo)
-			{
-				CourseManager.MarkLatestValidKnockout(PlayerInfo, itemUseId);
-			}
-			else if (knockoutCounted)
-			{
-				CourseManager.MarkLatestValidKnockout(PlayerInfo, itemUseId);
-				bool authoritativeIsOnGreen = PlayerInfo.LevelBoundsTracker.AuthoritativeIsOnGreen;
-				responsiblePlayer.RpcInformKnockedOutOtherPlayer(knockoutType, localOrigin, distance, heldItem, authoritativeIsOnGreen, fromSpecialState);
-			}
-		}
+		InformKnockedOutInternal(responsiblePlayer, knockoutType, localOrigin, distance, heldItem, itemUseId, fromSpecialState);
 	}
 
 	protected static void InvokeUserCode_CmdInformKnockedOut__PlayerInfo__KnockoutType__Vector3__Single__ItemType__ItemUseId__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
@@ -3911,12 +4541,12 @@ public class PlayerMovement : NetworkBehaviour
 		}
 	}
 
-	protected void UserCode_RpcBeginRespawn__Boolean(bool isRestart)
+	protected void UserCode_RpcBeginRespawn__Boolean__RespawnTarget(bool isRestart, RespawnTarget respawnTarget)
 	{
-		LocalPlayerBeginRespawn(isRestart);
+		LocalPlayerBeginRespawn(isRestart, respawnTarget);
 	}
 
-	protected static void InvokeUserCode_RpcBeginRespawn__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcBeginRespawn__Boolean__RespawnTarget(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -3924,7 +4554,27 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		else
 		{
-			((PlayerMovement)obj).UserCode_RpcBeginRespawn__Boolean(reader.ReadBool());
+			((PlayerMovement)obj).UserCode_RpcBeginRespawn__Boolean__RespawnTarget(reader.ReadBool(), GeneratedNetworkCode._Read_RespawnTarget(reader));
+		}
+	}
+
+	protected void UserCode_CmdClientInformRestarted()
+	{
+		if (serverRestartInformCommandRateLimiter.RegisterHit())
+		{
+			CourseManager.AddPenaltyStroke(PlayerInfo.AsGolfer, suppressPopup: false);
+		}
+	}
+
+	protected static void InvokeUserCode_CmdClientInformRestarted(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogError("Command CmdClientInformRestarted called on client.");
+		}
+		else
+		{
+			((PlayerMovement)obj).UserCode_CmdClientInformRestarted();
 		}
 	}
 
@@ -3973,6 +4623,23 @@ public class PlayerMovement : NetworkBehaviour
 		else
 		{
 			((PlayerMovement)obj).UserCode_RpcPlayRespawnEffects__NetworkConnectionToClient__Checkpoint(null, reader.ReadNetworkBehaviour<Checkpoint>());
+		}
+	}
+
+	protected void UserCode_RpcPlayRestartSound__NetworkConnectionToClient(NetworkConnectionToClient connection)
+	{
+		PlayRestartSoundInternal();
+	}
+
+	protected static void InvokeUserCode_RpcPlayRestartSound__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcPlayRestartSound called on server.");
+		}
+		else
+		{
+			((PlayerMovement)obj).UserCode_RpcPlayRestartSound__NetworkConnectionToClient(null);
 		}
 	}
 
@@ -4148,19 +4815,29 @@ public class PlayerMovement : NetworkBehaviour
 		}
 	}
 
-	protected void UserCode_RpcInformKnockedOutOtherPlayer()
+	protected void UserCode_RpcInformKnockedOutOtherPlayer__PlayerInfo__Boolean(PlayerInfo knockedOutPlayer, bool addSpeedBoost)
 	{
-		if (MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.KnockoutSpeedBoost))
+		if (knockedOutPlayer == null || !MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.KnockoutSpeedBoost))
 		{
-			AddSpeedBoost(settings.KnockOutSpeedBoostDuration);
-			if (!SingletonBehaviour<DrivingRangeManager>.HasInstance)
-			{
-				CosmeticsUnlocksManager.RewardCredits(5);
-			}
+			return;
 		}
+		if (knockoutTimePerPlayerGuid.TryGetValue(knockedOutPlayer.PlayerId.Guid, out var value) && BMath.GetTimeSince(value) < 0.5f)
+		{
+			Debug.LogWarning($"Server is sending too many knockout informs for player {knockedOutPlayer.PlayerId.PlayerName} ({knockedOutPlayer.PlayerId.Guid})");
+			return;
+		}
+		if (addSpeedBoost)
+		{
+			AddSpeedBoost(GameManager.PlayerMovementSettings.KnockOutSpeedBoostDuration);
+		}
+		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance)
+		{
+			CosmeticsUnlocksManager.RewardCredits(5);
+		}
+		knockoutTimePerPlayerGuid[knockedOutPlayer.PlayerId.Guid] = Time.timeAsDouble;
 	}
 
-	protected static void InvokeUserCode_RpcInformKnockedOutOtherPlayer(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcInformKnockedOutOtherPlayer__PlayerInfo__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -4168,7 +4845,7 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		else
 		{
-			((PlayerMovement)obj).UserCode_RpcInformKnockedOutOtherPlayer();
+			((PlayerMovement)obj).UserCode_RpcInformKnockedOutOtherPlayer__PlayerInfo__Boolean(reader.ReadNetworkBehaviour<PlayerInfo>(), reader.ReadBool());
 		}
 	}
 
@@ -4329,9 +5006,10 @@ public class PlayerMovement : NetworkBehaviour
 			writer.WriteBool(isVisible);
 			GeneratedNetworkCode._Write_KnockoutState(writer, knockoutState);
 			GeneratedNetworkCode._Write_PlayerMovement_002FKnockedOutVfxData(writer, knockedOutVfxData);
-			writer.WriteBool(hasKnockoutImmunity);
+			GeneratedNetworkCode._Write_PlayerMovement_002FKnockOutImmunity(writer, knockoutImmunityStatus);
 			GeneratedNetworkCode._Write_StatusEffect(writer, statusEffects);
 			GeneratedNetworkCode._Write_DivingState(writer, divingState);
+			GeneratedNetworkCode._Write_DiveType(writer, diveType);
 			GeneratedNetworkCode._Write_RespawnState(writer, respawnState);
 			return;
 		}
@@ -4370,7 +5048,7 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		if ((syncVarDirtyBits & 0x100L) != 0L)
 		{
-			writer.WriteBool(hasKnockoutImmunity);
+			GeneratedNetworkCode._Write_PlayerMovement_002FKnockOutImmunity(writer, knockoutImmunityStatus);
 		}
 		if ((syncVarDirtyBits & 0x200L) != 0L)
 		{
@@ -4382,6 +5060,10 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		if ((syncVarDirtyBits & 0x800L) != 0L)
 		{
+			GeneratedNetworkCode._Write_DiveType(writer, diveType);
+		}
+		if ((syncVarDirtyBits & 0x1000L) != 0L)
+		{
 			GeneratedNetworkCode._Write_RespawnState(writer, respawnState);
 		}
 	}
@@ -4392,16 +5074,17 @@ public class PlayerMovement : NetworkBehaviour
 		if (initialState)
 		{
 			GeneratedSyncVarDeserialize(ref syncedVelocity, null, reader.ReadVector3());
-			GeneratedSyncVarDeserialize(ref isGrounded, null, reader.ReadBool());
+			GeneratedSyncVarDeserialize(ref isGrounded, _Mirror_SyncVarHookDelegate_isGrounded, reader.ReadBool());
 			GeneratedSyncVarDeserialize(ref groundTerrainType, null, GeneratedNetworkCode._Read_GroundTerrainType(reader));
 			GeneratedSyncVarDeserialize(ref groundTerrainDominantGlobalLayer, null, GeneratedNetworkCode._Read_TerrainLayer(reader));
 			GeneratedSyncVarDeserialize(ref isWadingInWater, _Mirror_SyncVarHookDelegate_isWadingInWater, reader.ReadBool());
 			GeneratedSyncVarDeserialize(ref isVisible, _Mirror_SyncVarHookDelegate_isVisible, reader.ReadBool());
 			GeneratedSyncVarDeserialize(ref knockoutState, null, GeneratedNetworkCode._Read_KnockoutState(reader));
 			GeneratedSyncVarDeserialize(ref knockedOutVfxData, _Mirror_SyncVarHookDelegate_knockedOutVfxData, GeneratedNetworkCode._Read_PlayerMovement_002FKnockedOutVfxData(reader));
-			GeneratedSyncVarDeserialize(ref hasKnockoutImmunity, _Mirror_SyncVarHookDelegate_hasKnockoutImmunity, reader.ReadBool());
+			GeneratedSyncVarDeserialize(ref knockoutImmunityStatus, _Mirror_SyncVarHookDelegate_knockoutImmunityStatus, GeneratedNetworkCode._Read_PlayerMovement_002FKnockOutImmunity(reader));
 			GeneratedSyncVarDeserialize(ref statusEffects, _Mirror_SyncVarHookDelegate_statusEffects, GeneratedNetworkCode._Read_StatusEffect(reader));
 			GeneratedSyncVarDeserialize(ref divingState, _Mirror_SyncVarHookDelegate_divingState, GeneratedNetworkCode._Read_DivingState(reader));
+			GeneratedSyncVarDeserialize(ref diveType, _Mirror_SyncVarHookDelegate_diveType, GeneratedNetworkCode._Read_DiveType(reader));
 			GeneratedSyncVarDeserialize(ref respawnState, _Mirror_SyncVarHookDelegate_respawnState, GeneratedNetworkCode._Read_RespawnState(reader));
 			return;
 		}
@@ -4412,7 +5095,7 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		if ((num & 2L) != 0L)
 		{
-			GeneratedSyncVarDeserialize(ref isGrounded, null, reader.ReadBool());
+			GeneratedSyncVarDeserialize(ref isGrounded, _Mirror_SyncVarHookDelegate_isGrounded, reader.ReadBool());
 		}
 		if ((num & 4L) != 0L)
 		{
@@ -4440,7 +5123,7 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		if ((num & 0x100L) != 0L)
 		{
-			GeneratedSyncVarDeserialize(ref hasKnockoutImmunity, _Mirror_SyncVarHookDelegate_hasKnockoutImmunity, reader.ReadBool());
+			GeneratedSyncVarDeserialize(ref knockoutImmunityStatus, _Mirror_SyncVarHookDelegate_knockoutImmunityStatus, GeneratedNetworkCode._Read_PlayerMovement_002FKnockOutImmunity(reader));
 		}
 		if ((num & 0x200L) != 0L)
 		{
@@ -4451,6 +5134,10 @@ public class PlayerMovement : NetworkBehaviour
 			GeneratedSyncVarDeserialize(ref divingState, _Mirror_SyncVarHookDelegate_divingState, GeneratedNetworkCode._Read_DivingState(reader));
 		}
 		if ((num & 0x800L) != 0L)
+		{
+			GeneratedSyncVarDeserialize(ref diveType, _Mirror_SyncVarHookDelegate_diveType, GeneratedNetworkCode._Read_DiveType(reader));
+		}
+		if ((num & 0x1000L) != 0L)
 		{
 			GeneratedSyncVarDeserialize(ref respawnState, _Mirror_SyncVarHookDelegate_respawnState, GeneratedNetworkCode._Read_RespawnState(reader));
 		}

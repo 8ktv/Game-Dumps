@@ -4,19 +4,17 @@ namespace UnityEngine.LowLevelPhysics;
 
 public struct TriangleMeshGeometry : IGeometry
 {
+	private int m_UnusedReserved;
+
 	private Vector3 m_Scale;
 
 	private Quaternion m_Rotation;
 
 	private byte m_MeshFlags;
 
-	private byte pad1;
-
-	private short pad2;
+	private unsafe fixed byte m_MeshFlagsPadding[3];
 
 	private IntPtr m_TriangleMesh;
-
-	private uint pad3;
 
 	public Vector3 Scale
 	{

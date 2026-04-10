@@ -1158,7 +1158,7 @@ internal sealed class DataBindingManager : IDisposable
 		for (int num = list.Count - 1; num >= 0; num--)
 		{
 			BindingRequest bindingRequest = list[num];
-			if (!(bindingId != bindingRequest.bindingId))
+			if (!(bindingId != bindingRequest.bindingId) && bindingRequest.shouldProcess)
 			{
 				binding = bindingRequest.binding;
 				return true;

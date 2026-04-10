@@ -57,7 +57,7 @@ public class RTHandleSystem : IDisposable
 		m_HardwareDynamicResRequested = DynamicResolutionHandler.instance.RequestsHardwareDynamicResolution();
 	}
 
-	[Obsolete("useLegacyDynamicResControl is deprecated. Please use SetHardwareDynamicResolutionState() instead.")]
+	[Obsolete("useLegacyDynamicResControl is deprecated. Please use SetHardwareDynamicResolutionState() instead. #from(2023.3)")]
 	public void Initialize(int width, int height, bool useLegacyDynamicResControl = false)
 	{
 		Initialize(width, height);
@@ -322,7 +322,7 @@ public class RTHandleSystem : IDisposable
 		{
 			colorFormat = GraphicsFormat.None;
 			depthStencilFormat = format;
-			stencilFormat = GetStencilFormat(format);
+			stencilFormat = ((memoryless == RenderTextureMemoryless.None) ? GetStencilFormat(format) : GraphicsFormat.None);
 			renderTargetAutoName = CoreUtils.GetRenderTargetAutoName(width, height, slices, format, dimension, name, useMipMap, flag, msaaSamples, useDynamicScale, useDynamicScaleExplicit);
 		}
 		else

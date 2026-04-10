@@ -1,3 +1,4 @@
+using UnityEngine.Rendering.RenderGraphModule.NativeRenderPassCompiler;
 using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine.Rendering.RenderGraphModule;
@@ -15,5 +16,9 @@ public class InternalRenderGraphContext
 
 	internal RenderGraphPass executingPass;
 
+	internal CompilerContextData compilerContext;
+
 	internal bool contextlessTesting;
+
+	internal bool forceResourceCreation;
 }

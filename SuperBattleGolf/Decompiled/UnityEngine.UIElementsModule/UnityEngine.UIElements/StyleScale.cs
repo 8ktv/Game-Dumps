@@ -2,10 +2,13 @@ using System;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleScale : IStyleValue<Scale>, IEquatable<StyleScale>
 {
+	[SerializeField]
 	private Scale m_Value;
 
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
 	public Scale value

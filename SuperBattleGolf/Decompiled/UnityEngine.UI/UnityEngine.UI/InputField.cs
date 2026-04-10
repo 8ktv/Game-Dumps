@@ -7,7 +7,7 @@ using UnityEngine.Serialization;
 
 namespace UnityEngine.UI;
 
-[AddComponentMenu("UI/Legacy/Input Field", 103)]
+[AddComponentMenu("UI (Canvas)/Legacy/Input Field", 103)]
 public class InputField : Selectable, IUpdateSelectedHandler, IEventSystemHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler, ISubmitHandler, ICanvasElement, ILayoutElement
 {
 	public enum ContentType
@@ -1101,7 +1101,6 @@ public class InputField : Selectable, IUpdateSelectedHandler, IEventSystemHandle
 					SendOnSubmit();
 				}
 			}
-			OnDeselect(null);
 			return;
 		}
 		string text = m_Keyboard.text;
@@ -1199,7 +1198,7 @@ public class InputField : Selectable, IUpdateSelectedHandler, IEventSystemHandle
 		else if (canvas.worldCamera != null)
 		{
 			Ray ray = canvas.worldCamera.ScreenPointToRay(screen);
-			new Plane(m_TextComponent.transform.forward, m_TextComponent.transform.position).Raycast(ray, out var enter);
+			new Plane(m_TextComponent.transform.forward, m_TextComponent.transform.position).Raycast(ray, out float enter);
 			vector = m_TextComponent.transform.InverseTransformPoint(ray.GetPoint(enter));
 		}
 		return new Vector2(vector.x, vector.y);

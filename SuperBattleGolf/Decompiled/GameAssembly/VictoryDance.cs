@@ -9,5 +9,10 @@ public enum VictoryDance
 	Gyratory,
 	Mashup,
 	Caramel,
-	Dream
+	Dream,
+	Chill,
+	Gaga,
+	Shuffle,
+	Assumptions,
+	NoHands
 }

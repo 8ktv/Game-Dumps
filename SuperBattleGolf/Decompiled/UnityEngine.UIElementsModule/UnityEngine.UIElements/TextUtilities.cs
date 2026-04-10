@@ -25,29 +25,10 @@ internal static class TextUtilities
 		}
 	}
 
-	internal static Vector2 MeasureVisualElementTextSize(TextElement te, in RenderedText textToMeasure, float width, VisualElement.MeasureMode widthMode, float height, VisualElement.MeasureMode heightMode, float? fontsize = null)
+	private static Vector2 PostProcessMeasuredSize(TextElement te, Vector2 measuredSize, float width, VisualElement.MeasureMode widthMode, float height, VisualElement.MeasureMode heightMode, float pixelsPerPoint)
 	{
-		float num = float.NaN;
-		float num2 = float.NaN;
-		if (!IsFontAssigned(te))
-		{
-			return new Vector2(num, num2);
-		}
-		float num3 = 1f;
-		if (te.panel != null)
-		{
-			num3 = te.scaledPixelsPerPoint;
-		}
-		if (num3 <= 0f)
-		{
-			return Vector2.zero;
-		}
-		if (widthMode != VisualElement.MeasureMode.Exactly || heightMode != VisualElement.MeasureMode.Exactly)
-		{
-			Vector2 vector = te.uitkTextHandle.ComputeTextSize(in textToMeasure, width, height, fontsize);
-			num = vector.x;
-			num2 = vector.y;
-		}
+		float num = measuredSize.x;
+		float num2 = measuredSize.y;
 		switch (widthMode)
 		{
 		case VisualElement.MeasureMode.Exactly:
@@ -66,40 +47,78 @@ internal static class TextUtilities
 			num2 = Mathf.Min(num2, height);
 			break;
 		}
-		float num4 = AlignmentUtils.CeilToPixelGrid(num, num3, 0f);
-		float y = AlignmentUtils.CeilToPixelGrid(num2, num3, 0f);
-		Vector2 vector2 = new Vector2(num4, y);
+		float num3 = AlignmentUtils.CeilToPixelGrid(num, pixelsPerPoint, 0f);
+		float y = AlignmentUtils.CeilToPixelGrid(num2, pixelsPerPoint, 0f);
+		Vector2 result = new Vector2(num3, y);
 		if (IsAdvancedTextEnabledForElement(te))
 		{
-			te.uitkTextHandle.ATGMeasuredSizes = new Vector2(num, num2);
-			te.uitkTextHandle.ATGRoundedSizes = vector2;
-			te.uitkTextHandle.LastPixelPerPoint = num3;
+			te.uitkTextHandle.ATGMeasuredWidth = num;
+			te.uitkTextHandle.ATGRoundedWidth = num3;
+			te.uitkTextHandle.LastPixelPerPoint = pixelsPerPoint;
 		}
 		else
 		{
 			te.uitkTextHandle.MeasuredWidth = num;
-			te.uitkTextHandle.RoundedWidth = num4;
-			te.uitkTextHandle.LastPixelPerPoint = num3;
+			te.uitkTextHandle.RoundedWidth = num3;
+			te.uitkTextHandle.LastPixelPerPoint = pixelsPerPoint;
 		}
-		return vector2;
+		return result;
+	}
+
+	internal static Vector2 MeasureVisualElementTextSize(TextElement te, string textToMeasure, float width, VisualElement.MeasureMode widthMode, float height, VisualElement.MeasureMode heightMode, float? fontsize = null)
+	{
+		if (!IsFontAssigned(te))
+		{
+			return new Vector2(float.NaN, float.NaN);
+		}
+		float num = te.panel?.scaledPixelsPerPoint ?? 1f;
+		if (num <= 0f)
+		{
+			return Vector2.zero;
+		}
+		Vector2 measuredSize = Vector2.zero;
+		if (widthMode != VisualElement.MeasureMode.Exactly || heightMode != VisualElement.MeasureMode.Exactly)
+		{
+			measuredSize = te.uitkTextHandle.ComputeTextSize(textToMeasure, width, widthMode, height, heightMode, fontsize);
+		}
+		return PostProcessMeasuredSize(te, measuredSize, width, widthMode, height, heightMode, num);
+	}
+
+	internal static Vector2 MeasureVisualElementTextSize(TextElement te, in RenderedText textToMeasure, float width, VisualElement.MeasureMode widthMode, float height, VisualElement.MeasureMode heightMode, float? fontsize = null)
+	{
+		if (!IsFontAssigned(te))
+		{
+			return new Vector2(float.NaN, float.NaN);
+		}
+		float num = te.panel?.scaledPixelsPerPoint ?? 1f;
+		if (num <= 0f)
+		{
+			return Vector2.zero;
+		}
+		Vector2 measuredSize = Vector2.zero;
+		if (widthMode != VisualElement.MeasureMode.Exactly || heightMode != VisualElement.MeasureMode.Exactly)
+		{
+			measuredSize = te.uitkTextHandle.ComputeTextSize(in textToMeasure, width, height, fontsize);
+		}
+		return PostProcessMeasuredSize(te, measuredSize, width, widthMode, height, heightMode, num);
 	}
 
 	internal static FontAsset GetFontAsset(VisualElement ve)
 	{
-		if (ve.computedStyle.unityFontDefinition.fontAsset != null)
+		if (!object.Equals(ve.computedStyle.unityFontDefinition.fontAsset, null))
 		{
 			return ve.computedStyle.unityFontDefinition.fontAsset;
 		}
 		TextSettings textSettingsFrom = GetTextSettingsFrom(ve);
-		if (ve.computedStyle.unityFontDefinition.font != null)
+		if (!object.Equals(ve.computedStyle.unityFontDefinition.font, null))
 		{
 			return textSettingsFrom.GetCachedFontAsset(ve.computedStyle.unityFontDefinition.font);
 		}
-		if (ve.computedStyle.unityFont != null)
+		if (!object.Equals(ve.computedStyle.unityFont, null))
 		{
 			return textSettingsFrom.GetCachedFontAsset(ve.computedStyle.unityFont);
 		}
-		if (textSettingsFrom != null)
+		if (!object.Equals(textSettingsFrom, null))
 		{
 			return textSettingsFrom.defaultFontAsset;
 		}
@@ -120,6 +139,16 @@ internal static class TextUtilities
 		return PanelTextSettings.defaultPanelTextSettings;
 	}
 
+	internal static bool IsAdvancedTextEnabledForPanel(IPanel panel)
+	{
+		bool result = false;
+		if (panel is RuntimePanel runtimePanel)
+		{
+			result = runtimePanel.panelSettings?.m_ICUDataAsset != null;
+		}
+		return result;
+	}
+
 	internal static bool IsAdvancedTextEnabledForElement(VisualElement ve)
 	{
 		if (ve == null)
@@ -127,15 +156,7 @@ internal static class TextUtilities
 			return false;
 		}
 		bool flag = ve.computedStyle.unityTextGenerator == TextGeneratorType.Advanced;
-		bool flag2 = false;
-		if (ve.panel == null)
-		{
-			return false;
-		}
-		if (ve.panel is RuntimePanel runtimePanel)
-		{
-			flag2 = runtimePanel.panelSettings?.m_ICUDataAsset != null;
-		}
+		bool flag2 = flag && IsAdvancedTextEnabledForPanel(ve.panel);
 		return flag && flag2;
 	}
 
@@ -242,52 +263,12 @@ internal static class TextUtilities
 		return result;
 	}
 
-	public static UnityEngine.TextCore.WhiteSpace toTextCore(this WhiteSpace whiteSpace, bool isInputField)
+	public static UnityEngine.TextCore.TextOverflow toTextCore(this TextOverflow textOverflow, OverflowInternal overflow, TextOverflowPosition position)
 	{
-		UnityEngine.TextCore.WhiteSpace result;
-		if (isInputField)
+		if (position != TextOverflowPosition.End)
 		{
-			if (1 == 0)
-			{
-			}
-			switch (whiteSpace)
-			{
-			case WhiteSpace.Normal:
-			case WhiteSpace.PreWrap:
-				result = UnityEngine.TextCore.WhiteSpace.PreWrap;
-				break;
-			case WhiteSpace.NoWrap:
-			case WhiteSpace.Pre:
-				result = UnityEngine.TextCore.WhiteSpace.Pre;
-				break;
-			default:
-				result = UnityEngine.TextCore.WhiteSpace.Pre;
-				break;
-			}
-			if (1 == 0)
-			{
-			}
-			return result;
+			return UnityEngine.TextCore.TextOverflow.Clip;
 		}
-		if (1 == 0)
-		{
-		}
-		result = whiteSpace switch
-		{
-			WhiteSpace.Normal => UnityEngine.TextCore.WhiteSpace.Normal, 
-			WhiteSpace.NoWrap => UnityEngine.TextCore.WhiteSpace.NoWrap, 
-			WhiteSpace.PreWrap => UnityEngine.TextCore.WhiteSpace.PreWrap, 
-			WhiteSpace.Pre => UnityEngine.TextCore.WhiteSpace.Pre, 
-			_ => UnityEngine.TextCore.WhiteSpace.Normal, 
-		};
-		if (1 == 0)
-		{
-		}
-		return result;
-	}
-
-	public static UnityEngine.TextCore.TextOverflow toTextCore(this TextOverflow textOverflow, OverflowInternal overflow)
-	{
 		if (1 == 0)
 		{
 		}

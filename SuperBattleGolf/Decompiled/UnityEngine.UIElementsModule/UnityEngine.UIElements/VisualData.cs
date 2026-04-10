@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace UnityEngine.UIElements;
 
@@ -32,23 +33,64 @@ internal struct VisualData : IStyleDataGroup<VisualData>, IEquatable<VisualData>
 
 	public Length borderTopRightRadius;
 
+	public List<FilterFunction> filter;
+
 	public float opacity;
 
 	public OverflowInternal overflow;
 
 	public VisualData Copy()
 	{
-		return this;
+		return new VisualData
+		{
+			backgroundColor = backgroundColor,
+			backgroundImage = backgroundImage,
+			backgroundPositionX = backgroundPositionX,
+			backgroundPositionY = backgroundPositionY,
+			backgroundRepeat = backgroundRepeat,
+			backgroundSize = backgroundSize,
+			borderBottomColor = borderBottomColor,
+			borderBottomLeftRadius = borderBottomLeftRadius,
+			borderBottomRightRadius = borderBottomRightRadius,
+			borderLeftColor = borderLeftColor,
+			borderRightColor = borderRightColor,
+			borderTopColor = borderTopColor,
+			borderTopLeftRadius = borderTopLeftRadius,
+			borderTopRightRadius = borderTopRightRadius,
+			filter = new List<FilterFunction>(filter),
+			opacity = opacity,
+			overflow = overflow
+		};
 	}
 
 	public void CopyFrom(ref VisualData other)
 	{
-		this = other;
+		backgroundColor = other.backgroundColor;
+		backgroundImage = other.backgroundImage;
+		backgroundPositionX = other.backgroundPositionX;
+		backgroundPositionY = other.backgroundPositionY;
+		backgroundRepeat = other.backgroundRepeat;
+		backgroundSize = other.backgroundSize;
+		borderBottomColor = other.borderBottomColor;
+		borderBottomLeftRadius = other.borderBottomLeftRadius;
+		borderBottomRightRadius = other.borderBottomRightRadius;
+		borderLeftColor = other.borderLeftColor;
+		borderRightColor = other.borderRightColor;
+		borderTopColor = other.borderTopColor;
+		borderTopLeftRadius = other.borderTopLeftRadius;
+		borderTopRightRadius = other.borderTopRightRadius;
+		if (filter != other.filter)
+		{
+			filter.Clear();
+			filter.AddRange(other.filter);
+		}
+		opacity = other.opacity;
+		overflow = other.overflow;
 	}
 
 	public static bool operator ==(VisualData lhs, VisualData rhs)
 	{
-		return lhs.backgroundColor == rhs.backgroundColor && lhs.backgroundImage == rhs.backgroundImage && lhs.backgroundPositionX == rhs.backgroundPositionX && lhs.backgroundPositionY == rhs.backgroundPositionY && lhs.backgroundRepeat == rhs.backgroundRepeat && lhs.backgroundSize == rhs.backgroundSize && lhs.borderBottomColor == rhs.borderBottomColor && lhs.borderBottomLeftRadius == rhs.borderBottomLeftRadius && lhs.borderBottomRightRadius == rhs.borderBottomRightRadius && lhs.borderLeftColor == rhs.borderLeftColor && lhs.borderRightColor == rhs.borderRightColor && lhs.borderTopColor == rhs.borderTopColor && lhs.borderTopLeftRadius == rhs.borderTopLeftRadius && lhs.borderTopRightRadius == rhs.borderTopRightRadius && lhs.opacity == rhs.opacity && lhs.overflow == rhs.overflow;
+		return lhs.backgroundColor == rhs.backgroundColor && lhs.backgroundImage == rhs.backgroundImage && lhs.backgroundPositionX == rhs.backgroundPositionX && lhs.backgroundPositionY == rhs.backgroundPositionY && lhs.backgroundRepeat == rhs.backgroundRepeat && lhs.backgroundSize == rhs.backgroundSize && lhs.borderBottomColor == rhs.borderBottomColor && lhs.borderBottomLeftRadius == rhs.borderBottomLeftRadius && lhs.borderBottomRightRadius == rhs.borderBottomRightRadius && lhs.borderLeftColor == rhs.borderLeftColor && lhs.borderRightColor == rhs.borderRightColor && lhs.borderTopColor == rhs.borderTopColor && lhs.borderTopLeftRadius == rhs.borderTopLeftRadius && lhs.borderTopRightRadius == rhs.borderTopRightRadius && lhs.filter == rhs.filter && lhs.opacity == rhs.opacity && lhs.overflow == rhs.overflow;
 	}
 
 	public static bool operator !=(VisualData lhs, VisualData rhs)
@@ -86,6 +128,7 @@ internal struct VisualData : IStyleDataGroup<VisualData>, IEquatable<VisualData>
 		hashCode = (hashCode * 397) ^ borderTopColor.GetHashCode();
 		hashCode = (hashCode * 397) ^ borderTopLeftRadius.GetHashCode();
 		hashCode = (hashCode * 397) ^ borderTopRightRadius.GetHashCode();
+		hashCode = (hashCode * 397) ^ filter.GetHashCode();
 		hashCode = (hashCode * 397) ^ opacity.GetHashCode();
 		return (hashCode * 397) ^ (int)overflow;
 	}

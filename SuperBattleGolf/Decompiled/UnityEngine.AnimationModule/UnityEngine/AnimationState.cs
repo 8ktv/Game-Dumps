@@ -6,8 +6,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[UsedByNativeCode]
 [NativeHeader("Modules/Animation/AnimationState.h")]
+[UsedByNativeCode]
 public sealed class AnimationState : TrackedReference
 {
 	internal static class BindingsMarshaller

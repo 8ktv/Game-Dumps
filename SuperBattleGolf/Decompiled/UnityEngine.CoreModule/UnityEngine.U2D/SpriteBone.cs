@@ -6,27 +6,27 @@ using UnityEngine.Scripting.APIUpdating;
 namespace UnityEngine.U2D;
 
 [Serializable]
-[MovedFrom("UnityEngine.Experimental.U2D")]
-[RequiredByNativeCode]
 [NativeHeader("Runtime/2D/Common/SpriteDataAccess.h")]
 [NativeHeader("Runtime/2D/Common/SpriteDataMarshalling.h")]
+[MovedFrom("UnityEngine.Experimental.U2D")]
+[RequiredByNativeCode]
 [NativeType(CodegenOptions.Custom, "ScriptingSpriteBone")]
 public struct SpriteBone
 {
-	[SerializeField]
 	[NativeName("name")]
+	[SerializeField]
 	private string m_Name;
 
-	[SerializeField]
 	[NativeName("guid")]
+	[SerializeField]
 	private string m_Guid;
 
-	[NativeName("position")]
 	[SerializeField]
+	[NativeName("position")]
 	private Vector3 m_Position;
 
-	[NativeName("rotation")]
 	[SerializeField]
+	[NativeName("rotation")]
 	private Quaternion m_Rotation;
 
 	[NativeName("length")]
@@ -37,8 +37,8 @@ public struct SpriteBone
 	[SerializeField]
 	private int m_ParentId;
 
-	[SerializeField]
 	[NativeName("color")]
+	[SerializeField]
 	private Color32 m_Color;
 
 	public string name

@@ -6,6 +6,8 @@ internal interface IPanelRenderer
 
 	uint vertexBudget { get; set; }
 
+	TextureSlotCount textureSlotCount { get; set; }
+
 	void Reset();
 
 	void Render();

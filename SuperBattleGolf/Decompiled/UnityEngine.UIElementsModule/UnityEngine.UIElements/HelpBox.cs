@@ -16,8 +16,8 @@ public class HelpBox : VisualElement
 		private string text;
 
 		[SerializeField]
-		[UxmlIgnore]
 		[HideInInspector]
+		[UxmlIgnore]
 		private UxmlAttributeFlags text_UxmlAttributeFlags;
 
 		[SerializeField]
@@ -157,6 +157,7 @@ public class HelpBox : VisualElement
 		m_HelpBoxMessageType = messageType;
 		m_Label = new Label(text);
 		m_Label.AddToClassList(labelUssClassName);
+		m_Label.selection.isSelectable = true;
 		Add(m_Label);
 		m_Icon = new VisualElement();
 		m_Icon.AddToClassList(iconUssClassName);

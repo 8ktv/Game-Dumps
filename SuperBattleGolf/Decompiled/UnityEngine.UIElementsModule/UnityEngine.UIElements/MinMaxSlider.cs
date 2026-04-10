@@ -12,19 +12,32 @@ public class MinMaxSlider : BaseField<Vector2>
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : BaseField<Vector2>.UxmlSerializedData, IUxmlSerializedDataCustomAttributeHandler
 	{
+		[UxmlAttributeBindingPath("value")]
+		[UxmlAttribute("value")]
 		[SerializeField]
+		[Delayed]
+		private Vector2 valueOverride;
+
+		[SerializeField]
+		[Delayed]
 		private float lowLimit;
 
+		[Delayed]
 		[SerializeField]
 		private float highLimit;
 
 		[SerializeField]
-		[UxmlIgnore]
 		[HideInInspector]
-		private UxmlAttributeFlags lowLimit_UxmlAttributeFlags;
+		[UxmlIgnore]
+		private UxmlAttributeFlags valueOverride_UxmlAttributeFlags;
 
 		[HideInInspector]
 		[UxmlIgnore]
+		[SerializeField]
+		private UxmlAttributeFlags lowLimit_UxmlAttributeFlags;
+
+		[UxmlIgnore]
+		[HideInInspector]
 		[SerializeField]
 		private UxmlAttributeFlags highLimit_UxmlAttributeFlags;
 
@@ -32,8 +45,9 @@ public class MinMaxSlider : BaseField<Vector2>
 		public new static void Register()
 		{
 			BaseField<Vector2>.UxmlSerializedData.Register();
-			UxmlDescriptionCache.RegisterType(typeof(UxmlSerializedData), new UxmlAttributeNames[2]
+			UxmlDescriptionCache.RegisterType(typeof(UxmlSerializedData), new UxmlAttributeNames[3]
 			{
+				new UxmlAttributeNames("valueOverride", "value", null),
 				new UxmlAttributeNames("lowLimit", "low-limit", null),
 				new UxmlAttributeNames("highLimit", "high-limit", null)
 			});
@@ -46,7 +60,7 @@ public class MinMaxSlider : BaseField<Vector2>
 			float y = UxmlUtility.TryParseFloatAttribute("max-value", bag, ref foundAttributeCounter);
 			if (foundAttributeCounter > 0)
 			{
-				base.Value = new Vector2(x, y);
+				valueOverride = new Vector2(x, y);
 				handledAttributes.Add("value");
 				if (bag is UxmlAsset uxmlAsset)
 				{
@@ -73,6 +87,10 @@ public class MinMaxSlider : BaseField<Vector2>
 			if (UnityEngine.UIElements.UxmlSerializedData.ShouldWriteAttributeValue(highLimit_UxmlAttributeFlags))
 			{
 				minMaxSlider.highLimit = highLimit;
+			}
+			if (UnityEngine.UIElements.UxmlSerializedData.ShouldWriteAttributeValue(valueOverride_UxmlAttributeFlags))
+			{
+				minMaxSlider.valueOverride = valueOverride;
 			}
 		}
 	}
@@ -178,6 +196,18 @@ public class MinMaxSlider : BaseField<Vector2>
 	internal VisualElement dragMaxThumb { get; private set; }
 
 	internal ClampedDragger<float> clampedDragger { get; private set; }
+
+	internal Vector2 valueOverride
+	{
+		get
+		{
+			return value;
+		}
+		set
+		{
+			SetValueWithoutNotify(value);
+		}
+	}
 
 	[CreateProperty]
 	public float minValue

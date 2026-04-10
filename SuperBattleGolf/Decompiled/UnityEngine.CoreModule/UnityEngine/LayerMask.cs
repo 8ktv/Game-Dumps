@@ -38,8 +38,8 @@ public struct LayerMask
 		return result;
 	}
 
-	[StaticAccessor("GetTagManager()", StaticAccessorType.Dot)]
 	[NativeMethod("LayerToString")]
+	[StaticAccessor("GetTagManager()", StaticAccessorType.Dot)]
 	public static string LayerToName(int layer)
 	{
 		ManagedSpanWrapper ret = default(ManagedSpanWrapper);

@@ -322,7 +322,7 @@ public sealed class PolygonCollider2D : Collider2D
 		CreatePrimitive_Internal_Injected(intPtr, sides, ref scale, ref offset, recreateCollider);
 	}
 
-	public bool CreateFromSprite(Sprite sprite, [DefaultValue("0.25f")] float detail = 0.25f, [DefaultValue("200")] byte alphaTolerance = 200, [DefaultValue("true")] bool holeDetection = true)
+	public bool CreateFromSprite(Sprite sprite, [DefaultValue("0.25f")] float detail = 0.25f, [DefaultValue("200")] byte alphaTolerance = 200, [DefaultValue("true")] bool holeDetection = true, [DefaultValue("true")] bool usePhysicsShapes = true)
 	{
 		if (sprite == null)
 		{
@@ -334,11 +334,11 @@ public sealed class PolygonCollider2D : Collider2D
 			Debug.LogWarning("Detail must be in the range [0, 1].", this);
 			return false;
 		}
-		return CreateFromSprite_Internal(sprite, detail, alphaTolerance, holeDetection, recreateCollider: true);
+		return CreateFromSprite_Internal(sprite, detail, alphaTolerance, holeDetection, recreateCollider: true, usePhysicsShapes);
 	}
 
 	[NativeMethod("CreateFromSprite")]
-	private bool CreateFromSprite_Internal([NotNull] Sprite sprite, float detail, byte alphaTolerance, bool holeDetection, bool recreateCollider)
+	private bool CreateFromSprite_Internal([NotNull] Sprite sprite, float detail, byte alphaTolerance, bool holeDetection, bool recreateCollider, bool usePhysicsShapes)
 	{
 		if ((object)sprite == null)
 		{
@@ -354,7 +354,7 @@ public sealed class PolygonCollider2D : Collider2D
 		{
 			ThrowHelper.ThrowArgumentNullException(sprite, "sprite");
 		}
-		return CreateFromSprite_Internal_Injected(intPtr, intPtr2, detail, alphaTolerance, holeDetection, recreateCollider);
+		return CreateFromSprite_Internal_Injected(intPtr, intPtr2, detail, alphaTolerance, holeDetection, recreateCollider, usePhysicsShapes);
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -400,5 +400,5 @@ public sealed class PolygonCollider2D : Collider2D
 	private static extern void CreatePrimitive_Internal_Injected(IntPtr _unity_self, int sides, [In] ref Vector2 scale, [In] ref Vector2 offset, bool recreateCollider);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern bool CreateFromSprite_Internal_Injected(IntPtr _unity_self, IntPtr sprite, float detail, byte alphaTolerance, bool holeDetection, bool recreateCollider);
+	private static extern bool CreateFromSprite_Internal_Injected(IntPtr _unity_self, IntPtr sprite, float detail, byte alphaTolerance, bool holeDetection, bool recreateCollider, bool usePhysicsShapes);
 }

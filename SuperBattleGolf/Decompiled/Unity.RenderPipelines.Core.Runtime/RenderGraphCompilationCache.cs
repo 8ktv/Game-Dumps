@@ -98,13 +98,40 @@ internal class RenderGraphCompilationCache
 	{
 		for (int i = 0; i < m_HashEntries.size; i++)
 		{
+			m_HashEntries[i].compiledGraph.Clear();
 			m_CompiledGraphPool.Push(m_HashEntries[i].compiledGraph);
 		}
 		m_HashEntries.Clear();
 		for (int j = 0; j < m_NativeHashEntries.size; j++)
 		{
-			m_NativeCompiledGraphPool.Push(m_NativeHashEntries[j].compiledGraph);
+			CompilerContextData compiledGraph = m_NativeHashEntries[j].compiledGraph;
+			compiledGraph.Clear();
+			m_NativeCompiledGraphPool.Push(compiledGraph);
 		}
 		m_NativeHashEntries.Clear();
+	}
+
+	public void Cleanup()
+	{
+		for (int i = 0; i < m_HashEntries.size; i++)
+		{
+			m_HashEntries[i].compiledGraph.Clear();
+		}
+		m_HashEntries.Clear();
+		RenderGraph.CompiledGraph[] array = m_CompiledGraphPool.ToArray();
+		for (int j = 0; j < array.Length; j++)
+		{
+			array[j].Clear();
+		}
+		for (int k = 0; k < m_NativeHashEntries.size; k++)
+		{
+			m_NativeHashEntries[k].compiledGraph.Dispose();
+		}
+		m_NativeHashEntries.Clear();
+		CompilerContextData[] array2 = m_NativeCompiledGraphPool.ToArray();
+		for (int l = 0; l < array2.Length; l++)
+		{
+			array2[l].Dispose();
+		}
 	}
 }

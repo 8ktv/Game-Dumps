@@ -7,10 +7,10 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Audio;
 
-[NativeHeader("Runtime/Director/Core/HPlayable.h")]
+[RequiredByNativeCode]
 [NativeHeader("Modules/Audio/Public/ScriptBindings/AudioClipPlayable.bindings.h")]
 [NativeHeader("Modules/Audio/Public/Director/AudioClipPlayable.h")]
-[RequiredByNativeCode]
+[NativeHeader("Runtime/Director/Core/HPlayable.h")]
 [StaticAccessor("AudioClipPlayableBindings", StaticAccessorType.DoubleColon)]
 public struct AudioClipPlayable : IPlayable, IEquatable<AudioClipPlayable>
 {

@@ -52,6 +52,8 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		public List<float> spawnChanceValues;
 
 		public MatchSetupRules.Preset rulePreset;
+
+		public bool randomEnabled;
 	}
 
 	public GameObject menu;
@@ -85,6 +87,14 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 
 	public Selectable playersAreaBotRight;
 
+	public UiTooltip tooltip;
+
+	public UiTooltip compactTooltip;
+
+	public UiTooltip warningTooltip;
+
+	public UiTooltip activeTimeTooltip;
+
 	[Header("Players slider")]
 	public SliderOption maxPlayersSlider;
 
@@ -115,11 +125,19 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 
 	public Image holePreviewImage;
 
-	public GameObject numberOfHoles;
+	public CanvasGroup numberOfHoles;
 
 	public SliderOption numberOfHolesSlider;
 
 	public CanvasGroup coursesControllerPrompt;
+
+	public Sprite customHolesIcon;
+
+	public LocalizeStringEvent courseLabel;
+
+	public GameObject courseRandom;
+
+	public Toggle courseRandomToggle;
 
 	[Header("Rules")]
 	public MatchSetupRules rules;
@@ -145,11 +163,12 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 	[SyncVar(hook = "OnRandomCupNumHolesChanged")]
 	public int randomCupNumHoles;
 
+	[SyncVar(hook = "OnRandomEnabledChanged")]
+	public bool randomEnabled;
+
 	public SyncList<int> activeHolesList = new SyncList<int>();
 
 	public SyncList<int> inactiveHolesList = new SyncList<int>();
-
-	private const int RANDOM_COURSE = -2;
 
 	private const int CUSTOM_COURSE = -1;
 
@@ -165,6 +184,8 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 
 	private bool isEnabled;
 
+	private List<Button> cachedCourseButtons = new List<Button>();
+
 	public Action<int, int> _Mirror_SyncVarHookDelegate_maxPlayers;
 
 	public Action<LobbyMode, LobbyMode> _Mirror_SyncVarHookDelegate_lobbyMode;
@@ -176,6 +197,8 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 	public Action<int, int> _Mirror_SyncVarHookDelegate_activeCourse;
 
 	public Action<int, int> _Mirror_SyncVarHookDelegate_randomCupNumHoles;
+
+	public Action<bool, bool> _Mirror_SyncVarHookDelegate_randomEnabled;
 
 	public static CourseData CustomCourseData { get; private set; }
 
@@ -283,6 +306,19 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		}
 	}
 
+	public bool NetworkrandomEnabled
+	{
+		get
+		{
+			return randomEnabled;
+		}
+		[param: In]
+		set
+		{
+			GeneratedSyncVarSetter(value, ref randomEnabled, 64uL, _Mirror_SyncVarHookDelegate_randomEnabled);
+		}
+	}
+
 	protected override void OnDestroy()
 	{
 		if (isEnabled)
@@ -290,10 +326,6 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 			InputManager.DisableMode(InputMode.MatchSetup);
 		}
 		InputManager.SwitchedInputDeviceType -= OnInputDeviceChange;
-		GameManager.RemotePlayerDeregistered -= OnPlayersUpdated;
-		GameManager.RemotePlayerRegistered -= OnPlayersUpdated;
-		PlayerId.AnyPlayerGuidChanged -= OnAnyPlayerGuidChanged;
-		PlayerId.AnyPlayerNameChanged -= OnAnyPlayerNameChanged;
 		LocalizationManager.LanguageChanged -= OnLanguageChanged;
 		CourseManager.PlayerStatesChanged -= OnPlayerStatesChanged;
 		BNetworkManager.SteamPlayerRelationshipChanged -= SteamPlayerRelationshipChanged;
@@ -353,16 +385,26 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		{
 			InputManager.EnableMode(InputMode.MatchSetup);
 			OnPlayersUpdated();
-			rules.OnOpenMenu();
 			coursesControllerPrompt.alpha = (InputManager.UsingGamepad ? 1 : 0);
 			RuntimeManager.PlayOneShot(GameManager.AudioSettings.MatchSetupClose);
 		}
 		RefreshStartMatchButton();
 		matchSetupTab.interactable = base.isServer;
+		lobbyModeDropdown.Interactable = base.isServer && SingletonBehaviour<DrivingRangeManager>.HasInstance;
 		courseSelectTab.interactable = base.isServer && GameManager.DrivingRangeHoleData.Scene.LoadedScene.IsValid();
 		rulesTab.interactable = base.isServer && SingletonBehaviour<DrivingRangeManager>.HasInstance;
 		serverNameField.inputType = (GameSettings.All.General.StreamerMode ? TMP_InputField.InputType.Password : TMP_InputField.InputType.Standard);
 		serverNameField.ForceLabelUpdate();
+		if (enabled)
+		{
+			tooltip.RegisterTooltip(maxPlayersSlider.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Capacity);
+			tooltip.RegisterTooltip(lobbyModeDropdown.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_LobbyMode);
+		}
+		else
+		{
+			tooltip.DeregisterTooltip(maxPlayersSlider.GetComponent<RectTransform>());
+			tooltip.DeregisterTooltip(lobbyModeDropdown.GetComponent<RectTransform>());
+		}
 	}
 
 	public void OnMenuExit()
@@ -370,47 +412,83 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		SetEnabled(enabled: false);
 	}
 
+	private void UpdateCourseTooltips()
+	{
+		CourseCollection allCourses = GameManager.AllCourses;
+		for (int i = 0; i < cachedCourseButtons.Count; i++)
+		{
+			if (!(cachedCourseButtons[i] == null))
+			{
+				if (i < allCourses.Courses.Length)
+				{
+					compactTooltip.DeregisterTooltip(cachedCourseButtons[i].GetComponent<RectTransform>());
+					compactTooltip.RegisterTooltip(cachedCourseButtons[i].GetComponent<RectTransform>(), allCourses.Courses[i].LocalizedName.GetLocalizedString());
+				}
+				else
+				{
+					compactTooltip.DeregisterTooltip(cachedCourseButtons[i].GetComponent<RectTransform>());
+					compactTooltip.RegisterTooltip(cachedCourseButtons[i].GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Custom);
+				}
+			}
+		}
+		tooltip.DeregisterTooltip(courseRandomToggle.GetComponent<RectTransform>());
+		tooltip.RegisterTooltip(courseRandomToggle.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_RandomOrder);
+		tooltip.DeregisterTooltip(numberOfHolesSlider.GetComponent<RectTransform>());
+		tooltip.RegisterTooltip(numberOfHolesSlider.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_NumberOfHoles);
+		tooltip.DeregisterTooltip(activeLabel.GetComponent<RectTransform>());
+		tooltip.RegisterTooltip(activeLabel.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_ActiveHoles);
+		tooltip.DeregisterTooltip(inactiveLabel.GetComponent<RectTransform>());
+		tooltip.RegisterTooltip(inactiveLabel.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_InactiveHoles);
+	}
+
 	private void InitializeCourses()
 	{
 		CourseCollection allCourses = GameManager.AllCourses;
+		cachedCourseButtons.Clear();
 		for (int i = 0; i < allCourses.Courses.Length; i++)
 		{
 			int cat = i;
-			AddCategory("", allCourses.Courses[i].LocalizedName).onClick.AddListener(delegate
+			Button button = AddCategory(allCourses.Courses[i].CategoryIcon);
+			cachedCourseButtons.Add(button);
+			button.onClick.AddListener(delegate
 			{
 				SetCourse(cat);
 			});
 		}
-		AddCategory("", Localization.UI.MATCHSETUP_Button_Random_Ref).onClick.AddListener(delegate
-		{
-			SetCourse(-2);
-		});
-		AddCategory("", Localization.UI.MATCHSETUP_Button_Custom_Ref).onClick.AddListener(delegate
+		Button button2 = AddCategory(customHolesIcon);
+		cachedCourseButtons.Add(button2);
+		button2.onClick.AddListener(delegate
 		{
 			SetCourse(-1);
 		});
+		UpdateCourseTooltips();
+		if (base.isServer)
+		{
+			courseRandomToggle.onValueChanged.AddListener(delegate
+			{
+				NetworkrandomEnabled = courseRandomToggle.isOn;
+			});
+		}
+		else
+		{
+			courseRandomToggle.interactable = false;
+		}
 		foreach (HoleData allHole in allCourses.allHoles)
 		{
 			RegisterHole(allHole);
 		}
 		inactiveHoles.OnElementMoved += OnHoleOrderUpdate;
 		activeHoles.OnElementMoved += OnHoleOrderUpdate;
-		Button AddCategory(string name = "", LocalizedString localizedString = null)
+		Button AddCategory(Sprite icon = null)
 		{
-			Button button = UnityEngine.Object.Instantiate(categoryPrefab);
-			button.transform.SetParent(categoryRoot);
-			button.transform.localScale = Vector3.one;
-			if (localizedString == null)
+			Button button3 = UnityEngine.Object.Instantiate(categoryPrefab);
+			button3.transform.SetParent(categoryRoot);
+			button3.transform.localScale = Vector3.one;
+			if (icon != null)
 			{
-				button.GetComponentInChildren<TMP_Text>().text = name;
+				button3.transform.GetChild(1).GetComponent<Image>().sprite = icon;
 			}
-			else
-			{
-				LocalizeStringEvent componentInChildren = button.GetComponentInChildren<LocalizeStringEvent>();
-				componentInChildren.StringReference = localizedString;
-				componentInChildren.RefreshString();
-			}
-			return button;
+			return button3;
 		}
 		void RegisterHole(HoleData holeData)
 		{
@@ -420,10 +498,18 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 			matchSetupHole.holeData = holeData;
 			matchSetupHole.menu = this;
 			matchSetupHole.holeNameLocalizeStringEvent.StringReference = holeData.LocalizedName;
-			matchSetupHole.courseNameLocalizeStringEvent.StringReference = holeData.ParentCourse.LocalizedName;
 			matchSetupHole.holeNumber.text = (holeData.ParentCourseIndex + 1).ToString();
-			matchSetupHole.foreground.color = holeData.ParentCourse.MenuForegroundColor;
-			matchSetupHole.background.color = holeData.ParentCourse.MenuBackgroundColor;
+			matchSetupHole.holeNumber.color = holeData.ParentCourse.HoleLabelColor;
+			matchSetupHole.background.sprite = holeData.ParentCourse.MenuBackground;
+			for (int j = 0; j < matchSetupHole.difficultyIcons.Length; j++)
+			{
+				bool flag = (int)holeData.Difficulty >= j;
+				matchSetupHole.difficultyIcons[j].gameObject.SetActive(flag);
+				if (flag)
+				{
+					matchSetupHole.difficultyIcons[j].sprite = matchSetupHole.difficultyIconSprites[(int)holeData.Difficulty];
+				}
+			}
 			matchSetupHole.GetComponent<ReorderableListElement>().enabled = base.isServer;
 			holes.Add(matchSetupHole);
 		}
@@ -447,14 +533,12 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 					inactiveHoles.contentRoot.GetComponentsInChildren(value2);
 					AddHoleGlobalIndices(value, ref activeHolesList, value3);
 					AddHoleGlobalIndices(value2, ref inactiveHolesList);
-					CourseData obj = ((activeCourse == -2) ? RandomCourseData : CustomCourseData);
-					obj.OverrideHoles(value3.ToArray());
+					CustomCourseData.OverrideHoles(value3.ToArray());
 					if (activeCourse >= 0)
 					{
 						SetCourse(-1);
 					}
 					UpdateRandomMaxHolesSlider();
-					CourseManager.ServerSetCourse(obj);
 					UpdateHoleLabels();
 					UpdateHoleNavigation();
 					RefreshStartMatchButton();
@@ -479,13 +563,16 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		}
 	}
 
+	private int GetRandomMaxHolesSliderDefaultValue(CourseData courseData)
+	{
+		return BMath.Min(courseData.Holes.Length, 18);
+	}
+
 	private void UpdateRandomMaxHolesSlider()
 	{
-		if (activeCourse == -2)
-		{
-			numberOfHolesSlider.value = BMath.Clamp(numberOfHolesSlider.value, 1f, RandomCourseData.Holes.Length);
-			numberOfHolesSlider.SetLimits(1f, RandomCourseData.Holes.Length);
-		}
+		CourseData currentCourseData = GetCurrentCourseData();
+		numberOfHolesSlider.value = (randomEnabled ? BMath.Clamp(randomCupNumHoles, 1, currentCourseData.Holes.Length) : GetCurrentCourseData().Holes.Length);
+		numberOfHolesSlider.SetLimits(1f, currentCourseData.Holes.Length);
 	}
 
 	private void SetCourse(int courseIndex, bool fromSerialization = false)
@@ -495,14 +582,41 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		ServerValues obj = serverValues;
 		int num = (NetworkactiveCourse = courseIndex);
 		obj.activeCourse = num;
-		if (SingletonBehaviour<DrivingRangeManager>.HasInstance && courseIndex == -2)
-		{
-			RandomCourseData.OverrideHoles(GameManager.AllCourses.allHoles.ToArray());
-		}
-		numberOfHoles.SetActive(courseIndex == -2);
-		UpdateCourses(GetCurrentCourseData());
+		CourseData currentCourseData = GetCurrentCourseData();
+		UpdateCourses(currentCourseData);
 		RefreshStartMatchButton();
 		UpdateRandomMaxHolesSlider();
+		if (courseIndex != -1)
+		{
+			int randomMaxHolesSliderDefaultValue = GetRandomMaxHolesSliderDefaultValue(currentCourseData);
+			if (randomEnabled)
+			{
+				numberOfHolesSlider.value = randomMaxHolesSliderDefaultValue;
+				return;
+			}
+			numberOfHolesSlider.value = currentCourseData.Holes.Length;
+			NetworkrandomCupNumHoles = randomMaxHolesSliderDefaultValue;
+		}
+	}
+
+	private void OnRandomEnabledChanged(bool prev, bool curr)
+	{
+		courseRandom.SetActive(randomEnabled);
+		numberOfHoles.interactable = base.isServer && randomEnabled;
+		numberOfHoles.alpha = (numberOfHoles.interactable ? 1f : 0.5f);
+		if (base.isServer)
+		{
+			serverValues.randomEnabled = randomEnabled;
+		}
+		else
+		{
+			courseRandomToggle.isOn = randomEnabled;
+		}
+		UpdateRandomMaxHolesSlider();
+		if (PauseMenu.IsPaused)
+		{
+			SingletonBehaviour<PauseMenu>.Instance.UpdateGameInfoLabels();
+		}
 	}
 
 	private CourseData GetCurrentCourseData()
@@ -511,10 +625,6 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		if (activeCourse >= 0)
 		{
 			return courses[BMath.Clamp(activeCourse, 0, courses.Length - 1)];
-		}
-		if (activeCourse == -2)
-		{
-			return RandomCourseData;
 		}
 		return CustomCourseData;
 	}
@@ -527,7 +637,7 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		}
 		for (int i = 0; i < root.childCount; i++)
 		{
-			root.GetChild(i).GetChild(0).gameObject.SetActive(i == index);
+			root.GetChild(i).GetChild(2).gameObject.SetActive(i == index);
 		}
 	}
 
@@ -576,7 +686,6 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		SortInactiveHoles();
 		UpdateHoleLabels();
 		UpdateHoleNavigation();
-		CourseManager.ServerSetCourse(activeCourse);
 	}
 
 	private void SortInactiveHoles()
@@ -591,7 +700,7 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 
 	private void UpdateHoleLabels()
 	{
-		activeLabel.text = $"{Localization.UI.MATCHSETUP_Label_Active} ({activeHolesList.Count}/{holes.Count})";
+		activeLabel.text = $"{Localization.UI.MATCHSETUP_Label_Active} ({activeHolesList.Count})";
 		inactiveLabel.text = $"{Localization.UI.MATCHSETUP_Label_Inactive} ({inactiveHolesList.Count}/{holes.Count})";
 	}
 
@@ -664,7 +773,7 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 							ControllerSelectable selectable4;
 							if (j == value.Count - 1)
 							{
-								navigation2.selectOnDown = button;
+								navigation2.selectOnDown = courseRandomToggle;
 							}
 							else if (TryGetSelectable(value, j + 1, clamp: false, out selectable4))
 							{
@@ -694,7 +803,7 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 							ControllerSelectable selectable7;
 							if (j == value2.Count - 1)
 							{
-								navigation3.selectOnDown = button;
+								navigation3.selectOnDown = courseRandomToggle;
 							}
 							else if (TryGetSelectable(value2, j + 1, clamp: false, out selectable7))
 							{
@@ -707,6 +816,11 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 							selectable2.Selectable.navigation = navigation3;
 						}
 					}
+					button.navigation = new Navigation
+					{
+						mode = Navigation.Mode.Explicit,
+						selectOnUp = courseRandomToggle
+					};
 					Navigation navigation4 = new Navigation
 					{
 						mode = Navigation.Mode.Explicit
@@ -723,7 +837,13 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 						selectable9 = list2[list2.Count - 1].Selectable;
 					}
 					navigation4.selectOnUp = selectable9;
-					button.navigation = navigation4;
+					navigation4.selectOnRight = numberOfHolesSlider.Slider;
+					navigation4.selectOnDown = button;
+					courseRandomToggle.navigation = navigation4;
+					Navigation navigation5 = navigation4;
+					navigation5.selectOnRight = null;
+					navigation5.selectOnLeft = courseRandomToggle;
+					numberOfHolesSlider.Slider.navigation = navigation5;
 				}
 			}
 		}
@@ -788,7 +908,7 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		OnPlayersUpdated();
 	}
 
-	private void OnPlayersUpdated(PlayerInfo remotePlayerInfo = null)
+	private void OnPlayersUpdated()
 	{
 		if (!IsActive || BNetworkManager.IsChangingSceneOrShuttingDown)
 		{
@@ -818,7 +938,7 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 						for (int j = 0; j < players.Count; j++)
 						{
 							MatchSetupPlayer matchSetupPlayer2 = players[j];
-							bool flag = j < value.Count && matchSetupPlayer2 != null && !string.IsNullOrEmpty(value[j].name);
+							bool flag = j < value.Count && matchSetupPlayer2 != null && value[j].playerGuid != 0 && !string.IsNullOrEmpty(value[j].name);
 							matchSetupPlayer2.gameObject.SetActive(flag);
 							if (!flag)
 							{
@@ -1048,18 +1168,18 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		maxPlayersSlider.Initialize(delegate
 		{
 			NetworkmaxPlayers = (int)maxPlayersSlider.value;
-			bool flag = false;
+			bool flag2 = false;
 			if (maxPlayers < GameManager.RemotePlayers.Count + 1)
 			{
 				NetworkmaxPlayers = GameManager.RemotePlayers.Count + 1;
-				flag = true;
+				flag2 = true;
 			}
 			if (maxPlayers > 16)
 			{
 				NetworkmaxPlayers = 16;
-				flag = true;
+				flag2 = true;
 			}
-			if (flag)
+			if (flag2)
 			{
 				maxPlayersSlider.valueWithoutNotify = maxPlayers;
 			}
@@ -1087,7 +1207,10 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		SetServerName(serverValues.serverName);
 		serverNameField.text = BNetworkManager.LobbyName;
 		serverNameField.onEndEdit.AddListener(SetServerName);
-		NetworkrandomCupNumHoles = serverValues.randomCupNumHoles;
+		NetworkrandomCupNumHoles = ((activeCourse == -1) ? serverValues.randomCupNumHoles : GetCurrentCourseData().Holes.Length);
+		Toggle toggle = courseRandomToggle;
+		bool isOn = (NetworkrandomEnabled = serverValues.randomEnabled);
+		toggle.isOn = isOn;
 		static HoleData[] GetHoleDataArray(string[] activeHoles)
 		{
 			List<HoleData> value;
@@ -1123,7 +1246,7 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		numberOfHolesSlider.SetLimits(1f, GameManager.AllCourses.allHoles.Count);
 		numberOfHolesSlider.Initialize(delegate
 		{
-			if (base.isServer)
+			if (base.isServer && randomEnabled)
 			{
 				NetworkrandomCupNumHoles = (int)numberOfHolesSlider.value;
 			}
@@ -1135,14 +1258,11 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 			rules.Initialize();
 		}
 		OnActiveCourseChanged(activeCourse, activeCourse);
+		OnRandomEnabledChanged(randomEnabled, randomEnabled);
 		UpdateHoleNavigation();
 		menu.SetActive(value: false);
-		GameManager.RemotePlayerRegistered += OnPlayersUpdated;
-		GameManager.RemotePlayerDeregistered += OnPlayersUpdated;
-		PlayerId.AnyPlayerGuidChanged += OnAnyPlayerGuidChanged;
-		PlayerId.AnyPlayerNameChanged += OnAnyPlayerNameChanged;
-		LocalizationManager.LanguageChanged += OnLanguageChanged;
 		CourseManager.PlayerStatesChanged += OnPlayerStatesChanged;
+		LocalizationManager.LanguageChanged += OnLanguageChanged;
 		BNetworkManager.SteamPlayerRelationshipChanged += SteamPlayerRelationshipChanged;
 		playersList.OnElementMoved += OnPlayerMovedToPlayers;
 		spectatorsList.OnElementMoved += OnPlayerMovedToSpectate;
@@ -1157,9 +1277,52 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 
 	private void OnPlayerStatesChanged(SyncList<CourseManager.PlayerState>.Operation op, int index, CourseManager.PlayerState state)
 	{
-		if (IsActive && (uint)op == 1u)
+		if (!ShouldUpdatePlayerEntries(out var shouldUpdateStartMatchButtons))
+		{
+			if (shouldUpdateStartMatchButtons)
+			{
+				RefreshStartMatchButton();
+			}
+		}
+		else
 		{
 			OnPlayersUpdated();
+		}
+		bool ShouldUpdatePlayerEntries(out bool reference)
+		{
+			reference = false;
+			if (!IsActive)
+			{
+				return false;
+			}
+			if ((uint)op == 1u)
+			{
+				CourseManager.PlayerState playerState = CourseManager.PlayerStates[index];
+				if (playerState.playerGuid == 0L)
+				{
+					return false;
+				}
+				if (playerState.isConnected != state.isConnected)
+				{
+					reference = true;
+					return true;
+				}
+				reference = playerState.isSpectator != state.isSpectator;
+				if (playerState.playerGuid != state.playerGuid)
+				{
+					return true;
+				}
+				if (playerState.name != state.name)
+				{
+					return true;
+				}
+				if (playerState.isHost != state.isHost)
+				{
+					return true;
+				}
+				return false;
+			}
+			return true;
 		}
 	}
 
@@ -1222,20 +1385,11 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		NetworkWriterPool.Return(writer);
 	}
 
-	private void OnAnyPlayerGuidChanged(PlayerId playerId)
-	{
-		OnPlayersUpdated();
-	}
-
-	private void OnAnyPlayerNameChanged(PlayerId playerId)
-	{
-		OnPlayersUpdated();
-	}
-
 	private void OnLanguageChanged()
 	{
 		UpdateHoleLabels();
 		OnActiveCourseChanged(activeCourse, activeCourse);
+		UpdateCourseTooltips();
 	}
 
 	private void OnMaxPlayersSliderValueChange()
@@ -1255,12 +1409,12 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		}
 		if (SingletonBehaviour<DrivingRangeManager>.HasInstance)
 		{
-			if (activeCourse == -2)
+			if (randomEnabled)
 			{
 				List<HoleData> value;
 				using (CollectionPool<List<HoleData>, HoleData>.Get(out value))
 				{
-					value.AddRange(RandomCourseData.Holes);
+					value.AddRange(GetCurrentCourseData().Holes.Distinct());
 					value.Shuffle();
 					while (value.Count > randomCupNumHoles)
 					{
@@ -1269,6 +1423,10 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 					RandomCourseData.OverrideHoles(value.ToArray());
 					CourseManager.ServerSetCourse(RandomCourseData);
 				}
+			}
+			else
+			{
+				CourseManager.ServerSetCourse(GetCurrentCourseData());
 			}
 			ServerSaveSettings();
 			CourseManager.StartCourse();
@@ -1337,23 +1495,52 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		serverNameField.SetTextWithoutNotify(BNetworkManager.LobbyName);
 	}
 
-	private void OnServerNameChange(string prev, string curr)
+	private void OnServerNameChange(string previousName, string currentName)
 	{
+		Debug.Log("Server name set to " + currentName);
 		if (!base.isServer)
 		{
-			GameManager.FilterProfanity(curr, out curr);
-			serverNameField.text = curr;
+			GameManager.FilterProfanity(currentName, out currentName);
+			serverNameField.text = currentName;
 		}
 	}
 
-	private void OnActiveCourseChanged(int previousCourse, int currentCourse)
+	private void OnActiveCourseChanged(int previousCourse, int currentCourseIndex)
 	{
-		LocalizedString stringReference = ((currentCourse >= 0) ? GameManager.AllCourses.Courses[currentCourse].LocalizedName : ((currentCourse != -1) ? Localization.UI.MATCHSETUP_Button_Random_Ref : Localization.UI.MATCHSETUP_Button_Custom_Ref));
-		currentCourseLocalizeStringEvent.StringReference = stringReference;
+		LocalizedString courseLocalizedString = GetCourseLocalizedString(currentCourseIndex);
+		currentCourseLocalizeStringEvent.StringReference = courseLocalizedString;
 		if (!base.isServer)
 		{
-			SelectCategory(categoryRoot, currentCourse);
+			SelectCategory(categoryRoot, currentCourseIndex);
 		}
+		if (PauseMenu.IsPaused)
+		{
+			SingletonBehaviour<PauseMenu>.Instance.UpdateGameInfoLabels();
+		}
+		CourseData currentCourseData = GetCurrentCourseData();
+		if (currentCourseData == CustomCourseData)
+		{
+			courseLabel.StringReference = Localization.UI.HOLE_INFO_CourseName_Custom_Ref;
+		}
+		else
+		{
+			courseLabel.StringReference = currentCourseData.LocalizedName;
+		}
+		courseLabel.RefreshString();
+		UpdateRandomMaxHolesSlider();
+	}
+
+	public static LocalizedString GetCourseLocalizedString(int currentCourse)
+	{
+		if (currentCourse >= 0)
+		{
+			return GameManager.AllCourses.Courses[currentCourse].LocalizedName;
+		}
+		if (currentCourse == -1)
+		{
+			return Localization.UI.MATCHSETUP_Button_Custom_Ref;
+		}
+		return Localization.UI.MATCHSETUP_Button_Random_Ref;
 	}
 
 	private void OnCourseListChange(SyncList<int>.Operation op, int i, int value)
@@ -1384,10 +1571,14 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		if (base.isServer)
 		{
 			serverValues.randomCupNumHoles = randomCupNumHoles;
+			if (activeCourse >= 0 && randomCupNumHoles != GetRandomMaxHolesSliderDefaultValue(GetCurrentCourseData()))
+			{
+				OnHoleOrderUpdate();
+			}
 		}
 		else
 		{
-			numberOfHolesSlider.SetValue(randomCupNumHoles);
+			UpdateRandomMaxHolesSlider();
 		}
 	}
 
@@ -1401,6 +1592,7 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		_Mirror_SyncVarHookDelegate_serverName = OnServerNameChange;
 		_Mirror_SyncVarHookDelegate_activeCourse = OnActiveCourseChanged;
 		_Mirror_SyncVarHookDelegate_randomCupNumHoles = OnRandomCupNumHolesChanged;
+		_Mirror_SyncVarHookDelegate_randomEnabled = OnRandomEnabledChanged;
 	}
 
 	public override bool Weaved()
@@ -1453,6 +1645,7 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 			writer.WriteString(serverName);
 			writer.WriteVarInt(activeCourse);
 			writer.WriteVarInt(randomCupNumHoles);
+			writer.WriteBool(randomEnabled);
 			return;
 		}
 		writer.WriteVarULong(syncVarDirtyBits);
@@ -1480,6 +1673,10 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		{
 			writer.WriteVarInt(randomCupNumHoles);
 		}
+		if ((syncVarDirtyBits & 0x40L) != 0L)
+		{
+			writer.WriteBool(randomEnabled);
+		}
 	}
 
 	public override void DeserializeSyncVars(NetworkReader reader, bool initialState)
@@ -1493,6 +1690,7 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 			GeneratedSyncVarDeserialize(ref serverName, _Mirror_SyncVarHookDelegate_serverName, reader.ReadString());
 			GeneratedSyncVarDeserialize(ref activeCourse, _Mirror_SyncVarHookDelegate_activeCourse, reader.ReadVarInt());
 			GeneratedSyncVarDeserialize(ref randomCupNumHoles, _Mirror_SyncVarHookDelegate_randomCupNumHoles, reader.ReadVarInt());
+			GeneratedSyncVarDeserialize(ref randomEnabled, _Mirror_SyncVarHookDelegate_randomEnabled, reader.ReadBool());
 			return;
 		}
 		long num = (long)reader.ReadVarULong();
@@ -1519,6 +1717,10 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		if ((num & 0x20L) != 0L)
 		{
 			GeneratedSyncVarDeserialize(ref randomCupNumHoles, _Mirror_SyncVarHookDelegate_randomCupNumHoles, reader.ReadVarInt());
+		}
+		if ((num & 0x40L) != 0L)
+		{
+			GeneratedSyncVarDeserialize(ref randomEnabled, _Mirror_SyncVarHookDelegate_randomEnabled, reader.ReadBool());
 		}
 	}
 }

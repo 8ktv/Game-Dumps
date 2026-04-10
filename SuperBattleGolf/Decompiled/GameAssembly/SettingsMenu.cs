@@ -43,6 +43,8 @@ public class SettingsMenu : MonoBehaviour
 
 	public DropdownOption vsync;
 
+	public SliderOption fpsLimit;
+
 	public DropdownOption antialiasing;
 
 	public DropdownOption shadowQuality;
@@ -70,8 +72,6 @@ public class SettingsMenu : MonoBehaviour
 
 	public DropdownOption buttonPrompts;
 
-	public DropdownOption devConsole;
-
 	public Button skipOrResetTutorial;
 
 	public LocalizeStringEvent skipOrResetTutorialLocalizeStringEvent;
@@ -79,6 +79,10 @@ public class SettingsMenu : MonoBehaviour
 	public DropdownOption streamerMode;
 
 	public DropdownOption muteChat;
+
+	public DropdownOption distanceUnit;
+
+	public DropdownOption speedUnit;
 
 	[Header("Controls")]
 	public SliderOption mouseSensitivity;
@@ -100,6 +104,13 @@ public class SettingsMenu : MonoBehaviour
 	[Header("Navigation")]
 	public MenuNavigation[] tabNavigation;
 
+	[Header("Tooltips")]
+	public UiTooltip generalTooltip;
+
+	public UiTooltip graphicsTooltip;
+
+	public UiTooltip audioTooltip;
+
 	private void Start()
 	{
 		GameSettings.Initialize();
@@ -107,6 +118,7 @@ public class SettingsMenu : MonoBehaviour
 		InitGraphics();
 		InitGeneral();
 		InitControls();
+		UpdateTooltips();
 		UpdateSkipOrResetTutorialLabel();
 		UpdateCrtSubsettingsEnabled();
 		TutorialManager.IsFinishedChanged += OnIsTutorialFinishedChanged;
@@ -218,10 +230,6 @@ public class SettingsMenu : MonoBehaviour
 			{
 				generalSettings.ButtonPrompts = (GameSettings.GeneralSettings.ButtonPromptVisibility)buttonPrompts.value;
 			}, (int)generalSettings.ButtonPrompts);
-			devConsole.Initialize(delegate
-			{
-				generalSettings.DevConsole = devConsole.value == 0;
-			}, (!generalSettings.DevConsole) ? 1 : 0);
 			streamerMode.Initialize(delegate
 			{
 				generalSettings.StreamerMode = streamerMode.value == 0;
@@ -230,6 +238,14 @@ public class SettingsMenu : MonoBehaviour
 			{
 				generalSettings.MuteChat = muteChat.value == 0;
 			}, (!generalSettings.MuteChat) ? 1 : 0);
+			distanceUnit.Initialize(delegate
+			{
+				generalSettings.DistanceUnits = (GameSettings.GeneralSettings.DistanceUnit)distanceUnit.value;
+			}, (int)generalSettings.DistanceUnits);
+			speedUnit.Initialize(delegate
+			{
+				generalSettings.SpeedUnits = (GameSettings.GeneralSettings.SpeedUnit)speedUnit.value;
+			}, (int)generalSettings.SpeedUnits);
 			skipOrResetTutorial.onClick.AddListener(SkipOrResetTutorial);
 		}
 		void InitGraphics()
@@ -251,10 +267,31 @@ public class SettingsMenu : MonoBehaviour
 				{
 					graphicsSettings.Fullscreen = fullscreen.value == 0;
 				}, (!graphicsSettings.Fullscreen) ? 1 : 0);
-				vsync.Initialize(delegate
+				vsync.Initialize(OnFpsLimitChanged, (!graphicsSettings.VSync) ? 1 : 0);
+				fpsLimit.Initialize(delegate
 				{
-					graphicsSettings.VSync = vsync.value == 0;
-				}, (!graphicsSettings.VSync) ? 1 : 0);
+					int num;
+					if (InputManager.UsingGamepad)
+					{
+						num = graphicsSettings.FpsLimit;
+						if (fpsLimit.value < (float)graphicsSettings.FpsLimit)
+						{
+							num -= 10;
+						}
+						else if (fpsLimit.value > (float)graphicsSettings.FpsLimit)
+						{
+							num += 10;
+						}
+					}
+					else
+					{
+						num = BMath.RoundToInt(fpsLimit.value * 0.1f) * 10;
+					}
+					num = Mathf.Clamp(num, 30, 310);
+					fpsLimit.valueWithoutNotify = num;
+					graphicsSettings.FpsLimit = num;
+					fpsLimit.SetValueText((num <= 300) ? BMath.RoundToInt(graphicsSettings.FpsLimit).ToString() : Localization.UI.SETTINGS_Option_Off);
+				}, graphicsSettings.FpsLimit);
 				antialiasing.Initialize(delegate
 				{
 					graphicsSettings.MSAA = ToMSAA(antialiasing.value);
@@ -288,6 +325,11 @@ public class SettingsMenu : MonoBehaviour
 			GameSettings.All.Graphics.CrtEnabled = crtEnabled.value == 0;
 			UpdateCrtSubsettingsEnabled();
 		}
+		void OnFpsLimitChanged()
+		{
+			GameSettings.All.Graphics.VSync = vsync.value == 0;
+			UpdateFpsSubsettingsEnabled();
+		}
 		void UpdateCrtSubsettingsEnabled()
 		{
 			bool active = GameSettings.All.Graphics.CrtEnabled;
@@ -296,12 +338,36 @@ public class SettingsMenu : MonoBehaviour
 			crtChromaticAberrationEnabled.gameObject.SetActive(active);
 			graphicsNavigationGroup.UpdateNavigation();
 		}
+		void UpdateFpsSubsettingsEnabled()
+		{
+			bool vSync = GameSettings.All.Graphics.VSync;
+			fpsLimit.gameObject.SetActive(!vSync);
+			graphicsNavigationGroup.UpdateNavigation();
+		}
+	}
+
+	private void UpdateTooltips()
+	{
+		generalTooltip.DeregisterTooltip(streamerMode.GetComponent<RectTransform>());
+		generalTooltip.DeregisterTooltip(buttonPrompts.GetComponent<RectTransform>());
+		generalTooltip.DeregisterTooltip(muteChat.GetComponent<RectTransform>());
+		generalTooltip.RegisterTooltip(streamerMode.GetComponent<RectTransform>(), Localization.UI.SETTINGS_Tooltip_StreamerMode);
+		generalTooltip.RegisterTooltip(buttonPrompts.GetComponent<RectTransform>(), Localization.UI.SETTINGS_Tooltip_ButtonPrompts);
+		generalTooltip.RegisterTooltip(muteChat.GetComponent<RectTransform>(), Localization.UI.SETTINGS_Tooltip_MuteChat);
+		audioTooltip.DeregisterTooltip(micInputVolume.GetComponent<RectTransform>());
+		audioTooltip.DeregisterTooltip(micThreshold.GetComponent<RectTransform>());
+		audioTooltip.DeregisterTooltip(voiceChatMode.GetComponent<RectTransform>());
+		audioTooltip.RegisterTooltip(micInputVolume.GetComponent<RectTransform>(), Localization.UI.SETTINGS_Tooltip_MicInputVolume);
+		audioTooltip.RegisterTooltip(micThreshold.GetComponent<RectTransform>(), Localization.UI.SETTINGS_Tooltip_MicThreshold);
+		audioTooltip.RegisterTooltip(voiceChatMode.GetComponent<RectTransform>(), Localization.UI.SETTINGS_Tooltip_VoiceChatMode);
+		graphicsTooltip.DeregisterTooltip(crtEnabled.GetComponent<RectTransform>());
+		graphicsTooltip.RegisterTooltip(crtEnabled.GetComponent<RectTransform>(), Localization.UI.SETTINGS_Tooltip_CrtEffects);
 	}
 
 	private void OnEnable()
 	{
 		RefreshAudioDevices();
-		LocalizationManager.LanguageChanged += RefreshAudioDevices;
+		LocalizationManager.LanguageChanged += OnLanguageChanged;
 	}
 
 	private void RefreshAudioDevices()
@@ -403,7 +469,7 @@ public class SettingsMenu : MonoBehaviour
 	private void OnDisable()
 	{
 		GameSettings.ApplyAndSave();
-		LocalizationManager.LanguageChanged -= RefreshAudioDevices;
+		LocalizationManager.LanguageChanged -= OnLanguageChanged;
 		if (!BNetworkManager.IsChangingSceneOrShuttingDown && SingletonBehaviour<PauseMenu>.HasInstance)
 		{
 			SingletonBehaviour<PauseMenu>.Instance.UpdatePlayerEntries();
@@ -436,5 +502,11 @@ public class SettingsMenu : MonoBehaviour
 	private void OnIsTutorialFinishedChanged()
 	{
 		UpdateSkipOrResetTutorialLabel();
+	}
+
+	private void OnLanguageChanged()
+	{
+		RefreshAudioDevices();
+		UpdateTooltips();
 	}
 }

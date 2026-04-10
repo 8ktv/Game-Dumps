@@ -52,7 +52,7 @@ internal static class InstanceCullingBatcherBurst
 	}
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-	internal delegate void CreateDrawBatches_0000018C_0024PostfixBurstDelegate(bool implicitInstanceIndices, in NativeArray<InstanceHandle> instances, in GPUDrivenRendererGroupData rendererData, in NativeParallelHashMap<int, BatchMeshID> batchMeshHash, in NativeParallelHashMap<int, BatchMaterialID> batchMaterialHash, in NativeParallelHashMap<int, GPUDrivenPackedMaterialData> packedMaterialDataHash, ref NativeParallelHashMap<RangeKey, int> rangeHash, ref NativeList<DrawRange> drawRanges, ref NativeParallelHashMap<DrawKey, int> batchHash, ref NativeList<DrawBatch> drawBatches, ref NativeList<DrawInstance> drawInstances);
+	internal delegate void CreateDrawBatches_0000018C_0024PostfixBurstDelegate(bool implicitInstanceIndices, in NativeArray<InstanceHandle> instances, in GPUDrivenRendererGroupData rendererData, in NativeParallelHashMap<EntityId, BatchMeshID> batchMeshHash, in NativeParallelHashMap<EntityId, BatchMaterialID> batchMaterialHash, in NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData> packedMaterialDataHash, ref NativeParallelHashMap<RangeKey, int> rangeHash, ref NativeList<DrawRange> drawRanges, ref NativeParallelHashMap<DrawKey, int> batchHash, ref NativeList<DrawBatch> drawBatches, ref NativeList<DrawInstance> drawInstances);
 
 	internal static class CreateDrawBatches_0000018C_0024BurstDirectCall
 	{
@@ -75,14 +75,14 @@ internal static class InstanceCullingBatcherBurst
 			return result;
 		}
 
-		public unsafe static void Invoke(bool implicitInstanceIndices, in NativeArray<InstanceHandle> instances, in GPUDrivenRendererGroupData rendererData, in NativeParallelHashMap<int, BatchMeshID> batchMeshHash, in NativeParallelHashMap<int, BatchMaterialID> batchMaterialHash, in NativeParallelHashMap<int, GPUDrivenPackedMaterialData> packedMaterialDataHash, ref NativeParallelHashMap<RangeKey, int> rangeHash, ref NativeList<DrawRange> drawRanges, ref NativeParallelHashMap<DrawKey, int> batchHash, ref NativeList<DrawBatch> drawBatches, ref NativeList<DrawInstance> drawInstances)
+		public unsafe static void Invoke(bool implicitInstanceIndices, in NativeArray<InstanceHandle> instances, in GPUDrivenRendererGroupData rendererData, in NativeParallelHashMap<EntityId, BatchMeshID> batchMeshHash, in NativeParallelHashMap<EntityId, BatchMaterialID> batchMaterialHash, in NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData> packedMaterialDataHash, ref NativeParallelHashMap<RangeKey, int> rangeHash, ref NativeList<DrawRange> drawRanges, ref NativeParallelHashMap<DrawKey, int> batchHash, ref NativeList<DrawBatch> drawBatches, ref NativeList<DrawInstance> drawInstances)
 		{
 			if (BurstCompiler.IsEnabled)
 			{
 				IntPtr functionPointer = GetFunctionPointer();
 				if (functionPointer != (IntPtr)0)
 				{
-					((delegate* unmanaged[Cdecl]<bool, ref NativeArray<InstanceHandle>, ref GPUDrivenRendererGroupData, ref NativeParallelHashMap<int, BatchMeshID>, ref NativeParallelHashMap<int, BatchMaterialID>, ref NativeParallelHashMap<int, GPUDrivenPackedMaterialData>, ref NativeParallelHashMap<RangeKey, int>, ref NativeList<DrawRange>, ref NativeParallelHashMap<DrawKey, int>, ref NativeList<DrawBatch>, ref NativeList<DrawInstance>, void>)functionPointer)(implicitInstanceIndices, ref instances, ref rendererData, ref batchMeshHash, ref batchMaterialHash, ref packedMaterialDataHash, ref rangeHash, ref drawRanges, ref batchHash, ref drawBatches, ref drawInstances);
+					((delegate* unmanaged[Cdecl]<bool, ref NativeArray<InstanceHandle>, ref GPUDrivenRendererGroupData, ref NativeParallelHashMap<EntityId, BatchMeshID>, ref NativeParallelHashMap<EntityId, BatchMaterialID>, ref NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData>, ref NativeParallelHashMap<RangeKey, int>, ref NativeList<DrawRange>, ref NativeParallelHashMap<DrawKey, int>, ref NativeList<DrawBatch>, ref NativeList<DrawInstance>, void>)functionPointer)(implicitInstanceIndices, ref instances, ref rendererData, ref batchMeshHash, ref batchMaterialHash, ref packedMaterialDataHash, ref rangeHash, ref drawRanges, ref batchHash, ref drawBatches, ref drawInstances);
 					return;
 				}
 			}
@@ -161,36 +161,36 @@ internal static class InstanceCullingBatcherBurst
 		return ref drawBatches.ElementAt(item);
 	}
 
-	private static void ProcessRenderer(int i, bool implicitInstanceIndices, in GPUDrivenRendererGroupData rendererData, NativeParallelHashMap<int, BatchMeshID> batchMeshHash, NativeParallelHashMap<int, GPUDrivenPackedMaterialData> packedMaterialDataHash, NativeParallelHashMap<int, BatchMaterialID> batchMaterialHash, NativeArray<InstanceHandle> instances, NativeList<DrawInstance> drawInstances, NativeParallelHashMap<RangeKey, int> rangeHash, NativeList<DrawRange> drawRanges, NativeParallelHashMap<DrawKey, int> batchHash, NativeList<DrawBatch> drawBatches)
+	private static void ProcessRenderer(int i, bool implicitInstanceIndices, in GPUDrivenRendererGroupData rendererData, NativeParallelHashMap<EntityId, BatchMeshID> batchMeshHash, NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData> packedMaterialDataHash, NativeParallelHashMap<EntityId, BatchMaterialID> batchMaterialHash, NativeArray<InstanceHandle> instances, NativeList<DrawInstance> drawInstances, NativeParallelHashMap<RangeKey, int> rangeHash, NativeList<DrawRange> drawRanges, NativeParallelHashMap<DrawKey, int> batchHash, NativeList<DrawBatch> drawBatches)
 	{
 		int index = rendererData.meshIndex[i];
-		int key = rendererData.meshID[index];
+		EntityId key = rendererData.meshID[index];
 		GPUDrivenMeshLodInfo gPUDrivenMeshLodInfo = rendererData.meshLodInfo[index];
 		short num = rendererData.subMeshCount[index];
 		int num2 = rendererData.subMeshDescOffset[index];
 		BatchMeshID meshID = batchMeshHash[key];
-		int num3 = rendererData.rendererGroupID[i];
-		short num4 = rendererData.subMeshStartIndex[i];
-		int num5 = rendererData.gameObjectLayer[i];
+		EntityId entityId = rendererData.rendererGroupID[i];
+		short num3 = rendererData.subMeshStartIndex[i];
+		int num4 = rendererData.gameObjectLayer[i];
 		uint renderingLayerMask = rendererData.renderingLayerMask[i];
-		int num6 = rendererData.materialsOffset[i];
-		short num7 = rendererData.materialsCount[i];
-		int num8 = rendererData.lightmapIndex[i];
+		int num5 = rendererData.materialsOffset[i];
+		short num6 = rendererData.materialsCount[i];
+		int num7 = rendererData.lightmapIndex[i];
 		GPUDrivenPackedRendererData gPUDrivenPackedRendererData = rendererData.packedRendererData[i];
 		int rendererPriority = rendererData.rendererPriority[i];
+		int num8;
 		int num9;
-		int num10;
 		if (implicitInstanceIndices)
 		{
-			num9 = 1;
-			num10 = i;
+			num8 = 1;
+			num9 = i;
 		}
 		else
 		{
-			num9 = rendererData.instancesCount[i];
-			num10 = rendererData.instancesOffset[i];
+			num8 = rendererData.instancesCount[i];
+			num9 = rendererData.instancesOffset[i];
 		}
-		if (num9 == 0)
+		if (num8 == 0)
 		{
 			return;
 		}
@@ -199,7 +199,7 @@ internal static class InstanceCullingBatcherBurst
 		{
 			instanceComponentGroup |= InstanceComponentGroup.Wind;
 		}
-		if ((num8 & 0xFFFF) >= 65534)
+		if ((num7 & 0xFFFF) >= 65534)
 		{
 			if (gPUDrivenPackedRendererData.lightProbeUsage == LightProbeUsage.BlendProbes)
 			{
@@ -210,16 +210,16 @@ internal static class InstanceCullingBatcherBurst
 		{
 			instanceComponentGroup |= InstanceComponentGroup.Lightmap;
 		}
-		Span<GPUDrivenPackedMaterialData> span = stackalloc GPUDrivenPackedMaterialData[(int)num7];
+		Span<GPUDrivenPackedMaterialData> span = stackalloc GPUDrivenPackedMaterialData[(int)num6];
 		bool flag = true;
-		for (int j = 0; j < num7; j++)
+		for (int j = 0; j < num6; j++)
 		{
 			if (j >= num)
 			{
 				Debug.LogWarning("Material count in the shared material list is higher than sub mesh count for the mesh. Object may be corrupted.");
 				continue;
 			}
-			int index2 = rendererData.materialIndex[num6 + j];
+			int index2 = rendererData.materialIndex[num5 + j];
 			GPUDrivenPackedMaterialData item;
 			if (rendererData.packedMaterialData.Length > 0)
 			{
@@ -227,7 +227,7 @@ internal static class InstanceCullingBatcherBurst
 			}
 			else
 			{
-				int key2 = rendererData.materialID[index2];
+				EntityId key2 = rendererData.materialID[index2];
 				packedMaterialDataHash.TryGetValue(key2, out item);
 			}
 			flag &= item.isIndirectSupported;
@@ -235,7 +235,7 @@ internal static class InstanceCullingBatcherBurst
 		}
 		RangeKey key3 = new RangeKey
 		{
-			layer = (byte)num5,
+			layer = (byte)num4,
 			renderingLayerMask = renderingLayerMask,
 			motionMode = gPUDrivenPackedRendererData.motionVecGenMode,
 			shadowCastingMode = gPUDrivenPackedRendererData.shadowCastingMode,
@@ -244,22 +244,22 @@ internal static class InstanceCullingBatcherBurst
 			supportsIndirect = flag
 		};
 		ref DrawRange reference = ref EditDrawRange(in key3, rangeHash, drawRanges);
-		for (int k = 0; k < num7; k++)
+		for (int k = 0; k < num6; k++)
 		{
 			if (k >= num)
 			{
 				Debug.LogWarning("Material count in the shared material list is higher than sub mesh count for the mesh. Object may be corrupted.");
 				continue;
 			}
-			int index3 = rendererData.materialIndex[num6 + k];
-			int num11 = rendererData.materialID[index3];
+			int index3 = rendererData.materialIndex[num5 + k];
+			EntityId entityId2 = rendererData.materialID[index3];
 			GPUDrivenPackedMaterialData gPUDrivenPackedMaterialData = span[k];
-			if (num11 == 0)
+			if (entityId2 == 0)
 			{
 				Debug.LogWarning("Material in the shared materials list is null. Object will be partially rendered.");
 				continue;
 			}
-			batchMaterialHash.TryGetValue(num11, out var item2);
+			batchMaterialHash.TryGetValue(entityId2, out var item2);
 			BatchDrawCommandFlags batchDrawCommandFlags = BatchDrawCommandFlags.LODCrossFadeValuePacked;
 			batchDrawCommandFlags |= BatchDrawCommandFlags.UseLegacyLightmapsKeyword;
 			if (gPUDrivenPackedMaterialData.isMotionVectorsPassEnabled)
@@ -274,32 +274,32 @@ internal static class InstanceCullingBatcherBurst
 			{
 				batchDrawCommandFlags |= BatchDrawCommandFlags.LODCrossFadeKeyword;
 			}
-			int num12 = math.max(gPUDrivenMeshLodInfo.levelCount, 1);
-			for (int l = 0; l < num12; l++)
+			int num10 = math.max(gPUDrivenMeshLodInfo.levelCount, 1);
+			for (int l = 0; l < num10; l++)
 			{
-				int num13 = num4 + k;
-				SubMeshDescriptor subMeshDescriptor = rendererData.subMeshDesc[num2 + num13 * num12 + l];
+				int num11 = num3 + k;
+				SubMeshDescriptor subMeshDescriptor = rendererData.subMeshDesc[num2 + num11 * num10 + l];
 				DrawKey key4 = new DrawKey
 				{
 					materialID = item2,
 					meshID = meshID,
-					submeshIndex = num13,
+					submeshIndex = num11,
 					activeMeshLod = (gPUDrivenMeshLodInfo.lodSelectionActive ? l : (-1)),
 					flags = batchDrawCommandFlags,
-					transparentInstanceId = (gPUDrivenPackedMaterialData.isTransparent ? num3 : 0),
+					transparentInstanceId = (gPUDrivenPackedMaterialData.isTransparent ? ((int)entityId) : 0),
 					range = key3,
 					overridenComponents = (uint)instanceComponentGroup,
-					lightmapIndex = num8
+					lightmapIndex = num7
 				};
 				ref DrawBatch reference2 = ref EditDrawBatch(in key4, in subMeshDescriptor, batchHash, drawBatches);
 				if (reference2.instanceCount == 0)
 				{
 					reference.drawCount++;
 				}
-				reference2.instanceCount += num9;
-				for (int m = 0; m < num9; m++)
+				reference2.instanceCount += num8;
+				for (int m = 0; m < num8; m++)
 				{
-					int index4 = num10 + m;
+					int index4 = num9 + m;
 					InstanceHandle instanceHandle = instances[index4];
 					drawInstances.Add(new DrawInstance
 					{
@@ -313,7 +313,7 @@ internal static class InstanceCullingBatcherBurst
 
 	[BurstCompile(DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
 	[MonoPInvokeCallback(typeof(UnityEngine_002ERendering_002ECreateDrawBatches_0000018C_0024PostfixBurstDelegate))]
-	public static void CreateDrawBatches(bool implicitInstanceIndices, in NativeArray<InstanceHandle> instances, in GPUDrivenRendererGroupData rendererData, in NativeParallelHashMap<int, BatchMeshID> batchMeshHash, in NativeParallelHashMap<int, BatchMaterialID> batchMaterialHash, in NativeParallelHashMap<int, GPUDrivenPackedMaterialData> packedMaterialDataHash, ref NativeParallelHashMap<RangeKey, int> rangeHash, ref NativeList<DrawRange> drawRanges, ref NativeParallelHashMap<DrawKey, int> batchHash, ref NativeList<DrawBatch> drawBatches, ref NativeList<DrawInstance> drawInstances)
+	public static void CreateDrawBatches(bool implicitInstanceIndices, in NativeArray<InstanceHandle> instances, in GPUDrivenRendererGroupData rendererData, in NativeParallelHashMap<EntityId, BatchMeshID> batchMeshHash, in NativeParallelHashMap<EntityId, BatchMaterialID> batchMaterialHash, in NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData> packedMaterialDataHash, ref NativeParallelHashMap<RangeKey, int> rangeHash, ref NativeList<DrawRange> drawRanges, ref NativeParallelHashMap<DrawKey, int> batchHash, ref NativeList<DrawBatch> drawBatches, ref NativeList<DrawInstance> drawInstances)
 	{
 		CreateDrawBatches_0000018C_0024BurstDirectCall.Invoke(implicitInstanceIndices, in instances, in rendererData, in batchMeshHash, in batchMaterialHash, in packedMaterialDataHash, ref rangeHash, ref drawRanges, ref batchHash, ref drawBatches, ref drawInstances);
 	}
@@ -341,7 +341,7 @@ internal static class InstanceCullingBatcherBurst
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[BurstCompile(DisableSafetyChecks = true, OptimizeFor = OptimizeFor.Performance)]
-	internal static void CreateDrawBatches_0024BurstManaged(bool implicitInstanceIndices, in NativeArray<InstanceHandle> instances, in GPUDrivenRendererGroupData rendererData, in NativeParallelHashMap<int, BatchMeshID> batchMeshHash, in NativeParallelHashMap<int, BatchMaterialID> batchMaterialHash, in NativeParallelHashMap<int, GPUDrivenPackedMaterialData> packedMaterialDataHash, ref NativeParallelHashMap<RangeKey, int> rangeHash, ref NativeList<DrawRange> drawRanges, ref NativeParallelHashMap<DrawKey, int> batchHash, ref NativeList<DrawBatch> drawBatches, ref NativeList<DrawInstance> drawInstances)
+	internal static void CreateDrawBatches_0024BurstManaged(bool implicitInstanceIndices, in NativeArray<InstanceHandle> instances, in GPUDrivenRendererGroupData rendererData, in NativeParallelHashMap<EntityId, BatchMeshID> batchMeshHash, in NativeParallelHashMap<EntityId, BatchMaterialID> batchMaterialHash, in NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData> packedMaterialDataHash, ref NativeParallelHashMap<RangeKey, int> rangeHash, ref NativeList<DrawRange> drawRanges, ref NativeParallelHashMap<DrawKey, int> batchHash, ref NativeList<DrawBatch> drawBatches, ref NativeList<DrawInstance> drawInstances)
 	{
 		for (int i = 0; i < rendererData.rendererGroupID.Length; i++)
 		{

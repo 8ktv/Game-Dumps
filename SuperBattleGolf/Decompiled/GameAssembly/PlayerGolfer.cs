@@ -20,12 +20,15 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 		public TerrainLayer layer;
 
+		public LevelHazardType levelHazard;
+
 		public OutOfBoundsHazard outOfBoundsHazard;
 
-		public SwingDistanceEstimation(float distance, TerrainLayer layer, OutOfBoundsHazard outOfBoundsHazard)
+		public SwingDistanceEstimation(float distance, TerrainLayer layer, LevelHazardType levelHazard, OutOfBoundsHazard outOfBoundsHazard)
 		{
 			this.distance = distance;
 			this.layer = layer;
+			this.levelHazard = levelHazard;
 			this.outOfBoundsHazard = outOfBoundsHazard;
 		}
 	}
@@ -33,6 +36,8 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 	public struct TerrainLayerNormalizedSwingPower
 	{
 		public TerrainLayer layer;
+
+		public LevelHazardType levelHazard;
 
 		public OutOfBoundsHazard outOfBoundsHazard;
 
@@ -54,7 +59,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 	[StructLayout(LayoutKind.Sequential, Size = 1)]
 	public struct TerrainLayerNormalizedSwingPowerComparer : IComparer<TerrainLayerNormalizedSwingPower>
 	{
-		public int Compare(TerrainLayerNormalizedSwingPower x, TerrainLayerNormalizedSwingPower y)
+		public readonly int Compare(TerrainLayerNormalizedSwingPower x, TerrainLayerNormalizedSwingPower y)
 		{
 			if (x.IsInvalid() && y.IsInvalid())
 			{
@@ -72,6 +77,10 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			{
 				return x.outOfBoundsHazard.CompareTo(y.outOfBoundsHazard);
 			}
+			if (x.levelHazard >= LevelHazardType.BreakableIce || y.levelHazard >= LevelHazardType.BreakableIce)
+			{
+				return x.levelHazard.CompareTo(y.levelHazard);
+			}
 			return y.layer.CompareTo(x.layer);
 		}
 	}
@@ -83,8 +92,6 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 	public static readonly Collider[] overlappingColliderBuffer;
 
 	public static readonly HashSet<Hittable> processedHittableBuffer;
-
-	public static readonly HashSet<Entity> processedEntityBuffer;
 
 	public static readonly RaycastHit[] raycastSingleHitBuffer;
 
@@ -119,8 +126,6 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	private EliminationReason potentialEliminationReason;
 
-	private bool potentialEliminationDurationForcedFromKnockdownRecovery;
-
 	private double potentialEliminationResponsibilityTimestamp = double.MinValue;
 
 	[SyncVar(hook = "OnMatchResolutionChanged")]
@@ -144,6 +149,8 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 	[SyncVar(hook = "OnIsAheadOfBallChanged")]
 	private bool isAheadOfBall;
 
+	public bool isAheadOfBallLocal;
+
 	private bool serverSpectatedEntireHole;
 
 	private PoolableParticleSystem overchargedVfx;
@@ -158,6 +165,10 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	private AntiCheatRateChecker serverSwingVfxCommandRateLimiter;
 
+	private AntiCheatRateChecker serverRocketDriverPostHitSpinEffectsCommandRateLimiter;
+
+	private AntiCheatRateChecker serverRocketDriverMissVfxCommandRateLimiter;
+
 	private AntiCheatRateChecker serverHitOwnBallCommandRateLimiter;
 
 	[CVar("drawLockOnLineOfSightDebug", "", "", false, true)]
@@ -166,8 +177,8 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 	[CVar("drawGolfSwingDebug", "", "", false, true)]
 	private static bool drawGolfSwingDebug;
 
-	[CVar("drawShoveDebug", "", "", false, true)]
-	private static bool drawShoveDebug;
+	[CVar("drawRocketDriverSwingDebug", "", "", false, true)]
+	private static bool drawRocketDriverSwingDebug;
 
 	private ButtonPrompt swingStancePrompt;
 
@@ -175,7 +186,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	private ButtonPrompt adjustAnglePrompt;
 
-	private ButtonPrompt dropItemPrompt;
+	private bool rewardedCreditsEndOfMatch;
 
 	protected NetworkBehaviourSyncVar ___ownTeeNetId;
 
@@ -203,6 +214,8 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	public float SwingNormalizedPower { get; private set; }
 
+	public float SwingNormalizedCharge { get; private set; }
+
 	public float SwingPitch { get; private set; }
 
 	public double ServerOutOfBoundsTimerEliminationTimestamp { get; private set; } = double.MinValue;
@@ -213,11 +226,23 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	public bool IsSwinging { get; private set; }
 
+	public int LastSwingChargeCancelFromInputFrame { get; private set; }
+
 	public LockOnTarget LockOnTarget { get; private set; }
 
 	public bool IsActiveOnGreen { get; private set; }
 
-	public bool IsAheadOfBall => isAheadOfBall;
+	public bool IsAheadOfBall
+	{
+		get
+		{
+			if (!base.isLocalPlayer)
+			{
+				return isAheadOfBall;
+			}
+			return isAheadOfBallLocal;
+		}
+	}
 
 	public PlayerMatchResolution MatchResolution => matchResolution;
 
@@ -294,6 +319,14 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	public event Action<PlayerMatchResolution, PlayerMatchResolution> MatchResolutionChanged;
 
+	public event Action IsAheadOfBallChanged;
+
+	public event Action IsAimingSwingChanged;
+
+	public event Action IsChargingSwingChanged;
+
+	public event Action IsSwingingChanged;
+
 	public static event Action LocalPlayerOwnBallChanged;
 
 	public static event Action LocalPlayerIsAimingSwingChanged;
@@ -310,34 +343,12 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	public static event Action<PlayerGolfer> AnyPlayerEliminated;
 
-	private void ReturnButtonPrompts()
-	{
-		if (swingStancePrompt != null)
-		{
-			ButtonPromptManager.ReturnButtonPrompt(swingStancePrompt);
-		}
-		if (cancelSwingPrompt != null)
-		{
-			ButtonPromptManager.ReturnButtonPrompt(cancelSwingPrompt);
-		}
-		if (adjustAnglePrompt != null)
-		{
-			ButtonPromptManager.ReturnButtonPrompt(adjustAnglePrompt);
-		}
-		if (dropItemPrompt != null)
-		{
-			ButtonPromptManager.ReturnButtonPrompt(dropItemPrompt);
-		}
-		swingStancePrompt = null;
-		cancelSwingPrompt = null;
-		adjustAnglePrompt = null;
-		dropItemPrompt = null;
-	}
+	public static event Action LocalPlayerAheadOfBallChanged;
 
 	[CCommand("returnBallToPlayer", "", false, false)]
 	private static void ReturnBallToPlayer()
 	{
-		if (!(GameManager.LocalPlayerAsGolfer == null))
+		if (!(GameManager.LocalPlayerAsGolfer == null) && MatchSetupRules.IsCheatsEnabled())
 		{
 			GameManager.LocalPlayerAsGolfer.CmdReturnBallToPlayerFromConsole();
 		}
@@ -379,11 +390,11 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 	}
 
 	[Server]
-	private void ServerReturnBallToPlayer(bool isRestart)
+	private void ServerReturnBallToPlayer()
 	{
 		if (!NetworkServer.active)
 		{
-			Debug.LogWarning("[Server] function 'System.Void PlayerGolfer::ServerReturnBallToPlayer(System.Boolean)' called when server was not active");
+			Debug.LogWarning("[Server] function 'System.Void PlayerGolfer::ServerReturnBallToPlayer()' called when server was not active");
 			return;
 		}
 		Vector3 position = base.transform.position + Vector3.up * 0.25f + base.transform.right * GameManager.GolfSettings.SwingHitBoxLocalCenter.x;
@@ -396,10 +407,6 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		NetworkownBall.AsEntity.InformTeleported();
 		NetworkownBall.ServerInformNoLongerInHole();
 		NetworkownBall.OnRespawned();
-		if (isRestart)
-		{
-			CourseManager.AddPenaltyStroke(this, suppressPopup: false);
-		}
 	}
 
 	[Command]
@@ -454,6 +461,24 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			desiredDistanceRequiredNormalizedSpeed.Dispose();
 			terrainLayerNormalizedSwingPowers.Dispose();
 		}
+		void ReturnButtonPrompts()
+		{
+			if (swingStancePrompt != null)
+			{
+				ButtonPromptManager.ReturnButtonPrompt(swingStancePrompt);
+			}
+			if (cancelSwingPrompt != null)
+			{
+				ButtonPromptManager.ReturnButtonPrompt(cancelSwingPrompt);
+			}
+			if (adjustAnglePrompt != null)
+			{
+				ButtonPromptManager.ReturnButtonPrompt(adjustAnglePrompt);
+			}
+			swingStancePrompt = null;
+			cancelSwingPrompt = null;
+			adjustAnglePrompt = null;
+		}
 	}
 
 	public override void OnStartServer()
@@ -468,9 +493,12 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		serverFinishHoleCommandRateLimiter = new AntiCheatRateChecker("Finish hole", base.connectionToClient.connectionId, 0.1f, 3, 6, 1f);
 		serverSetPotentialEliminationReasonCommandRateLimiter = new AntiCheatRateChecker("Set potential elimination reason", base.connectionToClient.connectionId, 0.025f, 15, 50, 1f, 10);
 		serverSwingVfxCommandRateLimiter = new AntiCheatRateChecker("Swing VFX", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
+		serverRocketDriverPostHitSpinEffectsCommandRateLimiter = new AntiCheatRateChecker("Rocket driver post-swing spin VFX", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
+		serverRocketDriverMissVfxCommandRateLimiter = new AntiCheatRateChecker("Rocket driver miss VFX", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
 		serverHitOwnBallCommandRateLimiter = new AntiCheatRateChecker("Hit own ball", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
 		PlayerInfo.AsHittable.WasHitByItem += OnServerWasHitByItem;
 		PlayerInfo.AsHittable.WasHitByRocketLauncherBackBlast += OnServerWasHitByRocketLauncherBackBlast;
+		PlayerInfo.AsHittable.WasHitByRocketDriverSwingPostHitSpin += OnServerWasHitByRocketDriverSwingPostHitSpin;
 		PlayerInfo.AsHittable.WasHitByDive += OnServerWasHitByDive;
 		PlayerInfo.LevelBoundsTracker.AuthoritativeIsOnGreenChanged += OnServerIsOnGreenChanged;
 		PlayerInfo.LevelBoundsTracker.AuthoritativeBoundsStateChanged += OnServerBoundsStateChanged;
@@ -505,6 +533,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			}
 			PlayerInfo.AsHittable.WasHitByItem -= OnServerWasHitByItem;
 			PlayerInfo.AsHittable.WasHitByRocketLauncherBackBlast -= OnServerWasHitByRocketLauncherBackBlast;
+			PlayerInfo.AsHittable.WasHitByRocketDriverSwingPostHitSpin -= OnServerWasHitByRocketDriverSwingPostHitSpin;
 			PlayerInfo.AsHittable.WasHitByDive -= OnServerWasHitByDive;
 			PlayerInfo.LevelBoundsTracker.AuthoritativeIsOnGreenChanged -= OnServerIsOnGreenChanged;
 			PlayerInfo.LevelBoundsTracker.AuthoritativeBoundsStateChanged -= OnServerBoundsStateChanged;
@@ -517,6 +546,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		BUpdate.RegisterCallback(this);
 		PlayerInfo.Movement.IsGroundedChanged += OnLocalPlayerIsGroundedChanged;
 		PlayerInfo.Movement.IsKnockedOutOrRecoveringChanged += OnLocalPlayerIsKnockedOutChanged;
+		PlayerInfo.AsHittable.IsFrozenChanged += OnLocalPlayerIsFrozenChanged;
 		PlayerInfo.Inventory.EquippedItemChanged += OnLocalPlayerEquippedItemChanged;
 		InputManager.SwitchedInputDeviceType += UpdateAdjustAnglePrompt;
 		if (JoinAsSpectator)
@@ -534,6 +564,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		{
 			PlayerInfo.Movement.IsGroundedChanged -= OnLocalPlayerIsGroundedChanged;
 			PlayerInfo.Movement.IsKnockedOutOrRecoveringChanged -= OnLocalPlayerIsKnockedOutChanged;
+			PlayerInfo.AsHittable.IsFrozenChanged -= OnLocalPlayerIsFrozenChanged;
 			PlayerInfo.Inventory.EquippedItemChanged -= OnLocalPlayerEquippedItemChanged;
 		}
 	}
@@ -545,20 +576,36 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			ServerUpdatePotentialEliminationReason();
 			NetworkisAheadOfBall = IsAheadOfBall();
 		}
-		if (base.isLocalPlayer)
+		if (!base.isLocalPlayer)
 		{
-			bool isAimingAtProjectile = false;
-			if (IsAimingSwing)
+			return;
+		}
+		bool isAimingAtProjectile = false;
+		if (IsAimingSwing)
+		{
+			UpdateSwingTrajectoryPreview(out isAimingAtProjectile);
+			UpdateOverchargedVfx();
+		}
+		if (IsChargingSwing)
+		{
+			UpdateSwingNormalizedPower(forSwingRelease: false, isForcedFumble: false);
+			UpdateLockOn(isAimingAtProjectile);
+		}
+		UpdateSwingStanceButtonPrompt();
+		bool num = isAheadOfBallLocal;
+		isAheadOfBallLocal = IsAheadOfBall();
+		if (num != isAheadOfBallLocal)
+		{
+			if (isAheadOfBallLocal)
 			{
-				UpdateSwingTrajectoryPreview(out isAimingAtProjectile);
-				UpdateOverchargedVfx();
+				AheadOfBallMessage.Show();
 			}
-			if (IsChargingSwing)
+			else
 			{
-				UpdateSwingNormalizedPower(forSwingRelease: false, isForcedFumble: false);
-				UpdateLockOn(isAimingAtProjectile);
+				AheadOfBallMessage.Hide();
 			}
-			UpdateSwingStanceButtonPrompt();
+			this.IsAheadOfBallChanged?.Invoke();
+			PlayerGolfer.LocalPlayerAheadOfBallChanged?.Invoke();
 		}
 		bool IsAheadOfBall()
 		{
@@ -594,19 +641,14 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		{
 			if (potentialEliminationReason != EliminationReason.None)
 			{
-				EliminationSettings eliminationSettings = GameManager.MatchSettings.GetEliminationSettings(potentialEliminationReason);
 				if (potentialEliminationResponsibilityTimestamp < double.MaxValue)
 				{
-					if (BMath.GetTimeSince(potentialEliminationResponsibilityTimestamp) > eliminationSettings.Duration)
+					if (BMath.GetTimeSince(potentialEliminationResponsibilityTimestamp) > GameManager.EliminationSettings.EliminationResponsibilityDuration)
 					{
 						ServerClearPotentialEliminationResponsibility();
 					}
 				}
-				else if ((potentialEliminationDurationForcedFromKnockdownRecovery || eliminationSettings.DurationType == EliminationDurationType.KnockoutRecovery) && !PlayerInfo.Movement.IsKnockedOutOrRecovering)
-				{
-					potentialEliminationResponsibilityTimestamp = Time.timeAsDouble;
-				}
-				else if (eliminationSettings.DurationType == EliminationDurationType.Grounded && PlayerInfo.Movement.IsGrounded)
+				else if (!PlayerInfo.Movement.IsKnockedOutOrRecovering)
 				{
 					potentialEliminationResponsibilityTimestamp = Time.timeAsDouble;
 				}
@@ -622,14 +664,14 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			else
 			{
 				float desiredDistance = -1f;
-				float num = 0f;
+				float num2 = 0f;
 				if (GolfHoleManager.MainHole != null)
 				{
 					Vector3 vector = GolfHoleManager.MainHole.transform.position - NetworkownBall.transform.position;
 					float yawDeg = vector.GetYawDeg();
 					float yawDeg2 = base.transform.forward.GetYawDeg();
-					num = (yawDeg - yawDeg2).WrapAngleDeg();
-					if (BMath.Abs(num) <= GameManager.UiSettings.SwingPowerBarFlagPreviewMaxYaw)
+					num2 = (yawDeg - yawDeg2).WrapAngleDeg();
+					if (BMath.Abs(num2) <= GameManager.UiSettings.SwingPowerBarFlagPreviewMaxYaw)
 					{
 						desiredDistance = vector.Horizontalized().magnitude;
 					}
@@ -643,7 +685,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 					distanceEstimationHandle.Complete();
 					if (desiredDistanceRequiredNormalizedSpeed.Value >= 0f)
 					{
-						SwingPowerBarUi.SetFlagIcon(num, desiredDistanceRequiredNormalizedSpeed.Value);
+						SwingPowerBarUi.SetFlagIcon(num2, desiredDistanceRequiredNormalizedSpeed.Value);
 					}
 					else
 					{
@@ -657,20 +699,52 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 					SwingPowerBarUi.HideTerrainLayers();
 				}
 				float2 initialWorldPosition2d = NetworkownBall.transform.position.AsHorizontal2();
-				JobHandle dependsOn = ((!(SwingPitch > 0f)) ? IJobParallelForExtensions.Schedule(new CalculateGroundRollStopDistancesJob
+				bool flag = SwingPitch <= 0f;
+				bool flag2 = PlayerInfo.Inventory.GetEffectivelyEquippedItem() == ItemType.RocketDriver;
+				float airDragCoefficient;
+				float num3;
+				float num4;
+				if (flag2)
+				{
+					if (flag)
+					{
+						num3 = NetworkownBall.AsEntity.AsHittable.SwingSettings.MinPowerRocketDriverPuttHitSpeed;
+						num4 = NetworkownBall.AsEntity.AsHittable.SwingSettings.MaxPowerRocketDriverPuttHitSpeed;
+					}
+					else
+					{
+						num3 = NetworkownBall.AsEntity.AsHittable.SwingSettings.MinPowerRocketDriverSwingHitSpeed;
+						num4 = NetworkownBall.AsEntity.AsHittable.SwingSettings.MaxPowerRocketDriverSwingHitSpeed;
+					}
+					airDragCoefficient = GameManager.GolfBallSettings.RocketDriverSwingLinearAirDragFactor;
+				}
+				else
+				{
+					num3 = 0f;
+					num4 = (flag ? NetworkownBall.AsEntity.AsHittable.SwingSettings.MaxPowerPuttHitSpeed : NetworkownBall.AsEntity.AsHittable.SwingSettings.MaxPowerSwingHitSpeed);
+					airDragCoefficient = GameManager.GolfBallSettings.LinearAirDragFactor;
+				}
+				float value = MatchSetupRules.GetValue(MatchSetupRules.Rule.SwingPower);
+				num3 *= value;
+				num4 *= value;
+				JobHandle dependsOn = (flag ? IJobParallelForExtensions.Schedule(new CalculateGroundRollStopDistancesJob
 				{
 					normalizedInitialSpeeds = distanceEstimationNormalizedInitialSpeeds,
 					globalTerrainLayerIndicesPerLevelTerrainLayer = TerrainManager.GlobalTerrainLayerIndicesPerLevelTerrainLayer,
+					globalTerrainLayerIndicesPerLevelHazard = GameManager.HazardSettings.globalTerrainLayerIndicesPerLevelHazard,
 					ballTerrainPhysicsSettingsPerTerrainLayer = TerrainSettings.JobsBallTerrainCollisionMaterialPerTerrainLayer,
 					spatiallyHashedTerrains = TerrainManager.SpatiallyHashedJobsTerrains,
 					allTerrainLayerWeights = TerrainManager.AllTerrainLayerWeights,
 					allTerrainHeights = TerrainManager.AllTerrainHeights,
 					secondaryOutOfBoundsHazards = BoundsManager.SecondaryOutOfBoundsHazardInstances,
+					levelHazards = BoundsManager.LevelHazardInstances,
 					estimatedDistances = estimatedDistances,
 					mainOutOfBoundsHazardHeight = MainOutOfBoundsHazard.Height,
 					mainOutOfBoundsHazardType = MainOutOfBoundsHazard.Type,
-					fullInitialSpeed = NetworkownBall.AsEntity.AsHittable.SwingSettings.MaxPowerPuttHitSpeed * MatchSetupRules.GetValue(MatchSetupRules.Rule.SwingPower) * base.transform.forward.AsHorizontal2(),
-					movementDirectionRightInitialAngularSpeed = 0f - NetworkownBall.AsEntity.AsHittable.SwingSettings.SwingHitSpinSpeed,
+					baseInitialSpeed = num3,
+					fullInitialSpeed = num4,
+					horizontalDirection = base.transform.forward.AsHorizontal2(),
+					movementDirectionRightInitialAngularSpeed = 0f - (flag2 ? NetworkownBall.AsEntity.AsHittable.SwingSettings.RocketDriverSwingHitSpinSpeed : NetworkownBall.AsEntity.AsHittable.SwingSettings.SwingHitSpinSpeed),
 					initialWorldPosition2d = initialWorldPosition2d,
 					terrainSize = TerrainManager.TerrainSize,
 					absoluteVerticalGravity = 0f - Physics.gravity.y,
@@ -689,16 +763,18 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 					allTerrainLayerWeights = TerrainManager.AllTerrainLayerWeights,
 					allTerrainHeights = TerrainManager.AllTerrainHeights,
 					secondaryOutOfBoundsHazards = BoundsManager.SecondaryOutOfBoundsHazardInstances,
+					levelHazards = BoundsManager.LevelHazardInstances,
 					estimatedDistances = estimatedDistances,
 					mainOutOfBoundsHazardHeight = MainOutOfBoundsHazard.Height,
 					mainOutOfBoundsHazardType = MainOutOfBoundsHazard.Type,
 					terrainSize = TerrainManager.TerrainSize,
 					initialWorldPosition2d = initialWorldPosition2d,
 					yawRad = base.transform.forward.GetYawRad(),
-					fullInitialSpeed = NetworkownBall.AsEntity.AsHittable.SwingSettings.MaxPowerSwingHitSpeed * MatchSetupRules.GetValue(MatchSetupRules.Rule.SwingPower),
+					baseInitialSpeed = num3,
+					fullInitialSpeed = num4,
 					verticalGravity = Physics.gravity.y,
 					pitchRad = SwingPitch * (MathF.PI / 180f),
-					airDragCoefficient = GameManager.GolfBallSettings.LinearAirDragFactor,
+					airDragCoefficient = airDragCoefficient,
 					deltaTime = Time.fixedDeltaTime
 				}, 301, 1));
 				ProcessDistanceEstimationsJob jobData = new ProcessDistanceEstimationsJob
@@ -715,14 +791,16 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		}
 		void UpdateLockOn(bool isAimingSwingAtProjectile)
 		{
-			if (!isAimingSwingAtProjectile || SwingNormalizedPower <= 1f || SwingPitch <= 0f)
+			if (!isAimingSwingAtProjectile || SwingNormalizedCharge <= 1f || SwingPitch <= 0f)
 			{
 				SetLockOnTarget(null);
 			}
 			else
 			{
+				bool num2 = PlayerInfo.Inventory.GetEffectivelyEquippedItem() == ItemType.RocketDriver;
 				float value = MatchSetupRules.GetValue(MatchSetupRules.Rule.SwingPower);
-				if (TryGetBestLockOnTarget(GameManager.GolfSettings.LockOnMaxDistanceSquared * value * value, GameManager.GolfSettings.LockOnMaxYawFromCenterScreen, GameManager.GolfSettings.LockOnYawWeight, out var bestLockOnTarget))
+				float maxDistanceSquared = (num2 ? GameManager.ItemSettings.RocketDriverMaxLockOnDistanceSquared : GameManager.GolfSettings.LockOnMaxDistanceSquared) * value * value;
+				if (TryGetBestLockOnTarget(maxDistanceSquared, GameManager.GolfSettings.LockOnMaxYawFromCenterScreen, GameManager.GolfSettings.LockOnYawWeight, ignoreKnockoutImmunity: false, out var bestLockOnTarget))
 				{
 					SetLockOnTarget(bestLockOnTarget);
 				}
@@ -736,12 +814,12 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		{
 			reference = false;
 			Box swingHitBox = GetSwingHitBox();
-			int num = Physics.OverlapBoxNonAlloc(swingHitBox.center, swingHitBox.HalfSize, orientation: base.transform.rotation, mask: GameManager.LayerSettings.SwingHittableMask, results: overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
+			int num2 = Physics.OverlapBoxNonAlloc(swingHitBox.center, swingHitBox.HalfSize, orientation: base.transform.rotation, mask: GameManager.LayerSettings.SwingHittableMask, results: overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
 			bool flag = false;
 			Hittable hittable = null;
-			int num2 = int.MinValue;
-			float num3 = float.MaxValue;
-			for (int i = 0; i < num; i++)
+			int num3 = int.MinValue;
+			float num4 = float.MaxValue;
+			for (int i = 0; i < num2; i++)
 			{
 				Collider collider = overlappingColliderBuffer[i];
 				if (CanHitCollider(collider, out var hittable2))
@@ -755,14 +833,14 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 						reference = true;
 					}
 					int swingHittablePriority = GetSwingHittablePriority(hittable2);
-					if (swingHittablePriority >= num2)
+					if (swingHittablePriority >= num3)
 					{
 						float sqrMagnitude = (hittable2.transform.position - swingHitBox.center).sqrMagnitude;
-						if (swingHittablePriority != num2 || !(sqrMagnitude > num3))
+						if (swingHittablePriority != num3 || !(sqrMagnitude > num4))
 						{
 							hittable = hittable2;
-							num2 = swingHittablePriority;
-							num3 = sqrMagnitude;
+							num3 = swingHittablePriority;
+							num4 = sqrMagnitude;
 						}
 					}
 				}
@@ -943,7 +1021,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 				NetworkServer.Destroy(NetworkownTee.gameObject);
 				NetworkownTee = null;
 			}
-			if (NetworkownBall != null)
+			if (!SingletonBehaviour<DrivingRangeManager>.HasInstance && NetworkownBall != null)
 			{
 				NetworkServer.Destroy(NetworkownBall.gameObject);
 				NetworkownBall = null;
@@ -963,15 +1041,10 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	public void InformLocalPlayerKnockedOut(PlayerGolfer responsiblePlayer, KnockoutType knockoutType)
 	{
-		CmdSetPotentialEliminationReason(responsiblePlayer, knockoutType switch
+		if (GameManager.KnockoutSettings.TryGetKnockoutData(knockoutType, out var data))
 		{
-			KnockoutType.Swing => EliminationReason.Swing, 
-			KnockoutType.SwingProjectile => EliminationReason.SwingProjectile, 
-			KnockoutType.Fall => EliminationReason.Fall, 
-			KnockoutType.ReturnedBall => EliminationReason.ReturnedBall, 
-			KnockoutType.DuelingPistol => EliminationReason.DuelingPistol, 
-			_ => EliminationReason.None, 
-		});
+			CmdSetPotentialEliminationReason(responsiblePlayer, data.resultingEliminationReason);
+		}
 	}
 
 	public void InformLocalPlayerStartedDiving()
@@ -1004,7 +1077,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		}
 		if (CanRespawn())
 		{
-			if (PlayerInfo.Movement.TryBeginRespawn(isRestart: false))
+			if (PlayerInfo.Movement.TryBeginRespawn(isRestart: false, RespawnTarget.TeeOrCheckpoint))
 			{
 				ReportElimination();
 			}
@@ -1090,21 +1163,15 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 	}
 
 	[Server]
-	private void ServerSetPotentialEliminationReason(PlayerGolfer responsiblePlayer, EliminationReason reason)
+	public void ServerSetPotentialEliminationReason(PlayerGolfer responsiblePlayer, EliminationReason reason)
 	{
 		if (!NetworkServer.active)
 		{
 			Debug.LogWarning("[Server] function 'System.Void PlayerGolfer::ServerSetPotentialEliminationReason(PlayerGolfer,EliminationReason)' called when server was not active");
 			return;
 		}
-		if (reason == EliminationReason.Fall && playerResponsibleForPotentialElimination != null && responsiblePlayer != this)
-		{
-			potentialEliminationDurationForcedFromKnockdownRecovery = true;
-			return;
-		}
 		playerResponsibleForPotentialElimination = responsiblePlayer;
 		potentialEliminationReason = reason;
-		potentialEliminationDurationForcedFromKnockdownRecovery = false;
 		potentialEliminationResponsibilityTimestamp = Time.timeAsDouble;
 	}
 
@@ -1118,7 +1185,6 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		}
 		playerResponsibleForPotentialElimination = null;
 		potentialEliminationReason = EliminationReason.None;
-		potentialEliminationDurationForcedFromKnockdownRecovery = false;
 		potentialEliminationResponsibilityTimestamp = double.MinValue;
 	}
 
@@ -1172,7 +1238,8 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			{
 				return false;
 			}
-			if (PlayerInfo.Inventory.GetEffectivelyEquippedItem() != ItemType.None)
+			ItemType effectivelyEquippedItem = PlayerInfo.Inventory.GetEffectivelyEquippedItem();
+			if (effectivelyEquippedItem != ItemType.None && effectivelyEquippedItem != ItemType.RocketDriver)
 			{
 				return false;
 			}
@@ -1211,7 +1278,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		{
 			if (!SingletonBehaviour<DrivingRangeManager>.HasInstance && CourseManager.MatchState <= MatchState.TeeOff)
 			{
-				TryCancelSwingCharge();
+				TryCancelSwingCharge(fromInput: false);
 				return;
 			}
 			PlayerInfo.Movement.AlignWithCameraImmediately();
@@ -1222,7 +1289,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	private IEnumerator SwingRoutine(bool isForcedFumble)
 	{
-		IsSwinging = true;
+		SetIsSwinging(isSwinging: true);
 		PlayerInfo.AnimatorIo.SetIsSwinging(isSwinging: true);
 		PlayerInfo.Input.UpdateHotkeyMode();
 		LockOnTarget swingLockOnTarget = (isForcedFumble ? null : LockOnTarget);
@@ -1231,18 +1298,19 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		SwingPowerBarUi.ReleaseSwingCharge();
 		SetIsChargingSwing(isCharging: false);
 		swingTimestamp = Time.timeAsDouble;
-		bool isPerfectShot = SwingNormalizedPower > 0.99f && SwingNormalizedPower <= 1f;
-		bool isOvercharged = SwingNormalizedPower > 1f;
+		bool isUsingRocketDriver = PlayerInfo.Inventory.GetEffectivelyEquippedItem() == ItemType.RocketDriver;
+		bool isPerfectShot = SwingNormalizedCharge > 0.99f && SwingNormalizedCharge <= 1f;
+		bool isOvercharged = SwingNormalizedCharge > 1f;
 		Vector3 swingDirection = GetSwingDirection(SwingPitch);
 		bool isPutt = SwingPitch <= 0f;
-		float sideSpin = ((!MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.OverChargeSideSpin)) ? 0f : (isOvercharged ? (UnityEngine.Random.Range(-1f, 1f) * GameManager.GolfSettings.MaxSwingFumbleSideSpin) : 0f));
+		float sideSpin = ((!MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.OverchargeSidespin)) ? 0f : (isOvercharged ? (UnityEngine.Random.Range(-1f, 1f) * GameManager.GolfSettings.MaxSwingFumbleSideSpin) : 0f));
 		if (isOvercharged)
 		{
-			PlayerInfo.PlayerAudio.PlayOverchargedSwingForAllClients(swingLockOnTarget != null);
+			PlayerInfo.PlayerAudio.PlayOverchargedSwingForAllClients(swingLockOnTarget != null, isUsingRocketDriver);
 		}
 		else
 		{
-			PlayerInfo.PlayerAudio.PlaySwingForAllClients(SwingNormalizedPower);
+			PlayerInfo.PlayerAudio.PlaySwingForAllClients(SwingNormalizedCharge, isUsingRocketDriver);
 		}
 		bool playedSwingVfx = false;
 		while (BMath.GetTimeSince(swingTimestamp) < GameManager.GolfSettings.SwingHitStartTime)
@@ -1250,6 +1318,11 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			TryPlaySwingVfx();
 			yield return null;
 		}
+		if (isUsingRocketDriver)
+		{
+			PlayerInfo.Inventory.DecrementRocketDriverUse();
+		}
+		bool didHitAnything = false;
 		bool didTriggerNiceShotSound = false;
 		processedHittableBuffer.Clear();
 		while (BMath.GetTimeSince(swingTimestamp) < GameManager.GolfSettings.SwingHitEndTime)
@@ -1270,6 +1343,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 				{
 					continue;
 				}
+				didHitAnything = true;
 				flag = true;
 				if (hittable.AsEntity.IsGolfBall && hittable.AsEntity.AsGolfBall == NetworkownBall)
 				{
@@ -1297,7 +1371,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 				Vector3 position = collider.ClosestPoint(swingHitBox.center);
 				Vector3 localHitPosition = hittable.transform.InverseTransformPoint(position);
 				Vector3 localOrigin = hittable.transform.InverseTransformPoint(swingHitBox.center);
-				hittable.HitWithGolfSwing(localHitPosition, localOrigin, vector, isPutt, SwingNormalizedPower, sideSpin, this, (lockOnTarget != null) ? lockOnTarget.AsEntity.AsHittable : null);
+				hittable.HitWithGolfSwing(localHitPosition, localOrigin, vector, isPutt, SwingNormalizedPower, sideSpin, isUsingRocketDriver, this, (lockOnTarget != null) ? lockOnTarget.AsEntity.AsHittable : null);
 				if (isPerfectShot)
 				{
 					if (base.isServer)
@@ -1326,7 +1400,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 						VfxManager.ClientPlayPooledVfxForAllClients(VfxType.SwingOverchargedHit, position, rotation);
 					}
 				}
-				PlayerInfo.PlayerAudio.PlaySwingHitForAllClients(hittable);
+				PlayerInfo.PlayerAudio.PlaySwingHitForAllClients(hittable, isUsingRocketDriver);
 				if (drawGolfSwingDebug)
 				{
 					BDebug.DrawWireSphere(hittable.transform.position, 0.05f, Color.red, 1f);
@@ -1334,11 +1408,11 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			}
 			if (flag)
 			{
-				if (!isOvercharged && SwingNormalizedPower >= TutorialManager.Settings.ChargeSwingMinimumSwingNormalizedPower)
+				if (!isOvercharged && SwingNormalizedCharge >= TutorialManager.Settings.ChargeSwingMinimumSwingNormalizedPower)
 				{
 					TutorialManager.CompletePrompt(TutorialPrompt.ChargeSwing);
 				}
-				if (isPutt && SwingNormalizedPower >= TutorialManager.Settings.PuttMinimumSwingNormalizedPower)
+				if (isPutt && SwingNormalizedCharge >= TutorialManager.Settings.PuttMinimumSwingNormalizedPower)
 				{
 					TutorialManager.CompletePrompt(TutorialPrompt.Putt);
 				}
@@ -1354,15 +1428,72 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			}
 			yield return null;
 		}
-		for (float swingTime = BMath.GetTimeSince(swingTimestamp); swingTime < GameManager.GolfSettings.SwingTotalDuration; swingTime = BMath.GetTimeSince(swingTimestamp))
+		if (isUsingRocketDriver && !didHitAnything)
+		{
+			PlayerInfo.Inventory.ThrowUsedRocketDriver(fromMiss: true);
+			OnFinishedSwinging(canBeginChargingNewSwing: false);
+			PlayerInfo.Movement.InformMissedRocketDriverSwing(swingDirection, SwingNormalizedPower);
+			PlayRocketDriverMissVfxInternal(swingDirection);
+			CmdPlayRocketDriverMissVfxForAllClients(swingDirection);
+			yield break;
+		}
+		bool didThrowRocketDriver = false;
+		bool didPlayRocketDriverSpinVfx = false;
+		float swingTime = BMath.GetTimeSince(swingTimestamp);
+		float swingTotalDuration = (isUsingRocketDriver ? GameManager.GolfSettings.RocketDriverSwingTotalDuration : GameManager.GolfSettings.SwingTotalDuration);
+		while (swingTime < swingTotalDuration)
 		{
 			yield return null;
+			if (isUsingRocketDriver)
+			{
+				if (swingTime >= GameManager.ItemSettings.RocketDriverSwingPostHitSpinStartTime && swingTime <= GameManager.ItemSettings.RocketDriverSwingPostHitSpinEndTime)
+				{
+					ApplyRocketDriverSwingPostHitSpin();
+				}
+				if (!didThrowRocketDriver && swingTime >= GameManager.ItemSettings.RocketDriverSwingHitThrowTime)
+				{
+					PlayerInfo.Inventory.ThrowUsedRocketDriver(fromMiss: false);
+					didThrowRocketDriver = true;
+				}
+				if (!didPlayRocketDriverSpinVfx)
+				{
+					PlayRocketDriverPostHitSpinEffectsInternal();
+					CmdPlayRocketDriverPostHitSpinEffectsForAllClients();
+					didPlayRocketDriverSpinVfx = true;
+				}
+			}
 			if (ShouldInterruptSwing(swingTime))
 			{
 				break;
 			}
+			swingTime = BMath.GetTimeSince(swingTimestamp);
 		}
-		OnFinishedSwinging();
+		OnFinishedSwinging(canBeginChargingNewSwing: true);
+		void ApplyRocketDriverSwingPostHitSpin()
+		{
+			Vector3 vector2 = base.transform.TransformPoint(GameManager.ItemSettings.RocketDriverSwingPostHitSpinLocalOrigin);
+			int num2 = Physics.OverlapSphereNonAlloc(vector2, GameManager.ItemSettings.RocketDriverSwingPostHitSpinRadius, layerMask: GameManager.LayerSettings.SwingHittableMask, results: overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
+			for (int j = 0; j < num2; j++)
+			{
+				if (overlappingColliderBuffer[j].TryGetComponentInParent<Hittable>(out var foundComponent, includeInactive: true) && !(foundComponent == PlayerInfo.AsHittable) && processedHittableBuffer.Add(foundComponent))
+				{
+					if (!foundComponent.TryGetClosestPointOnAllActiveColliders(vector2, out var closestPoint, out var distanceSquared, (int)GameManager.LayerSettings.SwingHittableMask & ~(int)GameManager.LayerSettings.HittablesMask) || distanceSquared == 0f)
+					{
+						closestPoint = ((!foundComponent.AsEntity.HasRigidbody) ? foundComponent.transform.position : foundComponent.AsEntity.Rigidbody.worldCenterOfMass);
+					}
+					Vector3 direction = closestPoint - vector2;
+					foundComponent.HitWithRocketDriverSwingPostHitSpin(foundComponent.transform.InverseTransformPoint(closestPoint), foundComponent.transform.InverseTransformPoint(vector2), direction, this);
+					if (drawRocketDriverSwingDebug)
+					{
+						BDebug.DrawWireArrow(vector2, closestPoint, Color.red, 2f);
+					}
+				}
+			}
+			if (drawRocketDriverSwingDebug)
+			{
+				BDebug.DrawWireSphere(vector2, GameManager.ItemSettings.RocketDriverSwingPostHitSpinRadius, Color.yellow);
+			}
+		}
 		float GetEffectiveLockOnTargetSwingPitchFor(Hittable hitHittable)
 		{
 			Vector3 lockOnPosition = swingLockOnTarget.GetLockOnPosition();
@@ -1375,14 +1506,15 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			BDebug.DrawLine(position2, vector3, Color.red, 3f);
 			return BMath.Clamp(0f - (vector3 - position2).GetPitchDeg(), 0f, 45f);
 		}
-		void PlaySwingVfxForAllClients(float power, bool isPerfectShot2, bool isOvercharged2)
+		void PlaySwingVfxForAllClients(float power)
 		{
-			PlaySwingVfxInternal(power, isPerfectShot2, isOvercharged2);
-			CmdPlaySwingVfxForAllClients(power, isPerfectShot2, isOvercharged2);
+			PlaySwingVfxInternal(power, isPerfectShot, isOvercharged, isUsingRocketDriver);
+			CmdPlaySwingVfxForAllClients(power, isPerfectShot, isOvercharged, isUsingRocketDriver);
 		}
-		bool ShouldInterruptSwing(float num2)
+		bool ShouldInterruptSwing(float num3)
 		{
-			if (num2 < GameManager.GolfSettings.SwingMinInterruptionTime)
+			float num2 = (isUsingRocketDriver ? GameManager.GolfSettings.RocketDriverSwingMinInterruptionTime : GameManager.GolfSettings.SwingMinInterruptionTime);
+			if (num3 < num2)
 			{
 				return false;
 			}
@@ -1401,66 +1533,146 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			if (!isPutt && !playedSwingVfx && !(BMath.GetTimeSince(swingTimestamp) < GameManager.GolfSettings.SwingVfxTime))
 			{
 				playedSwingVfx = true;
-				PlaySwingVfxForAllClients(SwingNormalizedPower, isPerfectShot, isOvercharged);
+				PlaySwingVfxForAllClients(SwingNormalizedCharge);
 			}
 		}
 	}
 
 	[Command]
-	private void CmdPlaySwingVfxForAllClients(float power, bool isPerfectShot, bool isOvercharged, NetworkConnectionToClient sender = null)
+	private void CmdPlaySwingVfxForAllClients(float power, bool isPerfectShot, bool isOvercharged, bool isUsingRocketDriver, NetworkConnectionToClient sender = null)
 	{
 		if (base.isServer && base.isClient)
 		{
-			UserCode_CmdPlaySwingVfxForAllClients__Single__Boolean__Boolean__NetworkConnectionToClient(power, isPerfectShot, isOvercharged, sender);
+			UserCode_CmdPlaySwingVfxForAllClients__Single__Boolean__Boolean__Boolean__NetworkConnectionToClient(power, isPerfectShot, isOvercharged, isUsingRocketDriver, sender);
 			return;
 		}
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteFloat(power);
 		writer.WriteBool(isPerfectShot);
 		writer.WriteBool(isOvercharged);
-		SendCommandInternal("System.Void PlayerGolfer::CmdPlaySwingVfxForAllClients(System.Single,System.Boolean,System.Boolean,Mirror.NetworkConnectionToClient)", -1704284589, writer, 0);
+		writer.WriteBool(isUsingRocketDriver);
+		SendCommandInternal("System.Void PlayerGolfer::CmdPlaySwingVfxForAllClients(System.Single,System.Boolean,System.Boolean,System.Boolean,Mirror.NetworkConnectionToClient)", -410458210, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
 	[TargetRpc]
-	private void RpcPlaySwingVfx(NetworkConnectionToClient connection, float power, bool isPerfectShot, bool isOvercharged)
+	private void RpcPlaySwingVfx(NetworkConnectionToClient connection, float power, bool isPerfectShot, bool isOvercharged, bool isUsingRocketDriver)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteFloat(power);
 		writer.WriteBool(isPerfectShot);
 		writer.WriteBool(isOvercharged);
-		SendTargetRPCInternal(connection, "System.Void PlayerGolfer::RpcPlaySwingVfx(Mirror.NetworkConnectionToClient,System.Single,System.Boolean,System.Boolean)", 1188878940, writer, 0);
+		writer.WriteBool(isUsingRocketDriver);
+		SendTargetRPCInternal(connection, "System.Void PlayerGolfer::RpcPlaySwingVfx(Mirror.NetworkConnectionToClient,System.Single,System.Boolean,System.Boolean,System.Boolean)", 364228163, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
-	private void PlaySwingVfxInternal(float power, bool isPerfectShot, bool isOvercharged)
+	private void PlaySwingVfxInternal(float power, bool isPerfectShot, bool isOvercharged, bool isUsingRocketDriver)
 	{
-		SwingSlashVfx component;
-		if (!VfxPersistentData.TryGetPooledVfx(VfxType.SwingSlash, out var particleSystem))
+		if (isUsingRocketDriver)
 		{
-			Debug.LogError("Failed to get swing VFX");
-		}
-		else if (!particleSystem.TryGetComponent<SwingSlashVfx>(out component))
-		{
-			Debug.LogError("Swing VFX doesn't have SwingSlashVfx component");
-			particleSystem.ReturnToPool();
+			PlayRocketDriverSwing();
 		}
 		else
 		{
-			component.transform.SetPositionAndRotation(base.transform.position, base.transform.rotation);
-			component.SetData(power, isPerfectShot, isOvercharged);
-			particleSystem.Play();
+			PlayRegularSwing();
 		}
+		void PlayRegularSwing()
+		{
+			SwingSlashVfx component;
+			if (!VfxPersistentData.TryGetPooledVfx(VfxType.SwingSlash, out var particleSystem))
+			{
+				Debug.LogError("Failed to get swing VFX");
+			}
+			else if (!particleSystem.TryGetComponent<SwingSlashVfx>(out component))
+			{
+				Debug.LogError("Swing VFX doesn't have SwingSlashVfx component");
+				particleSystem.ReturnToPool();
+			}
+			else
+			{
+				component.transform.SetPositionAndRotation(base.transform.position, base.transform.rotation);
+				component.SetData(power, isPerfectShot, isOvercharged);
+				particleSystem.Play();
+			}
+		}
+		void PlayRocketDriverSwing()
+		{
+			if (!VfxPersistentData.TryGetPooledVfx(VfxType.RocketDriverSwingSlash, out var particleSystem))
+			{
+				Debug.LogError("Failed to get rocket driver swing VFX");
+			}
+			else
+			{
+				particleSystem.transform.SetPositionAndRotation(base.transform.position, base.transform.rotation);
+				particleSystem.Play();
+			}
+		}
+	}
+
+	[Command]
+	private void CmdPlayRocketDriverPostHitSpinEffectsForAllClients(NetworkConnectionToClient sender = null)
+	{
+		if (base.isServer && base.isClient)
+		{
+			UserCode_CmdPlayRocketDriverPostHitSpinEffectsForAllClients__NetworkConnectionToClient(sender);
+			return;
+		}
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendCommandInternal("System.Void PlayerGolfer::CmdPlayRocketDriverPostHitSpinEffectsForAllClients(Mirror.NetworkConnectionToClient)", 1711892265, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	private void RpcPlayRocketDriverPostHitSpinEffects(NetworkConnectionToClient connection)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendTargetRPCInternal(connection, "System.Void PlayerGolfer::RpcPlayRocketDriverPostHitSpinEffects(Mirror.NetworkConnectionToClient)", -1574308502, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	private void PlayRocketDriverPostHitSpinEffectsInternal()
+	{
+		VfxManager.PlayPooledVfxLocalOnly(VfxType.RocketDriverSwingSpin, Vector3.zero, Quaternion.identity, base.transform, default(Vector3), localSpace: true);
+		PlayerInfo.PlayerAudio.PlayRocketDriverPostHitSpinLocalOnly();
+	}
+
+	[Command]
+	private void CmdPlayRocketDriverMissVfxForAllClients(Vector3 direction, NetworkConnectionToClient sender = null)
+	{
+		if (base.isServer && base.isClient)
+		{
+			UserCode_CmdPlayRocketDriverMissVfxForAllClients__Vector3__NetworkConnectionToClient(direction, sender);
+			return;
+		}
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		writer.WriteVector3(direction);
+		SendCommandInternal("System.Void PlayerGolfer::CmdPlayRocketDriverMissVfxForAllClients(UnityEngine.Vector3,Mirror.NetworkConnectionToClient)", -1340762303, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	private void RpcPlayRocketDriverMissVfx(NetworkConnectionToClient connection, Vector3 direction)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		writer.WriteVector3(direction);
+		SendTargetRPCInternal(connection, "System.Void PlayerGolfer::RpcPlayRocketDriverMissVfx(Mirror.NetworkConnectionToClient,UnityEngine.Vector3)", 1272217180, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	private void PlayRocketDriverMissVfxInternal(Vector3 direction)
+	{
+		VfxManager.PlayPooledVfxLocalOnly(VfxType.RocketDriverPlayerLaunch, base.transform.position, Quaternion.LookRotation(direction));
 	}
 
 	public void CancelAllActions()
 	{
-		TryCancelSwingCharge();
+		TryCancelSwingCharge(fromInput: false);
 		CancelSwing();
 		SetLockOnTarget(null);
 	}
 
-	public bool TryCancelSwingCharge()
+	public bool TryCancelSwingCharge(bool fromInput)
 	{
 		if (!IsChargingSwing)
 		{
@@ -1468,6 +1680,10 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		}
 		SetIsChargingSwing(isCharging: false);
 		SwingPowerBarUi.CancelSwingCharge();
+		if (fromInput)
+		{
+			LastSwingChargeCancelFromInputFrame = Time.frameCount;
+		}
 		return true;
 	}
 
@@ -1479,20 +1695,30 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			{
 				StopCoroutine(swingRoutine);
 			}
-			OnFinishedSwinging();
+			OnFinishedSwinging(canBeginChargingNewSwing: true);
 		}
 	}
 
-	private void OnFinishedSwinging()
+	private void SetIsSwinging(bool isSwinging)
 	{
-		IsSwinging = false;
+		if (IsSwinging != isSwinging)
+		{
+			IsSwinging = isSwinging;
+			this.IsSwingingChanged?.Invoke();
+		}
+	}
+
+	private void OnFinishedSwinging(bool canBeginChargingNewSwing)
+	{
+		SetIsSwinging(isSwinging: false);
 		PlayerInfo.AnimatorIo.SetIsSwinging(isSwinging: false);
 		PlayerInfo.Input.UpdateHotkeyMode();
 		UpdateIsAimingSwing();
-		if (PlayerInfo.Input.IsHoldingChargeSwing)
+		if (canBeginChargingNewSwing && PlayerInfo.Input.IsHoldingChargeSwing)
 		{
 			TryStartChargingSwing();
 		}
+		PlayerInfo.Inventory.InformFinishedSwing();
 	}
 
 	[Command]
@@ -1513,7 +1739,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		PlayerGolfer.PlayerHitOwnBall?.Invoke(this);
 	}
 
-	public bool TryGetBestLockOnTarget(float maxDistanceSquared, float maxYawFromCenterScreen, float yawWeight, out LockOnTarget bestLockOnTarget)
+	public bool TryGetBestLockOnTarget(float maxDistanceSquared, float maxYawFromCenterScreen, float yawWeight, bool ignoreKnockoutImmunity, out LockOnTarget bestLockOnTarget)
 	{
 		if (!MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.HomingShots))
 		{
@@ -1525,7 +1751,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		float num = float.MaxValue;
 		foreach (LockOnTarget target in LockOnTargetManager.Targets)
 		{
-			if (target == null || target == PlayerInfo.AsEntity.AsLockOnTarget || !target.IsValid())
+			if (target == null || target == PlayerInfo.AsEntity.AsLockOnTarget || !target.IsValidForLocalPlayer(ignoreKnockoutImmunity))
 			{
 				continue;
 			}
@@ -1655,41 +1881,33 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 	{
 		bool isAimingSwing = IsAimingSwing;
 		IsAimingSwing = ShouldAimSwing();
-		if (isAimingSwing != IsAimingSwing)
+		if (isAimingSwing == IsAimingSwing)
 		{
-			if (IsAimingSwing)
-			{
-				GameplayCameraManager.EnterSwingAimCamera();
-				SwingTrajectoryPreview.SetIsEnabled(isEnabled: true);
-				SwingTrajectoryPreview.ClearData();
-				PlayerInfo.CancelEmote(canHideEmoteMenu: false);
-				PlayerInfo.Inventory.CancelItemFlourish();
-			}
-			else
-			{
-				GameplayCameraManager.ExitSwingAimCamera();
-				SwingTrajectoryPreview.SetIsEnabled(isEnabled: false);
-			}
-			UpdateAdjustAnglePrompt();
-			UpdateSwingStanceButtonPrompt();
-			PlayerInfo.SetIsAimingSwing(IsAimingSwing);
-			PlayerInfo.Input.UpdateHotkeyMode();
-			PlayerInfo.AnimatorIo.SetIsAimingSwing(IsAimingSwing);
-			PlayerGolfer.LocalPlayerIsAimingSwingChanged?.Invoke();
+			return;
 		}
-		if (base.isLocalPlayer)
+		GameplayCameraManager.UpdateAimCamera();
+		if (IsAimingSwing)
 		{
-			bool flag = PlayerInfo.Inventory.GetEffectivelyEquippedItem() != ItemType.None;
-			if (flag && dropItemPrompt == null)
+			SwingTrajectoryPreview.SetIsEnabled(isEnabled: true);
+			SwingTrajectoryPreview.ClearData();
+			PlayerInfo.CancelEmote(canHideEmoteMenu: false);
+			PlayerInfo.Inventory.CancelItemFlourish();
+			if (PlayerInfo.Inventory.GetEffectivelyEquippedItem() == ItemType.RocketDriver)
 			{
-				dropItemPrompt = ButtonPromptManager.GetButtonPrompt(PlayerInput.Controls.Gameplay.DropItem, Localization.UI.PROMPT_Drop_Ref);
-			}
-			else if (!flag && dropItemPrompt != null)
-			{
-				ButtonPromptManager.ReturnButtonPrompt(dropItemPrompt);
-				dropItemPrompt = null;
+				PlayerInfo.PlayerAudio.PlayItemAimForAllClients(ItemType.RocketDriver);
 			}
 		}
+		else
+		{
+			SwingTrajectoryPreview.SetIsEnabled(isEnabled: false);
+		}
+		UpdateAdjustAnglePrompt();
+		UpdateSwingStanceButtonPrompt();
+		PlayerInfo.SetIsAimingSwing(IsAimingSwing);
+		PlayerInfo.Input.UpdateHotkeyMode();
+		PlayerInfo.AnimatorIo.SetIsAimingSwing(IsAimingSwing);
+		this.IsAimingSwingChanged?.Invoke();
+		PlayerGolfer.LocalPlayerIsAimingSwingChanged?.Invoke();
 		bool ShouldAimSwing()
 		{
 			if (!CanAimSwing())
@@ -1730,6 +1948,10 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		{
 			return false;
 		}
+		if (PlayerInfo.AsHittable.IsFrozen)
+		{
+			return false;
+		}
 		if (PlayerInfo.Movement.DivingState != DivingState.None)
 		{
 			return false;
@@ -1738,7 +1960,8 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		{
 			return false;
 		}
-		if (PlayerInfo.Inventory.GetEffectivelyEquippedItem() != ItemType.None)
+		ItemType effectivelyEquippedItem = PlayerInfo.Inventory.GetEffectivelyEquippedItem();
+		if (effectivelyEquippedItem != ItemType.None && effectivelyEquippedItem != ItemType.RocketDriver)
 		{
 			return false;
 		}
@@ -1767,6 +1990,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		else
 		{
 			SwingNormalizedPower = 0f;
+			SwingNormalizedCharge = 0f;
 			swingPowerTimestamp = Time.timeAsDouble;
 			SetLockOnTarget(null);
 			GameplayCameraManager.StartSwingCharge();
@@ -1778,13 +2002,17 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 				cancelSwingPrompt = ButtonPromptManager.GetButtonPrompt(PlayerInput.Controls.Gameplay.Cancel, Localization.UI.PROMPT_Cancel_Ref);
 			}
 		}
+		if (PlayerInfo.Inventory.GetEffectivelyEquippedItem() == ItemType.RocketDriver)
+		{
+			PlayerInfo.SetRocketDriverThrustPower(0f);
+		}
 		UpdateIsAimingSwing();
 		UpdateOverchargedVfx();
 		if (base.isLocalPlayer)
 		{
 			if (isCharging)
 			{
-				PlayerInfo.AnimatorIo.SetSwingCharge(SwingNormalizedPower);
+				PlayerInfo.AnimatorIo.SetSwingCharge(SwingNormalizedCharge);
 				PlayerGolfer.LocalPlayerStartedChargingSwing?.Invoke();
 			}
 			else
@@ -1792,6 +2020,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 				PlayerGolfer.LocalPlayerStoppedChargingSwing?.Invoke();
 			}
 			PlayerInfo.AnimatorIo.SetIsChargingSwing(isCharging);
+			this.IsChargingSwingChanged?.Invoke();
 		}
 	}
 
@@ -1810,6 +2039,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			if (lockOnTarget.AsEntity.IsPlayer)
 			{
 				lockOnTarget.AsEntity.PlayerInfo.Movement.IsVisibleChanged -= OnLockOnTargetPlayerIsVisibleChanged;
+				lockOnTarget.AsEntity.PlayerInfo.Movement.HasKnockoutImmunityChanged -= OnLockOnTargetPlayerHasKnockoutImmunityChanged;
 				lockOnTarget.AsEntity.PlayerInfo.AsGolfer.MatchResolutionChanged -= OnLockOnTargetPlayerMatchResolutionChanged;
 			}
 		}
@@ -1820,6 +2050,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			if (LockOnTarget.AsEntity.IsPlayer)
 			{
 				LockOnTarget.AsEntity.PlayerInfo.Movement.IsVisibleChanged += OnLockOnTargetPlayerIsVisibleChanged;
+				LockOnTarget.AsEntity.PlayerInfo.Movement.HasKnockoutImmunityChanged += OnLockOnTargetPlayerHasKnockoutImmunityChanged;
 				LockOnTarget.AsEntity.PlayerInfo.AsGolfer.MatchResolutionChanged += OnLockOnTargetPlayerMatchResolutionChanged;
 			}
 		}
@@ -1870,22 +2101,51 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	private void UpdateSwingNormalizedPower(bool forSwingRelease, bool isForcedFumble)
 	{
+		float swingNormalizedCharge = SwingNormalizedCharge;
+		bool flag = PlayerInfo.Inventory.GetEffectivelyEquippedItem() == ItemType.RocketDriver;
 		float num = 1f + GameManager.GolfSettings.MaxSwingOvercharge;
 		if (isForcedFumble)
 		{
-			SwingNormalizedPower = num;
+			SwingNormalizedCharge = num;
 		}
 		else
 		{
 			float timeSince = BMath.GetTimeSince(swingPowerTimestamp);
-			SwingNormalizedPower = BMath.RemapClamped(value: (timeSince < GameManager.GolfSettings.ChargeTimeForRegularFullCharge) ? timeSince : ((!(timeSince < GameManager.GolfSettings.ChargeTimeForRegularFullCharge + GameManager.GolfSettings.SwingRegularFullChargeCoyoteTime)) ? (timeSince - GameManager.GolfSettings.SwingRegularFullChargeCoyoteTime) : GameManager.GolfSettings.ChargeTimeForRegularFullCharge), fromMin: 0f, fromMax: GameManager.GolfSettings.SwingChargeRiseDuration, toMin: 0f, toMax: num, Easing: BMath.EaseIn);
-			if (forSwingRelease)
+			SwingNormalizedCharge = BMath.RemapClamped(value: (timeSince < GameManager.GolfSettings.ChargeTimeForRegularFullCharge) ? timeSince : ((!(timeSince < GameManager.GolfSettings.ChargeTimeForRegularFullCharge + GameManager.GolfSettings.SwingRegularFullChargeCoyoteTime)) ? (timeSince - GameManager.GolfSettings.SwingRegularFullChargeCoyoteTime) : GameManager.GolfSettings.ChargeTimeForRegularFullCharge), fromMin: 0f, fromMax: GameManager.GolfSettings.SwingChargeRiseDuration, toMin: 0f, toMax: num, Easing: BMath.EaseIn);
+			if (forSwingRelease && !flag)
 			{
-				SwingNormalizedPower = BMath.Max(SwingNormalizedPower, GameManager.GolfSettings.MinSwingReleaseNormalizedPower);
+				SwingNormalizedCharge = BMath.Max(SwingNormalizedCharge, GameManager.GolfSettings.MinSwingReleaseNormalizedPower);
 			}
 		}
-		SwingPowerBarUi.SetNormalizedPower(SwingNormalizedPower);
-		PlayerInfo.AnimatorIo.SetSwingCharge(SwingNormalizedPower);
+		if (!flag)
+		{
+			SwingNormalizedPower = SwingNormalizedCharge;
+		}
+		else if (SwingNormalizedCharge <= 1f)
+		{
+			SwingNormalizedPower = BMath.Lerp(GameManager.ItemSettings.RocketDriverBaseNormalizedSwingPower, GameManager.ItemSettings.RocketDriverFullNormalizedSwingPower, SwingNormalizedCharge);
+		}
+		else
+		{
+			SwingNormalizedPower = GameManager.ItemSettings.RocketDriverFullNormalizedSwingPower + (SwingNormalizedCharge - 1f);
+		}
+		SwingPowerBarUi.SetNormalizedPower(SwingNormalizedCharge, SwingNormalizedPower);
+		if (!flag)
+		{
+			PlayerInfo.AnimatorIo.SetSwingCharge(SwingNormalizedCharge);
+			return;
+		}
+		PlayerInfo.SetRocketDriverThrustPower(SwingNormalizedCharge);
+		float num2 = BMath.EaseOut(BMath.EaseOut(BMath.EaseOut(SwingNormalizedCharge)));
+		if (num2 >= 0.98f)
+		{
+			num2 = num;
+		}
+		PlayerInfo.AnimatorIo.SetSwingCharge(num2);
+		if (swingNormalizedCharge <= 1f && SwingNormalizedCharge > 1f)
+		{
+			PlayerInfo.PlayerAudio.PlayRocketDriverEnteredOverchargeForAllClients();
+		}
 	}
 
 	private Box GetSwingHitBox()
@@ -1933,7 +2193,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			{
 				return false;
 			}
-			if (SwingNormalizedPower <= 1f)
+			if (SwingNormalizedCharge <= 1f)
 			{
 				return false;
 			}
@@ -2049,7 +2309,8 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		{
 			return true;
 		}
-		return BMath.GetTimeSince(swingTimestamp) >= GameManager.GolfSettings.SwingMinInterruptionTime;
+		float num = ((PlayerInfo.Inventory.GetEffectivelyEquippedItem() == ItemType.RocketDriver) ? GameManager.GolfSettings.RocketDriverSwingMinInterruptionTime : GameManager.GolfSettings.SwingMinInterruptionTime);
+		return BMath.GetTimeSince(swingTimestamp) >= num;
 	}
 
 	private void OnServerWasHitByItem(PlayerInventory itemUser, ItemType itemType, ItemUseId itemUseId, Vector3 direction, float distance, bool isReflected)
@@ -2064,7 +2325,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			ServerEliminate(eliminationReason);
 			if (itemUser != null)
 			{
-				itemUser.PlayerInfo.Movement.RpcInformKnockedOutOtherPlayer();
+				itemUser.PlayerInfo.Movement.RpcInformKnockedOutOtherPlayer(PlayerInfo, !CourseManager.PlayerDominations.Contains(new CourseManager.PlayerPair(itemUser.PlayerInfo.PlayerId.Guid, PlayerInfo.PlayerId.Guid)));
 			}
 			CourseManager.MarkLatestValidKnockout(PlayerInfo, itemUseId);
 		}
@@ -2073,6 +2334,11 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 	private void OnServerWasHitByRocketLauncherBackBlast(PlayerInventory rocketLauncherUser, Vector3 direction)
 	{
 		ServerSetPotentialEliminationReason(rocketLauncherUser.PlayerInfo.AsGolfer, EliminationReason.RocketBackBlast);
+	}
+
+	private void OnServerWasHitByRocketDriverSwingPostHitSpin(PlayerGolfer hitter, Vector3 direction)
+	{
+		ServerSetPotentialEliminationReason(hitter.PlayerInfo.AsGolfer, EliminationReason.RocketDriverSwingPostHitSpin);
 	}
 
 	private void OnServerWasHitByDive(PlayerMovement hitter)
@@ -2127,6 +2393,12 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		CancelAllActions();
 	}
 
+	private void OnLocalPlayerIsFrozenChanged()
+	{
+		UpdateIsAimingSwing();
+		CancelAllActions();
+	}
+
 	private void OnLocalPlayerEquippedItemChanged()
 	{
 		UpdateIsAimingSwing();
@@ -2139,7 +2411,15 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	private void OnLockOnTargetPlayerIsVisibleChanged()
 	{
-		if (!LockOnTarget.IsValid())
+		if (!LockOnTarget.IsValidForLocalPlayer(ignoreKnockoutImmunity: false))
+		{
+			SetLockOnTarget(null);
+		}
+	}
+
+	private void OnLockOnTargetPlayerHasKnockoutImmunityChanged()
+	{
+		if (!LockOnTarget.IsValidForLocalPlayer(ignoreKnockoutImmunity: false))
 		{
 			SetLockOnTarget(null);
 		}
@@ -2147,7 +2427,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	private void OnLockOnTargetPlayerMatchResolutionChanged(PlayerMatchResolution previousResolution, PlayerMatchResolution currentResolution)
 	{
-		if (!LockOnTarget.IsValid())
+		if (!LockOnTarget.IsValidForLocalPlayer(ignoreKnockoutImmunity: false))
 		{
 			SetLockOnTarget(null);
 		}
@@ -2191,9 +2471,10 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			{
 				PlayerInfo.AnimatorIo.SetLost();
 			}
-			if (currentResolution == PlayerMatchResolution.Scored)
+			if (!rewardedCreditsEndOfMatch && currentResolution == PlayerMatchResolution.Scored)
 			{
 				CosmeticsUnlocksManager.RewardCredits(CourseManager.GetCurrentHolePar() * 25);
+				rewardedCreditsEndOfMatch = true;
 			}
 		}
 		if (base.isServer)
@@ -2212,23 +2493,11 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			{
 				CancelAllActions();
 				PlayerInfo.CancelEmote(canHideEmoteMenu: true);
-				PlayerInfo.ExitGolfCart(GolfCartExitType.Default);
+				if (!PlayerInfo.AsHittable.IsFrozen)
+				{
+					PlayerInfo.ExitGolfCart(GolfCartExitType.Default);
+				}
 				PlayerInfo.AsSpectator.StartSpectatingDelayed(GameManager.MatchSettings.MatchResolvedSpectateStartDelay, canRestartDelay: false);
-			}
-		}
-	}
-
-	private void OnIsAheadOfBallChanged(bool wasAhead, bool isAhead)
-	{
-		if (base.isLocalPlayer)
-		{
-			if (isAhead)
-			{
-				AheadOfBallMessage.Show();
-			}
-			else
-			{
-				AheadOfBallMessage.Hide();
 			}
 		}
 	}
@@ -2268,6 +2537,14 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		}
 	}
 
+	private void OnIsAheadOfBallChanged(bool wasAhead, bool isAhead)
+	{
+		if (!base.isLocalPlayer)
+		{
+			this.IsAheadOfBallChanged?.Invoke();
+		}
+	}
+
 	public PlayerGolfer()
 	{
 		_Mirror_SyncVarHookDelegate_isInitialized = OnIsInitializedChanged;
@@ -2282,17 +2559,20 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		overlappingSingleColliderBuffer = new Collider[1];
 		overlappingColliderBuffer = new Collider[100];
 		processedHittableBuffer = new HashSet<Hittable>();
-		processedEntityBuffer = new HashSet<Entity>();
 		raycastSingleHitBuffer = new RaycastHit[1];
 		raycastHitBuffer = new RaycastHit[100];
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerGolfer), "System.Void PlayerGolfer::CmdReturnBallToPlayerFromConsole()", InvokeUserCode_CmdReturnBallToPlayerFromConsole, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerGolfer), "System.Void PlayerGolfer::CmdRestartBall()", InvokeUserCode_CmdRestartBall, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerGolfer), "System.Void PlayerGolfer::CmdFinishHole()", InvokeUserCode_CmdFinishHole, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerGolfer), "System.Void PlayerGolfer::CmdSetPotentialEliminationReason(PlayerGolfer,EliminationReason)", InvokeUserCode_CmdSetPotentialEliminationReason__PlayerGolfer__EliminationReason, requiresAuthority: true);
-		RemoteProcedureCalls.RegisterCommand(typeof(PlayerGolfer), "System.Void PlayerGolfer::CmdPlaySwingVfxForAllClients(System.Single,System.Boolean,System.Boolean,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlaySwingVfxForAllClients__Single__Boolean__Boolean__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerGolfer), "System.Void PlayerGolfer::CmdPlaySwingVfxForAllClients(System.Single,System.Boolean,System.Boolean,System.Boolean,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlaySwingVfxForAllClients__Single__Boolean__Boolean__Boolean__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerGolfer), "System.Void PlayerGolfer::CmdPlayRocketDriverPostHitSpinEffectsForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayRocketDriverPostHitSpinEffectsForAllClients__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerGolfer), "System.Void PlayerGolfer::CmdPlayRocketDriverMissVfxForAllClients(UnityEngine.Vector3,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayRocketDriverMissVfxForAllClients__Vector3__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerGolfer), "System.Void PlayerGolfer::CmdInformHitOwnBall()", InvokeUserCode_CmdInformHitOwnBall, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerGolfer), "System.Void PlayerGolfer::RpcInformWillBeEliminated(EliminationReason,UnityEngine.Vector3)", InvokeUserCode_RpcInformWillBeEliminated__EliminationReason__Vector3);
-		RemoteProcedureCalls.RegisterRpc(typeof(PlayerGolfer), "System.Void PlayerGolfer::RpcPlaySwingVfx(Mirror.NetworkConnectionToClient,System.Single,System.Boolean,System.Boolean)", InvokeUserCode_RpcPlaySwingVfx__NetworkConnectionToClient__Single__Boolean__Boolean);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerGolfer), "System.Void PlayerGolfer::RpcPlaySwingVfx(Mirror.NetworkConnectionToClient,System.Single,System.Boolean,System.Boolean,System.Boolean)", InvokeUserCode_RpcPlaySwingVfx__NetworkConnectionToClient__Single__Boolean__Boolean__Boolean);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerGolfer), "System.Void PlayerGolfer::RpcPlayRocketDriverPostHitSpinEffects(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayRocketDriverPostHitSpinEffects__NetworkConnectionToClient);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerGolfer), "System.Void PlayerGolfer::RpcPlayRocketDriverMissVfx(Mirror.NetworkConnectionToClient,UnityEngine.Vector3)", InvokeUserCode_RpcPlayRocketDriverMissVfx__NetworkConnectionToClient__Vector3);
 	}
 
 	public override bool Weaved()
@@ -2304,7 +2584,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 	{
 		if (serverReturnBallCommandRateLimiter.RegisterHit() && !(NetworkownBall == null) && MatchSetupRules.IsCheatsEnabled())
 		{
-			ServerReturnBallToPlayer(isRestart: false);
+			ServerReturnBallToPlayer();
 		}
 	}
 
@@ -2324,7 +2604,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 	{
 		if (serverRestartBallCommandRateLimiter.RegisterHit() && !(NetworkownBall == null))
 		{
-			ServerReturnBallToPlayer(isRestart: true);
+			ServerReturnBallToPlayer();
 		}
 	}
 
@@ -2342,7 +2622,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 
 	protected void UserCode_CmdFinishHole()
 	{
-		if (serverFinishHoleCommandRateLimiter.RegisterHit() && !(NetworkownBall == null) && !(GolfHoleManager.MainHole == null) && (!IsMatchResolved || matchResolution == PlayerMatchResolution.Eliminated))
+		if (serverFinishHoleCommandRateLimiter.RegisterHit() && MatchSetupRules.IsCheatsEnabled() && !(NetworkownBall == null) && !(GolfHoleManager.MainHole == null) && (!IsMatchResolved || matchResolution == PlayerMatchResolution.Eliminated))
 		{
 			Vector3 position = GolfHoleManager.MainHole.transform.position;
 			NetworkownBall.AsEntity.InformWillTeleport();
@@ -2405,7 +2685,7 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		}
 	}
 
-	protected void UserCode_CmdPlaySwingVfxForAllClients__Single__Boolean__Boolean__NetworkConnectionToClient(float power, bool isPerfectShot, bool isOvercharged, NetworkConnectionToClient sender)
+	protected void UserCode_CmdPlaySwingVfxForAllClients__Single__Boolean__Boolean__Boolean__NetworkConnectionToClient(float power, bool isPerfectShot, bool isOvercharged, bool isUsingRocketDriver, NetworkConnectionToClient sender)
 	{
 		if (!serverSwingVfxCommandRateLimiter.RegisterHit())
 		{
@@ -2413,18 +2693,18 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		}
 		if (sender != null && sender != NetworkServer.localConnection)
 		{
-			PlaySwingVfxInternal(power, isPerfectShot, isOvercharged);
+			PlaySwingVfxInternal(power, isPerfectShot, isOvercharged, isUsingRocketDriver);
 		}
 		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
 		{
 			if (value != NetworkServer.localConnection && value != sender)
 			{
-				RpcPlaySwingVfx(value, power, isPerfectShot, isOvercharged);
+				RpcPlaySwingVfx(value, power, isPerfectShot, isOvercharged, isUsingRocketDriver);
 			}
 		}
 	}
 
-	protected static void InvokeUserCode_CmdPlaySwingVfxForAllClients__Single__Boolean__Boolean__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_CmdPlaySwingVfxForAllClients__Single__Boolean__Boolean__Boolean__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkServer.active)
 		{
@@ -2432,16 +2712,16 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		}
 		else
 		{
-			((PlayerGolfer)obj).UserCode_CmdPlaySwingVfxForAllClients__Single__Boolean__Boolean__NetworkConnectionToClient(reader.ReadFloat(), reader.ReadBool(), reader.ReadBool(), senderConnection);
+			((PlayerGolfer)obj).UserCode_CmdPlaySwingVfxForAllClients__Single__Boolean__Boolean__Boolean__NetworkConnectionToClient(reader.ReadFloat(), reader.ReadBool(), reader.ReadBool(), reader.ReadBool(), senderConnection);
 		}
 	}
 
-	protected void UserCode_RpcPlaySwingVfx__NetworkConnectionToClient__Single__Boolean__Boolean(NetworkConnectionToClient connection, float power, bool isPerfectShot, bool isOvercharged)
+	protected void UserCode_RpcPlaySwingVfx__NetworkConnectionToClient__Single__Boolean__Boolean__Boolean(NetworkConnectionToClient connection, float power, bool isPerfectShot, bool isOvercharged, bool isUsingRocketDriver)
 	{
-		PlaySwingVfxInternal(power, isPerfectShot, isOvercharged);
+		PlaySwingVfxInternal(power, isPerfectShot, isOvercharged, isUsingRocketDriver);
 	}
 
-	protected static void InvokeUserCode_RpcPlaySwingVfx__NetworkConnectionToClient__Single__Boolean__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcPlaySwingVfx__NetworkConnectionToClient__Single__Boolean__Boolean__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -2449,7 +2729,103 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 		}
 		else
 		{
-			((PlayerGolfer)obj).UserCode_RpcPlaySwingVfx__NetworkConnectionToClient__Single__Boolean__Boolean(null, reader.ReadFloat(), reader.ReadBool(), reader.ReadBool());
+			((PlayerGolfer)obj).UserCode_RpcPlaySwingVfx__NetworkConnectionToClient__Single__Boolean__Boolean__Boolean(null, reader.ReadFloat(), reader.ReadBool(), reader.ReadBool(), reader.ReadBool());
+		}
+	}
+
+	protected void UserCode_CmdPlayRocketDriverPostHitSpinEffectsForAllClients__NetworkConnectionToClient(NetworkConnectionToClient sender)
+	{
+		if (!serverRocketDriverPostHitSpinEffectsCommandRateLimiter.RegisterHit())
+		{
+			return;
+		}
+		if (sender != null && sender != NetworkServer.localConnection)
+		{
+			PlayRocketDriverPostHitSpinEffectsInternal();
+		}
+		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
+		{
+			if (value != NetworkServer.localConnection && value != sender)
+			{
+				RpcPlayRocketDriverPostHitSpinEffects(value);
+			}
+		}
+	}
+
+	protected static void InvokeUserCode_CmdPlayRocketDriverPostHitSpinEffectsForAllClients__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogError("Command CmdPlayRocketDriverPostHitSpinEffectsForAllClients called on client.");
+		}
+		else
+		{
+			((PlayerGolfer)obj).UserCode_CmdPlayRocketDriverPostHitSpinEffectsForAllClients__NetworkConnectionToClient(senderConnection);
+		}
+	}
+
+	protected void UserCode_RpcPlayRocketDriverPostHitSpinEffects__NetworkConnectionToClient(NetworkConnectionToClient connection)
+	{
+		PlayRocketDriverPostHitSpinEffectsInternal();
+	}
+
+	protected static void InvokeUserCode_RpcPlayRocketDriverPostHitSpinEffects__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcPlayRocketDriverPostHitSpinEffects called on server.");
+		}
+		else
+		{
+			((PlayerGolfer)obj).UserCode_RpcPlayRocketDriverPostHitSpinEffects__NetworkConnectionToClient(null);
+		}
+	}
+
+	protected void UserCode_CmdPlayRocketDriverMissVfxForAllClients__Vector3__NetworkConnectionToClient(Vector3 direction, NetworkConnectionToClient sender)
+	{
+		if (!serverRocketDriverMissVfxCommandRateLimiter.RegisterHit())
+		{
+			return;
+		}
+		if (sender != null && sender != NetworkServer.localConnection)
+		{
+			PlayRocketDriverMissVfxInternal(direction);
+		}
+		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
+		{
+			if (value != NetworkServer.localConnection && value != sender)
+			{
+				RpcPlayRocketDriverMissVfx(value, direction);
+			}
+		}
+	}
+
+	protected static void InvokeUserCode_CmdPlayRocketDriverMissVfxForAllClients__Vector3__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogError("Command CmdPlayRocketDriverMissVfxForAllClients called on client.");
+		}
+		else
+		{
+			((PlayerGolfer)obj).UserCode_CmdPlayRocketDriverMissVfxForAllClients__Vector3__NetworkConnectionToClient(reader.ReadVector3(), senderConnection);
+		}
+	}
+
+	protected void UserCode_RpcPlayRocketDriverMissVfx__NetworkConnectionToClient__Vector3(NetworkConnectionToClient connection, Vector3 direction)
+	{
+		PlayRocketDriverMissVfxInternal(direction);
+	}
+
+	protected static void InvokeUserCode_RpcPlayRocketDriverMissVfx__NetworkConnectionToClient__Vector3(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcPlayRocketDriverMissVfx called on server.");
+		}
+		else
+		{
+			((PlayerGolfer)obj).UserCode_RpcPlayRocketDriverMissVfx__NetworkConnectionToClient__Vector3(null, reader.ReadVector3());
 		}
 	}
 

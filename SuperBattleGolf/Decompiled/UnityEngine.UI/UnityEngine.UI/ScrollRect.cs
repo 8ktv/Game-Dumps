@@ -4,7 +4,7 @@ using UnityEngine.Events;
 
 namespace UnityEngine.UI;
 
-[AddComponentMenu("UI/Scroll Rect", 37)]
+[AddComponentMenu("UI (Canvas)/Scroll Rect", 37)]
 [SelectionBase]
 [ExecuteAlways]
 [DisallowMultipleComponent]
@@ -727,7 +727,7 @@ public class ScrollRect : UIBehaviour, IInitializePotentialDragHandler, IEventSy
 			if (m_Dragging && m_Inertia)
 			{
 				Vector3 b = (m_Content.anchoredPosition - m_PrevPosition) / unscaledDeltaTime;
-				m_Velocity = Vector3.Lerp(m_Velocity, b, unscaledDeltaTime * 10f);
+				m_Velocity = Vector3.Lerp((Vector3)m_Velocity, b, unscaledDeltaTime * 10f);
 			}
 		}
 		if (m_ViewBounds != m_PrevViewBounds || m_ContentBounds != m_PrevContentBounds || m_Content.anchoredPosition != m_PrevPosition)
@@ -785,12 +785,18 @@ public class ScrollRect : UIBehaviour, IInitializePotentialDragHandler, IEventSy
 
 	private void SetHorizontalNormalizedPosition(float value)
 	{
-		SetNormalizedPosition(value, 0);
+		if (horizontalNormalizedPosition != value)
+		{
+			SetNormalizedPosition(value, 0);
+		}
 	}
 
 	private void SetVerticalNormalizedPosition(float value)
 	{
-		SetNormalizedPosition(value, 1);
+		if (verticalNormalizedPosition != value)
+		{
+			SetNormalizedPosition(value, 1);
+		}
 	}
 
 	protected virtual void SetNormalizedPosition(float value, int axis)
@@ -840,20 +846,20 @@ public class ScrollRect : UIBehaviour, IInitializePotentialDragHandler, IEventSy
 			viewRect.sizeDelta = Vector2.zero;
 			viewRect.anchoredPosition = Vector2.zero;
 			LayoutRebuilder.ForceRebuildLayoutImmediate(content);
-			m_ViewBounds = new Bounds(viewRect.rect.center, viewRect.rect.size);
+			m_ViewBounds = new Bounds((Vector3)viewRect.rect.center, (Vector3)viewRect.rect.size);
 			m_ContentBounds = GetBounds();
 		}
 		if (m_VSliderExpand && vScrollingNeeded)
 		{
 			viewRect.sizeDelta = new Vector2(0f - (m_VSliderWidth + m_VerticalScrollbarSpacing), viewRect.sizeDelta.y);
 			LayoutRebuilder.ForceRebuildLayoutImmediate(content);
-			m_ViewBounds = new Bounds(viewRect.rect.center, viewRect.rect.size);
+			m_ViewBounds = new Bounds((Vector3)viewRect.rect.center, (Vector3)viewRect.rect.size);
 			m_ContentBounds = GetBounds();
 		}
 		if (m_HSliderExpand && hScrollingNeeded)
 		{
 			viewRect.sizeDelta = new Vector2(viewRect.sizeDelta.x, 0f - (m_HSliderHeight + m_HorizontalScrollbarSpacing));
-			m_ViewBounds = new Bounds(viewRect.rect.center, viewRect.rect.size);
+			m_ViewBounds = new Bounds((Vector3)viewRect.rect.center, (Vector3)viewRect.rect.size);
 			m_ContentBounds = GetBounds();
 		}
 		if (m_VSliderExpand && vScrollingNeeded && viewRect.sizeDelta.x == 0f && viewRect.sizeDelta.y < 0f)
@@ -865,7 +871,7 @@ public class ScrollRect : UIBehaviour, IInitializePotentialDragHandler, IEventSy
 	public virtual void SetLayoutVertical()
 	{
 		UpdateScrollbarLayout();
-		m_ViewBounds = new Bounds(viewRect.rect.center, viewRect.rect.size);
+		m_ViewBounds = new Bounds((Vector3)viewRect.rect.center, (Vector3)viewRect.rect.size);
 		m_ContentBounds = GetBounds();
 	}
 
@@ -930,7 +936,7 @@ public class ScrollRect : UIBehaviour, IInitializePotentialDragHandler, IEventSy
 
 	protected void UpdateBounds()
 	{
-		m_ViewBounds = new Bounds(viewRect.rect.center, viewRect.rect.size);
+		m_ViewBounds = new Bounds((Vector3)viewRect.rect.center, (Vector3)viewRect.rect.size);
 		m_ContentBounds = GetBounds();
 		if (m_Content == null)
 		{

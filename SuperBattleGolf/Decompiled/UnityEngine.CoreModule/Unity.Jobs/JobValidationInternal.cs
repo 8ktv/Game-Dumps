@@ -14,8 +14,8 @@ internal static class JobValidationInternal
 	{
 	}
 
-	[Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS")]
 	[BurstDiscard]
+	[Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS")]
 	private static void CheckReflectionDataCorrectInternal<T>(IntPtr reflectionData, ref bool burstCompiled)
 	{
 		if (reflectionData == IntPtr.Zero)

@@ -653,7 +653,7 @@ public class ProbeReferenceVolume
 		}
 	}
 
-	[GenerateHLSL(PackingRules.Exact, true, false, false, 1, false, false, false, -1, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\Lighting\\ProbeVolume\\ProbeReferenceVolume.Streaming.cs", needAccessors = false, generateCBuffer = true)]
+	[GenerateHLSL(PackingRules.Exact, true, false, false, 1, false, false, false, -1, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\Lighting\\ProbeVolume\\ProbeReferenceVolume.Streaming.cs", needAccessors = false, generateCBuffer = true)]
 	internal struct CellStreamingScratchBufferLayout
 	{
 		public int _SharedDestChunksOffset;
@@ -944,7 +944,7 @@ public class ProbeReferenceVolume
 
 	private int m_TemporaryDataLocationMemCost;
 
-	[Obsolete("This field is only kept for migration purpose.")]
+	[Obsolete("This field is only kept for migration purpose. #from(2023.3)")]
 	internal ProbeVolumeSceneData sceneData;
 
 	private Vector3Int minLoadedCellPos = new Vector3Int(int.MaxValue, int.MaxValue, int.MaxValue);
@@ -2157,12 +2157,12 @@ public class ProbeReferenceVolume
 
 	internal static int CellSize(int subdivisionLevel)
 	{
-		return (int)Mathf.Pow(3f, subdivisionLevel);
+		return ProbeVolumeUtil.CellSize(subdivisionLevel);
 	}
 
 	internal float BrickSize(int subdivisionLevel)
 	{
-		return m_MinBrickSize * (float)CellSize(subdivisionLevel);
+		return ProbeVolumeUtil.BrickSize(m_MinBrickSize, subdivisionLevel);
 	}
 
 	internal float MinBrickSize()
@@ -2172,7 +2172,7 @@ public class ProbeReferenceVolume
 
 	internal float MaxBrickSize()
 	{
-		return BrickSize(m_MaxSubdivision - 1);
+		return ProbeVolumeUtil.MaxBrickSize(m_MinBrickSize, m_MaxSubdivision);
 	}
 
 	internal Vector3 ProbeOffset()
@@ -2633,7 +2633,7 @@ public class ProbeReferenceVolume
 		UnloadAllCells();
 	}
 
-	[Obsolete("Use the other override to support sampling offset in debug modes.")]
+	[Obsolete("Use the other override to support sampling offset in debug modes. #from(6000.0)")]
 	public void RenderDebug(Camera camera, Texture exposureTexture)
 	{
 		RenderDebug(camera, null, exposureTexture);
@@ -3227,20 +3227,23 @@ public class ProbeReferenceVolume
 			return;
 		}
 		RenderFragmentationOverlayPassData passData;
-		using RenderGraphBuilder renderGraphBuilder = renderGraph.AddRenderPass<RenderFragmentationOverlayPassData>("APVFragmentationOverlay", out passData, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\Lighting\\ProbeVolume\\ProbeReferenceVolume.Debug.cs", 830);
+		using IUnsafeRenderGraphBuilder unsafeRenderGraphBuilder = renderGraph.AddUnsafePass<RenderFragmentationOverlayPassData>("APVFragmentationOverlay", out passData, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\Lighting\\ProbeVolume\\ProbeReferenceVolume.Debug.cs", 830);
 		passData.debugOverlay = debugOverlay;
 		passData.debugFragmentationMaterial = m_DebugFragmentationMaterial;
-		passData.colorBuffer = renderGraphBuilder.UseColorBuffer(in colorBuffer, 0);
-		passData.depthBuffer = renderGraphBuilder.UseDepthBuffer(in depthBuffer, DepthAccess.ReadWrite);
+		passData.colorBuffer = colorBuffer;
+		unsafeRenderGraphBuilder.SetRenderAttachment(colorBuffer, 0);
+		passData.depthBuffer = depthBuffer;
+		unsafeRenderGraphBuilder.SetRenderAttachmentDepth(depthBuffer, AccessFlags.ReadWrite);
 		passData.debugFragmentationData = m_Index.GetDebugFragmentationBuffer();
 		passData.chunkCount = passData.debugFragmentationData.count;
-		renderGraphBuilder.SetRenderFunc(delegate(RenderFragmentationOverlayPassData data, RenderGraphContext ctx)
+		unsafeRenderGraphBuilder.SetRenderFunc(delegate(RenderFragmentationOverlayPassData data, UnsafeGraphContext ctx)
 		{
+			CommandBuffer nativeCommandBuffer = CommandBufferHelpers.GetNativeCommandBuffer(ctx.cmd);
 			MaterialPropertyBlock tempMaterialPropertyBlock = ctx.renderGraphPool.GetTempMaterialPropertyBlock();
-			data.debugOverlay.SetViewport(ctx.cmd);
+			data.debugOverlay.SetViewport(nativeCommandBuffer);
 			tempMaterialPropertyBlock.SetInt("_ChunkCount", data.chunkCount);
 			tempMaterialPropertyBlock.SetBuffer("_DebugFragmentation", data.debugFragmentationData);
-			ctx.cmd.DrawProcedural(Matrix4x4.identity, data.debugFragmentationMaterial, 0, MeshTopology.Triangles, 3, 1, tempMaterialPropertyBlock);
+			nativeCommandBuffer.DrawProcedural(Matrix4x4.identity, data.debugFragmentationMaterial, 0, MeshTopology.Triangles, 3, 1, tempMaterialPropertyBlock);
 			data.debugOverlay.Next();
 		});
 	}
@@ -3508,11 +3511,14 @@ public class ProbeReferenceVolume
 							list.Add(item);
 							list3.Add(value2.data.validity[num6]);
 							int num7 = num6 * 4;
-							float x = (float)(int)value.probeOcclusion[num7] / 255f;
-							float y = (float)(int)value.probeOcclusion[num7 + 1] / 255f;
-							float z = (float)(int)value.probeOcclusion[num7 + 2] / 255f;
-							float w = (float)(int)value.probeOcclusion[num7 + 3] / 255f;
-							list4.Add(new Vector4(x, y, z, w));
+							if (value.probeOcclusion.Length != 0)
+							{
+								float x = (float)(int)value.probeOcclusion[num7] / 255f;
+								float y = (float)(int)value.probeOcclusion[num7 + 1] / 255f;
+								float z = (float)(int)value.probeOcclusion[num7 + 2] / 255f;
+								float w = (float)(int)value.probeOcclusion[num7 + 3] / 255f;
+								list4.Add(new Vector4(x, y, z, w));
+							}
 							if (value2.data.skyOcclusionDataL0L1.Length > 0)
 							{
 								float x2 = Mathf.HalfToFloat(value2.data.skyOcclusionDataL0L1[num6 * 4]);
@@ -3810,7 +3816,7 @@ public class ProbeReferenceVolume
 	private static void ComputeCellStreamingScore(Cell cell, Vector3 cameraPosition, Vector3 cameraDirection)
 	{
 		Vector3 normalized = (cell.desc.position - cameraPosition).normalized;
-		cell.streamingInfo.streamingScore = Vector3.Distance(cameraPosition, cell.desc.position);
+		cell.streamingInfo.streamingScore = Vector3.Distance(cameraPosition, (Vector3)cell.desc.position);
 		cell.streamingInfo.streamingScore *= 2f - Vector3.Dot(cameraDirection, normalized);
 	}
 

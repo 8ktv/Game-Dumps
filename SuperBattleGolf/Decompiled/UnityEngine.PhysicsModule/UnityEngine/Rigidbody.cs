@@ -691,14 +691,14 @@ public class Rigidbody : Component
 		MovePosition_Injected(intPtr, ref position);
 	}
 
-	public void MoveRotation(Quaternion rot)
+	public void MoveRotation(Quaternion rotation)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 		if (intPtr == (IntPtr)0)
 		{
 			ThrowHelper.ThrowNullReferenceException(this);
 		}
-		MoveRotation_Injected(intPtr, ref rot);
+		MoveRotation_Injected(intPtr, ref rotation);
 	}
 
 	public void Move(Vector3 position, Quaternion rotation)
@@ -1229,7 +1229,7 @@ public class Rigidbody : Component
 	private static extern void MovePosition_Injected(IntPtr _unity_self, [In] ref Vector3 position);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void MoveRotation_Injected(IntPtr _unity_self, [In] ref Quaternion rot);
+	private static extern void MoveRotation_Injected(IntPtr _unity_self, [In] ref Quaternion rotation);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void Move_Injected(IntPtr _unity_self, [In] ref Vector3 position, [In] ref Quaternion rotation);

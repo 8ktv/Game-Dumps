@@ -7,6 +7,31 @@ namespace UnityEngine.Rendering.RenderGraphModule.NativeRenderPassCompiler;
 
 internal class CompilerContextData : IDisposable, RenderGraph.ICompiledGraph
 {
+	public ref struct PassIterator
+	{
+		private readonly CompilerContextData m_Ctx;
+
+		private int m_Index;
+
+		public ref readonly PassData Current => ref m_Ctx.passData.ElementAt(m_Index);
+
+		public PassIterator(CompilerContextData ctx)
+		{
+			m_Ctx = ctx;
+			m_Index = -1;
+		}
+
+		public bool MoveNext()
+		{
+			return ++m_Index < m_Ctx.passData.Length;
+		}
+
+		public PassIterator GetEnumerator()
+		{
+			return this;
+		}
+	}
+
 	public ref struct NativePassIterator
 	{
 		private readonly CompilerContextData m_Ctx;
@@ -53,6 +78,8 @@ internal class CompilerContextData : IDisposable, RenderGraph.ICompiledGraph
 
 	public NativeList<PassFragmentData> fragmentData;
 
+	public NativeList<ResourceHandle> sampledData;
+
 	public NativeList<ResourceHandle> createData;
 
 	public NativeList<ResourceHandle> destroyData;
@@ -64,6 +91,8 @@ internal class CompilerContextData : IDisposable, RenderGraph.ICompiledGraph
 	public NativeList<SubPassDescriptor> nativeSubPassData;
 
 	private bool m_AreNativeListsAllocated;
+
+	public PassIterator Passes => new PassIterator(this);
 
 	public NativePassIterator NativePasses => new NativePassIterator(this);
 
@@ -82,6 +111,7 @@ internal class CompilerContextData : IDisposable, RenderGraph.ICompiledGraph
 			inputData = new NativeList<PassInputData>(estimatedNumPasses * 2, AllocatorManager.Persistent);
 			outputData = new NativeList<PassOutputData>(estimatedNumPasses * 2, AllocatorManager.Persistent);
 			fragmentData = new NativeList<PassFragmentData>(estimatedNumPasses * 4, AllocatorManager.Persistent);
+			sampledData = new NativeList<ResourceHandle>(estimatedNumPasses * 2, AllocatorManager.Persistent);
 			randomAccessResourceData = new NativeList<PassRandomWriteData>(4, AllocatorManager.Persistent);
 			nativePassData = new NativeList<NativePassData>(estimatedNumPasses, AllocatorManager.Persistent);
 			nativeSubPassData = new NativeList<SubPassDescriptor>(estimatedNumPasses, AllocatorManager.Persistent);
@@ -109,6 +139,7 @@ internal class CompilerContextData : IDisposable, RenderGraph.ICompiledGraph
 			inputData.Clear();
 			outputData.Clear();
 			fragmentData.Clear();
+			sampledData.Clear();
 			randomAccessResourceData.Clear();
 			nativePassData.Clear();
 			nativeSubPassData.Clear();
@@ -118,34 +149,35 @@ internal class CompilerContextData : IDisposable, RenderGraph.ICompiledGraph
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public ref ResourceUnversionedData UnversionedResourceData(ResourceHandle h)
+	public ref ResourceUnversionedData UnversionedResourceData(in ResourceHandle h)
 	{
 		return ref resources.unversionedData[h.iType].ElementAt(h.index);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public ref ResourceVersionedData VersionedResourceData(ResourceHandle h)
+	public ref ResourceVersionedData VersionedResourceData(in ResourceHandle h)
 	{
 		return ref resources[h];
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public ReadOnlySpan<ResourceReaderData> Readers(ResourceHandle h)
+	public ReadOnlySpan<ResourceReaderData> Readers(in ResourceHandle h)
 	{
-		int first = resources.IndexReader(h, 0);
+		int first = resources.IndexReader(in h, 0);
 		int numReaders = resources[h].numReaders;
 		return NativeListExtensions.MakeReadOnlySpan(ref resources.readerData[h.iType], first, numReaders);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public ref ResourceReaderData ResourceReader(ResourceHandle h, int i)
+	public ref ResourceReaderData ResourceReader(in ResourceHandle h, int i)
 	{
 		_ = ref resources[h];
-		return ref resources.readerData[h.iType].ElementAt(resources.IndexReader(h, 0) + i);
+		return ref resources.readerData[h.iType].ElementAt(resources.IndexReader(in h, 0) + i);
 	}
 
-	public bool AddToFragmentList(TextureAccess access, int listFirstIndex, int numItems)
+	public bool TryAddToFragmentList(in TextureAccess access, int listFirstIndex, int numItems, out string errorMessage)
 	{
+		errorMessage = null;
 		for (int i = listFirstIndex; i < listFirstIndex + numItems; i++)
 		{
 			if (fragmentData.ElementAt(i).resource.index == access.textureHandle.handle.index)
@@ -153,7 +185,7 @@ internal class CompilerContextData : IDisposable, RenderGraph.ICompiledGraph
 				return false;
 			}
 		}
-		fragmentData.Add(new PassFragmentData(access.textureHandle.handle, access.flags, access.mipLevel, access.depthSlice));
+		fragmentData.Add(new PassFragmentData(in access.textureHandle.handle, access.flags, access.mipLevel, access.depthSlice));
 		return true;
 	}
 
@@ -170,31 +202,32 @@ internal class CompilerContextData : IDisposable, RenderGraph.ICompiledGraph
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string GetResourceName(ResourceHandle h)
+	public string GetResourceName(in ResourceHandle h)
 	{
 		return resources.resourceNames[h.iType][h.index].name;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string GetResourceVersionedName(ResourceHandle h)
+	public string GetResourceVersionedName(in ResourceHandle h)
 	{
-		return GetResourceName(h) + " V" + h.version;
+		return GetResourceName(in h) + " V" + h.version;
 	}
 
-	public bool AddToRandomAccessResourceList(ResourceHandle h, int randomWriteSlotIndex, bool preserveCounterValue, int listFirstIndex, int numItems)
+	public bool TryAddToRandomAccessResourceList(in ResourceHandle h, int randomWriteSlotIndex, bool preserveCounterValue, int listFirstIndex, int numItems, out string errorMessage)
 	{
+		errorMessage = null;
 		for (int i = listFirstIndex; i < listFirstIndex + numItems; i++)
 		{
 			if (randomAccessResourceData[i].resource.index == h.index && randomAccessResourceData[i].resource.type == h.type)
 			{
 				if (randomAccessResourceData[i].resource.version != h.version)
 				{
-					throw new Exception("Trying to UseTextureRandomWrite two versions of the same resource");
+					errorMessage = "A pass is using UseTextureRandomWrite on two versions of the same resource.  Make sure you only access the latest version.";
 				}
 				return false;
 			}
 		}
-		randomAccessResourceData.Add(new PassRandomWriteData(h, randomWriteSlotIndex, preserveCounterValue));
+		randomAccessResourceData.Add(new PassRandomWriteData(in h, randomWriteSlotIndex, preserveCounterValue));
 		return true;
 	}
 
@@ -212,6 +245,30 @@ internal class CompilerContextData : IDisposable, RenderGraph.ICompiledGraph
 		{
 			passData.ElementAt(i).culled = isCulled;
 		}
+	}
+
+	public TextureUVOrigin GetTextureUVOrigin(in TextureHandle targetHandle)
+	{
+		if (targetHandle.handle.IsValid())
+		{
+			if (UnversionedResourceData(in targetHandle.handle).textureUVOrigin != TextureUVOriginSelection.TopLeft)
+			{
+				return TextureUVOrigin.BottomLeft;
+			}
+			return TextureUVOrigin.TopLeft;
+		}
+		return TextureUVOrigin.BottomLeft;
+	}
+
+	internal List<PassData> GetPasses()
+	{
+		List<PassData> list = new List<PassData>();
+		PassIterator enumerator = Passes.GetEnumerator();
+		while (enumerator.MoveNext())
+		{
+			list.Add(enumerator.Current);
+		}
+		return list;
 	}
 
 	internal List<NativePassData> GetNativePasses()
@@ -245,6 +302,7 @@ internal class CompilerContextData : IDisposable, RenderGraph.ICompiledGraph
 			inputData.Dispose();
 			outputData.Dispose();
 			fragmentData.Dispose();
+			sampledData.Dispose();
 			createData.Dispose();
 			destroyData.Dispose();
 			randomAccessResourceData.Dispose();

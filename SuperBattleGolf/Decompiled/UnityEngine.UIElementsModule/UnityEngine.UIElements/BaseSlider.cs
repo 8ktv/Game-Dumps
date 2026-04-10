@@ -13,18 +13,50 @@ public abstract class BaseSlider<TValueType> : BaseField<TValueType>, IValueFiel
 	public new abstract class UxmlSerializedData : BaseField<TValueType>.UxmlSerializedData
 	{
 		[SerializeField]
+		[Delayed]
+		[UxmlAttribute("value")]
+		[UxmlAttributeBindingPath("value")]
+		private TValueType valueOverride;
+
+		[Delayed]
+		[SerializeField]
+		private TValueType lowValue;
+
+		[SerializeField]
+		[Delayed]
+		private TValueType highValue;
+
+		[SerializeField]
 		private bool fill;
 
+		[SerializeField]
+		[UxmlIgnore]
 		[HideInInspector]
+		private UxmlAttributeFlags valueOverride_UxmlAttributeFlags;
+
 		[UxmlIgnore]
 		[SerializeField]
+		[HideInInspector]
+		private UxmlAttributeFlags lowValue_UxmlAttributeFlags;
+
+		[UxmlIgnore]
+		[SerializeField]
+		[HideInInspector]
+		private UxmlAttributeFlags highValue_UxmlAttributeFlags;
+
+		[SerializeField]
+		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags fill_UxmlAttributeFlags;
 
 		public new static void Register()
 		{
 			BaseField<TValueType>.UxmlSerializedData.Register();
-			UxmlDescriptionCache.RegisterType(typeof(UxmlSerializedData), new UxmlAttributeNames[1]
+			UxmlDescriptionCache.RegisterType(typeof(UxmlSerializedData), new UxmlAttributeNames[4]
 			{
+				new UxmlAttributeNames("valueOverride", "value", null),
+				new UxmlAttributeNames("lowValue", "low-value", null),
+				new UxmlAttributeNames("highValue", "high-value", null),
 				new UxmlAttributeNames("fill", "fill", null)
 			});
 		}
@@ -33,6 +65,18 @@ public abstract class BaseSlider<TValueType> : BaseField<TValueType>, IValueFiel
 		{
 			base.Deserialize(obj);
 			BaseSlider<TValueType> baseSlider = (BaseSlider<TValueType>)obj;
+			if (UnityEngine.UIElements.UxmlSerializedData.ShouldWriteAttributeValue(lowValue_UxmlAttributeFlags))
+			{
+				baseSlider.lowValue = lowValue;
+			}
+			if (UnityEngine.UIElements.UxmlSerializedData.ShouldWriteAttributeValue(highValue_UxmlAttributeFlags))
+			{
+				baseSlider.highValue = highValue;
+			}
+			if (UnityEngine.UIElements.UxmlSerializedData.ShouldWriteAttributeValue(valueOverride_UxmlAttributeFlags))
+			{
+				baseSlider.valueOverride = valueOverride;
+			}
 			if (UnityEngine.UIElements.UxmlSerializedData.ShouldWriteAttributeValue(fill_UxmlAttributeFlags))
 			{
 				baseSlider.fill = fill;
@@ -87,12 +131,12 @@ public abstract class BaseSlider<TValueType> : BaseField<TValueType>, IValueFiel
 
 	private bool m_Fill;
 
-	[SerializeField]
 	[DontCreateProperty]
+	[SerializeField]
 	private TValueType m_LowValue;
 
-	[DontCreateProperty]
 	[SerializeField]
+	[DontCreateProperty]
 	private TValueType m_HighValue;
 
 	private float m_PageSize;
@@ -158,6 +202,18 @@ public abstract class BaseSlider<TValueType> : BaseField<TValueType>, IValueFiel
 				return true;
 			}
 			return !inputTextField.textInputBase.textElement.hasFocus;
+		}
+	}
+
+	internal TValueType valueOverride
+	{
+		get
+		{
+			return value;
+		}
+		set
+		{
+			SetValueWithoutNotify(value);
 		}
 	}
 

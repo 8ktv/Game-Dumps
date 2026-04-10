@@ -42,7 +42,7 @@ public class GolfCartVfx : MonoBehaviour
 		flagPole.SetForwardLean(forwardLean);
 	}
 
-	public void ResetLocalAcceleration()
+	public void ResetLocalVelocity()
 	{
 		flagPole.SetForwardLean(0);
 	}
@@ -81,6 +81,11 @@ public class GolfCartVfx : MonoBehaviour
 		{
 			speedUpVfx.Stop(withChildren: true, ParticleSystemStopBehavior.StopEmitting);
 		}
+	}
+
+	public void SetIsFrozen(bool isFrozen)
+	{
+		flagPole.SetIsFrozen(isFrozen);
 	}
 
 	public void OnJumpStart()

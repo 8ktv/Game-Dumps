@@ -179,7 +179,7 @@ internal class UITKTextJobSystem
 			managedJobDataHandle = textJobDatasHandle
 		};
 		UnityEngine.TextCore.Text.TextGenerator.IsExecutingJob = true;
-		JobHandle jobHandle = jobData.ScheduleOrRunJob(textJobDatas.Count, 1);
+		JobHandle jobHandle = jobData.Schedule(textJobDatas.Count, 1);
 		mgc.AddMeshGenerationJob(jobHandle);
 		mgc.AddMeshGenerationCallback(m_GenerateTextJobifiedCallback, null, MeshGenerationCallbackType.Work, isJobDependent: true);
 	}
@@ -207,7 +207,7 @@ internal class UITKTextJobSystem
 		};
 		TextHandle.UpdateCurrentFrame();
 		UnityEngine.TextCore.Text.TextGenerator.IsExecutingJob = true;
-		JobHandle jobHandle = jobData.ScheduleOrRunJob(textJobDatas.Count, 1);
+		JobHandle jobHandle = jobData.Schedule(textJobDatas.Count, 1);
 		mgc.AddMeshGenerationJob(jobHandle);
 		mgc.AddMeshGenerationCallback(m_AddDrawEntriesCallback, null, MeshGenerationCallbackType.Work, isJobDependent: true);
 	}
@@ -239,7 +239,7 @@ internal class UITKTextJobSystem
 			int b = (int)(UIRenderDevice.maxVerticesPerPage & -4);
 			int num = meshInfo.vertexCount;
 			int num2 = 0;
-			while (num > 0)
+			do
 			{
 				int num3 = Mathf.Min(num, b);
 				int num4 = num3 >> 2;
@@ -271,6 +271,7 @@ internal class UITKTextJobSystem
 				indicesArray.Add(indices);
 				num -= num3;
 			}
+			while (num > 0);
 			Debug.Assert(num == 0);
 		}
 	}

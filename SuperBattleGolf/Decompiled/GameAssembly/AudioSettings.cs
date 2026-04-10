@@ -58,9 +58,46 @@ public class AudioSettings : ScriptableObject
 	[field: SerializeField]
 	public EventReference PlayerEmoteClapEvent { get; private set; }
 
+	[field: SerializeField]
+	public EventReference PlayerEmoteFacepalmEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference PlayerEmotePointLaughEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference PlayerEmoteThumbsUpEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference PlayerEmoteVPoseEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference PlayerEmoteWaveEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference PlayerEmoteChickenEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference PlayerEmoteFistPumpEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference PlayerEmoteHandsUpEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference PlayerRestartEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference FallingInHoleEvent { get; private set; }
+
+	[field: Header("Ball")]
+	[field: SerializeField]
+	public EventReference BallRespawnEvent { get; private set; }
+
 	[field: Header("Items")]
 	[field: SerializeField]
 	public EventReference ItemWaterSplash { get; private set; }
+
+	[field: SerializeField]
+	public EventReference ThrownItemDisappearEvent { get; private set; }
 
 	[field: SerializeField]
 	public EventReference CoffeeDrinkEvent { get; private set; }
@@ -142,6 +179,60 @@ public class AudioSettings : ScriptableObject
 
 	[field: SerializeField]
 	public EventReference GolfCartBriefcaseOpenEnd { get; private set; }
+
+	[field: SerializeField]
+	public EventReference RocketDriverIdleEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference RocketDriverAimEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference RocketDriverEnteredOverchargeEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference RocketDriverSwingEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference RocketDriverOverchargedSwingEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference RocketDriverSwingHitEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference RocketDriverPostHitSpinEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference RocketDriverThrownUsedLoopEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference RocketDriverUsedThrownExplosionEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference RocketDriverTrailLoopEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference RocketDriverTrailStopEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference FreezeBombAimEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference FreezeBombShotEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference FreezeBombProjectileLoopEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference FreezeBombExplosionEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference FreezeBombUnfreezeEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference FreezeBombPlatformShakeLoopEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference FreezeBombPlatformBreakEvent { get; private set; }
 
 	[field: Header("Golf cart")]
 	[field: SerializeField]
@@ -239,6 +330,15 @@ public class AudioSettings : ScriptableObject
 	[field: SerializeField]
 	public float MovementInFoliageExitDelay { get; private set; }
 
+	[field: SerializeField]
+	public EventReference JumpPadTriggeredEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference BreakableIceCrackingEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference BreakableIceBreakingEvent { get; private set; }
+
 	[field: Header("Announcer")]
 	[field: SerializeField]
 	public EventReference AnnouncerMainMenuTitle { get; private set; }
@@ -317,9 +417,31 @@ public class AudioSettings : ScriptableObject
 	[field: SerializeField]
 	public EventReference CameraSplashOutOfWaterEvent { get; private set; }
 
+	[field: SerializeField]
+	public EventReference CameraEmoteShockedEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference CameraEmoteHeartEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference CameraEmoteWorriedEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference CameraEmoteConfusedEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference CameraEmoteCheerEvent { get; private set; }
+
 	[field: Header("Item dispensers")]
 	[field: SerializeField]
 	public EventReference CoffeeDispenserActivationEvent { get; private set; }
+
+	[field: Header("Match setup station")]
+	[field: SerializeField]
+	public EventReference MatchSetupStationInteractEvent { get; private set; }
+
+	[field: SerializeField]
+	public EventReference DrivingRangeNextCameraButtonPressedEvent { get; private set; }
 
 	[field: Header("Snapshots")]
 	[field: SerializeField]
@@ -327,6 +449,9 @@ public class AudioSettings : ScriptableObject
 
 	[field: SerializeField]
 	public EventReference UnderwaterCameraSnapshot { get; private set; }
+
+	[field: SerializeField]
+	public EventReference FrozenInIceSnapshot { get; private set; }
 
 	[field: Header("UI")]
 	[field: SerializeField]
@@ -378,9 +503,6 @@ public class AudioSettings : ScriptableObject
 	public EventReference CosmeticsOpen { get; private set; }
 
 	[field: SerializeField]
-	public EventReference CosmeticsClose { get; private set; }
-
-	[field: SerializeField]
 	public EventReference SliderOnValueChange { get; private set; }
 
 	[field: SerializeField]
@@ -413,6 +535,13 @@ public class AudioSettings : ScriptableObject
 	[field: SerializeField]
 	public EventReference SliderControllerDeactivation { get; private set; }
 
+	[field: Header("Ambience")]
+	[field: SerializeField]
+	public EventReference AmbienceWind { get; private set; }
+
+	[field: SerializeField]
+	public EventReference AmbienceSnowWind { get; private set; }
+
 	public static float MinMovementInFoliageSpeedSquared { get; private set; }
 
 	public static PARAMETER_ID MaterialTypeId { get; private set; }
@@ -434,6 +563,12 @@ public class AudioSettings : ScriptableObject
 	public static PARAMETER_ID CameraInWaterId { get; private set; }
 
 	public static PARAMETER_ID SpeedId { get; private set; }
+
+	public static PARAMETER_ID WindSpeedId { get; private set; }
+
+	public static PARAMETER_ID WindPanningId { get; private set; }
+
+	public static PARAMETER_ID ChargeUpId { get; private set; }
 
 	public void Initialize()
 	{
@@ -459,5 +594,12 @@ public class AudioSettings : ScriptableObject
 		CameraInWaterId = parameter.id;
 		RuntimeManager.GetEventDescription(CameraSplashIntoWaterEvent).getParameterDescriptionByName("Speed", out parameter);
 		SpeedId = parameter.id;
+		eventDescription = RuntimeManager.GetEventDescription(AmbienceWind);
+		eventDescription.getParameterDescriptionByName("Wind Speed", out parameter);
+		WindSpeedId = parameter.id;
+		eventDescription.getParameterDescriptionByName("Panning", out parameter);
+		WindPanningId = parameter.id;
+		RuntimeManager.GetEventDescription(RocketDriverIdleEvent).getParameterDescriptionByName("Charge Up", out parameter);
+		ChargeUpId = parameter.id;
 	}
 }

@@ -16,5 +16,8 @@ internal enum StyleValueFunction
 	FilterInvert,
 	FilterGrayscale,
 	FilterSepia,
-	FilterBlur
+	FilterBlur,
+	FilterContrast,
+	FilterHueRotate,
+	MaterialProperty
 }

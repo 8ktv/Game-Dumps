@@ -4,8 +4,8 @@ using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine;
 
-[MovedFrom("UnityEditor")]
 [VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule", "UnityEditor.UIBuilderModule" })]
+[MovedFrom("UnityEditor")]
 internal class NumericFieldDraggerUtility
 {
 	private static bool s_UseYSign;

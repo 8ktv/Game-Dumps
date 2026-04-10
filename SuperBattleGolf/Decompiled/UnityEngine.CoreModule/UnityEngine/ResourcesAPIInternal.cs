@@ -6,8 +6,8 @@ using UnityEngineInternal;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Misc/ResourceManagerUtility.h")]
 [NativeHeader("Runtime/Export/Resources/Resources.bindings.h")]
+[NativeHeader("Runtime/Misc/ResourceManagerUtility.h")]
 internal static class ResourcesAPIInternal
 {
 	internal static class EntitiesAssetGC
@@ -48,8 +48,9 @@ internal static class ResourcesAPIInternal
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("Resources_Bindings::FindObjectsOfTypeAll")]
 	[TypeInferenceRule(TypeInferenceRules.ArrayOfTypeReferencedByFirstArgument)]
+	[FreeFunction("Resources_Bindings::FindObjectsOfTypeAll")]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public static extern Object[] FindObjectsOfTypeAll(Type type);
 
 	[FreeFunction("GetShaderNameRegistry().FindShader")]
@@ -82,9 +83,9 @@ internal static class ResourcesAPIInternal
 		return result;
 	}
 
+	[NativeThrows]
 	[FreeFunction("Resources_Bindings::Load")]
 	[TypeInferenceRule(TypeInferenceRules.TypeReferencedBySecondArgument)]
-	[NativeThrows]
 	public unsafe static Object Load(string path, [NotNull] Type systemTypeInstance)
 	{
 		//The blocks IL_0038 are reachable both inside and outside the pinned region starting at IL_0027. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -118,8 +119,8 @@ internal static class ResourcesAPIInternal
 		return result;
 	}
 
-	[NativeThrows]
 	[FreeFunction("Resources_Bindings::LoadAll")]
+	[NativeThrows]
 	public unsafe static Object[] LoadAll([NotNull] string path, [NotNull] Type systemTypeInstance)
 	{
 		//The blocks IL_0047 are reachable both inside and outside the pinned region starting at IL_0036. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.

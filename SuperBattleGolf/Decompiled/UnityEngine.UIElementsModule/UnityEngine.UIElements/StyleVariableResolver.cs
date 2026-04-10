@@ -89,14 +89,14 @@ internal class StyleVariableResolver
 	private Result ResolveVarFunction(ref int index, int argc, string varName)
 	{
 		Result result = ResolveVariable(varName);
-		if (result == Result.NotFound && argc > 1)
+		if (argc > 1)
 		{
 			StyleValueHandle styleValueHandle = currentHandles[++index];
-			Debug.Assert(styleValueHandle.valueType == StyleValueType.CommaSeparator, $"Unexpected value type {styleValueHandle.valueType} in var function");
+			Debug.Assert(styleValueHandle.valueType == StyleValueType.CommaSeparator, $"Unexpected value type {styleValueHandle.valueType} in var() fallback; expected CommaSeparator.");
 			if (styleValueHandle.valueType == StyleValueType.CommaSeparator && index + 1 < currentHandles.Length)
 			{
 				index++;
-				result = ResolveFallback(ref index);
+				result = ResolveFallback(ref index, result == Result.NotFound);
 			}
 		}
 		return result;
@@ -160,7 +160,7 @@ internal class StyleVariableResolver
 		return result;
 	}
 
-	private Result ResolveFallback(ref int index)
+	private Result ResolveFallback(ref int index, bool appendValues)
 	{
 		Result result = Result.Valid;
 		while (index < currentHandles.Length && result == Result.Valid)
@@ -169,19 +169,26 @@ internal class StyleVariableResolver
 			if (handle.IsVarFunction())
 			{
 				ParseVarFunction(currentSheet, currentHandles, ref index, out var argCount, out var variableName);
-				result = ResolveVariable(variableName);
-				if (result == Result.NotFound && argCount > 1)
+				if (appendValues)
 				{
-					handle = currentHandles[++index];
-					Debug.Assert(handle.valueType == StyleValueType.CommaSeparator, $"Unexpected value type {handle.valueType} in var function");
-					if (handle.valueType == StyleValueType.CommaSeparator && index + 1 < currentHandles.Length)
+					Result result2 = ResolveVarFunction(ref index, argCount, variableName);
+					if (result2 != Result.Valid)
+					{
+						result = result2;
+					}
+				}
+				else if (argCount > 1)
+				{
+					StyleValueHandle styleValueHandle = currentHandles[++index];
+					Debug.Assert(styleValueHandle.valueType == StyleValueType.CommaSeparator);
+					if (styleValueHandle.valueType == StyleValueType.CommaSeparator && index + 1 < currentHandles.Length)
 					{
 						index++;
-						result = ResolveFallback(ref index);
+						ResolveFallback(ref index, appendValues: false);
 					}
 				}
 			}
-			else
+			else if (appendValues)
 			{
 				m_ResolvedValues.Add(new StylePropertyValue
 				{

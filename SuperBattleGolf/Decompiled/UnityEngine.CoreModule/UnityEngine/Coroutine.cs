@@ -7,8 +7,8 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
-[NativeHeader("Runtime/Mono/Coroutine.h")]
 [RequiredByNativeCode]
+[NativeHeader("Runtime/Mono/Coroutine.h")]
 public sealed class Coroutine : YieldInstruction
 {
 	internal static class BindingsMarshaller

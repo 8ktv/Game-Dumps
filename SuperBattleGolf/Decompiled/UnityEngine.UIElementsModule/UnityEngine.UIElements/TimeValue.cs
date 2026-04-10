@@ -1,9 +1,11 @@
 using System;
 using System.Globalization;
 using Unity.Properties;
+using UnityEngine.UIElements.StyleSheets;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct TimeValue : IEquatable<TimeValue>
 {
 	internal class PropertyBag : ContainerPropertyBag<TimeValue>
@@ -49,8 +51,10 @@ public struct TimeValue : IEquatable<TimeValue>
 		}
 	}
 
+	[SerializeField]
 	private float m_Value;
 
+	[SerializeField]
 	private TimeUnit m_Unit;
 
 	public float value
@@ -142,5 +146,48 @@ public struct TimeValue : IEquatable<TimeValue>
 			break;
 		}
 		return text + text2;
+	}
+
+	internal static bool TryParseString(string str, out TimeValue timeValue)
+	{
+		timeValue = default(TimeValue);
+		if (string.IsNullOrEmpty(str))
+		{
+			return false;
+		}
+		ReadOnlySpan<char> readOnlySpan = MemoryExtensions.AsSpan(str).Trim();
+		int num = 0;
+		int num2 = -1;
+		for (int i = 0; i < readOnlySpan.Length; i++)
+		{
+			char c = readOnlySpan[i];
+			if (char.IsNumber(c) || c == '.')
+			{
+				num++;
+				continue;
+			}
+			if (char.IsLetter(c))
+			{
+				num2 = i;
+				break;
+			}
+			return false;
+		}
+		ReadOnlySpan<char> floatStr = readOnlySpan.Slice(0, num);
+		ReadOnlySpan<char> readOnlySpan2 = default(ReadOnlySpan<char>);
+		readOnlySpan2 = ((num2 <= 0) ? ((ReadOnlySpan<char>)"s") : readOnlySpan.Slice(num2, readOnlySpan.Length - num2));
+		if (StylePropertyUtil.TryParseFloat(floatStr, out var num3))
+		{
+			timeValue.value = num3;
+		}
+		if (MemoryExtensions.Equals(readOnlySpan2, "ms", StringComparison.OrdinalIgnoreCase))
+		{
+			timeValue.unit = TimeUnit.Millisecond;
+		}
+		else if (MemoryExtensions.Equals(readOnlySpan2, "s", StringComparison.OrdinalIgnoreCase))
+		{
+			timeValue.unit = TimeUnit.Second;
+		}
+		return true;
 	}
 }

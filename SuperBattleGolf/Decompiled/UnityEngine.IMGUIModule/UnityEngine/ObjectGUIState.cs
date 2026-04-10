@@ -4,8 +4,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
 [NativeHeader("Modules/IMGUI/GUIState.h")]
+[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
 internal class ObjectGUIState : IDisposable
 {
 	internal static class BindingsMarshaller

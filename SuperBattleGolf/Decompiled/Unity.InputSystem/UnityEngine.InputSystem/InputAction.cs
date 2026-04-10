@@ -187,7 +187,7 @@ public sealed class InputAction : ICloneable, IDisposable
 	internal InputActionType m_Type;
 
 	[FormerlySerializedAs("m_ExpectedControlLayout")]
-	[Tooltip("The type of control expected by the action (e.g. \"Button\" or \"Stick\"). This will limit the controls shown when setting up bindings in the UI and will also limit which controls can be bound interactively to the action.")]
+	[Tooltip("The type of control expected by the action (e.g. \"Digital\" for buttons, \"Vector2\" for sticks). This will limit the controls shown when setting up bindings in the UI and will also limit which controls can be bound interactively to the action.")]
 	[SerializeField]
 	internal string m_ExpectedControlType;
 
@@ -639,7 +639,7 @@ public sealed class InputAction : ICloneable, IDisposable
 	public unsafe bool WasPressedThisFrame()
 	{
 		InputActionState state = GetOrCreateActionMap().m_State;
-		if (state != null)
+		if (state != null && !state.IsSuppressed)
 		{
 			InputActionState.TriggerState* num = state.actionStates + m_ActionIndexInState;
 			uint s_UpdateStepCount = InputUpdate.s_UpdateStepCount;
@@ -691,7 +691,7 @@ public sealed class InputAction : ICloneable, IDisposable
 	public unsafe bool WasPerformedThisFrame()
 	{
 		InputActionState state = GetOrCreateActionMap().m_State;
-		if (state != null)
+		if (state != null && !state.IsSuppressed)
 		{
 			InputActionState.TriggerState* num = state.actionStates + m_ActionIndexInState;
 			uint s_UpdateStepCount = InputUpdate.s_UpdateStepCount;

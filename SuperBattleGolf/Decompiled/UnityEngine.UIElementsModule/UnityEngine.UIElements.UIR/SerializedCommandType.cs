@@ -4,5 +4,6 @@ internal enum SerializedCommandType
 {
 	DrawRanges,
 	SetTexture,
-	ApplyBatchProps
+	ApplyBatchProps,
+	ApplyUserProps
 }

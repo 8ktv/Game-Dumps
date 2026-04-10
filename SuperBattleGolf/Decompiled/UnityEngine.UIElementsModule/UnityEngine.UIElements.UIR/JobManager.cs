@@ -6,11 +6,13 @@ namespace UnityEngine.UIElements.UIR;
 
 internal class JobManager : IDisposable
 {
-	private NativePagedList<NudgeJobData> m_NudgeJobs = new NativePagedList<NudgeJobData>(64);
+	private const string k_JobManagerName = "Renderer.JobManager";
 
-	private NativePagedList<ConvertMeshJobData> m_ConvertMeshJobs = new NativePagedList<ConvertMeshJobData>(64);
+	private NativePagedList<NudgeJobData> m_NudgeJobs = new NativePagedList<NudgeJobData>(64, "Renderer.JobManager");
 
-	private NativePagedList<CopyMeshJobData> m_CopyMeshJobs = new NativePagedList<CopyMeshJobData>(64);
+	private NativePagedList<ConvertMeshJobData> m_ConvertMeshJobs = new NativePagedList<ConvertMeshJobData>(64, "Renderer.JobManager");
+
+	private NativePagedList<CopyMeshJobData> m_CopyMeshJobs = new NativePagedList<CopyMeshJobData>(64, "Renderer.JobManager");
 
 	private JobMerger m_JobMerger = new JobMerger(128);
 

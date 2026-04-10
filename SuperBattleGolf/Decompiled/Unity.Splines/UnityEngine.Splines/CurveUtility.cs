@@ -185,7 +185,7 @@ public static class CurveUtility
 			if (num4 <= t && num3 >= t)
 			{
 				float t2 = (t - num4) / num2;
-				result = Vector3.Slerp(previousRMFrame.normal, nextRotationMinimizingFrame.normal, t2);
+				result = Vector3.Slerp((Vector3)previousRMFrame.normal, (Vector3)nextRotationMinimizingFrame.normal, t2);
 			}
 			num4 = num3;
 			num3 += num2;
@@ -224,7 +224,7 @@ public static class CurveUtility
 			if (num4 <= t && num3 >= t)
 			{
 				float t3 = (t - num4) / num2;
-				return Vector3.Slerp(nativeArray[j - 1], nativeArray[j], t3);
+				return Vector3.Slerp((Vector3)nativeArray[j - 1], (Vector3)nativeArray[j], t3);
 			}
 			num4 = num3;
 			num3 += num2;

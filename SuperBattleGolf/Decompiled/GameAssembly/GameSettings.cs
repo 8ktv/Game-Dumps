@@ -53,7 +53,7 @@ public static class GameSettings
 		private float micInputThreshold = 0.01f;
 
 		[SerializeField]
-		private InputMode micInputMode;
+		private InputMode micInputMode = InputMode.PushToTalk;
 
 		[SerializeField]
 		private string outputDeviceGuid;
@@ -399,6 +399,9 @@ public static class GameSettings
 		private int screenHeight = -1;
 
 		[SerializeField]
+		private int fpsLimit = 300;
+
+		[SerializeField]
 		private bool vsync = true;
 
 		[SerializeField]
@@ -452,6 +455,18 @@ public static class GameSettings
 			set
 			{
 				vsync = value;
+			}
+		}
+
+		public int FpsLimit
+		{
+			get
+			{
+				return fpsLimit;
+			}
+			set
+			{
+				fpsLimit = BMath.Clamp(value, 30, 500);
 			}
 		}
 
@@ -607,6 +622,7 @@ public static class GameSettings
 				Screen.SetResolution(screenWidth, screenHeight, fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed);
 			}
 			QualitySettings.vSyncCount = (vsync ? 1 : 0);
+			Application.targetFrameRate = ((vsync || fpsLimit > 300) ? (-1) : fpsLimit);
 			QualitySettings.antiAliasing = msaa;
 			QualitySettings.shadowResolution = shadowQuality;
 			QualitySettings.shadows = (shadowsEnabled ? UnityEngine.ShadowQuality.All : UnityEngine.ShadowQuality.Disable);
@@ -645,6 +661,18 @@ public static class GameSettings
 			Off
 		}
 
+		public enum DistanceUnit
+		{
+			Meters,
+			Yards
+		}
+
+		public enum SpeedUnit
+		{
+			KilometersPerHour,
+			MilesPerHour
+		}
+
 		[SerializeField]
 		private string languageCode = string.Empty;
 
@@ -661,6 +689,12 @@ public static class GameSettings
 		private ButtonPromptVisibility buttonPrompts;
 
 		[SerializeField]
+		private DistanceUnit distanceUnit;
+
+		[SerializeField]
+		private SpeedUnit speedUnit;
+
+		[SerializeField]
 		private bool devConsole;
 
 		[SerializeField]
@@ -669,7 +703,14 @@ public static class GameSettings
 		[SerializeField]
 		private bool muteChat;
 
+		[SerializeField]
+		private bool hasWatchedIntro;
+
 		public static Action MuteChatChanged;
+
+		public static Action DistanceUnitChanged;
+
+		public static Action SpeedUnitChanged;
 
 		public float ScreenshakeFactor
 		{
@@ -719,19 +760,6 @@ public static class GameSettings
 			}
 		}
 
-		public bool DevConsole
-		{
-			get
-			{
-				return devConsole;
-			}
-			set
-			{
-				devConsole = value;
-				UpdateDevConsoleEnabled();
-			}
-		}
-
 		public bool StreamerMode
 		{
 			get
@@ -760,19 +788,59 @@ public static class GameSettings
 			}
 		}
 
+		public bool HasWatchedIntro
+		{
+			get
+			{
+				return hasWatchedIntro;
+			}
+			set
+			{
+				if (value != hasWatchedIntro)
+				{
+					hasWatchedIntro = value;
+					SaveWithoutApplying();
+				}
+			}
+		}
+
+		public DistanceUnit DistanceUnits
+		{
+			get
+			{
+				return distanceUnit;
+			}
+			set
+			{
+				if (value != distanceUnit)
+				{
+					distanceUnit = value;
+					DistanceUnitChanged?.Invoke();
+				}
+			}
+		}
+
+		public SpeedUnit SpeedUnits
+		{
+			get
+			{
+				return speedUnit;
+			}
+			set
+			{
+				if (value != speedUnit)
+				{
+					speedUnit = value;
+					SpeedUnitChanged?.Invoke();
+				}
+			}
+		}
+
 		public List<Locale> AvailableLocales { get; private set; }
 
 		public List<string> LanguageOptions { get; private set; }
 
 		public int LanguageIndex => AvailableLocales.IndexOf(LocalizationSettings.SelectedLocale);
-
-		public void UpdateDevConsoleEnabled()
-		{
-			if (SingletonBehaviour<DevConsoleGui>.HasInstance)
-			{
-				SingletonBehaviour<DevConsoleGui>.Instance.gameObject.SetActive(devConsole && MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.ConsoleCommands));
-			}
-		}
 
 		public void SelectLocale(int index)
 		{
@@ -811,6 +879,76 @@ public static class GameSettings
 					LanguageOptions.Add(item);
 				}
 			}
+		}
+
+		public string GetLocalizedDistanceUnitName()
+		{
+			return DistanceUnits switch
+			{
+				DistanceUnit.Meters => Localization.UI.MISC_Distance_Meters, 
+				DistanceUnit.Yards => Localization.UI.MISC_Distance_Yards, 
+				_ => string.Empty, 
+			};
+		}
+
+		public string GetLocalizedSpeedUnitName()
+		{
+			return SpeedUnits switch
+			{
+				SpeedUnit.KilometersPerHour => Localization.UI.MISC_KilometersPerHour, 
+				SpeedUnit.MilesPerHour => Localization.UI.MISC_MilesPerHour, 
+				_ => string.Empty, 
+			};
+		}
+
+		public int GetDistanceInCurrentUnits(float distanceInMeters)
+		{
+			return DistanceUnits switch
+			{
+				DistanceUnit.Meters => BMath.RoundToInt(distanceInMeters), 
+				DistanceUnit.Yards => BMath.RoundToInt(distanceInMeters * 1.09361f), 
+				_ => BMath.FloorToInt(distanceInMeters), 
+			};
+		}
+
+		public float GetDistanceInCurrentUnitsFloat(float distanceInMeters)
+		{
+			return DistanceUnits switch
+			{
+				DistanceUnit.Meters => distanceInMeters, 
+				DistanceUnit.Yards => distanceInMeters * 1.09361f, 
+				_ => distanceInMeters, 
+			};
+		}
+
+		public int GetSpeedInCurrentUnits(float speedInKph)
+		{
+			return SpeedUnits switch
+			{
+				SpeedUnit.KilometersPerHour => BMath.RoundToInt(speedInKph), 
+				SpeedUnit.MilesPerHour => BMath.RoundToInt(speedInKph * 0.621371f), 
+				_ => BMath.RoundToInt(speedInKph), 
+			};
+		}
+
+		public float GetSpeedUnitConversionFactor()
+		{
+			return SpeedUnits switch
+			{
+				SpeedUnit.KilometersPerHour => 1f, 
+				SpeedUnit.MilesPerHour => 0.621371f, 
+				_ => 1f, 
+			};
+		}
+
+		public string GetLocalizedDistanceUnitNameFull()
+		{
+			return DistanceUnits switch
+			{
+				DistanceUnit.Meters => Localization.UI.MISC_Distance_Meters, 
+				DistanceUnit.Yards => Localization.UI.MISC_Distance_Yards_Full, 
+				_ => Localization.UI.MISC_Distance_Meters, 
+			};
 		}
 	}
 
@@ -1060,6 +1198,11 @@ public static class GameSettings
 	public static void ApplyAndSave()
 	{
 		allSettings.Apply();
+		SaveWithoutApplying();
+	}
+
+	public static void SaveWithoutApplying()
+	{
 		string contents = JsonUtility.ToJson(allSettings, prettyPrint: true);
 		File.WriteAllText(settingsPath, contents);
 	}

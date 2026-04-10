@@ -17,4 +17,7 @@ public class HittableSettings : ScriptableObject
 
 	[field: SerializeField]
 	public ScoreKnockbackHittableSettings ScoreKnockback { get; private set; }
+
+	[field: SerializeField]
+	public WindHittableSettings Wind { get; private set; }
 }

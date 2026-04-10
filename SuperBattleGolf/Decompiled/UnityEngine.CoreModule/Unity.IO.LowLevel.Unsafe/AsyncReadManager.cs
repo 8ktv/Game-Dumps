@@ -84,8 +84,8 @@ public static class AsyncReadManager
 		return ReadInternal(filename, readCmds, readCmdCount, assetName, typeID, subsystem);
 	}
 
-	[FreeFunction("AsyncReadManagerManaged::GetFileInfo", IsThreadSafe = true)]
 	[ThreadAndSerializationSafe]
+	[FreeFunction("AsyncReadManagerManaged::GetFileInfo", IsThreadSafe = true)]
 	private unsafe static ReadHandle GetFileInfoInternal(string filename, void* cmd)
 	{
 		//The blocks IL_0029 are reachable both inside and outside the pinned region starting at IL_0018. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -158,8 +158,8 @@ public static class AsyncReadManager
 		return ReadWithHandlesInternal_NativeCopy(in fileHandle, UnsafeUtility.AddressOf(ref readCmdArray));
 	}
 
-	[ThreadAndSerializationSafe]
 	[FreeFunction("AsyncReadManagerManaged::ScheduleOpenRequest", IsThreadSafe = true)]
+	[ThreadAndSerializationSafe]
 	private unsafe static FileHandle OpenFileAsync_Internal(string fileName)
 	{
 		//The blocks IL_0029 are reachable both inside and outside the pinned region starting at IL_0018. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -198,16 +198,16 @@ public static class AsyncReadManager
 		return OpenFileAsync_Internal(fileName);
 	}
 
-	[FreeFunction("AsyncReadManagerManaged::ScheduleCloseRequest", IsThreadSafe = true)]
 	[ThreadAndSerializationSafe]
+	[FreeFunction("AsyncReadManagerManaged::ScheduleCloseRequest", IsThreadSafe = true)]
 	internal static JobHandle CloseFileAsync(in FileHandle fileHandle, JobHandle dependency)
 	{
 		CloseFileAsync_Injected(in fileHandle, ref dependency, out var ret);
 		return ret;
 	}
 
-	[FreeFunction("AsyncReadManagerManaged::ScheduleCloseCachedFileRequest", IsThreadSafe = true)]
 	[ThreadAndSerializationSafe]
+	[FreeFunction("AsyncReadManagerManaged::ScheduleCloseCachedFileRequest", IsThreadSafe = true)]
 	public unsafe static JobHandle CloseCachedFileAsync(string fileName, JobHandle dependency = default(JobHandle))
 	{
 		//The blocks IL_0029 are reachable both inside and outside the pinned region starting at IL_0018. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.

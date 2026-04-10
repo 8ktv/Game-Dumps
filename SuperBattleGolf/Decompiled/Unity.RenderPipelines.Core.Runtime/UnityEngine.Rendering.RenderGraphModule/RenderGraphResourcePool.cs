@@ -62,6 +62,8 @@ internal abstract class RenderGraphResourcePool<Type> : IRenderGraphResourcePool
 				ReleaseInternalResource(item2.Value.Item1);
 			}
 		}
+		m_ResourcePool.Clear();
+		m_FrameAllocatedResources.Clear();
 	}
 
 	[Conditional("DEVELOPMENT_BUILD")]
@@ -114,6 +116,31 @@ internal abstract class RenderGraphResourcePool<Type> : IRenderGraphResourcePool
 			logger.LogLine($"[{num++:D2}]\t[{num3:0.00} MB]\t{item4.name}");
 		}
 		logger.LogLine($"\nTotal Size [{num2:0.00}]");
+	}
+
+	public float GetMemorySizeInMB()
+	{
+		float num = 0f;
+		foreach (KeyValuePair<int, SortedList<int, (Type, int)>> item in m_ResourcePool)
+		{
+			foreach (KeyValuePair<int, (Type, int)> item2 in item.Value)
+			{
+				float num2 = num;
+				(Type, int) value = item2.Value;
+				num = num2 + (float)GetResourceSize(in value.Item1) / 1048576f;
+			}
+		}
+		return num;
+	}
+
+	public int GetNumResourcesAvailable()
+	{
+		int num = 0;
+		foreach (KeyValuePair<int, SortedList<int, (Type, int)>> item in m_ResourcePool)
+		{
+			num += item.Value.Count;
+		}
+		return num;
 	}
 
 	public override void PurgeUnusedResources(int currentFrameIndex)

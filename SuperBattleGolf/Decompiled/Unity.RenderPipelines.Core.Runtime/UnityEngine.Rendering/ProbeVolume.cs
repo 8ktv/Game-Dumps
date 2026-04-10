@@ -62,7 +62,7 @@ public class ProbeVolume : MonoBehaviour
 	private Version version;
 
 	[SerializeField]
-	[Obsolete("Use mode instead")]
+	[Obsolete("Use mode instead. #from(2023.1)")]
 	public bool globalVolume;
 
 	private void Awake()

@@ -32,6 +32,10 @@ public sealed class PointerDownEvent : PointerEventBase<PointerDownEvent>
 
 	protected internal override void PreDispatch(IPanel panel)
 	{
+		if (panel is Panel panel2)
+		{
+			panel2.contextualMenuManager?.BeforePointerDown();
+		}
 		base.PreDispatch(panel);
 	}
 

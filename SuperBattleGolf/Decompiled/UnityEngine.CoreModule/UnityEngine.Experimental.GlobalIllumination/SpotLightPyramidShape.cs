@@ -1,8 +1,10 @@
+using System;
+
 namespace UnityEngine.Experimental.GlobalIllumination;
 
 public struct SpotLightPyramidShape
 {
-	public int instanceID;
+	public EntityId entityId;
 
 	public bool shadow;
 
@@ -23,4 +25,17 @@ public struct SpotLightPyramidShape
 	public float aspectRatio;
 
 	public FalloffType falloff;
+
+	[Obsolete("Please use entityId instead.", false)]
+	public int instanceID
+	{
+		get
+		{
+			return entityId;
+		}
+		set
+		{
+			entityId = value;
+		}
+	}
 }

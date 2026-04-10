@@ -13,14 +13,14 @@ public class RadioButtonGroup : BaseField<int>, IGroupBox
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : BaseField<int>.UxmlSerializedData
 	{
-		[UxmlAttribute("choices")]
 		[UxmlAttributeBindingPath("choices")]
 		[SerializeField]
+		[UxmlAttribute("choices")]
 		private List<string> choicesList;
 
 		[HideInInspector]
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags choicesList_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -300,15 +300,15 @@ public class RadioButtonGroup : BaseField<int>, IGroupBox
 			}
 			else
 			{
-				foreach (RadioButton item2 in list)
+				foreach (RadioButton registeredRadioButton in m_RegisteredRadioButtons)
 				{
 					if (notify)
 					{
-						item2.value = false;
+						registeredRadioButton.value = false;
 					}
 					else
 					{
-						item2.SetValueWithoutNotify(newValue: false);
+						registeredRadioButton.SetValueWithoutNotify(newValue: false);
 					}
 				}
 			}

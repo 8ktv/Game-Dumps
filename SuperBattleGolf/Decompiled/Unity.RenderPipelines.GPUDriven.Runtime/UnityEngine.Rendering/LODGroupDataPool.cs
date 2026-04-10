@@ -114,7 +114,7 @@ internal class LODGroupDataPool : IDisposable
 		lodGroupInstances.Dispose();
 	}
 
-	public void FreeLODGroupData(NativeArray<int> destroyedLODGroupsID)
+	public void FreeLODGroupData(NativeArray<EntityId> destroyedLODGroupsID)
 	{
 		if (destroyedLODGroupsID.Length != 0)
 		{

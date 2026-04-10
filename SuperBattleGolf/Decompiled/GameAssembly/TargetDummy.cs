@@ -22,6 +22,8 @@ public class TargetDummy : MonoBehaviour
 		asEntity.AsHittable.WasHitBySwingProjectile += OnWasHitBySwingProjectile;
 		asEntity.AsHittable.WasHitByItem += OnWasHitByItem;
 		asEntity.AsHittable.WasHitByRocketLauncherBackBlast += OnWasHitByRocketLauncherBackBlast;
+		asEntity.AsHittable.WasHitByRocketDriverSwingPostHitSpin += OnWasHitByRocketDriverSwingPostHitSpin;
+		asEntity.AsHittable.IsFrozenChanged += OnIsFrozenChanged;
 	}
 
 	private void OnDestroy()
@@ -30,38 +32,43 @@ public class TargetDummy : MonoBehaviour
 		asEntity.AsHittable.WasHitBySwingProjectile -= OnWasHitBySwingProjectile;
 		asEntity.AsHittable.WasHitByItem -= OnWasHitByItem;
 		asEntity.AsHittable.WasHitByRocketLauncherBackBlast -= OnWasHitByRocketLauncherBackBlast;
+		asEntity.AsHittable.WasHitByRocketDriverSwingPostHitSpin -= OnWasHitByRocketDriverSwingPostHitSpin;
+		asEntity.AsHittable.IsFrozenChanged -= OnIsFrozenChanged;
 	}
 
 	private void PlayHitLocalOnly(Vector3 worldDirection)
 	{
-		float yawDeg = base.transform.InverseTransformDirection(worldDirection).GetYawDeg();
-		if (yawDeg <= -135f)
+		if (!asEntity.AsHittable.IsFrozen)
 		{
-			HitBackward();
-		}
-		else if (yawDeg <= -90f)
-		{
-			SpinClockwise();
-		}
-		else if (yawDeg <= -45f)
-		{
-			SpinCounterClockwise();
-		}
-		else if (yawDeg <= 45f)
-		{
-			HitForward();
-		}
-		else if (yawDeg <= 90f)
-		{
-			SpinClockwise();
-		}
-		else if (yawDeg <= 135f)
-		{
-			SpinCounterClockwise();
-		}
-		else
-		{
-			HitBackward();
+			float yawDeg = base.transform.InverseTransformDirection(worldDirection).GetYawDeg();
+			if (yawDeg <= -135f)
+			{
+				HitBackward();
+			}
+			else if (yawDeg <= -90f)
+			{
+				SpinClockwise();
+			}
+			else if (yawDeg <= -45f)
+			{
+				SpinCounterClockwise();
+			}
+			else if (yawDeg <= 45f)
+			{
+				HitForward();
+			}
+			else if (yawDeg <= 90f)
+			{
+				SpinClockwise();
+			}
+			else if (yawDeg <= 135f)
+			{
+				SpinCounterClockwise();
+			}
+			else
+			{
+				HitBackward();
+			}
 		}
 		void HitBackward()
 		{
@@ -93,7 +100,7 @@ public class TargetDummy : MonoBehaviour
 		}
 	}
 
-	private void OnWasHitByGolfSwing(PlayerGolfer hitter, Vector3 worldDirection, float power)
+	private void OnWasHitByGolfSwing(PlayerGolfer hitter, Vector3 worldDirection, float power, bool isRocketDriver)
 	{
 		PlayHitLocalOnly(worldDirection);
 	}
@@ -105,11 +112,24 @@ public class TargetDummy : MonoBehaviour
 
 	private void OnWasHitByItem(PlayerInventory itemUser, ItemType itemType, ItemUseId itemUseId, Vector3 direction, float distance, bool isReflected)
 	{
-		PlayHitLocalOnly(direction);
+		if (itemType != ItemType.FreezeBomb)
+		{
+			PlayHitLocalOnly(direction);
+		}
 	}
 
 	private void OnWasHitByRocketLauncherBackBlast(PlayerInventory rocketLauncherUser, Vector3 direction)
 	{
 		PlayHitLocalOnly(direction);
+	}
+
+	private void OnWasHitByRocketDriverSwingPostHitSpin(PlayerGolfer hitter, Vector3 direction)
+	{
+		PlayHitLocalOnly(direction);
+	}
+
+	private void OnIsFrozenChanged()
+	{
+		animator.speed = (asEntity.AsHittable.IsFrozen ? 0f : 1f);
 	}
 }

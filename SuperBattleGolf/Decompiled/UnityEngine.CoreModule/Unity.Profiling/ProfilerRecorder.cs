@@ -12,10 +12,10 @@ using UnityEngine.Scripting;
 
 namespace Unity.Profiling;
 
-[DebuggerDisplay("Count = {Count}")]
-[UsedByNativeCode]
-[NativeHeader("Runtime/Profiler/ScriptBindings/ProfilerRecorder.bindings.h")]
 [DebuggerTypeProxy(typeof(ProfilerRecorderDebugView))]
+[DebuggerDisplay("Count = {Count}")]
+[NativeHeader("Runtime/Profiler/ScriptBindings/ProfilerRecorder.bindings.h")]
+[UsedByNativeCode]
 public struct ProfilerRecorder : IDisposable
 {
 	internal enum ControlOptions

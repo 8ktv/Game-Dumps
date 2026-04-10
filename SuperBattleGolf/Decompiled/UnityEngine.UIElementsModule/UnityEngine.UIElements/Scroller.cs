@@ -25,38 +25,38 @@ public class Scroller : VisualElement
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : VisualElement.UxmlSerializedData
 	{
-		[UxmlAttribute("low-value", new string[] { "lowValue" })]
 		[SerializeField]
+		[UxmlAttribute("low-value", new string[] { "lowValue" })]
 		private float lowValue;
 
-		[UxmlIgnore]
 		[HideInInspector]
+		[UxmlIgnore]
 		[SerializeField]
 		private UxmlAttributeFlags lowValue_UxmlAttributeFlags;
 
-		[UxmlAttribute("high-value", new string[] { "highValue" })]
 		[SerializeField]
+		[UxmlAttribute("high-value", new string[] { "highValue" })]
 		private float highValue;
 
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
 		[HideInInspector]
 		private UxmlAttributeFlags highValue_UxmlAttributeFlags;
 
 		[SerializeField]
 		private SliderDirection direction;
 
+		[SerializeField]
 		[UxmlIgnore]
 		[HideInInspector]
-		[SerializeField]
 		private UxmlAttributeFlags direction_UxmlAttributeFlags;
 
 		[SerializeField]
 		private float value;
 
-		[SerializeField]
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
+		[SerializeField]
 		private UxmlAttributeFlags value_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]

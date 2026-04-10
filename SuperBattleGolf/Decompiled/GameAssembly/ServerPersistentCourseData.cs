@@ -8,6 +8,8 @@ public static class ServerPersistentCourseData
 
 	public static readonly Dictionary<CourseManager.PlayerPair, int> playerKnockoutStreaks = new Dictionary<CourseManager.PlayerPair, int>();
 
+	public static readonly Dictionary<ulong, double> playerJoinTimestamps = new Dictionary<ulong, double>();
+
 	public static int nextHoleIndex;
 
 	public static void WritePlayerStates()
@@ -45,6 +47,16 @@ public static class ServerPersistentCourseData
 		}
 	}
 
+	public static void RegisterPlayerJoinTimestamp(ulong playerGuid, double joinTimestamp)
+	{
+		playerJoinTimestamps[playerGuid] = joinTimestamp;
+	}
+
+	public static void DeregisterPlayerJoinTimestamp(ulong playerGuid)
+	{
+		playerJoinTimestamps.Remove(playerGuid);
+	}
+
 	public static bool TryGetPlayerInventory(ulong playerGuid, out InventorySlot[] inventory)
 	{
 		return playerInventories.TryGetValue(playerGuid, out inventory);
@@ -59,6 +71,23 @@ public static class ServerPersistentCourseData
 	{
 		playerStates.Clear();
 		playerKnockoutStreaks.Clear();
+	}
+
+	public static void RestorePlayerJoinTimestamps()
+	{
+		if (CourseManager.PlayerStates == null)
+		{
+			return;
+		}
+		for (int i = 0; i < CourseManager.PlayerStates.Count; i++)
+		{
+			CourseManager.PlayerState value = CourseManager.PlayerStates[i];
+			if (playerJoinTimestamps.TryGetValue(value.playerGuid, out var value2))
+			{
+				value.joinTimestamp = value2;
+				CourseManager.PlayerStates[i] = value;
+			}
+		}
 	}
 
 	public static void ClearPlayerInventories()
@@ -76,5 +105,6 @@ public static class ServerPersistentCourseData
 		ClearPlayerStates();
 		ClearPlayerInventories();
 		ResetNextHoleIndex();
+		playerJoinTimestamps.Clear();
 	}
 }

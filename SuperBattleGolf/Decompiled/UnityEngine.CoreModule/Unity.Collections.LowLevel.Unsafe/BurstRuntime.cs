@@ -1,7 +1,9 @@
 using System.Runtime.InteropServices;
+using UnityEngine.Bindings;
 
 namespace Unity.Collections.LowLevel.Unsafe;
 
+[VisibleToOtherModules(new string[] { "UnityEngine.AudioModule" })]
 internal static class BurstRuntime
 {
 	[StructLayout(LayoutKind.Sequential, Size = 1)]

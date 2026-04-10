@@ -29,17 +29,17 @@ internal class ListViewDraggerAnimated : ListViewDragger
 	{
 	}
 
-	protected internal override StartDragArgs StartDrag(Vector3 pointerPosition)
+	protected internal override StartDragArgs StartDrag(Vector3 pointerPosition, EventModifiers modifiers)
 	{
 		if (!base.enabled)
 		{
-			return base.StartDrag(pointerPosition);
+			return base.StartDrag(pointerPosition, modifiers);
 		}
 		base.targetView.ClearSelection();
 		ReusableCollectionItem recycledItem = GetRecycledItem(pointerPosition);
 		if (recycledItem == null)
 		{
-			return new StartDragArgs(string.Empty, DragVisualMode.Rejected);
+			return new StartDragArgs(string.Empty, DragVisualMode.Rejected, modifiers);
 		}
 		if (base.targetView.selectionType != SelectionType.None)
 		{
@@ -69,14 +69,16 @@ internal class ListViewDraggerAnimated : ListViewDragger
 				m_OffsetItem.rootElement.style.height = base.targetView.fixedItemHeight + m_SelectionHeight;
 			}
 		}
-		return base.dragAndDropController.SetupDragAndDrop(new int[1] { m_Item.index }, skipText: true);
+		StartDragArgs result = base.dragAndDropController.SetupDragAndDrop(new int[1] { m_Item.index }, skipText: true);
+		result.modifiers = modifiers;
+		return result;
 	}
 
-	protected internal override void UpdateDrag(Vector3 pointerPosition)
+	protected internal override void UpdateDrag(Vector3 pointerPosition, EventModifiers modifiers)
 	{
 		if (!base.enabled)
 		{
-			base.UpdateDrag(pointerPosition);
+			base.UpdateDrag(pointerPosition, modifiers);
 		}
 		else
 		{
@@ -154,11 +156,11 @@ internal class ListViewDraggerAnimated : ListViewDragger
 		}
 	}
 
-	protected internal override void OnDrop(Vector3 pointerPosition)
+	protected internal override void OnDrop(Vector3 pointerPosition, EventModifiers modifiers)
 	{
 		if (!base.enabled)
 		{
-			base.OnDrop(pointerPosition);
+			base.OnDrop(pointerPosition, modifiers);
 		}
 		else
 		{
@@ -186,7 +188,7 @@ internal class ListViewDraggerAnimated : ListViewDragger
 				insertAtIndex = m_CurrentIndex,
 				dropPosition = DragAndDropPosition.BetweenItems
 			};
-			DragAndDropArgs dragAndDropArgs = MakeDragAndDropArgs(dragPosition);
+			DragAndDropArgs dragAndDropArgs = MakeDragAndDropArgs(dragPosition, modifiers);
 			base.dragAndDropController.OnDrop(dragAndDropArgs);
 			base.dragAndDrop.AcceptDrag();
 			m_Item = null;

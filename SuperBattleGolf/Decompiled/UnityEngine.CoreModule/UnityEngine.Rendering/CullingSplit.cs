@@ -3,8 +3,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Rendering;
 
-[NativeHeader("Runtime/Camera/BatchRendererGroup.h")]
 [UsedByNativeCode]
+[NativeHeader("Runtime/Camera/BatchRendererGroup.h")]
 public struct CullingSplit
 {
 	public Vector3 sphereCenter;

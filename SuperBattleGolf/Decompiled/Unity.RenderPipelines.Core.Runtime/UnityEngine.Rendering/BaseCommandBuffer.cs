@@ -46,7 +46,7 @@ public class BaseCommandBuffer
 
 	[Conditional("DEVELOPMENT_BUILD")]
 	[Conditional("UNITY_EDITOR")]
-	protected internal void ValidateTextureHandle(TextureHandle h)
+	protected internal void ValidateTextureHandle(in TextureHandle h)
 	{
 		if (RenderGraph.enableValidityChecks && m_ExecutingPass != null && !h.IsBuiltin())
 		{
@@ -63,7 +63,7 @@ public class BaseCommandBuffer
 
 	[Conditional("DEVELOPMENT_BUILD")]
 	[Conditional("UNITY_EDITOR")]
-	protected internal void ValidateTextureHandleRead(TextureHandle h)
+	protected internal void ValidateTextureHandleRead(in TextureHandle h)
 	{
 		if (RenderGraph.enableValidityChecks && m_ExecutingPass != null)
 		{
@@ -80,7 +80,7 @@ public class BaseCommandBuffer
 
 	[Conditional("DEVELOPMENT_BUILD")]
 	[Conditional("UNITY_EDITOR")]
-	protected internal void ValidateTextureHandleWrite(TextureHandle h)
+	protected internal void ValidateTextureHandleWrite(in TextureHandle h)
 	{
 		if (RenderGraph.enableValidityChecks && m_ExecutingPass != null)
 		{

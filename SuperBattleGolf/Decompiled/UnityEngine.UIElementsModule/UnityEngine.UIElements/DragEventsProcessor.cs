@@ -94,13 +94,13 @@ internal abstract class DragEventsProcessor
 		}
 	}
 
-	protected abstract bool CanStartDrag(Vector3 pointerPosition);
+	protected abstract bool CanStartDrag(Vector3 pointerPosition, EventModifiers modifiers);
 
-	protected internal abstract StartDragArgs StartDrag(Vector3 pointerPosition);
+	protected internal abstract StartDragArgs StartDrag(Vector3 pointerPosition, EventModifiers modifiers);
 
-	protected internal abstract void UpdateDrag(Vector3 pointerPosition);
+	protected internal abstract void UpdateDrag(Vector3 pointerPosition, EventModifiers modifiers);
 
-	protected internal abstract void OnDrop(Vector3 pointerPosition);
+	protected internal abstract void OnDrop(Vector3 pointerPosition, EventModifiers modifiers);
 
 	protected abstract void ClearDragAndDropUI(bool dragCancelled);
 
@@ -110,7 +110,7 @@ internal abstract class DragEventsProcessor
 		{
 			m_DragState = DragState.None;
 		}
-		else if (CanStartDrag(evt.position))
+		else if (CanStartDrag(evt.position, evt.modifiers))
 		{
 			m_DragState = DragState.CanStartDrag;
 			m_Start = evt.position;
@@ -131,8 +131,8 @@ internal abstract class DragEventsProcessor
 		if (!useDragEvents && m_DragState == DragState.Dragging)
 		{
 			DragEventsProcessor dragEventsProcessor = GetDropTarget(evt.position) ?? this;
-			dragEventsProcessor.UpdateDrag(evt.position);
-			dragEventsProcessor.OnDrop(evt.position);
+			dragEventsProcessor.UpdateDrag(evt.position, evt.modifiers);
+			dragEventsProcessor.OnDrop(evt.position, evt.modifiers);
 			dragEventsProcessor.ClearDragAndDropUI(dragCancelled: false);
 			evt.StopPropagation();
 		}
@@ -194,7 +194,7 @@ internal abstract class DragEventsProcessor
 		if (!useDragEvents && m_DragState == DragState.Dragging)
 		{
 			DragEventsProcessor dragEventsProcessor = GetDropTarget(evt.position) ?? this;
-			dragEventsProcessor.UpdateDrag(evt.position);
+			dragEventsProcessor.UpdateDrag(evt.position, evt.modifiers);
 			m_PendingPerformDrag = false;
 		}
 		else
@@ -203,7 +203,7 @@ internal abstract class DragEventsProcessor
 			{
 				return;
 			}
-			StartDragArgs args = StartDrag(m_Start);
+			StartDragArgs args = StartDrag(m_Start, evt.modifiers);
 			if (args.visualMode == DragVisualMode.Rejected)
 			{
 				m_DragState = DragState.None;

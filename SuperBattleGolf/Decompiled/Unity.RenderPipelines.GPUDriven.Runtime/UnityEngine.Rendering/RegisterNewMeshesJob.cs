@@ -10,13 +10,13 @@ internal struct RegisterNewMeshesJob : IJobParallelFor
 	public const int k_BatchSize = 128;
 
 	[ReadOnly]
-	public NativeArray<int> instanceIDs;
+	public NativeArray<EntityId> instanceIDs;
 
 	[ReadOnly]
 	public NativeArray<BatchMeshID> batchIDs;
 
 	[WriteOnly]
-	public NativeParallelHashMap<int, BatchMeshID>.ParallelWriter hashMap;
+	public NativeParallelHashMap<EntityId, BatchMeshID>.ParallelWriter hashMap;
 
 	public void Execute(int index)
 	{

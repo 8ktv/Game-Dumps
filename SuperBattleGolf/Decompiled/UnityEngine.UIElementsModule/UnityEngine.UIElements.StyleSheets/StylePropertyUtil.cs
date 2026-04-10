@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using UnityEngine.Bindings;
 
@@ -27,6 +28,10 @@ internal static class StylePropertyUtil
 		{
 			"all",
 			StylePropertyId.All
+		},
+		{
+			"aspect-ratio",
+			StylePropertyId.AspectRatio
 		},
 		{
 			"background-color",
@@ -131,6 +136,10 @@ internal static class StylePropertyUtil
 		{
 			"display",
 			StylePropertyId.Display
+		},
+		{
+			"filter",
+			StylePropertyId.Filter
 		},
 		{
 			"flex",
@@ -321,6 +330,10 @@ internal static class StylePropertyUtil
 			StylePropertyId.UnityFontStyleAndWeight
 		},
 		{
+			"-unity-material",
+			StylePropertyId.UnityMaterial
+		},
+		{
 			"-unity-overflow-clip-box",
 			StylePropertyId.UnityOverflowClipBox
 		},
@@ -415,6 +428,10 @@ internal static class StylePropertyUtil
 		{
 			StylePropertyId.All,
 			"all"
+		},
+		{
+			StylePropertyId.AspectRatio,
+			"aspect-ratio"
 		},
 		{
 			StylePropertyId.BackgroundColor,
@@ -519,6 +536,10 @@ internal static class StylePropertyUtil
 		{
 			StylePropertyId.Display,
 			"display"
+		},
+		{
+			StylePropertyId.Filter,
+			"filter"
 		},
 		{
 			StylePropertyId.Flex,
@@ -709,6 +730,10 @@ internal static class StylePropertyUtil
 			"-unity-font-style"
 		},
 		{
+			StylePropertyId.UnityMaterial,
+			"-unity-material"
+		},
+		{
 			StylePropertyId.UnityOverflowClipBox,
 			"-unity-overflow-clip-box"
 		},
@@ -792,6 +817,7 @@ internal static class StylePropertyUtil
 		{ "align-items", "alignItems" },
 		{ "align-self", "alignSelf" },
 		{ "all", "all" },
+		{ "aspect-ratio", "aspectRatio" },
 		{ "background-color", "backgroundColor" },
 		{ "background-image", "backgroundImage" },
 		{ "background-position", "backgroundPosition" },
@@ -818,6 +844,7 @@ internal static class StylePropertyUtil
 		{ "color", "color" },
 		{ "cursor", "cursor" },
 		{ "display", "display" },
+		{ "filter", "filter" },
 		{ "flex", "flex" },
 		{ "flex-basis", "flexBasis" },
 		{ "flex-direction", "flexDirection" },
@@ -865,6 +892,7 @@ internal static class StylePropertyUtil
 		{ "-unity-font", "unityFont" },
 		{ "-unity-font-definition", "unityFontDefinition" },
 		{ "-unity-font-style", "unityFontStyleAndWeight" },
+		{ "-unity-material", "unityMaterial" },
 		{ "-unity-overflow-clip-box", "unityOverflowClipBox" },
 		{ "-unity-paragraph-spacing", "unityParagraphSpacing" },
 		{ "-unity-slice-bottom", "unitySliceBottom" },
@@ -892,6 +920,7 @@ internal static class StylePropertyUtil
 		{ "alignItems", "align-items" },
 		{ "alignSelf", "align-self" },
 		{ "all", "all" },
+		{ "aspectRatio", "aspect-ratio" },
 		{ "backgroundColor", "background-color" },
 		{ "backgroundImage", "background-image" },
 		{ "backgroundPosition", "background-position" },
@@ -918,6 +947,7 @@ internal static class StylePropertyUtil
 		{ "color", "color" },
 		{ "cursor", "cursor" },
 		{ "display", "display" },
+		{ "filter", "filter" },
 		{ "flex", "flex" },
 		{ "flexBasis", "flex-basis" },
 		{ "flexDirection", "flex-direction" },
@@ -965,6 +995,7 @@ internal static class StylePropertyUtil
 		{ "unityFont", "-unity-font" },
 		{ "unityFontDefinition", "-unity-font-definition" },
 		{ "unityFontStyleAndWeight", "-unity-font-style" },
+		{ "unityMaterial", "-unity-material" },
 		{ "unityOverflowClipBox", "-unity-overflow-clip-box" },
 		{ "unityParagraphSpacing", "-unity-paragraph-spacing" },
 		{ "unitySliceBottom", "-unity-slice-bottom" },
@@ -992,6 +1023,7 @@ internal static class StylePropertyUtil
 		StylePropertyId.AlignItems,
 		StylePropertyId.AlignSelf,
 		StylePropertyId.All,
+		StylePropertyId.AspectRatio,
 		StylePropertyId.BackgroundColor,
 		StylePropertyId.BackgroundImage,
 		StylePropertyId.BackgroundPosition,
@@ -1016,6 +1048,7 @@ internal static class StylePropertyUtil
 		StylePropertyId.BorderWidth,
 		StylePropertyId.Bottom,
 		StylePropertyId.Color,
+		StylePropertyId.Filter,
 		StylePropertyId.Flex,
 		StylePropertyId.FlexBasis,
 		StylePropertyId.FlexDirection,
@@ -1057,6 +1090,7 @@ internal static class StylePropertyUtil
 		StylePropertyId.UnityFont,
 		StylePropertyId.UnityFontDefinition,
 		StylePropertyId.UnityFontStyleAndWeight,
+		StylePropertyId.UnityMaterial,
 		StylePropertyId.UnityOverflowClipBox,
 		StylePropertyId.UnityParagraphSpacing,
 		StylePropertyId.UnitySliceBottom,
@@ -1793,6 +1827,7 @@ internal static class StylePropertyUtil
 			StylePropertyId.Cursor => Cursor.allowedAssetTypes, 
 			StylePropertyId.UnityFont => new Type[1] { typeof(Font) }, 
 			StylePropertyId.UnityFontDefinition => FontDefinition.allowedAssetTypes, 
+			StylePropertyId.UnityMaterial => MaterialDefinition.allowedAssetTypes, 
 			StylePropertyId.Custom => new Type[1] { typeof(Object) }, 
 			_ => Enumerable.Empty<Type>(), 
 		};
@@ -1806,6 +1841,7 @@ internal static class StylePropertyUtil
 			StylePropertyId.Cursor => true, 
 			StylePropertyId.UnityFont => true, 
 			StylePropertyId.UnityFontDefinition => true, 
+			StylePropertyId.UnityMaterial => true, 
 			StylePropertyId.Custom => true, 
 			_ => false, 
 		};
@@ -1819,5 +1855,64 @@ internal static class StylePropertyUtil
 	public static IEnumerable<StylePropertyId> AllPropertyIds()
 	{
 		return s_IdToName.Keys;
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	public static string ToDisplayString(this LengthUnit unit)
+	{
+		if (1 == 0)
+		{
+		}
+		string result = unit switch
+		{
+			LengthUnit.Percent => "%", 
+			LengthUnit.Pixel => "px", 
+			_ => "-", 
+		};
+		if (1 == 0)
+		{
+		}
+		return result;
+	}
+
+	public static string ToDisplayString(this TimeUnit unit)
+	{
+		if (1 == 0)
+		{
+		}
+		string result = unit switch
+		{
+			TimeUnit.Second => "s", 
+			TimeUnit.Millisecond => "ms", 
+			_ => "-", 
+		};
+		if (1 == 0)
+		{
+		}
+		return result;
+	}
+
+	public static string ToDisplayString(this AngleUnit unit)
+	{
+		if (1 == 0)
+		{
+		}
+		string result = unit switch
+		{
+			AngleUnit.Degree => "deg", 
+			AngleUnit.Radian => "rad", 
+			AngleUnit.Turn => "turn", 
+			AngleUnit.Gradian => "grad", 
+			_ => "-", 
+		};
+		if (1 == 0)
+		{
+		}
+		return result;
+	}
+
+	public static bool TryParseFloat(ReadOnlySpan<char> floatStr, out float value)
+	{
+		return float.TryParse(floatStr, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture.NumberFormat, out value);
 	}
 }

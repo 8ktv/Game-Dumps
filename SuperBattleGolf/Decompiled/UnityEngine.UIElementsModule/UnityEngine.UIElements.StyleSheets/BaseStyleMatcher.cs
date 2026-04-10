@@ -54,7 +54,7 @@ internal abstract class BaseStyleMatcher
 
 	protected abstract bool MatchKeyword(string keyword);
 
-	protected abstract bool MatchNumber();
+	protected abstract bool MatchNumber(Expression exp);
 
 	protected abstract bool MatchInteger();
 
@@ -71,6 +71,8 @@ internal abstract class BaseStyleMatcher
 	protected abstract bool MatchTime();
 
 	protected abstract bool MatchFilterFunction();
+
+	protected abstract bool MatchMaterialPropertyValue();
 
 	protected abstract bool MatchAngle();
 
@@ -358,7 +360,7 @@ internal abstract class BaseStyleMatcher
 			switch (exp.dataType)
 			{
 			case DataType.Number:
-				result = MatchNumber();
+				result = MatchNumber(exp);
 				break;
 			case DataType.Integer:
 				result = MatchInteger();
@@ -383,6 +385,9 @@ internal abstract class BaseStyleMatcher
 				break;
 			case DataType.FilterFunction:
 				result = MatchFilterFunction();
+				break;
+			case DataType.Prop:
+				result = MatchMaterialPropertyValue();
 				break;
 			case DataType.Angle:
 				result = MatchAngle();

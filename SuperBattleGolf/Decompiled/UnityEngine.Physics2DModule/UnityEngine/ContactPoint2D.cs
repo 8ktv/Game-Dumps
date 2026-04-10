@@ -3,9 +3,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[RequiredByNativeCode(Optional = false, GenerateProxy = true)]
-[NativeClass("ScriptingContactPoint2D", "struct ScriptingContactPoint2D;")]
 [NativeHeader("Modules/Physics2D/Public/PhysicsScripting2D.h")]
+[RequiredByNativeCode(Optional = false, GenerateProxy = false)]
+[NativeClass("ScriptingContactPoint2D", "struct ScriptingContactPoint2D;")]
 public struct ContactPoint2D
 {
 	[NativeName("point")]
@@ -33,16 +33,16 @@ public struct ContactPoint2D
 	private float m_TangentImpulse;
 
 	[NativeName("collider")]
-	private int m_Collider;
+	private EntityId m_Collider;
 
 	[NativeName("otherCollider")]
-	private int m_OtherCollider;
+	private EntityId m_OtherCollider;
 
 	[NativeName("rigidbody")]
-	private int m_Rigidbody;
+	private EntityId m_Rigidbody;
 
 	[NativeName("otherRigidbody")]
-	private int m_OtherRigidbody;
+	private EntityId m_OtherRigidbody;
 
 	[NativeName("enabled")]
 	private int m_Enabled;

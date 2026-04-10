@@ -5,8 +5,8 @@ using UnityEngine.Scripting.APIUpdating;
 namespace UnityEngine.PlayerLoop;
 
 [StructLayout(LayoutKind.Sequential, Size = 1)]
-[MovedFrom("UnityEngine.Experimental.PlayerLoop")]
 [RequiredByNativeCode]
+[MovedFrom("UnityEngine.Experimental.PlayerLoop")]
 public struct PostLateUpdate
 {
 	[StructLayout(LayoutKind.Sequential, Size = 1)]
@@ -30,6 +30,12 @@ public struct PostLateUpdate
 	[StructLayout(LayoutKind.Sequential, Size = 1)]
 	[RequiredByNativeCode]
 	public struct PlayerUpdateCanvases
+	{
+	}
+
+	[StructLayout(LayoutKind.Sequential, Size = 1)]
+	[RequiredByNativeCode]
+	public struct AccessibilityLateUpdate
 	{
 	}
 
@@ -126,6 +132,12 @@ public struct PostLateUpdate
 	[StructLayout(LayoutKind.Sequential, Size = 1)]
 	[RequiredByNativeCode]
 	public struct ProcessWebSendMessages
+	{
+	}
+
+	[StructLayout(LayoutKind.Sequential, Size = 1)]
+	[RequiredByNativeCode]
+	public struct RenderAs2DUpdate
 	{
 	}
 

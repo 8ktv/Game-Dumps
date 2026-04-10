@@ -10,6 +10,8 @@ public class ProjectileTrail : MonoBehaviour
 
 	private Hittable owningHittable;
 
+	private bool isSuppressed;
+
 	private bool isTeleporting;
 
 	private void Awake()
@@ -17,16 +19,30 @@ public class ProjectileTrail : MonoBehaviour
 		trail.SetPlaying(playing: false, forced: true);
 	}
 
-	private void Update()
+	private void OnDestroy()
 	{
-		UpdateTrail();
+		if (owningHittable != null)
+		{
+			owningHittable.SwingProjectileStateChanged -= OnOwningHittableSwingProjectileStateChanged;
+			if (owningHittable.AsEntity.IsGolfBall)
+			{
+				owningHittable.AsEntity.AsGolfBall.IsHiddenChanged -= OnOwningBallIsHiddenChanged;
+				owningHittable.AsEntity.AsGolfBall.OutOfBoundsReturnStateChanged -= OnOwningBallIsHiddenChanged;
+			}
+		}
 	}
 
 	public void Initialize(Hittable owningHittable)
 	{
-		this.owningHittable = owningHittable;
+		SetOwningHittable(owningHittable);
 		base.transform.SetParent(this.owningHittable.transform);
 		base.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+		UpdateTrail();
+	}
+
+	public void SetIsSuppressed(bool isSuppressed)
+	{
+		this.isSuppressed = isSuppressed;
 		UpdateTrail();
 	}
 
@@ -49,6 +65,10 @@ public class ProjectileTrail : MonoBehaviour
 		bool ShouldPlay()
 		{
 			if (owningHittable == null)
+			{
+				return false;
+			}
+			if (isSuppressed)
 			{
 				return false;
 			}
@@ -75,10 +95,49 @@ public class ProjectileTrail : MonoBehaviour
 		}
 	}
 
+	private void SetOwningHittable(Hittable newOwningHittable)
+	{
+		if (owningHittable != null)
+		{
+			owningHittable.SwingProjectileStateChanged -= OnOwningHittableSwingProjectileStateChanged;
+			if (owningHittable.AsEntity.IsGolfBall)
+			{
+				owningHittable.AsEntity.AsGolfBall.IsHiddenChanged -= OnOwningBallIsHiddenChanged;
+				owningHittable.AsEntity.AsGolfBall.OutOfBoundsReturnStateChanged -= OnOwningBallIsHiddenChanged;
+			}
+		}
+		owningHittable = newOwningHittable;
+		if (owningHittable != null)
+		{
+			owningHittable.SwingProjectileStateChanged += OnOwningHittableSwingProjectileStateChanged;
+			if (owningHittable.AsEntity.IsGolfBall)
+			{
+				owningHittable.AsEntity.AsGolfBall.IsHiddenChanged += OnOwningBallIsHiddenChanged;
+				owningHittable.AsEntity.AsGolfBall.OutOfBoundsReturnStateChanged += OnOwningBallOutOfBoundsReturnStateChanged;
+			}
+		}
+		UpdateTrail();
+	}
+
 	public void ReturnToPool()
 	{
-		owningHittable = null;
+		SetOwningHittable(null);
 		trail.SetPlaying(playing: false);
 		asPoolableParticleSystem.ReturnToPool();
+	}
+
+	private void OnOwningHittableSwingProjectileStateChanged()
+	{
+		UpdateTrail();
+	}
+
+	private void OnOwningBallIsHiddenChanged()
+	{
+		UpdateTrail();
+	}
+
+	private void OnOwningBallOutOfBoundsReturnStateChanged()
+	{
+		UpdateTrail();
 	}
 }

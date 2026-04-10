@@ -13,9 +13,10 @@ internal static class EventDispatchUtilities
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static void PropagateEvent(EventBase evt, [NotNull] BaseVisualElementPanel panel, [NotNull] VisualElement target, bool isCapturingTarget)
 	{
-		if ((evt as IPointerEventInternal)?.compatibilityMouseEvent is EventBase compatibilityEvt)
+		if ((evt as IPointerEventInternal)?.compatibilityMouseEvent is EventBase eventBase)
 		{
-			HandleEventAcrossPropagationPathWithCompatibilityEvent(evt, compatibilityEvt, panel, target, isCapturingTarget);
+			eventBase.AssignTimeStamp(evt.timestamp);
+			HandleEventAcrossPropagationPathWithCompatibilityEvent(evt, eventBase, panel, target, isCapturingTarget);
 		}
 		else
 		{
@@ -23,7 +24,15 @@ internal static class EventDispatchUtilities
 		}
 	}
 
-	public static void HandleEventAtTargetAndDefaultPhase(EventBase evt, [NotNull] BaseVisualElementPanel panel, [NotNull] VisualElement target)
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static void SendEventDirectlyToTarget(EventBase evt, BaseVisualElementPanel panel, [NotNull] VisualElement target)
+	{
+		evt.elementTarget = target;
+		evt.AssignTimeStamp(target.TimeSinceStartupMs());
+		HandleEventAtTargetAndDefaultPhase(evt, panel, target);
+	}
+
+	public static void HandleEventAtTargetAndDefaultPhase(EventBase evt, BaseVisualElementPanel panel, VisualElement target)
 	{
 		int eventCategories = evt.eventCategories;
 		if (!target.HasSelfEventInterests(eventCategories) || evt.isPropagationStopped)

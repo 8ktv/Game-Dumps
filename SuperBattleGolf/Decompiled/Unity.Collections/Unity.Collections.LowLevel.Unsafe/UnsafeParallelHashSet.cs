@@ -31,7 +31,7 @@ public struct UnsafeParallelHashSet<T> : INativeDisposable, IDisposable, IEnumer
 			return m_Data.TryAdd(item, item: false);
 		}
 
-		internal bool Add(T item, int threadIndexOverride)
+		public bool Add(T item, int threadIndexOverride)
 		{
 			return m_Data.TryAdd(item, item: false, threadIndexOverride);
 		}

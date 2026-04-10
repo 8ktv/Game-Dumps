@@ -4,8 +4,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Animations;
 
-[NativeType(CodegenOptions.Custom, "UnityEngine::Animation::MonoGenericBinding")]
 [UsedByNativeCode]
+[NativeType(CodegenOptions.Custom, "UnityEngine::Animation::MonoGenericBinding")]
 public readonly struct GenericBinding
 {
 	private readonly uint m_Path;

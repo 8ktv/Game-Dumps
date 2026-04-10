@@ -121,7 +121,7 @@ public class SpriteAtlas : Object
 		return GetSpritesWithNameScripting(sprites, name);
 	}
 
-	private int GetSpritesScripting([Unmarshalled] Sprite[] sprites)
+	private int GetSpritesScripting([UnityMarshalAs(NativeType.ScriptingObjectPtr)] Sprite[] sprites)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 		if (intPtr == (IntPtr)0)
@@ -131,7 +131,7 @@ public class SpriteAtlas : Object
 		return GetSpritesScripting_Injected(intPtr, sprites);
 	}
 
-	private unsafe int GetSpritesWithNameScripting([Unmarshalled] Sprite[] sprites, string name)
+	private unsafe int GetSpritesWithNameScripting([UnityMarshalAs(NativeType.ScriptingObjectPtr)] Sprite[] sprites, string name)
 	{
 		//The blocks IL_003a are reachable both inside and outside the pinned region starting at IL_0029. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
 		try

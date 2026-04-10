@@ -17,11 +17,14 @@ public class CourseCollection : ScriptableObject
 		CourseData[] courses = Courses;
 		foreach (CourseData courseData in courses)
 		{
-			HoleData[] holes = courseData.Holes;
-			foreach (HoleData holeData in holes)
+			if (courseData.ShouldInitCourses)
 			{
-				holeData.RuntimeInitialize(courseData, allHoles.Count);
-				allHoles.Add(holeData);
+				HoleData[] holes = courseData.Holes;
+				foreach (HoleData holeData in holes)
+				{
+					holeData.RuntimeInitialize(courseData, allHoles.Count);
+					allHoles.Add(holeData);
+				}
 			}
 		}
 	}

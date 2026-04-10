@@ -19,6 +19,8 @@ internal class UIRRepaintUpdater : BaseVisualTreeUpdater, IPanelRenderer
 
 	private uint m_VertexBudget;
 
+	private TextureSlotCount m_TextureSlotCount = TextureSlotCount.Eight;
+
 	public override ProfilerMarker profilerMarker => s_ProfilerMarker;
 
 	public bool forceGammaRendering
@@ -50,6 +52,18 @@ internal class UIRRepaintUpdater : BaseVisualTreeUpdater, IPanelRenderer
 				m_VertexBudget = value;
 				DestroyRenderChain();
 			}
+		}
+	}
+
+	public TextureSlotCount textureSlotCount
+	{
+		get
+		{
+			return m_TextureSlotCount;
+		}
+		set
+		{
+			m_TextureSlotCount = value;
 		}
 	}
 
@@ -123,6 +137,7 @@ internal class UIRRepaintUpdater : BaseVisualTreeUpdater, IPanelRenderer
 			renderTreeManager.ProcessChanges();
 			renderTreeManager.drawStats = drawStats;
 			renderTreeManager.device.breakBatches = breakBatches;
+			renderTreeManager.textureSlotCount = textureSlotCount;
 		}
 	}
 

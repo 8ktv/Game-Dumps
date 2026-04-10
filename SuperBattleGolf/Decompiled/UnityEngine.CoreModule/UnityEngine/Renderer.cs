@@ -12,8 +12,8 @@ using UnityEngineInternal;
 namespace UnityEngine;
 
 [RequireComponent(typeof(Transform))]
-[UsedByNativeCode]
 [NativeHeader("Runtime/Graphics/GraphicsScriptBindings.h")]
+[UsedByNativeCode]
 [NativeHeader("Runtime/Graphics/Renderer.h")]
 public class Renderer : Component
 {
@@ -1164,6 +1164,28 @@ public class Renderer : Component
 		GetClosestReflectionProbesInternal_Injected(intPtr, result);
 	}
 
+	[NativeName("Renderer::GetMaskInteraction")]
+	internal SpriteMaskInteraction Internal_GetSpriteMaskInteraction()
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return Internal_GetSpriteMaskInteraction_Injected(intPtr);
+	}
+
+	[NativeName("Renderer::SetMaskInteraction")]
+	internal void Internal_SetSpriteMaskInteraction(SpriteMaskInteraction maskInteraction)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		Internal_SetSpriteMaskInteraction_Injected(intPtr, maskInteraction);
+	}
+
 	[NativeName("GetIsStaticShadowCaster")]
 	private bool GetIsStaticShadowCaster()
 	{
@@ -1370,6 +1392,12 @@ public class Renderer : Component
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void GetClosestReflectionProbesInternal_Injected(IntPtr _unity_self, object result);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern SpriteMaskInteraction Internal_GetSpriteMaskInteraction_Injected(IntPtr _unity_self);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void Internal_SetSpriteMaskInteraction_Injected(IntPtr _unity_self, SpriteMaskInteraction maskInteraction);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern bool get_enabled_Injected(IntPtr _unity_self);

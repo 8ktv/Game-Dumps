@@ -24,8 +24,6 @@ internal class StylePropertyReader
 
 	private StyleProperty[] m_Properties;
 
-	private StylePropertyId[] m_PropertyIds;
-
 	private int m_CurrentPropertyIndex;
 
 	private int m_CurrentValueIndex { get; set; }
@@ -42,17 +40,15 @@ internal class StylePropertyReader
 	{
 		m_Sheet = sheet;
 		m_Properties = selector.rule.properties;
-		m_PropertyIds = StyleSheetCache.GetPropertyIds(sheet, selector.ruleIndex);
 		m_Resolver.variableContext = varContext;
 		this.dpiScaling = dpiScaling;
 		LoadProperties();
 	}
 
-	public void SetInlineContext(StyleSheet sheet, StyleProperty[] properties, StylePropertyId[] propertyIds, float dpiScaling = 1f)
+	public void SetInlineContext(StyleSheet sheet, StyleProperty[] properties, float dpiScaling = 1f)
 	{
 		m_Sheet = sheet;
 		m_Properties = properties;
-		m_PropertyIds = propertyIds;
 		this.dpiScaling = dpiScaling;
 		LoadProperties();
 	}
@@ -291,39 +287,13 @@ internal class StylePropertyReader
 		return font;
 	}
 
-	public Material ReadMaterial(int index)
+	public MaterialDefinition ReadMaterialDefinition(int index)
 	{
-		Material material = null;
-		StylePropertyValue stylePropertyValue = m_Values[m_CurrentValueIndex + index];
-		switch (stylePropertyValue.handle.valueType)
+		if (property.TryGetMaterialDefinition(m_Sheet, out var value))
 		{
-		case StyleValueType.ResourcePath:
-		{
-			string text = stylePropertyValue.sheet.ReadResourcePath(stylePropertyValue.handle);
-			if (!string.IsNullOrEmpty(text))
-			{
-				material = Panel.LoadResource(text, typeof(Material), dpiScaling) as Material;
-			}
-			if (material == null)
-			{
-				Debug.LogWarning(string.Format(CultureInfo.InvariantCulture, "Material not found for path: {0}", text));
-			}
-			break;
+			return value;
 		}
-		case StyleValueType.AssetReference:
-			material = stylePropertyValue.sheet.ReadAssetReference(stylePropertyValue.handle) as Material;
-			break;
-		case StyleValueType.Keyword:
-			if (stylePropertyValue.handle.valueIndex != 6)
-			{
-				Debug.LogWarning("Invalid keyword for material " + (StyleValueKeyword)stylePropertyValue.handle.valueIndex/*cast due to .constrained prefix*/);
-			}
-			break;
-		default:
-			Debug.LogWarning("Invalid value for material " + stylePropertyValue.handle.valueType);
-			break;
-		}
-		return material;
+		return default(MaterialDefinition);
 	}
 
 	public Background ReadBackground(int index)
@@ -454,21 +424,6 @@ internal class StylePropertyReader
 		while (index < valueCount);
 	}
 
-	private FilterFunctionType ToFilterFunctionType(StyleValueFunction function)
-	{
-		return function switch
-		{
-			StyleValueFunction.CustomFilter => FilterFunctionType.Custom, 
-			StyleValueFunction.FilterTint => FilterFunctionType.Tint, 
-			StyleValueFunction.FilterOpacity => FilterFunctionType.Opacity, 
-			StyleValueFunction.FilterInvert => FilterFunctionType.Invert, 
-			StyleValueFunction.FilterGrayscale => FilterFunctionType.Grayscale, 
-			StyleValueFunction.FilterSepia => FilterFunctionType.Sepia, 
-			StyleValueFunction.FilterBlur => FilterFunctionType.Blur, 
-			_ => FilterFunctionType.None, 
-		};
-	}
-
 	public void ReadListFilterFunction(List<FilterFunction> list, int index)
 	{
 		list.Clear();
@@ -504,7 +459,7 @@ internal class StylePropertyReader
 					parameters[i] = new FilterParameter
 					{
 						type = FilterParameterType.Float,
-						floatValue = ConvertDimensionToFilterFloat(dim)
+						floatValue = StyleProperty.ConvertDimensionToFilterFloat(dim)
 					};
 				}
 				else if (valueType != StyleValueType.CommaSeparator)
@@ -518,23 +473,10 @@ internal class StylePropertyReader
 			}
 			else
 			{
-				list.Add(new FilterFunction(ToFilterFunctionType(valueIndex), parameters, num));
+				list.Add(new FilterFunction(StyleProperty.ToFilterFunctionType(valueIndex), parameters, num));
 			}
 		}
 		while (index < valueCount);
-	}
-
-	private float ConvertDimensionToFilterFloat(Dimension dim)
-	{
-		return dim.unit switch
-		{
-			Dimension.Unit.Percent => dim.value * 0.01f, 
-			Dimension.Unit.Degree => dim.value * (MathF.PI / 180f), 
-			Dimension.Unit.Turn => dim.value * MathF.PI * 2f, 
-			Dimension.Unit.Gradian => dim.value * MathF.PI / 200f, 
-			Dimension.Unit.Millisecond => dim.value * 0.001f, 
-			_ => dim.value, 
-		};
 	}
 
 	public void ReadListStylePropertyName(List<StylePropertyName> list, int index)
@@ -543,7 +485,16 @@ internal class StylePropertyReader
 		do
 		{
 			StylePropertyValue stylePropertyValue = m_Values[m_CurrentValueIndex + index];
-			StylePropertyName item = stylePropertyValue.sheet.ReadStylePropertyName(stylePropertyValue.handle);
+			StylePropertyName item;
+			if (stylePropertyValue.handle.valueType == StyleValueType.Keyword)
+			{
+				StyleValueKeyword svk = stylePropertyValue.sheet.ReadKeyword(stylePropertyValue.handle);
+				item = new StylePropertyName(svk.ToUssString());
+			}
+			else
+			{
+				item = stylePropertyValue.sheet.ReadStylePropertyName(stylePropertyValue.handle);
+			}
 			list.Add(item);
 			index++;
 			if (index < valueCount && m_Values[m_CurrentValueIndex + index].handle.valueType == StyleValueType.CommaSeparator)
@@ -569,6 +520,28 @@ internal class StylePropertyReader
 			}
 		}
 		while (index < valueCount);
+	}
+
+	public StyleRatio ReadRatio(int index)
+	{
+		if (valueCount == 1 && GetValueType(0) == StyleValueType.Float)
+		{
+			return new StyleRatio(ReadFloat(index));
+		}
+		if (valueCount == 3)
+		{
+			StylePropertyValue stylePropertyValue = m_Values[m_CurrentValueIndex + index + 1];
+			string text = stylePropertyValue.sheet.ReadAsString(stylePropertyValue.handle);
+			if (text == "/")
+			{
+				return ReadFloat(index) / ReadFloat(index + 2);
+			}
+		}
+		if (!IsKeyword(0, StyleValueKeyword.Auto))
+		{
+			Debug.LogError("Unexpected value " + m_Values[0].ToString() + " in ratio parsing");
+		}
+		return StyleRatio.Auto();
 	}
 
 	private void LoadProperties()
@@ -636,10 +609,10 @@ internal class StylePropertyReader
 
 	private void SetCurrentProperty()
 	{
-		if (m_CurrentPropertyIndex < m_PropertyIds.Length)
+		if (m_CurrentPropertyIndex < m_Properties.Length)
 		{
 			property = m_Properties[m_CurrentPropertyIndex];
-			propertyId = m_PropertyIds[m_CurrentPropertyIndex];
+			propertyId = property.id;
 			valueCount = m_ValueCount[m_CurrentPropertyIndex];
 		}
 		else
@@ -1192,7 +1165,35 @@ internal class StylePropertyReader
 			string text = propertyValue.sheet.ReadResourcePath(propertyValue.handle);
 			if (!string.IsNullOrEmpty(text))
 			{
-				source.sprite = Panel.LoadResource(text, typeof(Sprite), dpiScaling) as Sprite;
+				Object obj2 = Resources.Load(text);
+				if (obj2 != null)
+				{
+					Type type = obj2.GetType();
+					if (type == typeof(Texture2D))
+					{
+						source.sprite = Panel.LoadResource(text, typeof(Sprite), dpiScaling) as Sprite;
+						if (source.IsNull())
+						{
+							source.texture = Panel.LoadResource(text, typeof(Texture2D), dpiScaling) as Texture2D;
+						}
+					}
+					else if (type == typeof(Sprite))
+					{
+						source.sprite = Panel.LoadResource(text, typeof(Sprite), dpiScaling) as Sprite;
+					}
+					else if (type == typeof(VectorImage))
+					{
+						source.vectorImage = Panel.LoadResource(text, typeof(VectorImage), dpiScaling) as VectorImage;
+					}
+					else if (type == typeof(RenderTexture))
+					{
+						source.renderTexture = Panel.LoadResource(text, typeof(RenderTexture), dpiScaling) as RenderTexture;
+					}
+				}
+				if (source.IsNull())
+				{
+					source.sprite = Panel.LoadResource(text, typeof(Sprite), dpiScaling) as Sprite;
+				}
 				if (source.IsNull())
 				{
 					source.texture = Panel.LoadResource(text, typeof(Texture2D), dpiScaling) as Texture2D;

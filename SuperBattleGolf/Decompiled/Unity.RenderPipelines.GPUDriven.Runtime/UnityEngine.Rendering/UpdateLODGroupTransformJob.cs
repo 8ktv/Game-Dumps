@@ -14,7 +14,7 @@ internal struct UpdateLODGroupTransformJob : IJobParallelFor
 	public NativeParallelHashMap<int, GPUInstanceIndex> lodGroupDataHash;
 
 	[ReadOnly]
-	public NativeArray<int> lodGroupIDs;
+	public NativeArray<EntityId> lodGroupIDs;
 
 	[ReadOnly]
 	public NativeArray<Vector3> worldSpaceReferencePoints;

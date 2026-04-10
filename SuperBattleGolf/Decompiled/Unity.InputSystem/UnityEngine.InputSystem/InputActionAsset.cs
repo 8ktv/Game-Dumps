@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using UnityEngine.InputSystem.Utilities;
 
@@ -552,6 +551,10 @@ public class InputActionAsset : ScriptableObject, IInputActionCollection2, IInpu
 		InputActionMap.ReadMapJson[] maps = parsedJson.maps;
 		if (((maps != null && maps.Length != 0) ? 1 : 0) > (false ? 1 : 0) && parsedJson.version < 1)
 		{
+			List<NameAndParameters> list = null;
+			List<NameAndParameters> list2 = new List<NameAndParameters>(8);
+			List<NamedValue> list3 = new List<NamedValue>(4);
+			Dictionary<Type, Array> dictionary = new Dictionary<Type, Array>(8);
 			for (int i = 0; i < parsedJson.maps.Length; i++)
 			{
 				InputActionMap.ReadMapJson readMapJson = parsedJson.maps[i];
@@ -559,45 +562,48 @@ public class InputActionAsset : ScriptableObject, IInputActionCollection2, IInpu
 				{
 					InputActionMap.ReadActionJson readActionJson = readMapJson.actions[j];
 					string processors = readActionJson.processors;
-					if (string.IsNullOrEmpty(processors))
+					if (string.IsNullOrEmpty(processors) || !NameAndParameters.ParseMultiple(processors, ref list))
 					{
 						continue;
 					}
-					List<NameAndParameters> list = NameAndParameters.ParseMultiple(processors).ToList();
-					List<string> list2 = new List<string>(list.Count);
-					foreach (NameAndParameters item in list)
+					list2.Clear();
+					for (int k = 0; k < list.Count; k++)
 					{
+						NameAndParameters item = list[k];
 						Type type = InputSystem.TryGetProcessor(item.name);
 						if (item.parameters.Count == 0 || type == null)
 						{
-							list2.Add(item.ToString());
+							list2.Add(item);
 							continue;
 						}
-						Dictionary<string, string> dictionary = item.parameters.ToDictionary((NamedValue p) => p.name, (NamedValue p) => p.value.ToString());
-						bool flag = false;
-						foreach (FieldInfo item2 in from f in type.GetFields(BindingFlags.Instance | BindingFlags.Public)
-							where f.FieldType.IsEnum
-							select f)
+						list3.Clear();
+						for (int l = 0; l < item.parameters.Count; l++)
 						{
-							if (dictionary.TryGetValue(item2.Name, out var value) && int.TryParse(value, out var result))
+							NamedValue namedValue = item.parameters[l];
+							NamedValue item2 = namedValue;
+							FieldInfo field = type.GetField(namedValue.name, BindingFlags.Instance | BindingFlags.Public);
+							if (field != null && field.FieldType.IsEnum)
 							{
-								object[] array = Enum.GetValues(item2.FieldType).Cast<object>().ToArray();
-								if (result >= 0 && result < array.Length)
+								int num = namedValue.value.ToInt32();
+								if (num >= 0)
 								{
-									dictionary[item2.Name] = Convert.ToInt32(array[result]).ToString();
-									flag = true;
+									if (!dictionary.TryGetValue(field.FieldType, out var value))
+									{
+										value = Enum.GetValues(field.FieldType);
+										dictionary[field.FieldType] = value;
+									}
+									if (num < value.Length)
+									{
+										int value2 = Convert.ToInt32(value.GetValue(num));
+										item2 = NamedValue.From(namedValue.name, value2);
+									}
 								}
 							}
+							list3.Add(item2);
 						}
-						if (!flag)
-						{
-							list2.Add(item.ToString());
-							continue;
-						}
-						string text = string.Join(",", dictionary.Select((KeyValuePair<string, string> kv) => kv.Key + "=" + kv.Value));
-						list2.Add(item.name + "(" + text + ")");
+						list2.Add(NameAndParameters.Create(item.name, list3));
 					}
-					readActionJson.processors = string.Join(";", list2);
+					readActionJson.processors = NameAndParameters.ToSerializableString(list2);
 					readMapJson.actions[j] = readActionJson;
 				}
 				parsedJson.maps[i] = readMapJson;

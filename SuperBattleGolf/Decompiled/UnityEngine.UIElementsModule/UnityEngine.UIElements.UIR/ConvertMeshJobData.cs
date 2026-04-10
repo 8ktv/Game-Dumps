@@ -45,4 +45,6 @@ internal struct ConvertMeshJobData
 	public int remapUVs;
 
 	public Rect atlasRect;
+
+	public Vector2 layoutSize;
 }

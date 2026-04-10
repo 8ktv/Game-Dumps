@@ -9,8 +9,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Graphics/ShaderScriptBindings.h")]
 [NativeHeader("Runtime/Shaders/Material.h")]
+[NativeHeader("Runtime/Graphics/ShaderScriptBindings.h")]
 public class Material : Object
 {
 	private static readonly int k_ColorId = Shader.PropertyToID("_Color");
@@ -1029,6 +1029,17 @@ public class Material : Object
 		return GetPropertyNamesImpl_Injected(intPtr, propertyType);
 	}
 
+	[FreeFunction("MaterialScripting::GetPropertyCount", HasExplicitThis = true)]
+	internal int GetPropertyCount()
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return GetPropertyCount_Injected(intPtr);
+	}
+
 	public int ComputeCRC()
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1040,6 +1051,7 @@ public class Material : Object
 	}
 
 	[FreeFunction("MaterialScripting::GetTexturePropertyNames", HasExplicitThis = true)]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public string[] GetTexturePropertyNames()
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -2344,6 +2356,9 @@ public class Material : Object
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern string[] GetPropertyNamesImpl_Injected(IntPtr _unity_self, int propertyType);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern int GetPropertyCount_Injected(IntPtr _unity_self);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern int ComputeCRC_Injected(IntPtr _unity_self);

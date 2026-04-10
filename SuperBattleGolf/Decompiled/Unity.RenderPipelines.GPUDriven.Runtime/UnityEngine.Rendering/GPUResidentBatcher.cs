@@ -74,7 +74,7 @@ internal class GPUResidentBatcher : IDisposable
 		m_BatchersContext.UpdateFrame();
 	}
 
-	public void DestroyMaterials(NativeArray<int> destroyedMaterials)
+	public void DestroyMaterials(NativeArray<EntityId> destroyedMaterials)
 	{
 		m_InstanceCullingBatcher.DestroyMaterials(destroyedMaterials);
 	}
@@ -84,12 +84,12 @@ internal class GPUResidentBatcher : IDisposable
 		m_InstanceCullingBatcher.DestroyDrawInstances(instances);
 	}
 
-	public void DestroyMeshes(NativeArray<int> destroyedMeshes)
+	public void DestroyMeshes(NativeArray<EntityId> destroyedMeshes)
 	{
 		m_InstanceCullingBatcher.DestroyMeshes(destroyedMeshes);
 	}
 
-	internal void FreeRendererGroupInstances(NativeArray<int> rendererGroupIDs)
+	internal void FreeRendererGroupInstances(NativeArray<EntityId> rendererGroupIDs)
 	{
 		if (rendererGroupIDs.Length != 0)
 		{
@@ -117,7 +117,7 @@ internal class GPUResidentBatcher : IDisposable
 		}
 	}
 
-	public void UpdateRenderers(NativeArray<int> renderersID, bool materialUpdateOnly = false)
+	public void UpdateRenderers(NativeArray<EntityId> renderersID, bool materialUpdateOnly = false)
 	{
 		if (renderersID.Length != 0)
 		{
@@ -127,7 +127,7 @@ internal class GPUResidentBatcher : IDisposable
 		}
 	}
 
-	public JobHandle SchedulePackedMaterialCacheUpdate(NativeArray<int> materialIDs, NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas)
+	public JobHandle SchedulePackedMaterialCacheUpdate(NativeArray<EntityId> materialIDs, NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas)
 	{
 		return m_InstanceCullingBatcher.SchedulePackedMaterialCacheUpdate(materialIDs, packedMaterialDatas);
 	}
@@ -152,8 +152,9 @@ internal class GPUResidentBatcher : IDisposable
 			JobHandle jobHandle = m_BatchersContext.ScheduleUpdateInstanceDataJob(instances, in rendererData);
 			GPUInstanceDataBufferUploader uploader = m_BatchersContext.CreateDataBufferUploader(instances.Length, InstanceType.MeshRenderer);
 			uploader.AllocateUploadHandles(instances.Length);
-			JobHandle jobHandle2 = default(JobHandle);
-			uploader.WriteInstanceDataJob(m_BatchersContext.renderersParameters.lightmapScale.index, rendererData.lightmapScaleOffset, rendererData.rendererGroupIndex).Complete();
+			JobHandle job = uploader.WriteInstanceDataJob(m_BatchersContext.renderersParameters.lightmapScale.index, rendererData.lightmapScaleOffset, rendererData.rendererGroupIndex);
+			JobHandle job2 = uploader.WriteInstanceDataJob(m_BatchersContext.renderersParameters.rendererUserValues.index, rendererData.rendererUserValues, rendererData.rendererGroupIndex);
+			JobHandle.CombineDependencies(job, job2).Complete();
 			m_BatchersContext.SubmitToGpu(instances, ref uploader, submitOnlyWrittenParams: true);
 			m_BatchersContext.ChangeInstanceBufferVersion();
 			uploader.Dispose();

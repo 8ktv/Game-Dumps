@@ -1,7 +1,6 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine.ResourceManagement.ResourceLocations;
-using UnityEngine.ResourceManagement.Util;
 
 namespace UnityEngine.ResourceManagement.AsyncOperations;
 
@@ -9,50 +8,49 @@ internal class GetDownloadSizeOperation : AsyncOperationBase<long>
 {
 	private IEnumerable<IResourceLocation> m_Locations;
 
-	private Coroutine m_AsyncCalculation;
+	private bool m_Started;
 
 	public void Init(IEnumerable<IResourceLocation> locations, ResourceManager resourceManager)
 	{
 		m_Locations = locations;
 		m_RM = resourceManager;
+		m_Started = false;
 	}
 
-	private IEnumerator Calculate()
+	private void Calculate()
 	{
-		long size = 0L;
-		foreach (IResourceLocation location in m_Locations)
+		if (m_Started)
 		{
-			if (location.Data is ILocationSizeData locationSizeData)
+			return;
+		}
+		m_Started = true;
+		long num = 0L;
+		try
+		{
+			foreach (IResourceLocation location in m_Locations)
 			{
-				size += locationSizeData.ComputeSize(location, m_RM);
-				yield return null;
+				if (location.Data is ILocationSizeData locationSizeData)
+				{
+					num += locationSizeData.ComputeSize(location, m_RM);
+				}
 			}
 		}
-		Complete(size, success: true, "");
-	}
-
-	private void CalculateSync()
-	{
-		long num = 0L;
-		foreach (IResourceLocation location in m_Locations)
+		catch (Exception ex)
 		{
-			if (location.Data is ILocationSizeData locationSizeData)
-			{
-				num += locationSizeData.ComputeSize(location, m_RM);
-			}
+			Complete(0L, success: false, "Error calculating download size: " + ex.ToString());
+			return;
 		}
 		Complete(num, success: true, "");
 	}
 
 	protected override void Execute()
 	{
-		m_AsyncCalculation = ComponentSingleton<MonoBehaviourCallbackHooks>.Instance.StartCoroutine(Calculate());
+		Calculate();
 	}
 
 	protected override bool InvokeWaitForCompletion()
 	{
-		ComponentSingleton<MonoBehaviourCallbackHooks>.Instance.StopCoroutine(m_AsyncCalculation);
-		CalculateSync();
+		Calculate();
 		return true;
 	}
 }

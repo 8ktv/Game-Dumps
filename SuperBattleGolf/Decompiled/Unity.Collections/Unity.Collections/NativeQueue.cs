@@ -111,7 +111,7 @@ public struct NativeQueue<T> : INativeDisposable, IDisposable where T : unmanage
 			unsafeWriter.Enqueue(value);
 		}
 
-		internal void Enqueue(T value, int threadIndexOverride)
+		public void Enqueue(T value, int threadIndexOverride)
 		{
 			unsafeWriter.Enqueue(value, threadIndexOverride);
 		}

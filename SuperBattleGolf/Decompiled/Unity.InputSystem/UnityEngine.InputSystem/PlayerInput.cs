@@ -11,7 +11,7 @@ namespace UnityEngine.InputSystem;
 
 [AddComponentMenu("Input/Player Input")]
 [DisallowMultipleComponent]
-[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.14/manual/PlayerInput.html")]
+[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.18/manual/PlayerInput.html")]
 public class PlayerInput : MonoBehaviour
 {
 	[Serializable]

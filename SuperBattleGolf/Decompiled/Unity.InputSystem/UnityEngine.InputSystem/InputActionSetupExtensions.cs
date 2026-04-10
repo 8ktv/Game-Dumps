@@ -744,7 +744,7 @@ public static class InputActionSetupExtensions
 		ArrayHelpers.EraseAt(ref actionMap.m_Actions, index);
 		action.m_ActionMap = null;
 		action.m_SingletonActionBindings = array;
-		int num = actionMap.m_Bindings.Length - array.Length;
+		int num = ((actionMap.m_Bindings != null) ? (actionMap.m_Bindings.Length - array.Length) : 0);
 		if (num == 0)
 		{
 			actionMap.m_Bindings = null;

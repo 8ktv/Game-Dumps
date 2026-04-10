@@ -5,8 +5,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.TextCore.Text;
 
-[NativeHeader("Modules/TextCoreTextEngine/Native/TextSelectionService.h")]
 [VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule", "Unity.UIElements.PlayModeTests" })]
+[NativeHeader("Modules/TextCoreTextEngine/Native/TextSelectionService.h")]
 internal class TextSelectionService
 {
 	[NativeMethod(Name = "TextSelectionService::Substring")]

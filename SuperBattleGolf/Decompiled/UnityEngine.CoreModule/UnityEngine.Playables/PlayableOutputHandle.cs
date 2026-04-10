@@ -6,10 +6,10 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Playables;
 
-[NativeHeader("Runtime/Director/Core/HPlayableOutput.h")]
-[NativeHeader("Runtime/Director/Core/HPlayable.h")]
 [UsedByNativeCode]
+[NativeHeader("Runtime/Director/Core/HPlayableOutput.h")]
 [NativeHeader("Runtime/Export/Director/PlayableOutputHandle.bindings.h")]
+[NativeHeader("Runtime/Director/Core/HPlayable.h")]
 public struct PlayableOutputHandle : IEquatable<PlayableOutputHandle>
 {
 	internal IntPtr m_Handle;
@@ -123,6 +123,7 @@ public struct PlayableOutputHandle : IEquatable<PlayableOutputHandle>
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction("PlayableOutputHandleBindings::GetNotificationReceivers", HasExplicitThis = true, ThrowsException = true)]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	internal extern INotificationReceiver[] GetNotificationReceivers();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]

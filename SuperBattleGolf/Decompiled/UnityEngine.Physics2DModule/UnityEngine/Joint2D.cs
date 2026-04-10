@@ -5,8 +5,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[NativeHeader("Modules/Physics2D/Joint2D.h")]
 [RequireComponent(typeof(Transform), typeof(Rigidbody2D))]
+[NativeHeader("Modules/Physics2D/Joint2D.h")]
 public class Joint2D : Behaviour
 {
 	public Rigidbody2D attachedRigidbody
@@ -161,8 +161,8 @@ public class Joint2D : Behaviour
 		}
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Joint2D.collideConnected has been obsolete. Use Joint2D.enableCollision instead (UnityUpgradable) -> enableCollision", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public bool collideConnected
 	{
 		get

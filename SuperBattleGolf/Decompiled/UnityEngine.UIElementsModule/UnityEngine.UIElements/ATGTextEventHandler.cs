@@ -1,5 +1,7 @@
 #define UNITY_ASSERTIONS
 using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using UnityEngine.TextCore;
 using UnityEngine.UIElements.Experimental;
 
@@ -7,6 +9,10 @@ namespace UnityEngine.UIElements;
 
 internal class ATGTextEventHandler
 {
+	private static readonly Regex s_ATagRegex = new Regex("(?<=\\b=\")[^\"]*");
+
+	private static readonly Regex s_LinkTagRegex = new Regex("(?<=\\b=')[^']*");
+
 	private TextElement m_TextElement;
 
 	private EventCallback<PointerDownEvent> m_LinkTagOnPointerDown;
@@ -28,6 +34,8 @@ internal class ATGTextEventHandler
 	internal bool isOverridingCursor;
 
 	internal int currentLinkIDHash = -1;
+
+	internal static event Action<Dictionary<string, string>> onComplexHyperlinkClicked;
 
 	public ATGTextEventHandler(TextElement textElement)
 	{
@@ -77,10 +85,38 @@ internal class ATGTextEventHandler
 	{
 		Vector3 vector = pue.localPosition - new Vector3(m_TextElement.contentRect.min.x, m_TextElement.contentRect.min.y);
 		var (tagType, text) = m_TextElement.uitkTextHandle.ATGFindIntersectingLink(vector);
-		if (text != null && tagType == RichTextTagParser.TagType.Hyperlink && Uri.IsWellFormedUriString(text, UriKind.Absolute))
+		if (text != null && tagType == RichTextTagParser.TagType.Hyperlink)
 		{
-			Application.OpenURL(text);
+			Dictionary<string, string> hyperLinkData;
+			if (Uri.IsWellFormedUriString(text, UriKind.Absolute))
+			{
+				Application.OpenURL(text);
+			}
+			else if (IsComplexHyperLink(text, out hyperLinkData))
+			{
+				ATGTextEventHandler.onComplexHyperlinkClicked?.Invoke(hyperLinkData);
+			}
 		}
+	}
+
+	private static bool IsComplexHyperLink(string link, out Dictionary<string, string> hyperLinkData)
+	{
+		hyperLinkData = new Dictionary<string, string>();
+		MatchCollection matchCollection = s_ATagRegex.Matches(link);
+		if (matchCollection.Count == 0)
+		{
+			matchCollection = s_LinkTagRegex.Matches(link);
+		}
+		int num = 0;
+		foreach (Match item in matchCollection)
+		{
+			string text = link.Substring(num, item.Index - 2 - num);
+			int startIndex = text.LastIndexOf(' ') + 1;
+			string key = text.Substring(startIndex);
+			hyperLinkData.Add(key, item.Value);
+			num = item.Index + item.Value.Length + 1;
+		}
+		return true;
 	}
 
 	private void HyperlinkOnPointerOver(PointerOverEvent _)

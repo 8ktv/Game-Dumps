@@ -263,7 +263,7 @@ public class BallDispenser : NetworkBehaviour, IInteractable
 		ball.Rigidbody.position = position;
 		ball.Rigidbody.rotation = rotation;
 		ball.AsEntity.InformTeleported();
-		ball.AsEntity.TemporarilyIgnoreCollisionsWith(base.gameObject, 0.5f);
+		ball.AsEntity.TemporarilyIgnoreCollisionsWith(AsEntity, 0.5f);
 		ball.Rigidbody.linearVelocity = dispenseLinearSpeed * dispensingPoint.forward;
 		ball.Rigidbody.angularVelocity = dispenseAngularSpeed * dispensingPoint.right;
 		ball.OnRespawned();

@@ -111,7 +111,7 @@ public class CullingGroup : IDisposable
 		m_Ptr = IntPtr.Zero;
 	}
 
-	public void SetBoundingSpheres([Unmarshalled] BoundingSphere[] array)
+	public void SetBoundingSpheres([UnityMarshalAs(NativeType.ScriptingObjectPtr)] BoundingSphere[] array)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
 		if (intPtr == (IntPtr)0)
@@ -162,8 +162,8 @@ public class CullingGroup : IDisposable
 		return QueryIndices(visible, distanceIndex, CullingQueryOptions.Normal, result, firstIndex);
 	}
 
-	[FreeFunction("CullingGroup_Bindings::QueryIndices", HasExplicitThis = true)]
 	[NativeThrows]
+	[FreeFunction("CullingGroup_Bindings::QueryIndices", HasExplicitThis = true)]
 	private unsafe int QueryIndices(bool visible, int distanceIndex, CullingQueryOptions options, int[] result, int firstIndex)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -193,8 +193,8 @@ public class CullingGroup : IDisposable
 		return IsVisible_Injected(intPtr, index);
 	}
 
-	[FreeFunction("CullingGroup_Bindings::GetDistance", HasExplicitThis = true)]
 	[NativeThrows]
+	[FreeFunction("CullingGroup_Bindings::GetDistance", HasExplicitThis = true)]
 	public int GetDistance(int index)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);

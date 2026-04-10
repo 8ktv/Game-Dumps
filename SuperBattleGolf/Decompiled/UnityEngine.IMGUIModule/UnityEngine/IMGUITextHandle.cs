@@ -82,7 +82,7 @@ internal class IMGUITextHandle : TextHandle
 				GUIStyle.Internal_DestroyTextGenerator(textHandleTuple.hashCode);
 				if (textHandles.TryGetValue(textHandleTuple.hashCode, out var value))
 				{
-					value.RemoveTextInfoFromPermanentCache();
+					value.RemoveFromPermanentCache();
 				}
 				textHandles.Remove(textHandleTuple.hashCode);
 				textHandlesTuple.RemoveFirst();
@@ -275,5 +275,10 @@ internal class IMGUITextHandle : TextHandle
 			TextClipping.Ellipsis => TextOverflowMode.Ellipsis, 
 			_ => TextOverflowMode.Overflow, 
 		};
+	}
+
+	internal override bool IsAdvancedTextEnabledForElement()
+	{
+		return false;
 	}
 }

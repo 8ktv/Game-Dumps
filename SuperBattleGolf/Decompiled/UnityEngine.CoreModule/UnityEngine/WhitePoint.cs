@@ -3,8 +3,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[UsedByNativeCode]
 [NativeHeader("Runtime/Graphics/ColorGamut.h")]
+[UsedByNativeCode]
 public enum WhitePoint
 {
 	Unknown = -1,

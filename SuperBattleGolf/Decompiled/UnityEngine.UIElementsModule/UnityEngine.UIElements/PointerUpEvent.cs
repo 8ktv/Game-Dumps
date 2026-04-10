@@ -45,6 +45,10 @@ public sealed class PointerUpEvent : PointerEventBase<PointerUpEvent>
 				baseVisualElementPanel.ClearCachedElementUnderPointer(base.pointerId, this);
 			}
 		}
+		if (panel is Panel panel2)
+		{
+			panel2.contextualMenuManager?.AfterPointerUp();
+		}
 		base.PostDispatch(panel);
 		panel.ActivateCompatibilityMouseEvents(base.pointerId);
 	}

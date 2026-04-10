@@ -3,9 +3,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
+[RequiredByNativeCode(Optional = true, GenerateProxy = false)]
 [NativeHeader("Runtime/Interfaces/IPhysics2D.h")]
 [NativeClass("RaycastHit2D", "struct RaycastHit2D;")]
-[RequiredByNativeCode(Optional = true, GenerateProxy = true)]
 public struct RaycastHit2D
 {
 	[NativeName("centroid")]
@@ -24,7 +24,7 @@ public struct RaycastHit2D
 	private float m_Fraction;
 
 	[NativeName("collider")]
-	private int m_Collider;
+	private EntityId m_Collider;
 
 	public Vector2 centroid
 	{

@@ -1,12 +1,13 @@
 using System;
 using System.Text;
 using Unity.Properties;
+using UnityEngine.Bindings;
 using UnityEngine.UIElements.Layout;
 
 namespace UnityEngine.UIElements;
 
 [Serializable]
-internal struct FilterFunction : IEquatable<FilterFunction>
+public struct FilterFunction : IEquatable<FilterFunction>
 {
 	internal class PropertyBag : ContainerPropertyBag<FilterFunction>
 	{
@@ -155,6 +156,20 @@ internal struct FilterFunction : IEquatable<FilterFunction>
 		m_Parameters = default(FixedBuffer4<FilterParameter>);
 	}
 
+	internal FilterFunction(FilterFunctionType type, float arg)
+	{
+		FixedBuffer4<FilterParameter> fixedBuffer = default(FixedBuffer4<FilterParameter>);
+		fixedBuffer[0] = new FilterParameter(arg);
+		this = new FilterFunction(type, fixedBuffer, 1);
+	}
+
+	internal FilterFunction(FilterFunctionType type, Color arg)
+	{
+		FixedBuffer4<FilterParameter> fixedBuffer = default(FixedBuffer4<FilterParameter>);
+		fixedBuffer[0] = new FilterParameter(arg);
+		this = new FilterFunction(type, fixedBuffer, 1);
+	}
+
 	internal FilterFunction(FilterFunctionType type, FixedBuffer4<FilterParameter> parameters, int paramCount)
 	{
 		m_ParameterCount = 0;
@@ -184,13 +199,38 @@ internal struct FilterFunction : IEquatable<FilterFunction>
 		{
 			FilterParameterDeclaration[] array = customDefinition.parameters;
 			int num = ((array != null) ? array.Length : 0);
-			if (num != paramCount)
+			if (paramCount < num)
 			{
-				Debug.LogError($"Invalid parameter count provided with custom filter function definition {customDefinition}: provided {paramCount} but expected {num}");
+				Debug.LogWarning($"FilterFunction '{customDefinition.filterName}' expects {num} parameters but only {paramCount} were provided. Missing parameters will be set to their default values.");
+				for (int i = paramCount; i < num; i++)
+				{
+					FilterParameterDeclaration filterParameterDeclaration = customDefinition.parameters[i];
+					m_Parameters[i] = filterParameterDeclaration.interpolationDefaultValue;
+				}
 			}
+			for (int j = 0; j < num; j++)
+			{
+				FilterParameterDeclaration filterParameterDeclaration2 = customDefinition.parameters[j];
+				FilterParameter filterParameter = m_Parameters[j];
+				if (filterParameterDeclaration2.interpolationDefaultValue.type != filterParameter.type)
+				{
+					Debug.LogWarning($"FilterFunction '{customDefinition.filterName}' expects parameter {j} to be of type {filterParameterDeclaration2.interpolationDefaultValue.type} but got {filterParameter.type}. The parameter will be reset to its default value.");
+					m_Parameters[j] = filterParameterDeclaration2.interpolationDefaultValue;
+				}
+			}
+			if (paramCount > num)
+			{
+				Debug.LogWarning($"FilterFunction '{customDefinition.filterName}' expects {num} parameters but {paramCount} were provided. Extra parameters will be ignored.");
+			}
+			m_ParameterCount = num;
+		}
+		else
+		{
+			m_ParameterCount = 0;
 		}
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal FilterFunctionDefinition GetDefinition()
 	{
 		if (m_Type == FilterFunctionType.Custom)

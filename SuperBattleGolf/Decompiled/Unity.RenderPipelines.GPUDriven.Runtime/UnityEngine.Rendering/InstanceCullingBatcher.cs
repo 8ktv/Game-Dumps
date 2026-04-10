@@ -17,19 +17,19 @@ internal class InstanceCullingBatcher : IDisposable
 
 	private InstanceCuller m_Culler;
 
-	private NativeParallelHashMap<int, BatchMaterialID> m_BatchMaterialHash;
+	private NativeParallelHashMap<EntityId, BatchMaterialID> m_BatchMaterialHash;
 
-	private NativeParallelHashMap<int, GPUDrivenPackedMaterialData> m_PackedMaterialHash;
+	private NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData> m_PackedMaterialHash;
 
-	private NativeParallelHashMap<int, BatchMeshID> m_BatchMeshHash;
+	private NativeParallelHashMap<EntityId, BatchMeshID> m_BatchMeshHash;
 
 	private int m_CachedInstanceDataBufferLayoutVersion;
 
 	private OnCullingCompleteCallback m_OnCompleteCallback;
 
-	public NativeParallelHashMap<int, BatchMaterialID> batchMaterialHash => m_BatchMaterialHash;
+	public NativeParallelHashMap<EntityId, BatchMaterialID> batchMaterialHash => m_BatchMaterialHash;
 
-	public NativeParallelHashMap<int, GPUDrivenPackedMaterialData> packedMaterialHash => m_PackedMaterialHash;
+	public NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData> packedMaterialHash => m_PackedMaterialHash;
 
 	internal ref InstanceCuller culler => ref m_Culler;
 
@@ -48,9 +48,9 @@ internal class InstanceCullingBatcher : IDisposable
 		m_Culler.Init(batcherContext.resources, batcherContext.debugStats);
 		m_CachedInstanceDataBufferLayoutVersion = -1;
 		m_OnCompleteCallback = desc.onCompleteCallback;
-		m_BatchMaterialHash = new NativeParallelHashMap<int, BatchMaterialID>(64, Allocator.Persistent);
-		m_PackedMaterialHash = new NativeParallelHashMap<int, GPUDrivenPackedMaterialData>(64, Allocator.Persistent);
-		m_BatchMeshHash = new NativeParallelHashMap<int, BatchMeshID>(64, Allocator.Persistent);
+		m_BatchMaterialHash = new NativeParallelHashMap<EntityId, BatchMaterialID>(64, Allocator.Persistent);
+		m_PackedMaterialHash = new NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData>(64, Allocator.Persistent);
+		m_BatchMeshHash = new NativeParallelHashMap<EntityId, BatchMeshID>(64, Allocator.Persistent);
 		m_GlobalBatchIDs = new NativeParallelHashMap<uint, BatchID>(6, Allocator.Persistent);
 		m_GlobalBatchIDs.Add(1u, GetBatchID(InstanceComponentGroup.Default));
 		m_GlobalBatchIDs.Add(3u, GetBatchID(InstanceComponentGroup.DefaultWind));
@@ -165,20 +165,21 @@ internal class InstanceCullingBatcher : IDisposable
 		}
 	}
 
-	public void DestroyMaterials(NativeArray<int> destroyedMaterials)
+	public void DestroyMaterials(NativeArray<EntityId> destroyedMaterials)
 	{
 		if (destroyedMaterials.Length == 0)
 		{
 			return;
 		}
 		NativeList<uint> nativeList = new NativeList<uint>(destroyedMaterials.Length, Allocator.TempJob);
-		foreach (int item2 in destroyedMaterials)
+		foreach (EntityId item2 in destroyedMaterials)
 		{
-			if (m_BatchMaterialHash.TryGetValue(item2, out var item))
+			int num = item2;
+			if (m_BatchMaterialHash.TryGetValue(num, out var item))
 			{
 				nativeList.Add(in item.value);
-				m_BatchMaterialHash.Remove(item2);
-				m_PackedMaterialHash.Remove(item2);
+				m_BatchMaterialHash.Remove(num);
+				m_PackedMaterialHash.Remove(num);
 				m_BRG.UnregisterMaterial(item);
 			}
 		}
@@ -186,17 +187,18 @@ internal class InstanceCullingBatcher : IDisposable
 		nativeList.Dispose();
 	}
 
-	public void DestroyMeshes(NativeArray<int> destroyedMeshes)
+	public void DestroyMeshes(NativeArray<EntityId> destroyedMeshes)
 	{
 		if (destroyedMeshes.Length == 0)
 		{
 			return;
 		}
-		foreach (int item2 in destroyedMeshes)
+		foreach (EntityId item2 in destroyedMeshes)
 		{
-			if (m_BatchMeshHash.TryGetValue(item2, out var item))
+			int num = item2;
+			if (m_BatchMeshHash.TryGetValue(num, out var item))
 			{
-				m_BatchMeshHash.Remove(item2);
+				m_BatchMeshHash.Remove(num);
 				m_BRG.UnregisterMesh(item);
 			}
 		}
@@ -206,9 +208,9 @@ internal class InstanceCullingBatcher : IDisposable
 	{
 	}
 
-	private void RegisterBatchMeshes(NativeArray<int> meshIDs)
+	private void RegisterBatchMeshes(NativeArray<EntityId> meshIDs)
 	{
-		NativeList<int> nativeList = new NativeList<int>(meshIDs.Length, Allocator.TempJob);
+		NativeList<EntityId> nativeList = new NativeList<EntityId>(meshIDs.Length, Allocator.TempJob);
 		new FindNonRegisteredMeshesJob
 		{
 			instanceIDs = meshIDs,
@@ -229,9 +231,9 @@ internal class InstanceCullingBatcher : IDisposable
 		source.Dispose();
 	}
 
-	private void RegisterBatchMaterials(in NativeArray<int> usedMaterialIDs, in NativeArray<GPUDrivenPackedMaterialData> usedPackedMaterialDatas)
+	private void RegisterBatchMaterials(in NativeArray<EntityId> usedMaterialIDs, in NativeArray<GPUDrivenPackedMaterialData> usedPackedMaterialDatas)
 	{
-		NativeList<int> nativeList = new NativeList<int>(usedMaterialIDs.Length, Allocator.TempJob);
+		NativeList<EntityId> nativeList = new NativeList<EntityId>(usedMaterialIDs.Length, Allocator.TempJob);
 		NativeList<GPUDrivenPackedMaterialData> nativeList2 = new NativeList<GPUDrivenPackedMaterialData>(usedMaterialIDs.Length, Allocator.TempJob);
 		new FindNonRegisteredMaterialsJob
 		{
@@ -259,7 +261,7 @@ internal class InstanceCullingBatcher : IDisposable
 		source.Dispose();
 	}
 
-	public JobHandle SchedulePackedMaterialCacheUpdate(NativeArray<int> materialIDs, NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas)
+	public JobHandle SchedulePackedMaterialCacheUpdate(NativeArray<EntityId> materialIDs, NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas)
 	{
 		return new UpdatePackedMaterialDataCacheJob
 		{

@@ -61,6 +61,8 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 
 	private const float wheelRpmExponentialMovingAverageAlpha = 2f / 21f;
 
+	private Collider[] ownColliders;
+
 	private Vector3[] localAccelerationRollingBuffer;
 
 	private int accelerationBufferIndex;
@@ -82,6 +84,12 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 	private Coroutine pipeVfxDelayedStopRoutine;
 
 	private bool isDelayingPipeVfxStop;
+
+	private static bool initializedStatics;
+
+	private static WheelFrictionCurve defaultWheelForwardFriction;
+
+	private static WheelFrictionCurve defaultWheelSidewaysFriction;
 
 	private readonly AntiCheatPerPlayerRateChecker serverInformTriggeredJumpCommandRateLimiter = new AntiCheatPerPlayerRateChecker("Inform golf cart jump triggered", 0.1f, 5, 10, 1f);
 
@@ -138,12 +146,13 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 
 	private void Awake()
 	{
+		InitializeStatics();
 		GetComponent<Rigidbody>().SetCenterOfMassAndInertiaTensor(settings.LocalCenterOfMass);
 		AsEntity = GetComponent<Entity>();
 		GolfCartInfo = GetComponent<GolfCartInfo>();
 		localAccelerationRollingBuffer = new Vector3[30];
-		Collider[] componentsInChildren = GetComponentsInChildren<Collider>(includeInactive: true);
-		Collider[] array = componentsInChildren;
+		ownColliders = GetComponentsInChildren<Collider>(includeInactive: true);
+		Collider[] array = ownColliders;
 		foreach (Collider collider in array)
 		{
 			Physics.IgnoreCollision(collider, frontLeftWheelCollider);
@@ -151,36 +160,40 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 			Physics.IgnoreCollision(collider, backLeftWheelCollider);
 			Physics.IgnoreCollision(collider, backRightWheelCollider);
 		}
-		array = componentsInChildren;
+		array = ownColliders;
 		for (int i = 0; i < array.Length; i++)
 		{
 			array[i].hasModifiableContacts = true;
 		}
-		frontLeftWheelCollider.excludeLayers = GameManager.LayerSettings.FoliageMask;
-		frontRightWheelCollider.excludeLayers = GameManager.LayerSettings.FoliageMask;
-		backLeftWheelCollider.excludeLayers = GameManager.LayerSettings.FoliageMask;
-		backRightWheelCollider.excludeLayers = GameManager.LayerSettings.FoliageMask;
+		LayerMask excludeLayers = (int)GameManager.LayerSettings.FoliageMask | (int)GameManager.LayerSettings.BallMask;
+		frontLeftWheelCollider.excludeLayers = excludeLayers;
+		frontRightWheelCollider.excludeLayers = excludeLayers;
+		backLeftWheelCollider.excludeLayers = excludeLayers;
+		backRightWheelCollider.excludeLayers = excludeLayers;
 		foreach (PlayerInfo remotePlayer in GameManager.RemotePlayers)
 		{
-			array = remotePlayer.GetComponentsInChildren<Collider>(includeInactive: true);
-			foreach (Collider collider2 in array)
-			{
-				Collider[] array2 = componentsInChildren;
-				for (int j = 0; j < array2.Length; j++)
-				{
-					Physics.IgnoreCollision(array2[j], collider2, ignore: true);
-				}
-			}
+			IgnoreCollisionsWithRemotePlayer(remotePlayer);
 		}
 		InformDriverChanged();
 		GameManager.RemotePlayerRegistered += OnRemotePlayerRegistered;
 		BUpdate.RegisterCallback(this);
+		void InitializeStatics()
+		{
+			if (!initializedStatics)
+			{
+				defaultWheelForwardFriction = frontLeftWheelCollider.forwardFriction;
+				defaultWheelSidewaysFriction = frontLeftWheelCollider.sidewaysFriction;
+				initializedStatics = true;
+			}
+		}
 	}
 
 	private void Start()
 	{
 		AsEntity.Rigidbody.useGravity = false;
 		PhysicsManager.RegisterPredictedEntity(AsEntity);
+		AsEntity.FinishedTemporarilyIgnoringCollisionsWith += OnFinishedTemporarilyIgnoringCollisionsWith;
+		AsEntity.AsHittable.IsFrozenChanged += OnIsFrozenChanged;
 	}
 
 	private void OnDestroy()
@@ -191,6 +204,8 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 		{
 			waterWadingSound.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
 		}
+		AsEntity.FinishedTemporarilyIgnoringCollisionsWith -= OnFinishedTemporarilyIgnoringCollisionsWith;
+		AsEntity.AsHittable.IsFrozenChanged -= OnIsFrozenChanged;
 		GameManager.RemotePlayerRegistered -= OnRemotePlayerRegistered;
 	}
 
@@ -226,6 +241,7 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 	public void OnBUpdate()
 	{
 		GolfCartInfo.OnUpdate();
+		UpdateAllWheels();
 		bool hasDriver;
 		bool hasSpeedBoost;
 		float maxSpeedFactor;
@@ -327,6 +343,27 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 		{
 			return BMath.InverseLerpClamped(settings.WaterWadingSoundMinSpeed, settings.WaterWadingSoundMaxSpeed, P_0.forwardSpeed);
 		}
+		static bool IsOnTerrain(WheelCollider wheel, out bool isGrounded, out WheelHit hit, out TerrainLayerSettings terrainLayerSettings)
+		{
+			terrainLayerSettings = null;
+			isGrounded = wheel.GetGroundHit(out hit);
+			if (!isGrounded)
+			{
+				return false;
+			}
+			if (hit.collider.gameObject.layer == GameManager.LayerSettings.TerrainLayer)
+			{
+				TerrainLayer dominantGlobalLayerAtPoint = TerrainManager.GetDominantGlobalLayerAtPoint(hit.point);
+				terrainLayerSettings = TerrainManager.Settings.LayerSettings[dominantGlobalLayerAtPoint];
+				return true;
+			}
+			if (hit.collider.gameObject.layer == GameManager.LayerSettings.TerrainAdditionLayer && PhysicsManager.TerrainAdditionLayerPerColliderId.TryGetValue(hit.collider.GetInstanceID(), out var value))
+			{
+				terrainLayerSettings = TerrainManager.Settings.LayerSettings[value];
+				return true;
+			}
+			return false;
+		}
 		bool IsWading()
 		{
 			if (AsEntity.LevelBoundsTracker.CurrentSecondaryHazardLocalOnly == null)
@@ -369,6 +406,13 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 			yield return new WaitForSeconds(delay);
 			GolfCartInfo.Vfx.SetPipeVfxPlaying(playing: false);
 			isDelayingPipeVfxStop = false;
+		}
+		void UpdateAllWheels()
+		{
+			UpdateWheel(frontLeftWheelCollider);
+			UpdateWheel(frontRightWheelCollider);
+			UpdateWheel(backLeftWheelCollider);
+			UpdateWheel(backRightWheelCollider);
 		}
 		void UpdateEngineSound(bool areAllWheelsInAir, bool flag2, float num2)
 		{
@@ -426,6 +470,19 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 				}
 			}
 		}
+		static void UpdateFrictionFor(WheelCollider wheel, out bool isGrounded, out WheelHit hit)
+		{
+			if (!IsOnTerrain(wheel, out isGrounded, out hit, out var terrainLayerSettings) || !terrainLayerSettings.DoesOverrideGolfCartWheelFriction)
+			{
+				wheel.forwardFriction = defaultWheelForwardFriction;
+				wheel.sidewaysFriction = defaultWheelSidewaysFriction;
+			}
+			else
+			{
+				wheel.forwardFriction = terrainLayerSettings.GolfCartWheelOverrideForwardFriction;
+				wheel.sidewaysFriction = terrainLayerSettings.GolfCartWheelOverrideSidewaysFriction;
+			}
+		}
 		void UpdateSmoothedAcceleration()
 		{
 			SmoothedLocalAcceleration = Vector3.Lerp(SmoothedLocalAcceleration, rawLocalAcceleration, 12f * Time.deltaTime);
@@ -434,9 +491,9 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 		{
 			UpdateWaterWading();
 			UpdateWaterWadingSound();
-			if (!hasDriver)
+			if (!hasDriver || AsEntity.AsHittable.IsFrozen)
 			{
-				GolfCartInfo.Vfx.ResetLocalAcceleration();
+				GolfCartInfo.Vfx.ResetLocalVelocity();
 				CancelPipeVfxDelayedStopRoutine();
 				GolfCartInfo.Vfx.SetPipeVfxPlaying(playing: false);
 			}
@@ -490,6 +547,14 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 			else if (waterWadingSound.isValid())
 			{
 				waterWadingSound.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+			}
+		}
+		void UpdateWheel(WheelCollider wheel)
+		{
+			UpdateFrictionFor(wheel, out var isGrounded, out var hit);
+			if (isGrounded && PhysicsManager.JumpPadsByCollider.TryGetValue(hit.collider, out var value))
+			{
+				value.TryTriggerJumpFor(GolfCartInfo.AsEntity.AsHittable);
 			}
 		}
 		void UpdateWheelDamping(bool flag2, float num2)
@@ -583,6 +648,23 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 		}
 	}
 
+	private void IgnoreCollisionsWithRemotePlayer(PlayerInfo remotePlayer)
+	{
+		if (remotePlayer == GameManager.LocalPlayerInfo)
+		{
+			return;
+		}
+		Collider[] componentsInChildren = remotePlayer.GetComponentsInChildren<Collider>(includeInactive: true);
+		foreach (Collider collider in componentsInChildren)
+		{
+			Collider[] array = ownColliders;
+			for (int j = 0; j < array.Length; j++)
+			{
+				Physics.IgnoreCollision(array[j], collider, ignore: true);
+			}
+		}
+	}
+
 	public bool TryTriggerJump()
 	{
 		if (!CanJump())
@@ -617,12 +699,12 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 		{
 			if (base.isServer && base.isClient)
 			{
-				UserCode__003CTryTriggerJump_003Eg__CmdInformTriggeredJump_007C54_1__NetworkConnectionToClient(sender);
+				UserCode__003CTryTriggerJump_003Eg__CmdInformTriggeredJump_007C59_1__NetworkConnectionToClient(sender);
 			}
 			else
 			{
 				NetworkWriterPooled writer = NetworkWriterPool.Get();
-				SendCommandInternal("System.Void GolfCartMovement::<TryTriggerJump>g__CmdInformTriggeredJump|54_1(Mirror.NetworkConnectionToClient)", -573712446, writer, 0);
+				SendCommandInternal("System.Void GolfCartMovement::<TryTriggerJump>g__CmdInformTriggeredJump|59_1(Mirror.NetworkConnectionToClient)", -1154259079, writer, 0);
 				NetworkWriterPool.Return(writer);
 			}
 		}
@@ -769,7 +851,7 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 		{
 			Debug.LogError("Local player tried to accelerate a golf cart without being its driver", base.gameObject);
 		}
-		else
+		else if (!AsEntity.AsHittable.IsFrozen)
 		{
 			NetworkisAccelerating = isAccelerating;
 		}
@@ -781,7 +863,7 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 		{
 			Debug.LogError("Local player tried to brake a golf cart without being its driver", base.gameObject);
 		}
-		else
+		else if (!AsEntity.AsHittable.IsFrozen)
 		{
 			NetworkisBraking = isBraking;
 		}
@@ -793,7 +875,7 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 		{
 			Debug.LogError("Local player tried to steer a golf cart without being its driver", base.gameObject);
 		}
-		else
+		else if (!AsEntity.AsHittable.IsFrozen)
 		{
 			Networksteering = BMath.LerpClamped(this.steering, steering, settings.SteeringInputSensitivity * Time.deltaTime);
 		}
@@ -831,18 +913,26 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 		backRightWheelCollider.motorTorque = motorTorque;
 	}
 
+	private void OnFinishedTemporarilyIgnoringCollisionsWith(Entity otherEntity)
+	{
+		if (otherEntity.IsPlayer)
+		{
+			IgnoreCollisionsWithRemotePlayer(otherEntity.PlayerInfo);
+		}
+	}
+
+	private void OnIsFrozenChanged()
+	{
+		if (base.authority && AsEntity.AsHittable.IsFrozen)
+		{
+			NetworkisAccelerating = false;
+			NetworkisBraking = false;
+		}
+	}
+
 	private void OnRemotePlayerRegistered(PlayerInfo playerInfo)
 	{
-		Collider[] componentsInChildren = GetComponentsInChildren<Collider>(includeInactive: true);
-		Collider[] componentsInChildren2 = playerInfo.GetComponentsInChildren<Collider>(includeInactive: true);
-		foreach (Collider collider in componentsInChildren2)
-		{
-			Collider[] array = componentsInChildren;
-			for (int j = 0; j < array.Length; j++)
-			{
-				Physics.IgnoreCollision(array[j], collider, ignore: true);
-			}
-		}
+		IgnoreCollisionsWithRemotePlayer(playerInfo);
 	}
 
 	private void OnIsAcceleratingChanged(bool wasAccelerating, bool isAccelerating)
@@ -866,7 +956,7 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 		return true;
 	}
 
-	protected void UserCode__003CTryTriggerJump_003Eg__CmdInformTriggeredJump_007C54_1__NetworkConnectionToClient(NetworkConnectionToClient sender)
+	protected void UserCode__003CTryTriggerJump_003Eg__CmdInformTriggeredJump_007C59_1__NetworkConnectionToClient(NetworkConnectionToClient sender)
 	{
 		if (!serverInformTriggeredJumpCommandRateLimiter.RegisterHit(sender))
 		{
@@ -965,24 +1055,24 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 		void RpcInformTriggeredJump(NetworkConnectionToClient connection)
 		{
 			NetworkWriterPooled writer = NetworkWriterPool.Get();
-			SendTargetRPCInternal(connection, "System.Void GolfCartMovement::<TryTriggerJump>g__RpcInformTriggeredJump|54_2(Mirror.NetworkConnectionToClient)", -324300968, writer, 0);
+			SendTargetRPCInternal(connection, "System.Void GolfCartMovement::<TryTriggerJump>g__RpcInformTriggeredJump|59_2(Mirror.NetworkConnectionToClient)", 2108050871, writer, 0);
 			NetworkWriterPool.Return(writer);
 		}
 	}
 
-	protected static void InvokeUserCode__003CTryTriggerJump_003Eg__CmdInformTriggeredJump_007C54_1__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode__003CTryTriggerJump_003Eg__CmdInformTriggeredJump_007C59_1__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkServer.active)
 		{
-			Debug.LogError("Command <TryTriggerJump>g__CmdInformTriggeredJump|54_1 called on client.");
+			Debug.LogError("Command <TryTriggerJump>g__CmdInformTriggeredJump|59_1 called on client.");
 		}
 		else
 		{
-			((GolfCartMovement)obj).UserCode__003CTryTriggerJump_003Eg__CmdInformTriggeredJump_007C54_1__NetworkConnectionToClient(senderConnection);
+			((GolfCartMovement)obj).UserCode__003CTryTriggerJump_003Eg__CmdInformTriggeredJump_007C59_1__NetworkConnectionToClient(senderConnection);
 		}
 	}
 
-	protected void UserCode__003CTryTriggerJump_003Eg__RpcInformTriggeredJump_007C54_2__NetworkConnectionToClient(NetworkConnectionToClient connection)
+	protected void UserCode__003CTryTriggerJump_003Eg__RpcInformTriggeredJump_007C59_2__NetworkConnectionToClient(NetworkConnectionToClient connection)
 	{
 		OnJumpTriggered();
 		Vector3 GetJumpDirection()
@@ -1065,22 +1155,22 @@ public class GolfCartMovement : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateC
 		}
 	}
 
-	protected static void InvokeUserCode__003CTryTriggerJump_003Eg__RpcInformTriggeredJump_007C54_2__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode__003CTryTriggerJump_003Eg__RpcInformTriggeredJump_007C59_2__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
-			Debug.LogError("TargetRPC <TryTriggerJump>g__RpcInformTriggeredJump|54_2 called on server.");
+			Debug.LogError("TargetRPC <TryTriggerJump>g__RpcInformTriggeredJump|59_2 called on server.");
 		}
 		else
 		{
-			((GolfCartMovement)obj).UserCode__003CTryTriggerJump_003Eg__RpcInformTriggeredJump_007C54_2__NetworkConnectionToClient(null);
+			((GolfCartMovement)obj).UserCode__003CTryTriggerJump_003Eg__RpcInformTriggeredJump_007C59_2__NetworkConnectionToClient(null);
 		}
 	}
 
 	static GolfCartMovement()
 	{
-		RemoteProcedureCalls.RegisterCommand(typeof(GolfCartMovement), "System.Void GolfCartMovement::<TryTriggerJump>g__CmdInformTriggeredJump|54_1(Mirror.NetworkConnectionToClient)", InvokeUserCode__003CTryTriggerJump_003Eg__CmdInformTriggeredJump_007C54_1__NetworkConnectionToClient, requiresAuthority: true);
-		RemoteProcedureCalls.RegisterRpc(typeof(GolfCartMovement), "System.Void GolfCartMovement::<TryTriggerJump>g__RpcInformTriggeredJump|54_2(Mirror.NetworkConnectionToClient)", InvokeUserCode__003CTryTriggerJump_003Eg__RpcInformTriggeredJump_007C54_2__NetworkConnectionToClient);
+		RemoteProcedureCalls.RegisterCommand(typeof(GolfCartMovement), "System.Void GolfCartMovement::<TryTriggerJump>g__CmdInformTriggeredJump|59_1(Mirror.NetworkConnectionToClient)", InvokeUserCode__003CTryTriggerJump_003Eg__CmdInformTriggeredJump_007C59_1__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterRpc(typeof(GolfCartMovement), "System.Void GolfCartMovement::<TryTriggerJump>g__RpcInformTriggeredJump|59_2(Mirror.NetworkConnectionToClient)", InvokeUserCode__003CTryTriggerJump_003Eg__RpcInformTriggeredJump_007C59_2__NetworkConnectionToClient);
 	}
 
 	public override void SerializeSyncVars(NetworkWriter writer, bool forceAll)

@@ -182,6 +182,18 @@ public struct ShaderKeywordSet
 		return GetEnabledKeywords(this);
 	}
 
+	public override string ToString()
+	{
+		ShaderKeyword[] enabledKeywords = GetEnabledKeywords(this);
+		Array.Sort(enabledKeywords, ShaderKeywordComparer);
+		return string.Join(' ', enabledKeywords);
+	}
+
+	private static int ShaderKeywordComparer(ShaderKeyword kw1, ShaderKeyword kw2)
+	{
+		return kw1.m_Name.CompareTo(kw2.m_Name);
+	}
+
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern bool IsGlobalKeywordEnabled_Injected([In] ref ShaderKeywordSet state, uint index);
 

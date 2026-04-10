@@ -1,3 +1,4 @@
+using System;
 using Brimstone.Geometry;
 using TMPro;
 using UnityEngine;
@@ -47,11 +48,13 @@ public class WorldspaceIconUi : MonoBehaviour
 	private void OnEnable()
 	{
 		LocalizationManager.LanguageChanged += OnLocalizationLanguageChanged;
+		GameSettings.GeneralSettings.DistanceUnitChanged = (Action)Delegate.Combine(GameSettings.GeneralSettings.DistanceUnitChanged, new Action(OnDistanceUnitChanged));
 	}
 
 	private void OnDisable()
 	{
 		LocalizationManager.LanguageChanged -= OnLocalizationLanguageChanged;
+		GameSettings.GeneralSettings.DistanceUnitChanged = (Action)Delegate.Remove(GameSettings.GeneralSettings.DistanceUnitChanged, new Action(OnDistanceUnitChanged));
 	}
 
 	public void Initialize(WorldspaceIconUiSettings settings, Transform parent, Transform distanceReference, Sprite icon)
@@ -217,10 +220,10 @@ public class WorldspaceIconUi : MonoBehaviour
 		{
 			float magnitude = (worldPosition - distanceReference.position).magnitude;
 			float num = displayedDistance;
-			displayedDistance = BMath.CeilToInt(magnitude);
+			displayedDistance = GameSettings.All.General.GetDistanceInCurrentUnits(magnitude);
 			if (forced || (float)displayedDistance != num)
 			{
-				distanceLabel.text = string.Format(Localization.UI.MISC_Distance_Meters, displayedDistance);
+				distanceLabel.text = string.Format(GameSettings.All.General.GetLocalizedDistanceUnitName(), displayedDistance);
 			}
 		}
 	}
@@ -231,6 +234,11 @@ public class WorldspaceIconUi : MonoBehaviour
 	}
 
 	private void OnLocalizationLanguageChanged()
+	{
+		UpdateDistanceLabel(forced: true);
+	}
+
+	private void OnDistanceUnitChanged()
 	{
 		UpdateDistanceLabel(forced: true);
 	}

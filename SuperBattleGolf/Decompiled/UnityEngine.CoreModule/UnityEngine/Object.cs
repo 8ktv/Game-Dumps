@@ -14,9 +14,9 @@ namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
 [NativeHeader("Runtime/SceneManager/SceneManager.h")]
+[NativeHeader("Runtime/GameCode/CloneObject.h")]
 [NativeHeader("Runtime/Export/Scripting/UnityEngineObject.bindings.h")]
 [RequiredByNativeCode(GenerateProxy = true)]
-[NativeHeader("Runtime/GameCode/CloneObject.h")]
 public class Object
 {
 	[VisibleToOtherModules]
@@ -122,7 +122,7 @@ public class Object
 		return CompareBaseObjects(this, obj);
 	}
 
-	public static implicit operator bool([NotNullWhen(true)][MaybeNullWhen(false)] Object exists)
+	public static implicit operator bool([MaybeNullWhen(false)][NotNullWhen(true)] Object exists)
 	{
 		return !CompareBaseObjects(exists, null);
 	}
@@ -468,9 +468,10 @@ public class Object
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[Obsolete("Object.FindObjectsOfType has been deprecated. Use Object.FindObjectsByType instead which lets you decide whether you need the results sorted or not.  FindObjectsOfType sorts the results by InstanceID but if you do not need this using FindObjectSortMode.None is considerably faster.", false)]
-	[FreeFunction("UnityEngineObjectBindings::FindObjectsOfType")]
 	[TypeInferenceRule(TypeInferenceRules.ArrayOfTypeReferencedByFirstArgument)]
+	[FreeFunction("UnityEngineObjectBindings::FindObjectsOfType")]
+	[Obsolete("Object.FindObjectsOfType has been deprecated. Use Object.FindObjectsByType instead which lets you decide whether you need the results sorted or not.  FindObjectsOfType sorts the results by InstanceID but if you do not need this using FindObjectSortMode.None is considerably faster.", false)]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public static extern Object[] FindObjectsOfType(Type type, bool includeInactive);
 
 	public static Object[] FindObjectsByType(Type type, FindObjectsSortMode sortMode)
@@ -481,6 +482,7 @@ public class Object
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction("UnityEngineObjectBindings::FindObjectsByType")]
 	[TypeInferenceRule(TypeInferenceRules.ArrayOfTypeReferencedByFirstArgument)]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public static extern Object[] FindObjectsByType(Type type, FindObjectsInactive findObjectsInactive, FindObjectsSortMode sortMode);
 
 	[FreeFunction("GetSceneManager().DontDestroyOnLoad", ThrowsException = true)]
@@ -519,8 +521,9 @@ public class Object
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[Obsolete("use Resources.FindObjectsOfTypeAll instead.")]
 	[FreeFunction("UnityEngineObjectBindings::FindObjectsOfTypeIncludingAssets")]
+	[Obsolete("use Resources.FindObjectsOfTypeAll instead.")]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public static extern Object[] FindObjectsOfTypeIncludingAssets(Type type);
 
 	[Obsolete("Object.FindObjectsOfType has been deprecated. Use Object.FindObjectsByType instead which lets you decide whether you need the results sorted or not.  FindObjectsOfType sorts the results by InstanceID but if you do not need this using FindObjectSortMode.None is considerably faster.", false)]
@@ -615,8 +618,8 @@ public class Object
 		return (array.Length != 0) ? array[0] : null;
 	}
 
-	[Obsolete("Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType", false)]
 	[TypeInferenceRule(TypeInferenceRules.TypeReferencedByFirstArgument)]
+	[Obsolete("Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType", false)]
 	public static Object FindObjectOfType(Type type, bool includeInactive)
 	{
 		Object[] array = FindObjectsOfType(type, includeInactive);
@@ -881,26 +884,30 @@ public class Object
 		}
 	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
 	[NativeMethod(Name = "UnityEngineObjectBindings::DoesObjectWithInstanceIDExist", IsFreeFunction = true, IsThreadSafe = true)]
-	internal static extern bool DoesObjectWithInstanceIDExist(int instanceID);
+	internal static bool DoesObjectWithInstanceIDExist(EntityId instanceID)
+	{
+		return DoesObjectWithInstanceIDExist_Injected(ref instanceID);
+	}
 
 	[FreeFunction("UnityEngineObjectBindings::FindObjectFromInstanceID")]
 	[VisibleToOtherModules]
-	internal static Object FindObjectFromInstanceID(int instanceID)
+	internal static Object FindObjectFromInstanceID(EntityId instanceID)
 	{
-		return Unmarshal.UnmarshalUnityObject<Object>(FindObjectFromInstanceID_Injected(instanceID));
+		return Unmarshal.UnmarshalUnityObject<Object>(FindObjectFromInstanceID_Injected(ref instanceID));
 	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction("UnityEngineObjectBindings::GetPtrFromInstanceID")]
-	private static extern IntPtr GetPtrFromInstanceID(int instanceID, Type objectType, out bool isMonoBehaviour);
-
-	[VisibleToOtherModules]
-	[FreeFunction("UnityEngineObjectBindings::ForceLoadFromInstanceID")]
-	internal static Object ForceLoadFromInstanceID(int instanceID)
+	private static IntPtr GetPtrFromInstanceID(EntityId instanceID, Type objectType, out bool isMonoBehaviour)
 	{
-		return Unmarshal.UnmarshalUnityObject<Object>(ForceLoadFromInstanceID_Injected(instanceID));
+		return GetPtrFromInstanceID_Injected(ref instanceID, objectType, out isMonoBehaviour);
+	}
+
+	[FreeFunction("UnityEngineObjectBindings::ForceLoadFromInstanceID")]
+	[VisibleToOtherModules]
+	internal static Object ForceLoadFromInstanceID(EntityId instanceID)
+	{
+		return Unmarshal.UnmarshalUnityObject<Object>(ForceLoadFromInstanceID_Injected(ref instanceID));
 	}
 
 	[FreeFunction("UnityEngineObjectBindings::MarkObjectDirty", HasExplicitThis = true)]
@@ -966,10 +973,16 @@ public class Object
 	private static extern void SetName_Injected(IntPtr _unity_self, ref ManagedSpanWrapper name);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern IntPtr FindObjectFromInstanceID_Injected(int instanceID);
+	private static extern bool DoesObjectWithInstanceIDExist_Injected([In] ref EntityId instanceID);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern IntPtr ForceLoadFromInstanceID_Injected(int instanceID);
+	private static extern IntPtr FindObjectFromInstanceID_Injected([In] ref EntityId instanceID);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern IntPtr GetPtrFromInstanceID_Injected([In] ref EntityId instanceID, Type objectType, out bool isMonoBehaviour);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern IntPtr ForceLoadFromInstanceID_Injected([In] ref EntityId instanceID);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void MarkDirty_Injected(IntPtr _unity_self);

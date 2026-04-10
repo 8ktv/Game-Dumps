@@ -459,6 +459,10 @@ public class InputSettings : ScriptableObject
 		{
 			throw new ArgumentNullException("featureName");
 		}
+		if (featureName == "USE_IMGUI_EDITOR_FOR_ASSETS")
+		{
+			throw new ArgumentException("The USE_IMGUI_EDITOR_FOR_ASSETS feature flag is no longer supported.");
+		}
 		if (m_FeatureFlags == null)
 		{
 			m_FeatureFlags = new HashSet<string>();

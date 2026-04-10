@@ -55,7 +55,8 @@ public class SingleAxisNavigationGroup : MonoBehaviour
 							value2.Add(item);
 						}
 					}
-					value = value2;
+					value.Clear();
+					value.AddRange(value2);
 				}
 			}
 			for (int i = 0; i < value.Count; i++)

@@ -20,8 +20,8 @@ public static class AsyncReadManagerMetrics
 	public static extern bool IsEnabled();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("GetAsyncReadManagerMetrics()->ClearMetrics")]
 	[ThreadSafe]
+	[FreeFunction("GetAsyncReadManagerMetrics()->ClearMetrics")]
 	private static extern void ClearMetrics_Internal();
 
 	public static void ClearCompletedMetrics()
@@ -50,8 +50,8 @@ public static class AsyncReadManagerMetrics
 	[FreeFunction("GetAsyncReadManagerMetrics()->GetMarshalledMetrics_Filtered_Managed")]
 	internal static extern AsyncReadManagerRequestMetric[] GetMetrics_Filtered_Internal(AsyncReadManagerMetricsFilters filters, bool clear);
 
-	[ThreadSafe]
 	[FreeFunction("GetAsyncReadManagerMetrics()->GetMetrics_NoAlloc_Filtered_Managed")]
+	[ThreadSafe]
 	internal static void GetMetrics_NoAlloc_Filtered_Internal([NotNull] List<AsyncReadManagerRequestMetric> metrics, AsyncReadManagerMetricsFilters filters, bool clear)
 	{
 		if (metrics == null)
@@ -114,8 +114,8 @@ public static class AsyncReadManagerMetrics
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[ThreadSafe]
 	[FreeFunction("GetAsyncReadManagerMetrics()->GetSummaryOfMetrics_Managed")]
+	[ThreadSafe]
 	internal static extern AsyncReadManagerSummaryMetrics GetSummaryOfMetrics_Internal(AsyncReadManagerRequestMetric[] metrics);
 
 	public static AsyncReadManagerSummaryMetrics GetSummaryOfMetrics(AsyncReadManagerRequestMetric[] metrics)
@@ -124,8 +124,8 @@ public static class AsyncReadManagerMetrics
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[ThreadSafe]
 	[FreeFunction("GetAsyncReadManagerMetrics()->GetSummaryOfMetrics_FromContainer_Managed", ThrowsException = true)]
+	[ThreadSafe]
 	internal static extern AsyncReadManagerSummaryMetrics GetSummaryOfMetrics_FromContainer_Internal(List<AsyncReadManagerRequestMetric> metrics);
 
 	public static AsyncReadManagerSummaryMetrics GetSummaryOfMetrics(List<AsyncReadManagerRequestMetric> metrics)
@@ -154,8 +154,8 @@ public static class AsyncReadManagerMetrics
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[ThreadSafe]
 	[FreeFunction("GetAsyncReadManagerMetrics()->GetTotalSizeNonASRMReadsBytes")]
+	[ThreadSafe]
 	public static extern ulong GetTotalSizeOfNonASRMReadsBytes(bool emptyAfterRead);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]

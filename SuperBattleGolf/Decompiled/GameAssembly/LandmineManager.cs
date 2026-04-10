@@ -111,7 +111,8 @@ public class LandmineManager : SingletonBehaviour<LandmineManager>
 		{
 			UpdateLandmineTransformsJob jobData = new UpdateLandmineTransformsJob
 			{
-				landmines = armedLandmineInstances
+				landmines = armedLandmineInstances,
+				localCenter = GameManager.ItemSettings.LandmineLocalCenter
 			};
 			SetUpLandmineOverlapChecksJob jobData2 = new SetUpLandmineOverlapChecksJob
 			{
@@ -128,7 +129,7 @@ public class LandmineManager : SingletonBehaviour<LandmineManager>
 			{
 				Landmine landmine = armedLandmines[num];
 				NativeSlice<ColliderHit> detectedColliderBuffer = new NativeSlice<ColliderHit>(landmineColliderDetectionResultBuffer, num * 64, 64);
-				landmine.ProcessDetectedColliders(detectedColliderBuffer);
+				landmine.ServerProcessDetectedColliders(detectedColliderBuffer);
 			}
 		}
 	}

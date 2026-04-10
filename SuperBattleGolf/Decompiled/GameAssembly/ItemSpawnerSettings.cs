@@ -25,6 +25,10 @@ public class ItemSpawnerSettings : ScriptableObject
 	private List<ItemPoolData> itemPools;
 
 	[SerializeField]
+	private bool hasAheadOfBallItemPool;
+
+	[SerializeField]
+	[DisplayIf("hasAheadOfBallItemPool", true)]
 	private ItemPool aheadOfBallItemPool;
 
 	private ItemPool runtimeAheadOfBallItemPool;
@@ -33,7 +37,11 @@ public class ItemSpawnerSettings : ScriptableObject
 
 	public List<ItemPoolData> ItemPools => runtimeItemPools;
 
+	public List<ItemPoolData> ItemPoolsDefaults => itemPools;
+
 	public ItemPool AheadOfBallItemPool => runtimeAheadOfBallItemPool;
+
+	public ItemPool AheadOfBallItemPoolDefaults => aheadOfBallItemPool;
 
 	[field: SerializeField]
 	public float RespawnTime { get; private set; }
@@ -100,12 +108,12 @@ public class ItemSpawnerSettings : ScriptableObject
 
 	private ItemPool GetItemPoolFor(PlayerInfo player)
 	{
-		if (player.AsGolfer.IsAheadOfBall)
+		if (hasAheadOfBallItemPool && player.AsGolfer.IsAheadOfBall)
 		{
-			return aheadOfBallItemPool;
+			return runtimeAheadOfBallItemPool;
 		}
 		List<ItemPoolData> list = (Application.isPlaying ? runtimeItemPools : itemPools);
-		if (SingletonBehaviour<DrivingRangeManager>.HasInstance)
+		if (SingletonBehaviour<DrivingRangeManager>.HasInstance || list.Count == 1)
 		{
 			return list[0].pool;
 		}

@@ -5,8 +5,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Input/TimeManager.h")]
 [StaticAccessor("GetTimeManager()", StaticAccessorType.Dot)]
+[NativeHeader("Runtime/Input/TimeManager.h")]
 public class Time
 {
 	[NativeProperty("CurTime")]

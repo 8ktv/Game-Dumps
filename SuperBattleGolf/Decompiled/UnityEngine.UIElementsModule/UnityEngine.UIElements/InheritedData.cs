@@ -20,9 +20,13 @@ internal struct InheritedData : IStyleDataGroup<InheritedData>, IEquatable<Inher
 
 	public FontStyle unityFontStyleAndWeight;
 
+	public MaterialDefinition unityMaterial;
+
 	public Length unityParagraphSpacing;
 
 	public TextAnchor unityTextAlign;
+
+	public TextAutoSize unityTextAutoSize;
 
 	public TextGeneratorType unityTextGenerator;
 
@@ -48,7 +52,7 @@ internal struct InheritedData : IStyleDataGroup<InheritedData>, IEquatable<Inher
 
 	public static bool operator ==(InheritedData lhs, InheritedData rhs)
 	{
-		return lhs.color == rhs.color && lhs.fontSize == rhs.fontSize && lhs.letterSpacing == rhs.letterSpacing && lhs.textShadow == rhs.textShadow && lhs.unityEditorTextRenderingMode == rhs.unityEditorTextRenderingMode && lhs.unityFont == rhs.unityFont && lhs.unityFontDefinition == rhs.unityFontDefinition && lhs.unityFontStyleAndWeight == rhs.unityFontStyleAndWeight && lhs.unityParagraphSpacing == rhs.unityParagraphSpacing && lhs.unityTextAlign == rhs.unityTextAlign && lhs.unityTextGenerator == rhs.unityTextGenerator && lhs.unityTextOutlineColor == rhs.unityTextOutlineColor && lhs.unityTextOutlineWidth == rhs.unityTextOutlineWidth && lhs.visibility == rhs.visibility && lhs.whiteSpace == rhs.whiteSpace && lhs.wordSpacing == rhs.wordSpacing;
+		return lhs.color == rhs.color && lhs.fontSize == rhs.fontSize && lhs.letterSpacing == rhs.letterSpacing && lhs.textShadow == rhs.textShadow && lhs.unityEditorTextRenderingMode == rhs.unityEditorTextRenderingMode && lhs.unityFont == rhs.unityFont && lhs.unityFontDefinition == rhs.unityFontDefinition && lhs.unityFontStyleAndWeight == rhs.unityFontStyleAndWeight && lhs.unityMaterial == rhs.unityMaterial && lhs.unityParagraphSpacing == rhs.unityParagraphSpacing && lhs.unityTextAlign == rhs.unityTextAlign && lhs.unityTextAutoSize == rhs.unityTextAutoSize && lhs.unityTextGenerator == rhs.unityTextGenerator && lhs.unityTextOutlineColor == rhs.unityTextOutlineColor && lhs.unityTextOutlineWidth == rhs.unityTextOutlineWidth && lhs.visibility == rhs.visibility && lhs.whiteSpace == rhs.whiteSpace && lhs.wordSpacing == rhs.wordSpacing;
 	}
 
 	public static bool operator !=(InheritedData lhs, InheritedData rhs)
@@ -80,8 +84,10 @@ internal struct InheritedData : IStyleDataGroup<InheritedData>, IEquatable<Inher
 		hashCode = (hashCode * 397) ^ ((!(unityFont == null)) ? unityFont.GetHashCode() : 0);
 		hashCode = (hashCode * 397) ^ unityFontDefinition.GetHashCode();
 		hashCode = (hashCode * 397) ^ (int)unityFontStyleAndWeight;
+		hashCode = (hashCode * 397) ^ ((!(unityMaterial == null)) ? unityMaterial.GetHashCode() : 0);
 		hashCode = (hashCode * 397) ^ unityParagraphSpacing.GetHashCode();
 		hashCode = (hashCode * 397) ^ (int)unityTextAlign;
+		hashCode = (hashCode * 397) ^ unityTextAutoSize.GetHashCode();
 		hashCode = (hashCode * 397) ^ (int)unityTextGenerator;
 		hashCode = (hashCode * 397) ^ unityTextOutlineColor.GetHashCode();
 		hashCode = (hashCode * 397) ^ unityTextOutlineWidth.GetHashCode();

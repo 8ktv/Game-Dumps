@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using Unity.Properties;
 using UnityEngine.Internal;
 using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine.UIElements;
 
 [MovedFrom(true, "UnityEditor.UIElements", "UnityEditor.UIElementsModule", null)]
-public abstract class BaseCompositeField<TValueType, TField, TFieldValue> : BaseField<TValueType> where TField : TextValueField<TFieldValue>, new()
+public abstract class BaseCompositeField<TValueType, TField, TFieldValue> : BaseField<TValueType>, IDelayedField where TField : TextValueField<TFieldValue>, new()
 {
 	internal struct FieldDescription
 	{
@@ -33,17 +35,44 @@ public abstract class BaseCompositeField<TValueType, TField, TFieldValue> : Base
 	[ExcludeFromDocs]
 	public new abstract class UxmlSerializedData : BaseField<TValueType>.UxmlSerializedData
 	{
+		[SerializeField]
+		private bool isDelayed;
+
+		[SerializeField]
+		[UxmlIgnore]
+		[HideInInspector]
+		private UxmlAttributeFlags isDelayed_UxmlAttributeFlags;
+
+		[Conditional("UNITY_EDITOR")]
 		public new static void Register()
 		{
 			BaseField<TValueType>.UxmlSerializedData.Register();
+			UxmlDescriptionCache.RegisterType(typeof(UxmlSerializedData), new UxmlAttributeNames[1]
+			{
+				new UxmlAttributeNames("isDelayed", "is-delayed", null)
+			});
+		}
+
+		public override void Deserialize(object obj)
+		{
+			base.Deserialize(obj);
+			BaseCompositeField<TValueType, TField, TFieldValue> baseCompositeField = (BaseCompositeField<TValueType, TField, TFieldValue>)obj;
+			if (UnityEngine.UIElements.UxmlSerializedData.ShouldWriteAttributeValue(isDelayed_UxmlAttributeFlags))
+			{
+				baseCompositeField.isDelayed = isDelayed;
+			}
 		}
 	}
+
+	internal static readonly BindingId isDelayedProperty = "isDelayed";
 
 	private List<TField> m_Fields;
 
 	private bool m_ShouldUpdateDisplay;
 
 	private bool m_ForceUpdateDisplay;
+
+	private bool m_IsDelayed;
 
 	public new static readonly string ussClassName = "unity-composite-field";
 
@@ -64,6 +93,28 @@ public abstract class BaseCompositeField<TValueType, TField, TFieldValue> : Base
 	public static readonly string twoLinesVariantUssClassName = ussClassName + "--two-lines";
 
 	internal List<TField> fields => m_Fields;
+
+	[CreateProperty]
+	public bool isDelayed
+	{
+		get
+		{
+			return m_IsDelayed;
+		}
+		set
+		{
+			if (m_IsDelayed == value)
+			{
+				return;
+			}
+			m_IsDelayed = value;
+			foreach (TField field in fields)
+			{
+				field.isDelayed = m_IsDelayed;
+			}
+			NotifyPropertyChanged(in isDelayedProperty);
+		}
+	}
 
 	private VisualElement GetSpacer()
 	{

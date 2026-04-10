@@ -1207,6 +1207,8 @@ internal class InputActionState : IInputStateChangeMonitor, ICloneable, IDisposa
 
 	private bool m_InProcessControlStateChange;
 
+	private bool m_Suppressed;
+
 	private InputEventPtr m_CurrentlyProcessingThisEvent;
 
 	private Action m_OnBeforeUpdateDelegate;
@@ -1254,6 +1256,8 @@ internal class InputActionState : IInputStateChangeMonitor, ICloneable, IDisposa
 	public unsafe uint* enabledControls => (uint*)memory.enabledControls;
 
 	public bool isProcessingControlStateChange => m_InProcessControlStateChange;
+
+	public bool IsSuppressed => m_Suppressed;
 
 	public void Initialize(InputBindingResolver resolver)
 	{
@@ -2221,6 +2225,7 @@ internal class InputActionState : IInputStateChangeMonitor, ICloneable, IDisposa
 						ProcessInteractions(ref trigger, ptr2->interactionStartIndex, interactionCount);
 					}
 				}
+				m_Suppressed = eventPtr != null && eventPtr.handled && InputSystem.s_Manager.inputEventHandledPolicy == InputEventHandledPolicy.SuppressActionEventNotifications;
 				bool flag2 = IsConflictingInput(ref trigger, actionIndex);
 				ptr = bindingStates + trigger.bindingIndex;
 				if (!flag2)
@@ -2847,17 +2852,20 @@ internal class InputActionState : IInputStateChangeMonitor, ICloneable, IDisposa
 		InputActionMap inputActionMap = maps[trigger.mapIndex];
 		InputAction inputAction = inputActionMap.m_Actions[actionIndex - mapIndices[trigger.mapIndex].actionStartIndex];
 		trigger.phase = newPhase;
-		switch (newPhase)
+		if (!m_Suppressed)
 		{
-		case InputActionPhase.Started:
-			CallActionListeners(actionIndex, inputActionMap, newPhase, ref inputAction.m_OnStarted, "started");
-			break;
-		case InputActionPhase.Performed:
-			CallActionListeners(actionIndex, inputActionMap, newPhase, ref inputAction.m_OnPerformed, "performed");
-			break;
-		case InputActionPhase.Canceled:
-			CallActionListeners(actionIndex, inputActionMap, newPhase, ref inputAction.m_OnCanceled, "canceled");
-			break;
+			switch (newPhase)
+			{
+			case InputActionPhase.Started:
+				CallActionListeners(actionIndex, inputActionMap, newPhase, ref inputAction.m_OnStarted, "started");
+				break;
+			case InputActionPhase.Performed:
+				CallActionListeners(actionIndex, inputActionMap, newPhase, ref inputAction.m_OnPerformed, "performed");
+				break;
+			case InputActionPhase.Canceled:
+				CallActionListeners(actionIndex, inputActionMap, newPhase, ref inputAction.m_OnCanceled, "canceled");
+				break;
+			}
 		}
 	}
 

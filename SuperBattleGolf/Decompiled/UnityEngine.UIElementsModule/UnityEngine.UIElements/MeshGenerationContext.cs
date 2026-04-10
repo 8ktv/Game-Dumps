@@ -164,10 +164,6 @@ public class MeshGenerationContext
 		{
 			throw new ArgumentException("The state of the provided MeshGenerationNode is invalid (entry is null).");
 		}
-		if (parentEntry.firstChild != null)
-		{
-			throw new ArgumentException("The state of the provided MeshGenerationNode is invalid (entry isn't empty).");
-		}
 		if (ve == null)
 		{
 			throw new ArgumentException("ve");

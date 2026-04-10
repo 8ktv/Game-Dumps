@@ -14,6 +14,12 @@
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>UnityEngine.CoreModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.VectorGraphicsModule">
+      <HintPath>UnityEngine.VectorGraphicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.SharedInternalsModule">
+      <HintPath>UnityEngine.SharedInternalsModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.DSPGraphModule">
       <HintPath>UnityEngine.DSPGraphModule.dll</HintPath>
     </Reference>
@@ -23,11 +29,17 @@
     <Reference Include="UnityEngine.UnityCurlModule">
       <HintPath>UnityEngine.UnityCurlModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.HierarchyModule">
+      <HintPath>UnityEngine.HierarchyModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.HierarchyCoreModule">
       <HintPath>UnityEngine.HierarchyCoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.ContentLoadModule">
       <HintPath>UnityEngine.ContentLoadModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.MultiplayerModule">
+      <HintPath>UnityEngine.MultiplayerModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.PropertiesModule">
       <HintPath>UnityEngine.PropertiesModule.dll</HintPath>
@@ -49,6 +61,9 @@
     </Reference>
     <Reference Include="UnityEngine.AccessibilityModule">
       <HintPath>UnityEngine.AccessibilityModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AdaptivePerformanceModule">
+      <HintPath>UnityEngine.AdaptivePerformanceModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UIModule">
       <HintPath>UnityEngine.UIModule.dll</HintPath>
@@ -79,9 +94,6 @@
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule">
       <HintPath>UnityEngine.AssetBundleModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.SharedInternalsModule">
-      <HintPath>UnityEngine.SharedInternalsModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
       <HintPath>UnityEngine.TextRenderingModule.dll</HintPath>
@@ -137,9 +149,6 @@
     <Reference Include="UnityEngine.LocalizationModule">
       <HintPath>UnityEngine.LocalizationModule.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine.MultiplayerModule">
-      <HintPath>UnityEngine.MultiplayerModule.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.UnityWebRequestModule">
       <HintPath>UnityEngine.UnityWebRequestModule.dll</HintPath>
     </Reference>
@@ -164,11 +173,17 @@
     <Reference Include="UnityEngine.DirectorModule">
       <HintPath>UnityEngine.DirectorModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.RenderAs2DModule">
+      <HintPath>UnityEngine.RenderAs2DModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.VirtualTexturingModule">
       <HintPath>UnityEngine.VirtualTexturingModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.ScreenCaptureModule">
       <HintPath>UnityEngine.ScreenCaptureModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ShaderRuntimeModule">
+      <HintPath>UnityEngine.ShaderRuntimeModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.GameCenterModule">
       <HintPath>UnityEngine.GameCenterModule.dll</HintPath>

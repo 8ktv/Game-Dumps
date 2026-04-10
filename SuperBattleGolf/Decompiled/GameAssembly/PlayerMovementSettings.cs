@@ -58,6 +58,15 @@ public class PlayerMovementSettings : ScriptableObject
 	[field: SerializeField]
 	public float DefaultHorizontalDrag { get; private set; }
 
+	[field: SerializeField]
+	public float GroundedHorizontalDrag { get; private set; }
+
+	[field: SerializeField]
+	public float AirHorizontalDrag { get; private set; }
+
+	[field: SerializeField]
+	public float DrowningHorizontalDrag { get; private set; }
+
 	[field: Header("In air")]
 	[field: SerializeField]
 	public float BaseGravityFactor { get; private set; }
@@ -96,6 +105,12 @@ public class PlayerMovementSettings : ScriptableObject
 	[field: SerializeField]
 	public float DiveTimeOut { get; private set; }
 
+	[field: SerializeField]
+	public float RepeatedDiveHitKnockoutImmunityTimeWindow { get; private set; }
+
+	[field: SerializeField]
+	public float RepeatedDiveHitCountForKnockoutImmunity { get; private set; }
+
 	[field: Header("Knock out")]
 	[field: SerializeField]
 	public float KnockoutDefaultGroundDuration { get; private set; }
@@ -111,6 +126,18 @@ public class PlayerMovementSettings : ScriptableObject
 
 	[field: SerializeField]
 	public float PostKnockoutImmunityDuration { get; private set; }
+
+	[field: SerializeField]
+	public float PostKnockoutImmunityLongDuration { get; private set; }
+
+	[field: SerializeField]
+	public float KnockoutImmunityLongDurationCooldown { get; private set; }
+
+	[field: SerializeField]
+	public int MinKnockoutImmunityCountBeforeLongDuration { get; private set; }
+
+	[field: SerializeField]
+	public float KnockOutGravityFactor { get; private set; }
 
 	[field: SerializeField]
 	public float KnockOutGroundLinearDamping { get; private set; }

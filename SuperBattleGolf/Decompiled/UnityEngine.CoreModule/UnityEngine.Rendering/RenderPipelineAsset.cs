@@ -62,6 +62,8 @@ public abstract class RenderPipelineAsset : ScriptableObject
 
 	internal string pipelineTypeFullName => pipelineType?.FullName ?? string.Empty;
 
+	protected internal virtual bool requiresCompatibleRenderPipelineGlobalSettings { get; } = false;
+
 	[Obsolete("This property is obsolete. Use pipelineType instead. #from(23.2)", false)]
 	protected internal virtual Type renderPipelineType
 	{

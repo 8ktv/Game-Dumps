@@ -6,11 +6,11 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Experimental.Playables;
 
-[NativeHeader("Runtime/Graphics/Director/TexturePlayableOutput.h")]
-[RequiredByNativeCode]
-[NativeHeader("Runtime/Graphics/RenderTexture.h")]
-[StaticAccessor("TexturePlayableOutputBindings", StaticAccessorType.DoubleColon)]
 [NativeHeader("Runtime/Export/Director/TexturePlayableOutput.bindings.h")]
+[RequiredByNativeCode]
+[NativeHeader("Runtime/Graphics/Director/TexturePlayableOutput.h")]
+[StaticAccessor("TexturePlayableOutputBindings", StaticAccessorType.DoubleColon)]
+[NativeHeader("Runtime/Graphics/RenderTexture.h")]
 public struct TexturePlayableOutput : IPlayableOutput
 {
 	private PlayableOutputHandle m_Handle;

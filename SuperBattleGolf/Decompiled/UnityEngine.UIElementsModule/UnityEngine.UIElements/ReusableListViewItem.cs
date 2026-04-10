@@ -110,4 +110,10 @@ internal class ReusableListViewItem : ReusableCollectionItem
 			m_DragHandle.EnableInClassList("unity-hidden", base.isDragGhost);
 		}
 	}
+
+	protected override void OnGeometryChanged(GeometryChangedEvent evt)
+	{
+		base.OnGeometryChanged(evt);
+		m_ItemContainer?.UpdateWorldTransform();
+	}
 }

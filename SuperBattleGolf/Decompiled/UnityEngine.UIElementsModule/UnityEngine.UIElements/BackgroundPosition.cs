@@ -4,6 +4,7 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct BackgroundPosition : IEquatable<BackgroundPosition>
 {
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]

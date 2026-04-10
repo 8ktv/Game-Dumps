@@ -10,13 +10,13 @@ public class BindableElement : VisualElement, IBindable
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : VisualElement.UxmlSerializedData
 	{
-		[BindingPathDrawer]
-		[SerializeField]
 		[Tooltip("Default method to define a path to a serialized property. Most often used for Editor extensions and inspectors.")]
+		[SerializeField]
+		[BindingPathDrawer]
 		private string bindingPath;
 
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
 		[HideInInspector]
 		private UxmlAttributeFlags bindingPath_UxmlAttributeFlags;
 

@@ -562,7 +562,7 @@ public class SplineAnimate : SplineComponent
 		position = m_Target.EvaluatePosition(m_SplinePath, loopInterpolation);
 		rotation = Quaternion.identity;
 		float3 axis = GetAxis(m_ObjectForwardAxis);
-		Quaternion quaternion = Quaternion.Inverse(Quaternion.LookRotation(upwards: GetAxis(m_ObjectUpAxis), forward: axis));
+		Quaternion quaternion = Quaternion.Inverse(Quaternion.LookRotation(upwards: (Vector3)GetAxis(m_ObjectUpAxis), forward: (Vector3)axis));
 		if (m_AlignmentMode != AlignmentMode.None)
 		{
 			Vector3 vector = Vector3.forward;

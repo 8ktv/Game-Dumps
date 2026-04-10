@@ -2,10 +2,13 @@ using System;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleInt : IStyleValue<int>, IEquatable<StyleInt>
 {
+	[SerializeField]
 	private int m_Value;
 
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
 	public int value

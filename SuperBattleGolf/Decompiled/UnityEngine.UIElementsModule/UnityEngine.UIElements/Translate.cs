@@ -5,6 +5,7 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct Translate : IEquatable<Translate>
 {
 	internal class PropertyBag : ContainerPropertyBag<Translate>
@@ -68,12 +69,16 @@ public struct Translate : IEquatable<Translate>
 		}
 	}
 
+	[SerializeField]
 	private Length m_X;
 
+	[SerializeField]
 	private Length m_Y;
 
+	[SerializeField]
 	private float m_Z;
 
+	[SerializeField]
 	private bool m_isNone;
 
 	public Length x

@@ -26,9 +26,9 @@ internal class DrivenPropertyManager
 		UnregisterPropertyPartial(driver, target, propertyPath);
 	}
 
-	[StaticAccessor("GetDrivenPropertyManager()", StaticAccessorType.Dot)]
 	[Conditional("UNITY_EDITOR")]
 	[NativeConditional("UNITY_EDITOR")]
+	[StaticAccessor("GetDrivenPropertyManager()", StaticAccessorType.Dot)]
 	public static void UnregisterProperties([NotNull] Object driver)
 	{
 		if ((object)driver == null)
@@ -43,8 +43,8 @@ internal class DrivenPropertyManager
 		UnregisterProperties_Injected(intPtr);
 	}
 
-	[StaticAccessor("GetDrivenPropertyManager()", StaticAccessorType.Dot)]
 	[NativeConditional("UNITY_EDITOR")]
+	[StaticAccessor("GetDrivenPropertyManager()", StaticAccessorType.Dot)]
 	private unsafe static void RegisterPropertyPartial([NotNull] Object driver, [NotNull] Object target, [NotNull] string propertyPath)
 	{
 		//The blocks IL_0080 are reachable both inside and outside the pinned region starting at IL_006f. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -90,8 +90,8 @@ internal class DrivenPropertyManager
 		}
 	}
 
-	[NativeConditional("UNITY_EDITOR")]
 	[StaticAccessor("GetDrivenPropertyManager()", StaticAccessorType.Dot)]
+	[NativeConditional("UNITY_EDITOR")]
 	private unsafe static void TryRegisterPropertyPartial([NotNull] Object driver, [NotNull] Object target, [NotNull] string propertyPath)
 	{
 		//The blocks IL_0080 are reachable both inside and outside the pinned region starting at IL_006f. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.

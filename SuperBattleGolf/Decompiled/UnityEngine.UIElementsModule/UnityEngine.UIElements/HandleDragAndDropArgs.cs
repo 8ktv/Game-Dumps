@@ -18,6 +18,8 @@ public readonly struct HandleDragAndDropArgs
 
 	public DragAndDropData dragAndDropData => m_DragAndDropArgs.dragAndDropData;
 
+	internal EventModifiers modifiers => m_DragAndDropArgs.modifiers;
+
 	internal HandleDragAndDropArgs(Vector2 position, DragAndDropArgs dragAndDropArgs)
 	{
 		this.position = position;

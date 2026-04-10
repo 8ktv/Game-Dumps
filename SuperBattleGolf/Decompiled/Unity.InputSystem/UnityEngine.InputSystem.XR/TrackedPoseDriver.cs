@@ -1,12 +1,11 @@
 using System;
 using UnityEngine.InputSystem.LowLevel;
-using UnityEngine.XR;
 
 namespace UnityEngine.InputSystem.XR;
 
 [Serializable]
 [AddComponentMenu("XR/Tracked Pose Driver (Input System)")]
-[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.14/manual/TrackedInputDevices.html#tracked-pose-driver")]
+[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.18/manual/TrackedInputDevices.html#tracked-pose-driver")]
 public class TrackedPoseDriver : MonoBehaviour, ISerializationCallbackReceiver
 {
 	public enum TrackingType
@@ -372,10 +371,6 @@ public class TrackedPoseDriver : MonoBehaviour, ISerializationCallbackReceiver
 
 	protected virtual void Awake()
 	{
-		if (HasStereoCamera(out var cameraComponent))
-		{
-			XRDevice.DisableAutoXRCameraTracking(cameraComponent, disabled: true);
-		}
 	}
 
 	protected void OnEnable()
@@ -395,10 +390,6 @@ public class TrackedPoseDriver : MonoBehaviour, ISerializationCallbackReceiver
 
 	protected virtual void OnDestroy()
 	{
-		if (HasStereoCamera(out var cameraComponent))
-		{
-			XRDevice.DisableAutoXRCameraTracking(cameraComponent, disabled: false);
-		}
 	}
 
 	protected void UpdateCallback()
@@ -510,28 +501,35 @@ public class TrackedPoseDriver : MonoBehaviour, ISerializationCallbackReceiver
 	{
 		bool flag = m_IgnoreTrackingState || (m_CurrentTrackingState & TrackingStates.Position) != 0;
 		bool flag2 = m_IgnoreTrackingState || (m_CurrentTrackingState & TrackingStates.Rotation) != 0;
-		if (m_TrackingType == TrackingType.RotationAndPosition && flag2 && flag)
+		switch (m_TrackingType)
 		{
-			base.transform.SetLocalPositionAndRotation(newPosition, newRotation);
-			return;
+		case TrackingType.RotationAndPosition:
+			if (flag2 && flag)
+			{
+				base.transform.SetLocalPositionAndRotation(newPosition, newRotation);
+			}
+			else if (flag2)
+			{
+				base.transform.localRotation = newRotation;
+			}
+			else if (flag)
+			{
+				base.transform.localPosition = newPosition;
+			}
+			break;
+		case TrackingType.PositionOnly:
+			if (flag)
+			{
+				base.transform.localPosition = newPosition;
+			}
+			break;
+		case TrackingType.RotationOnly:
+			if (flag2)
+			{
+				base.transform.localRotation = newRotation;
+			}
+			break;
 		}
-		if (flag2 && (m_TrackingType == TrackingType.RotationAndPosition || m_TrackingType == TrackingType.RotationOnly))
-		{
-			base.transform.localRotation = newRotation;
-		}
-		if (flag && (m_TrackingType == TrackingType.RotationAndPosition || m_TrackingType == TrackingType.PositionOnly))
-		{
-			base.transform.localPosition = newPosition;
-		}
-	}
-
-	private bool HasStereoCamera(out Camera cameraComponent)
-	{
-		if (TryGetComponent<Camera>(out cameraComponent))
-		{
-			return cameraComponent.stereoEnabled;
-		}
-		return false;
 	}
 
 	private unsafe static bool HasResolvedControl(InputAction action)

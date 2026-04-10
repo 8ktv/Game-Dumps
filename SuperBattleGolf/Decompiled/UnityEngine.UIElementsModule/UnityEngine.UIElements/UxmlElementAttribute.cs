@@ -11,13 +11,21 @@ public class UxmlElementAttribute : Attribute
 
 	public string libraryPath;
 
+	internal readonly Type[] supportedChildTypes;
+
 	public UxmlElementAttribute()
 		: this(null)
 	{
 	}
 
 	public UxmlElementAttribute(string uxmlName)
+		: this(uxmlName, (Type[])null)
+	{
+	}
+
+	public UxmlElementAttribute(string uxmlName, params Type[] supportedTypes)
 	{
 		name = uxmlName;
+		supportedChildTypes = supportedTypes;
 	}
 }

@@ -947,7 +947,7 @@ internal sealed class VisualManager : IDisposable
 	}
 
 	[NativeThrows]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	internal PseudoStates GetPseudoStates(in VisualNodeHandle handle)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -970,7 +970,7 @@ internal sealed class VisualManager : IDisposable
 	}
 
 	[NativeThrows]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	internal RenderHints GetRenderHints(in VisualNodeHandle handles)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -993,7 +993,7 @@ internal sealed class VisualManager : IDisposable
 	}
 
 	[NativeThrows]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	internal LanguageDirection GetLanguageDirection(in VisualNodeHandle handle)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -1016,7 +1016,7 @@ internal sealed class VisualManager : IDisposable
 	}
 
 	[NativeThrows]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	internal LanguageDirection GetLocalLanguageDirection(in VisualNodeHandle handle)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);

@@ -16,26 +16,26 @@ public class DropdownField : PopupField<string>
 		private int index;
 
 		[SerializeField]
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags index_UxmlAttributeFlags;
 
 		[SerializeField]
 		private List<string> choices;
 
+		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
-		[HideInInspector]
 		private UxmlAttributeFlags choices_UxmlAttributeFlags;
 
-		[SerializeField]
-		[HideInInspector]
 		[UxmlAttribute("value")]
+		[HideInInspector]
+		[SerializeField]
 		private int valueOverride;
 
 		[SerializeField]
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags valueOverride_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]

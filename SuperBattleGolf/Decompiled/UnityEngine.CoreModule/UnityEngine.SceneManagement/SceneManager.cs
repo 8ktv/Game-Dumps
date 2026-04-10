@@ -1,3 +1,4 @@
+#define UNITY_ASSERTIONS
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -28,9 +29,9 @@ public class SceneManager
 	public static extern int loadedSceneCount
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
+		[NativeHeader("Runtime/SceneManager/SceneManager.h")]
 		[NativeMethod("GetLoadedSceneCount")]
 		[StaticAccessor("GetSceneManager()", StaticAccessorType.Dot)]
-		[NativeHeader("Runtime/SceneManager/SceneManager.h")]
 		get;
 	}
 
@@ -55,8 +56,8 @@ public class SceneManager
 		return ret;
 	}
 
-	[NativeThrows]
 	[StaticAccessor("SceneManagerBindings", StaticAccessorType.DoubleColon)]
+	[NativeThrows]
 	public static bool SetActiveScene(Scene scene)
 	{
 		return SetActiveScene_Injected(ref scene);
@@ -127,16 +128,16 @@ public class SceneManager
 		return SceneManagerAPI.ActiveAPI.GetSceneByBuildIndex(buildIndex);
 	}
 
-	[NativeThrows]
 	[StaticAccessor("SceneManagerBindings", StaticAccessorType.DoubleColon)]
+	[NativeThrows]
 	public static Scene GetSceneAt(int index)
 	{
 		GetSceneAt_Injected(index, out var ret);
 		return ret;
 	}
 
-	[StaticAccessor("SceneManagerBindings", StaticAccessorType.DoubleColon)]
 	[NativeThrows]
+	[StaticAccessor("SceneManagerBindings", StaticAccessorType.DoubleColon)]
 	public unsafe static Scene CreateScene([NotNull] string sceneName, CreateSceneParameters parameters)
 	{
 		//The blocks IL_0038 are reachable both inside and outside the pinned region starting at IL_0027. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -177,8 +178,8 @@ public class SceneManager
 		return UnloadSceneInternal_Injected(ref scene, options);
 	}
 
-	[StaticAccessor("SceneManagerBindings", StaticAccessorType.DoubleColon)]
 	[NativeThrows]
+	[StaticAccessor("SceneManagerBindings", StaticAccessorType.DoubleColon)]
 	private static AsyncOperation UnloadSceneAsyncInternal(Scene scene, UnloadSceneOptions options)
 	{
 		IntPtr intPtr = UnloadSceneAsyncInternal_Injected(ref scene, options);
@@ -234,6 +235,7 @@ public class SceneManager
 		MoveGameObjectsToSceneByInstanceId_Injected(instanceIds, instanceCount, ref scene);
 	}
 
+	[Obsolete("Please use MoveGameObjectsToScene(NativeArray<EntityId>, Scene scene) with the EntityId parameter type instead.", false)]
 	public unsafe static void MoveGameObjectsToScene(NativeArray<int> instanceIDs, Scene scene)
 	{
 		if (!instanceIDs.IsCreated)
@@ -242,7 +244,20 @@ public class SceneManager
 		}
 		if (instanceIDs.Length != 0)
 		{
+			Debug.Assert(sizeof(EntityId) == 4, "EntityId size mismatch. This method should be removed, as it relies on this size.");
 			MoveGameObjectsToSceneByInstanceId((IntPtr)instanceIDs.GetUnsafeReadOnlyPtr(), instanceIDs.Length, scene);
+		}
+	}
+
+	public unsafe static void MoveGameObjectsToScene(NativeArray<EntityId> entityIds, Scene scene)
+	{
+		if (!entityIds.IsCreated)
+		{
+			throw new ArgumentException("NativeArray is uninitialized", "entityIds");
+		}
+		if (entityIds.Length != 0)
+		{
+			MoveGameObjectsToSceneByInstanceId((IntPtr)entityIds.GetUnsafeReadOnlyPtr(), entityIds.Length, scene);
 		}
 	}
 

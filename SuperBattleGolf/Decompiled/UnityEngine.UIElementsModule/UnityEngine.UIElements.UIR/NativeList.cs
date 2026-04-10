@@ -6,6 +6,8 @@ namespace UnityEngine.UIElements.UIR;
 
 internal class NativeList<T> : IDisposable where T : struct
 {
+	private readonly MemoryLabel m_MemoryLabel;
+
 	private NativeArray<T> m_NativeArray;
 
 	private int m_Count;
@@ -14,15 +16,23 @@ internal class NativeList<T> : IDisposable where T : struct
 
 	protected bool disposed { get; private set; }
 
-	public NativeList(int initialCapacity)
+	public NativeList(int initialCapacity, MemoryLabel allocLabel)
 	{
 		Debug.Assert(initialCapacity > 0);
-		m_NativeArray = new NativeArray<T>(initialCapacity, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+		m_MemoryLabel = allocLabel;
+		m_NativeArray = new NativeArray<T>(initialCapacity, allocLabel, NativeArrayOptions.UninitializedMemory);
+	}
+
+	public NativeList(int initialCapacity, MemoryLabel allocLabel, Allocator allocator)
+	{
+		Debug.Assert(initialCapacity > 0);
+		m_MemoryLabel = allocLabel;
+		m_NativeArray = new NativeArray<T>(initialCapacity, allocator, NativeArrayOptions.UninitializedMemory);
 	}
 
 	private void Expand(int newLength)
 	{
-		NativeArray<T> nativeArray = new NativeArray<T>(newLength, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+		NativeArray<T> nativeArray = new NativeArray<T>(newLength, m_MemoryLabel, NativeArrayOptions.UninitializedMemory);
 		nativeArray.Slice(0, m_Count).CopyFrom(m_NativeArray);
 		m_NativeArray.Dispose();
 		m_NativeArray = nativeArray;

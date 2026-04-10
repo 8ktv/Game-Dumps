@@ -137,11 +137,11 @@ public abstract class BaseTreeViewController : CollectionViewController
 			HierarchyNode parentNode = m_IdToNodeDictionary[id];
 			if (m_Hierarchy.Exists(in parentNode))
 			{
-				HierarchyFlattenedNodeChildren.Enumerator enumerator3 = m_HierarchyFlattened.EnumerateChildren(in parentNode).GetEnumerator();
+				HierarchyFlattenedChildrenEnumerable.Enumerator enumerator3 = m_HierarchyFlattened.EnumerateChildren(in parentNode).GetEnumerator();
 				while (enumerator3.MoveNext())
 				{
-					HierarchyNode node2 = enumerator3.Current;
-					yield return m_TreeViewDataProperty.GetValue(in node2);
+					HierarchyFlattenedNode flattenedNode2 = enumerator3.Current;
+					yield return m_TreeViewDataProperty.GetValue(flattenedNode2.Node);
 				}
 				yield return id;
 			}
@@ -287,11 +287,11 @@ public abstract class BaseTreeViewController : CollectionViewController
 		}
 		if (flag)
 		{
-			m_HierarchyViewModel.ClearFlags(GetHierarchyNodeByIndex(index), HierarchyNodeFlags.Expanded, recurse: true);
+			m_HierarchyViewModel.ClearFlagsRecursive(GetHierarchyNodeByIndex(index), HierarchyNodeFlags.Expanded, HierarchyTraversalDirection.Children);
 		}
 		else
 		{
-			m_HierarchyViewModel.SetFlags(GetHierarchyNodeByIndex(index), HierarchyNodeFlags.Expanded, recurse: true);
+			m_HierarchyViewModel.SetFlagsRecursive(GetHierarchyNodeByIndex(index), HierarchyNodeFlags.Expanded, HierarchyTraversalDirection.Children);
 		}
 		UpdateHierarchy();
 		baseTreeView.RefreshItems();
@@ -488,7 +488,7 @@ public abstract class BaseTreeViewController : CollectionViewController
 		if (IsViewDataKeyEnabled())
 		{
 			baseTreeView.expandedItemIds.Clear();
-			HierarchyViewNodesEnumerable.Enumerator enumerator = m_HierarchyViewModel.EnumerateNodesWithAllFlags(HierarchyNodeFlags.Expanded).GetEnumerator();
+			HierarchyViewModelNodesEnumerable.Enumerator enumerator = m_HierarchyViewModel.EnumerateNodesWithAllFlags(HierarchyNodeFlags.Expanded).GetEnumerator();
 			while (enumerator.MoveNext())
 			{
 				HierarchyNode node = enumerator.Current;
@@ -520,7 +520,14 @@ public abstract class BaseTreeViewController : CollectionViewController
 		{
 			return;
 		}
-		m_HierarchyViewModel.SetFlags(in node, HierarchyNodeFlags.Expanded, expandAllChildren);
+		if (expandAllChildren)
+		{
+			m_HierarchyViewModel.SetFlagsRecursive(in node, HierarchyNodeFlags.Expanded, HierarchyTraversalDirection.Children);
+		}
+		else
+		{
+			m_HierarchyViewModel.SetFlags(in node, HierarchyNodeFlags.Expanded);
+		}
 		m_HierarchyHasPendingChanged = true;
 		if (IsViewDataKeyEnabled())
 		{
@@ -565,7 +572,14 @@ public abstract class BaseTreeViewController : CollectionViewController
 			baseTreeView.expandedItemIds.Remove(value);
 			baseTreeView.SaveViewData();
 		}
-		m_HierarchyViewModel.ClearFlags(in node, HierarchyNodeFlags.Expanded, collapseAllChildren);
+		if (collapseAllChildren)
+		{
+			m_HierarchyViewModel.ClearFlagsRecursive(in node, HierarchyNodeFlags.Expanded, HierarchyTraversalDirection.Children);
+		}
+		else
+		{
+			m_HierarchyViewModel.ClearFlags(in node, HierarchyNodeFlags.Expanded);
+		}
 		m_HierarchyHasPendingChanged = true;
 		if (refresh)
 		{
@@ -585,7 +599,7 @@ public abstract class BaseTreeViewController : CollectionViewController
 		{
 			list.AddRange(baseTreeView.expandedItemIds);
 		}
-		HierarchyViewNodesEnumerable.Enumerator enumerator = m_HierarchyViewModel.EnumerateNodesWithAllFlags(HierarchyNodeFlags.Expanded).GetEnumerator();
+		HierarchyViewModelNodesEnumerable.Enumerator enumerator = m_HierarchyViewModel.EnumerateNodesWithAllFlags(HierarchyNodeFlags.Expanded).GetEnumerator();
 		while (enumerator.MoveNext())
 		{
 			HierarchyNode node = enumerator.Current;

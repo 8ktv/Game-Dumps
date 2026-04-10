@@ -7,13 +7,15 @@ using UnityEngine.Rendering;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Input/GetInput.h")]
-[NativeHeader("Runtime/Camera/RenderLoops/MotionVectorRenderLoop.h")]
-[NativeHeader("Runtime/Graphics/GraphicsFormatUtility.bindings.h")]
-[NativeHeader("Runtime/Shaders/GraphicsCapsScriptBindings.h")]
 [NativeHeader("Runtime/Misc/SystemInfo.h")]
-[NativeHeader("Runtime/Misc/SystemInfoMemory.h")]
+[NativeHeader("Runtime/Graphics/GraphicsFormatUtility.bindings.h")]
 [NativeHeader("Runtime/Graphics/Mesh/MeshScriptBindings.h")]
+[NativeHeader("Runtime/Misc/SystemInfoAudio.h")]
+[NativeHeader("Runtime/Camera/RenderLoops/MotionVectorRenderLoop.h")]
+[NativeHeader("Runtime/Misc/SystemInfoMemory.h")]
+[NativeHeader("Runtime/Shaders/GraphicsCapsScriptBindings.h")]
+[NativeHeader("Runtime/Misc/SystemInfoRendering.h")]
+[NativeHeader("Runtime/Input/GetInput.h")]
 public sealed class SystemInfo
 {
 	public const string unsupportedIdentifier = "n/a";
@@ -54,6 +56,8 @@ public sealed class SystemInfo
 	public static bool supportsVibration => SupportsVibration();
 
 	public static bool supportsAudio => SupportsAudio();
+
+	public static bool supportsRendering => SupportsRendering();
 
 	public static DeviceType deviceType => GetDeviceType();
 
@@ -144,7 +148,11 @@ public sealed class SystemInfo
 
 	public static bool supportsMultisampledBackBuffer => SupportsMultisampledBackBuffer();
 
+	public static bool supportsMemorylessTextures => SupportsMemorylessTextures();
+
 	public static bool supportsMultisampleAutoResolve => SupportsMultisampleAutoResolve();
+
+	public static bool supportsMultisampledShaderResolve => SupportsMultisampledShaderResolve();
 
 	public static int supportsTextureWrapMirrorOnce => SupportsTextureWrapMirrorOnce();
 
@@ -154,6 +162,10 @@ public sealed class SystemInfo
 	public static int supportsStencil => 1;
 
 	public static bool supportsVariableRateShading => SupportsVariableRateShading();
+
+	public static int maxTiledPixelStorageSize => MaxTiledPixelStorageSize();
+
+	public static bool supportsDynamicResolution => SupportsDynamicResolution();
 
 	public static NPOTSupport npotSupport => GetNPOTSupport();
 
@@ -475,6 +487,10 @@ public sealed class SystemInfo
 	private static extern bool SupportsAudio();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	[FreeFunction("systeminfo::SupportsRendering")]
+	private static extern bool SupportsRendering();
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction("systeminfo::GetDeviceType")]
 	private static extern DeviceType GetDeviceType();
 
@@ -695,8 +711,16 @@ public sealed class SystemInfo
 	private static extern bool SupportsMultisampledBackBuffer();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	[FreeFunction("ScriptingGraphicsCaps::SupportsMemorylessTextures")]
+	private static extern bool SupportsMemorylessTextures();
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction("ScriptingGraphicsCaps::SupportsMultisampleAutoResolve")]
 	private static extern bool SupportsMultisampleAutoResolve();
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[FreeFunction("ScriptingGraphicsCaps::SupportsMultisampledShaderResolve")]
+	private static extern bool SupportsMultisampledShaderResolve();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction("ScriptingGraphicsCaps::SupportsTextureWrapMirrorOnce")]
@@ -871,6 +895,10 @@ public sealed class SystemInfo
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	[FreeFunction("ScriptingGraphicsCaps::GetTiledRenderTargetStorageSize")]
+	public static extern int GetTiledRenderTargetStorageSize(GraphicsFormat format, int sampleCount);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction("ScriptingGraphicsCaps::UsesLoadStoreActions")]
 	private static extern bool UsesLoadStoreActions();
 
@@ -909,6 +937,14 @@ public sealed class SystemInfo
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction("ScriptingGraphicsCaps::SupportsVariableRateShading")]
 	private static extern bool SupportsVariableRateShading();
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[FreeFunction("ScriptingGraphicsCaps::MaxTiledPixelStorageSize")]
+	private static extern int MaxTiledPixelStorageSize();
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[FreeFunction("ScriptingGraphicsCaps::SupportsDynamicResolution")]
+	private static extern bool SupportsDynamicResolution();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void GetOperatingSystem_Injected(out ManagedSpanWrapper ret);

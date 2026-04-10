@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using UnityEngine.Bindings;
 using UnityEngine.Serialization;
 
 namespace UnityEngine.TextCore.Text;
@@ -19,6 +21,8 @@ public abstract class TextAsset : ScriptableObject
 	internal Material m_Material;
 
 	internal int m_MaterialHashCode;
+
+	private static Dictionary<int, WeakReference<TextAsset>> kTextAssetByInstanceId = new Dictionary<int, WeakReference<TextAsset>>();
 
 	public string version
 	{
@@ -90,5 +94,25 @@ public abstract class TextAsset : ScriptableObject
 		{
 			m_MaterialHashCode = value;
 		}
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+	internal static TextAsset GetTextAssetByID(int id)
+	{
+		if (kTextAssetByInstanceId.TryGetValue(id, out var value) && value.TryGetTarget(out var target))
+		{
+			return target;
+		}
+		return null;
+	}
+
+	internal virtual void OnDestroy()
+	{
+		kTextAssetByInstanceId.Remove(instanceID);
+	}
+
+	internal virtual void OnEnable()
+	{
+		kTextAssetByInstanceId.TryAdd(instanceID, new WeakReference<TextAsset>(this));
 	}
 }

@@ -3,9 +3,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Modules/Physics2D/Public/Physics2DSettings.h")]
 [RequiredByNativeCode(Optional = true, GenerateProxy = true)]
 [NativeClass("PhysicsJobOptions2D", "struct PhysicsJobOptions2D;")]
+[NativeHeader("Modules/Physics2D/Public/Physics2DSettings.h")]
 public struct PhysicsJobOptions2D
 {
 	private bool m_UseMultithreading;

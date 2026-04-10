@@ -1,3 +1,4 @@
+#define UNITY_ASSERTIONS
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -14,8 +15,8 @@ using UnityEngineInternal;
 namespace UnityEngine;
 
 [NativeHeader("Runtime/Export/Scripting/GameObject.bindings.h")]
-[ExcludeFromPreset]
 [UsedByNativeCode]
+[ExcludeFromPreset]
 public sealed class GameObject : Object
 {
 	public Transform transform
@@ -29,6 +30,21 @@ public sealed class GameObject : Object
 				ThrowHelper.ThrowNullReferenceException(this);
 			}
 			return Unmarshal.UnmarshalUnityObject<Transform>(get_transform_Injected(intPtr));
+		}
+	}
+
+	public TransformHandle transformHandle
+	{
+		[FreeFunction("GameObjectBindings::GetTransformHandle", HasExplicitThis = true)]
+		get
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			get_transformHandle_Injected(intPtr, out var ret);
+			return ret;
 		}
 	}
 
@@ -370,8 +386,8 @@ public sealed class GameObject : Object
 		return (T)(object)GetComponentInChildren(typeof(T), includeInactive);
 	}
 
-	[TypeInferenceRule(TypeInferenceRules.TypeReferencedByFirstArgument)]
 	[FreeFunction(Name = "GameObjectBindings::GetComponentInParent", HasExplicitThis = true, ThrowsException = true)]
+	[TypeInferenceRule(TypeInferenceRules.TypeReferencedByFirstArgument)]
 	public Component GetComponentInParent(Type type, bool includeInactive)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -505,8 +521,8 @@ public sealed class GameObject : Object
 		return component != null;
 	}
 
-	[FreeFunction(Name = "GameObjectBindings::TryGetComponentFromType", HasExplicitThis = true, ThrowsException = true)]
 	[TypeInferenceRule(TypeInferenceRules.TypeReferencedByFirstArgument)]
+	[FreeFunction(Name = "GameObjectBindings::TryGetComponentFromType", HasExplicitThis = true, ThrowsException = true)]
 	internal Component TryGetComponentInternal(Type type)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -695,8 +711,8 @@ public sealed class GameObject : Object
 		SetActive_Injected(intPtr, value);
 	}
 
-	[NativeMethod(Name = "SetActiveRecursivelyDeprecated")]
 	[Obsolete("gameObject.SetActiveRecursively() is obsolete. Use GameObject.SetActive(), which is now inherited by children.")]
+	[NativeMethod(Name = "SetActiveRecursivelyDeprecated")]
 	public void SetActiveRecursively(bool state)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1018,6 +1034,7 @@ public sealed class GameObject : Object
 	[FreeFunction(Name = "GameObjectBindings::SetGameObjectsActiveByInstanceID")]
 	private static extern void SetGameObjectsActive(IntPtr instanceIds, int instanceCount, bool active);
 
+	[Obsolete("Obsolete. Please use GameObject.SetGameObjectsActive(NativeArray<EntityId>, bool) instead.")]
 	public unsafe static void SetGameObjectsActive(NativeArray<int> instanceIDs, bool active)
 	{
 		if (!instanceIDs.IsCreated)
@@ -1030,6 +1047,20 @@ public sealed class GameObject : Object
 		}
 	}
 
+	public unsafe static void SetGameObjectsActive(NativeArray<EntityId> entityIds, bool active)
+	{
+		Debug.Assert(sizeof(EntityId) == 4, "EntityId size mismatch. Please check the definition of EntityId.");
+		if (!entityIds.IsCreated)
+		{
+			throw new ArgumentException("NativeArray is uninitialized", "entityIds");
+		}
+		if (entityIds.Length != 0)
+		{
+			SetGameObjectsActive((IntPtr)entityIds.GetUnsafeReadOnlyPtr(), entityIds.Length, active);
+		}
+	}
+
+	[Obsolete("Obsolete. Please use GameObject.SetGameObjectsActive(ReadOnlySpan<EntityId>, bool) instead.")]
 	public unsafe static void SetGameObjectsActive(ReadOnlySpan<int> instanceIDs, bool active)
 	{
 		if (instanceIDs.Length != 0)
@@ -1041,12 +1072,25 @@ public sealed class GameObject : Object
 		}
 	}
 
-	[FreeFunction("GameObjectBindings::InstantiateGameObjectsByInstanceID")]
-	private static void InstantiateGameObjects(int sourceInstanceID, IntPtr newInstanceIDs, IntPtr newTransformInstanceIDs, int count, Scene destinationScene)
+	public unsafe static void SetGameObjectsActive(ReadOnlySpan<EntityId> entityIds, bool active)
 	{
-		InstantiateGameObjects_Injected(sourceInstanceID, newInstanceIDs, newTransformInstanceIDs, count, ref destinationScene);
+		Debug.Assert(sizeof(EntityId) == 4, "EntityId size mismatch. Please check the definition of EntityId.");
+		if (entityIds.Length != 0)
+		{
+			fixed (EntityId* ptr = entityIds)
+			{
+				SetGameObjectsActive((IntPtr)ptr, entityIds.Length, active);
+			}
+		}
 	}
 
+	[FreeFunction("GameObjectBindings::InstantiateGameObjectsByInstanceID")]
+	private static void InstantiateGameObjects(EntityId sourceInstanceID, IntPtr newInstanceIDs, IntPtr newTransformInstanceIDs, int count, Scene destinationScene)
+	{
+		InstantiateGameObjects_Injected(ref sourceInstanceID, newInstanceIDs, newTransformInstanceIDs, count, ref destinationScene);
+	}
+
+	[Obsolete("Obsolete. Please use GameObject.InstantiateGameObjects(EntityId, int, NativeArray<EntityId>, NativeArray<EntityId>, Scene) instead.")]
 	public unsafe static void InstantiateGameObjects(int sourceInstanceID, int count, NativeArray<int> newInstanceIDs, NativeArray<int> newTransformInstanceIDs, Scene destinationScene = default(Scene))
 	{
 		if (!newInstanceIDs.IsCreated)
@@ -1067,11 +1111,43 @@ public sealed class GameObject : Object
 		}
 	}
 
-	[FreeFunction(Name = "GameObjectBindings::GetSceneByInstanceID")]
+	public unsafe static void InstantiateGameObjects(EntityId sourceEntityId, int count, NativeArray<EntityId> newEntityIds, NativeArray<EntityId> newTransformEntityIds, Scene destinationScene = default(Scene))
+	{
+		Debug.Assert(sizeof(EntityId) == 4, "EntityId size mismatch. Please check the definition of EntityId.");
+		if (!newEntityIds.IsCreated)
+		{
+			throw new ArgumentException("NativeArray is uninitialized", "newEntityIds");
+		}
+		if (!newTransformEntityIds.IsCreated)
+		{
+			throw new ArgumentException("NativeArray is uninitialized", "newTransformEntityIds");
+		}
+		if (count != 0)
+		{
+			if (count != newEntityIds.Length || count != newTransformEntityIds.Length)
+			{
+				throw new ArgumentException("Size mismatch! Both arrays must already be the size of count.");
+			}
+			InstantiateGameObjects(sourceEntityId, (IntPtr)newEntityIds.GetUnsafeReadOnlyPtr(), (IntPtr)newTransformEntityIds.GetUnsafeReadOnlyPtr(), newEntityIds.Length, destinationScene);
+		}
+	}
+
+	[Obsolete("Obsolete. Please use GameObject.GetScene(EntityId entityId) instead.")]
 	public static Scene GetScene(int instanceID)
 	{
-		GetScene_Injected(instanceID, out var ret);
+		return GetSceneInternal(instanceID);
+	}
+
+	[FreeFunction(Name = "GameObjectBindings::GetSceneByEntityId")]
+	private static Scene GetSceneInternal(EntityId entityId)
+	{
+		GetSceneInternal_Injected(ref entityId, out var ret);
 		return ret;
+	}
+
+	public static Scene GetScene(EntityId entityId)
+	{
+		return GetSceneInternal(entityId);
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -1124,6 +1200,9 @@ public sealed class GameObject : Object
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern IntPtr get_transform_Injected(IntPtr _unity_self);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void get_transformHandle_Injected(IntPtr _unity_self, out TransformHandle ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern int get_layer_Injected(IntPtr _unity_self);
@@ -1192,10 +1271,10 @@ public sealed class GameObject : Object
 	private static extern IntPtr Find_Injected(ref ManagedSpanWrapper name);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void InstantiateGameObjects_Injected(int sourceInstanceID, IntPtr newInstanceIDs, IntPtr newTransformInstanceIDs, int count, [In] ref Scene destinationScene);
+	private static extern void InstantiateGameObjects_Injected([In] ref EntityId sourceInstanceID, IntPtr newInstanceIDs, IntPtr newTransformInstanceIDs, int count, [In] ref Scene destinationScene);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void GetScene_Injected(int instanceID, out Scene ret);
+	private static extern void GetSceneInternal_Injected([In] ref EntityId entityId, out Scene ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void get_scene_Injected(IntPtr _unity_self, out Scene ret);

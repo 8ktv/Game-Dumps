@@ -205,17 +205,17 @@ public class OrbitalLaser : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 	{
 		if (base.isServer && state == OrbitalLaserState.Exploding)
 		{
-			int num = Physics.OverlapSphereNonAlloc(base.transform.position, GameManager.ItemSettings.OrbitalLaserExplosionMaxRange + GameManager.Achievements.DangerCloseDistanceFromExplosion, layerMask: GameManager.LayerSettings.OrbitalLaserHittablesMask, results: PlayerGolfer.overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
-			for (int i = 0; i < num; i++)
-			{
-				ParseHitCollider(PlayerGolfer.overlappingColliderBuffer[i], hitByLaser: false);
-			}
 			Vector3 position = base.transform.position;
 			Vector3 vector = base.transform.position + GameManager.ItemSettings.OrbitalLaserExplosionLaserHeight * Vector3.up;
-			num = Physics.OverlapCapsuleNonAlloc(position, vector, GameManager.ItemSettings.OrbitalLaserExplosionLaserRadius, layerMask: GameManager.LayerSettings.OrbitalLaserHittablesMask, results: PlayerGolfer.overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
+			int num = Physics.OverlapCapsuleNonAlloc(position, vector, GameManager.ItemSettings.OrbitalLaserExplosionLaserRadius, layerMask: GameManager.LayerSettings.OrbitalLaserHittablesMask, results: PlayerGolfer.overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
+			for (int i = 0; i < num; i++)
+			{
+				ParseHitCollider(PlayerGolfer.overlappingColliderBuffer[i], hitByLaser: true);
+			}
+			num = Physics.OverlapSphereNonAlloc(base.transform.position, GameManager.ItemSettings.OrbitalLaserExplosionMaxRange + GameManager.Achievements.DangerCloseDistanceFromExplosion, layerMask: GameManager.LayerSettings.OrbitalLaserHittablesMask, results: PlayerGolfer.overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
 			for (int j = 0; j < num; j++)
 			{
-				ParseHitCollider(PlayerGolfer.overlappingColliderBuffer[j], hitByLaser: true);
+				ParseHitCollider(PlayerGolfer.overlappingColliderBuffer[j], hitByLaser: false);
 			}
 			if (drawOrbitalLaserDebug)
 			{
@@ -243,7 +243,7 @@ public class OrbitalLaser : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 				{
 					Vector3 direction = closestPoint - base.transform.position;
 					float num2 = (hitByLaser ? 0f : BMath.Sqrt(distanceSquared));
-					if (!hitByLaser && num2 <= GameManager.ItemSettings.OrbitalLaserExplosionMaxRange)
+					if (num2 <= GameManager.ItemSettings.OrbitalLaserExplosionMaxRange)
 					{
 						hittable.HitWithItem(ItemType.OrbitalLaser, itemUseId, hittable.transform.InverseTransformPoint(closestPoint), direction, hittable.transform.InverseTransformPoint(base.transform.position), num2, owner, isReflected: false, isInSpecialState: false, canHitWithNoUser: true);
 					}

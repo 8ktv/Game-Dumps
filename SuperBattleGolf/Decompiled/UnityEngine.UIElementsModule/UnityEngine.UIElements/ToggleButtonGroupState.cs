@@ -140,7 +140,7 @@ public struct ToggleButtonGroupState : IEquatable<ToggleButtonGroupState>, IComp
 	{
 		if (!TypeTraits<T>.IsEnumFlags)
 		{
-			throw new ArgumentException("Enum type T is not a flag enum type.");
+			throw new ArgumentException("Enum type " + typeof(T).Name + " is not a flag enum type.");
 		}
 		Type underlyingType = Enum.GetUnderlyingType(typeof(T));
 		if (length == -1)
@@ -173,7 +173,7 @@ public struct ToggleButtonGroupState : IEquatable<ToggleButtonGroupState>, IComp
 	{
 		if (!TypeTraits<T>.IsEnumFlags)
 		{
-			throw new ArgumentException("Enum type T is not a flag enum type.");
+			throw new ArgumentException("Enum type " + typeof(T).Name + " is not a flag enum type.");
 		}
 		Type underlyingType = Enum.GetUnderlyingType(typeof(T));
 		TypeCode typeCode = Type.GetTypeCode(underlyingType);
@@ -212,7 +212,7 @@ public struct ToggleButtonGroupState : IEquatable<ToggleButtonGroupState>, IComp
 	{
 		if (!TypeTraits<T>.IsEnumFlags)
 		{
-			throw new ArgumentException("Enum type T is not a flag enum type.");
+			throw new ArgumentException("Enum type " + typeof(T).Name + " is not a flag enum type.");
 		}
 		ulong num = (ulong)UnsafeUtility.As<T, int>(ref value);
 		return options.m_Data == num;

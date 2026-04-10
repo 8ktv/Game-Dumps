@@ -8,8 +8,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Jobs/ScriptBindings/JobsBindingsTypes.h")]
 [NativeHeader("Modules/Physics/BatchCommands/BoxcastCommand.h")]
+[NativeHeader("Runtime/Jobs/ScriptBindings/JobsBindingsTypes.h")]
 public struct BoxcastCommand
 {
 	public QueryParameters queryParameters;

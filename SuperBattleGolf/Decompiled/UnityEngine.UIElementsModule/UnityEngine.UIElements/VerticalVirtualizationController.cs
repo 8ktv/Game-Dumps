@@ -44,7 +44,7 @@ internal abstract class VerticalVirtualizationController<T> : CollectionVirtuali
 
 	public override IEnumerable<ReusableCollectionItem> activeItems => m_ActiveItems;
 
-	internal int itemsCount => m_CollectionView.itemsSource.Count;
+	internal int itemsCount => m_CollectionView.viewController?.GetItemsCount() ?? m_CollectionView.itemsSource.Count;
 
 	internal T firstVisibleItem
 	{
@@ -245,9 +245,24 @@ internal abstract class VerticalVirtualizationController<T> : CollectionVirtuali
 		}
 	}
 
+	private bool IsContentContainerPanelDirtied()
+	{
+		return m_ScrollView.contentContainer.panel?.isDirty ?? false;
+	}
+
+	private bool ShouldStopDeferredScrollTo()
+	{
+		return !IsContentContainerPanelDirtied();
+	}
+
 	protected bool ShouldDeferScrollToItem(int index)
 	{
-		if (m_ScrollView.contentContainer.layoutNode.IsDirty)
+		IVisualElementScheduledItem scheduleDeferredScrollToItem = m_ScheduleDeferredScrollToItem;
+		if (scheduleDeferredScrollToItem != null && scheduleDeferredScrollToItem.isActive)
+		{
+			return false;
+		}
+		if (IsContentContainerPanelDirtied())
 		{
 			m_DeferredScrollToItemIndex = index;
 			return true;
@@ -261,11 +276,12 @@ internal abstract class VerticalVirtualizationController<T> : CollectionVirtuali
 		{
 			if (m_ScheduleDeferredScrollToItem == null)
 			{
-				m_ScheduleDeferredScrollToItem = m_CollectionView.schedule.Execute(m_PerformDeferredScrollToItem);
-				return;
+				m_ScheduleDeferredScrollToItem = m_CollectionView.schedule.Execute(m_PerformDeferredScrollToItem).Until(ShouldStopDeferredScrollTo);
 			}
-			m_ScheduleDeferredScrollToItem.Pause();
-			m_ScheduleDeferredScrollToItem.Resume();
+			else if (!m_ScheduleDeferredScrollToItem.isActive)
+			{
+				m_ScheduleDeferredScrollToItem.Resume();
+			}
 		}
 	}
 
@@ -273,9 +289,20 @@ internal abstract class VerticalVirtualizationController<T> : CollectionVirtuali
 	{
 		if (m_DeferredScrollToItemIndex.HasValue)
 		{
-			int value = m_DeferredScrollToItemIndex.Value;
-			m_DeferredScrollToItemIndex = null;
-			ScrollToItem(value);
+			ScrollToItem(m_DeferredScrollToItemIndex.Value);
+		}
+		else
+		{
+			m_ScheduleDeferredScrollToItem.Pause();
+		}
+	}
+
+	protected void StopDeferredScrollToItem()
+	{
+		m_DeferredScrollToItemIndex = null;
+		if (m_ScheduleDeferredScrollToItem != null && m_ScheduleDeferredScrollToItem.isActive)
+		{
+			m_ScheduleDeferredScrollToItem.Pause();
 		}
 	}
 

@@ -12,8 +12,6 @@ internal class IRenderGraphResource
 
 	public bool requestFallBack;
 
-	public bool forceRelease;
-
 	public uint writeCount;
 
 	public uint readCount;
@@ -23,8 +21,6 @@ internal class IRenderGraphResource
 	public int transientPassIndex;
 
 	public int sharedResourceLastFrameUsed;
-
-	public int version;
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public virtual void Reset(IRenderGraphResourcePool _ = null)
@@ -36,10 +32,8 @@ internal class IRenderGraphResource
 		transientPassIndex = -1;
 		sharedResourceLastFrameUsed = -1;
 		requestFallBack = false;
-		forceRelease = false;
 		writeCount = 0u;
 		readCount = 0u;
-		version = 0;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -55,22 +49,16 @@ internal class IRenderGraphResource
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public virtual void IncrementWriteCount()
+	public virtual uint IncrementWriteCount()
 	{
 		writeCount++;
+		return writeCount;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public virtual void IncrementReadCount()
 	{
 		readCount++;
-	}
-
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public virtual int NewVersion()
-	{
-		version++;
-		return version;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -83,7 +71,7 @@ internal class IRenderGraphResource
 		return false;
 	}
 
-	public virtual void CreatePooledGraphicsResource()
+	public virtual void CreatePooledGraphicsResource(bool forceResourceCreation)
 	{
 	}
 

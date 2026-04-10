@@ -10,7 +10,7 @@ using UnityEngine.UI;
 namespace UnityEngine.InputSystem.OnScreen;
 
 [AddComponentMenu("Input/On-Screen Stick")]
-[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.14/manual/OnScreen.html#on-screen-sticks")]
+[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.18/manual/OnScreen.html#on-screen-sticks")]
 public class OnScreenStick : OnScreenControl, IPointerDownHandler, IEventSystemHandler, IPointerUpHandler, IDragHandler
 {
 	public enum Behaviour

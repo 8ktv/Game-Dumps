@@ -9,8 +9,8 @@ namespace UnityEngine;
 
 [UsedByNativeCode]
 [MovedFrom(true, "UnityEditor.Animations", "UnityEditor", null)]
-[NativeHeader("Modules/Animation/AvatarMask.h")]
 [NativeHeader("Modules/Animation/ScriptBindings/Animation.bindings.h")]
+[NativeHeader("Modules/Animation/AvatarMask.h")]
 public sealed class AvatarMask : Object
 {
 	[Obsolete("AvatarMask.humanoidBodyPartCount is deprecated, use AvatarMaskBodyPart.LastBodyPart instead.")]

@@ -10,9 +10,9 @@ using UnityEngine.Scripting.APIUpdating;
 namespace UnityEngine.Windows.WebCam;
 
 [StructLayout(LayoutKind.Sequential)]
-[NativeHeader("PlatformDependent/Win/Webcam/PhotoCapture.h")]
-[MovedFrom("UnityEngine.XR.WSA.WebCam")]
 [StaticAccessor("PhotoCapture", StaticAccessorType.DoubleColon)]
+[MovedFrom("UnityEngine.XR.WSA.WebCam")]
+[NativeHeader("PlatformDependent/Win/Webcam/PhotoCapture.h")]
 public class PhotoCapture : IDisposable
 {
 	public enum CaptureResultType
@@ -84,8 +84,8 @@ public class PhotoCapture : IDisposable
 		return result;
 	}
 
-	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
 	[NativeName("GetSupportedResolutions")]
+	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
 	private static Resolution[] GetSupportedResolutions_Internal()
 	{
 		BlittableArrayWrapper ret = default(BlittableArrayWrapper);
@@ -122,8 +122,8 @@ public class PhotoCapture : IDisposable
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[NativeName("Instantiate")]
 	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
+	[NativeName("Instantiate")]
 	private static extern IntPtr Instantiate_Internal(bool showHolograms, OnCaptureResourceCreatedCallback onCreatedCallback);
 
 	[RequiredByNativeCode]
@@ -175,8 +175,8 @@ public class PhotoCapture : IDisposable
 		callback(MakeCaptureResult(hResult));
 	}
 
-	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
 	[NativeName("StopPhotoMode")]
+	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
 	public void StopPhotoModeAsync(OnPhotoModeStoppedCallback onPhotoModeStoppedCallback)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -262,8 +262,8 @@ public class PhotoCapture : IDisposable
 		CapturePhotoToMemory_Internal(onCapturedPhotoToMemoryCallback);
 	}
 
-	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
 	[NativeName("CapturePhotoToMemory")]
+	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
 	private void CapturePhotoToMemory_Internal(OnCapturedToMemoryCallback onCapturedPhotoToMemoryCallback)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -308,8 +308,8 @@ public class PhotoCapture : IDisposable
 		GC.SuppressFinalize(this);
 	}
 
-	[NativeName("Dispose")]
 	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
+	[NativeName("Dispose")]
 	private void Dispose_Internal()
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);

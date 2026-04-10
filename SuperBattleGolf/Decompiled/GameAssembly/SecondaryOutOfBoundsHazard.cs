@@ -7,10 +7,6 @@ public class SecondaryOutOfBoundsHazard : MonoBehaviour
 	[SerializeField]
 	private OutOfBoundsHazard type;
 
-	[SerializeField]
-	[DisableField]
-	private Vector2 size;
-
 	public OutOfBoundsHazard Type => type;
 
 	private void Start()

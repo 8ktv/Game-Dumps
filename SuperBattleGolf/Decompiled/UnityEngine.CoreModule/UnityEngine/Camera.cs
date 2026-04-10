@@ -10,15 +10,15 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Shaders/Shader.h")]
-[NativeHeader("Runtime/GfxDevice/GfxDeviceTypes.h")]
-[NativeHeader("Runtime/Graphics/RenderTexture.h")]
-[UsedByNativeCode]
-[RequireComponent(typeof(Transform))]
-[NativeHeader("Runtime/Camera/RenderManager.h")]
 [NativeHeader("Runtime/Graphics/CommandBuffer/RenderingCommandBuffer.h")]
-[NativeHeader("Runtime/Camera/Camera.h")]
 [NativeHeader("Runtime/Misc/GameObjectUtility.h")]
+[NativeHeader("Runtime/Shaders/Shader.h")]
+[NativeHeader("Runtime/Camera/Camera.h")]
+[NativeHeader("Runtime/Camera/RenderManager.h")]
+[RequireComponent(typeof(Transform))]
+[NativeHeader("Runtime/Graphics/RenderTexture.h")]
+[NativeHeader("Runtime/GfxDevice/GfxDeviceTypes.h")]
+[UsedByNativeCode]
 public sealed class Camera : Behaviour
 {
 	internal enum ProjectionMatrixMode
@@ -1579,6 +1579,20 @@ public sealed class Camera : Behaviour
 		}
 	}
 
+	public bool isProcessingRenderRequest
+	{
+		[NativeMethod("IsProcessingRenderRequest")]
+		get
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			return get_isProcessingRenderRequest_Injected(intPtr);
+		}
+	}
+
 	public int commandBufferCount
 	{
 		get
@@ -2297,7 +2311,7 @@ public sealed class Camera : Behaviour
 
 	[NativeConditional("UNITY_EDITOR")]
 	[FreeFunction("CameraScripting::SubmitBuiltInObjectIDRenderRequest", HasExplicitThis = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	private Object[] SubmitBuiltInObjectIDRenderRequest(RenderTexture target, int mipLevel, CubemapFace cubemapFace, int depthSlice)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -2496,6 +2510,7 @@ public sealed class Camera : Behaviour
 	}
 
 	[FreeFunction("CameraScripting::GetCommandBuffers", HasExplicitThis = true)]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	internal CommandBuffer[] GetCommandBuffersImpl(CameraEvent evt)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -3067,6 +3082,9 @@ public sealed class Camera : Behaviour
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern Object[] SubmitBuiltInObjectIDRenderRequest_Injected(IntPtr _unity_self, IntPtr target, int mipLevel, CubemapFace cubemapFace, int depthSlice);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool get_isProcessingRenderRequest_Injected(IntPtr _unity_self);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void SetupCurrent_Injected(IntPtr cur);

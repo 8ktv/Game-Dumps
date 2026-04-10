@@ -2,10 +2,13 @@ using System;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleBackgroundRepeat : IStyleValue<BackgroundRepeat>, IEquatable<StyleBackgroundRepeat>
 {
+	[SerializeField]
 	private BackgroundRepeat m_Value;
 
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
 	public BackgroundRepeat value

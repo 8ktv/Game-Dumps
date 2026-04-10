@@ -33,6 +33,22 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 
 	private Vector3 previousVelocity;
 
+	private double isSwungByRocketDriverTimestamp = double.MinValue;
+
+	[SyncVar(hook = "OnIsSwungByRocketDriverChanged")]
+	private bool isSwungByRocketDriver;
+
+	private PoolableParticleSystem swungByRocketDriverTrailVfx;
+
+	private EventInstance swungByRocketDriverTrailSound;
+
+	[SyncVar(hook = "OnIsFrozenChanged")]
+	private bool isFrozen;
+
+	private double lastFrozenTimestamp = double.MinValue;
+
+	private FreezeBombIceBlock iceBlock;
+
 	[SyncVar(hook = "OnHomingTargetHittableChanged")]
 	private Hittable homingTargetHittable;
 
@@ -76,12 +92,20 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 
 	private AntiCheatPerPlayerRateChecker serverHitWithRocketBackBlastCommandRateLimiter;
 
+	private AntiCheatPerPlayerRateChecker serverHitWithRocketDriverSwingPostHitSpinCommandRateLimiter;
+
+	private AntiCheatPerPlayerRateChecker serverSetIsSwungByRocketDriverCommandRateLimiter;
+
 	private AntiCheatPerPlayerRateChecker serverRequestInitialStateCommandRateLimiter;
 
 	[CVar("drawHomingProjectileDebug", "", "", false, true)]
 	private static bool drawHomingProjectileDebug;
 
 	protected NetworkBehaviourSyncVar ___homingTargetHittableNetId;
+
+	public Action<bool, bool> _Mirror_SyncVarHookDelegate_isSwungByRocketDriver;
+
+	public Action<bool, bool> _Mirror_SyncVarHookDelegate_isFrozen;
 
 	public Action<Hittable, Hittable> _Mirror_SyncVarHookDelegate_homingTargetHittable;
 
@@ -90,6 +114,14 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 	public Entity AsEntity { get; private set; }
 
 	public SwingProjectileState SwingProjectileState { get; private set; }
+
+	public bool IsFrozen => isFrozen;
+
+	public ulong FreezerPlayerGuid { get; private set; }
+
+	public double IsFrozenChangeTimestamp { get; private set; } = double.MinValue;
+
+	public bool HasHomingTargetHittable => NetworkhomingTargetHittable != null;
 
 	public float SideSpin => sideSpin;
 
@@ -118,6 +150,32 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 	}
 
+	public bool NetworkisSwungByRocketDriver
+	{
+		get
+		{
+			return isSwungByRocketDriver;
+		}
+		[param: In]
+		set
+		{
+			GeneratedSyncVarSetter(value, ref isSwungByRocketDriver, 2uL, _Mirror_SyncVarHookDelegate_isSwungByRocketDriver);
+		}
+	}
+
+	public bool NetworkisFrozen
+	{
+		get
+		{
+			return isFrozen;
+		}
+		[param: In]
+		set
+		{
+			GeneratedSyncVarSetter(value, ref isFrozen, 4uL, _Mirror_SyncVarHookDelegate_isFrozen);
+		}
+	}
+
 	public Hittable NetworkhomingTargetHittable
 	{
 		get
@@ -127,7 +185,7 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		[param: In]
 		set
 		{
-			GeneratedSyncVarSetter_NetworkBehaviour(value, ref homingTargetHittable, 2uL, _Mirror_SyncVarHookDelegate_homingTargetHittable, ref ___homingTargetHittableNetId);
+			GeneratedSyncVarSetter_NetworkBehaviour(value, ref homingTargetHittable, 8uL, _Mirror_SyncVarHookDelegate_homingTargetHittable, ref ___homingTargetHittableNetId);
 		}
 	}
 
@@ -140,7 +198,7 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		[param: In]
 		set
 		{
-			GeneratedSyncVarSetter(value, ref homingInitialHorizontalDistance, 4uL, null);
+			GeneratedSyncVarSetter(value, ref homingInitialHorizontalDistance, 16uL, null);
 		}
 	}
 
@@ -153,15 +211,15 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		[param: In]
 		set
 		{
-			GeneratedSyncVarSetter(value, ref sideSpin, 8uL, _Mirror_SyncVarHookDelegate_sideSpin);
+			GeneratedSyncVarSetter(value, ref sideSpin, 32uL, _Mirror_SyncVarHookDelegate_sideSpin);
 		}
 	}
 
-	public event Action<PlayerGolfer, float, Vector3, Vector3, Vector3> WillApplyGolfSwingHitPhysics;
+	public event Action<PlayerGolfer, float, Vector3, Vector3, Vector3, bool> WillApplyGolfSwingHitPhysics;
 
-	public event Action<PlayerGolfer, Vector3, float> WasHitByGolfSwing;
+	public event Action<PlayerGolfer, Vector3, float, bool> WasHitByGolfSwing;
 
-	public event Action<Hittable, Vector3, Vector3, Vector3> WillApplySwingProjectileHitPhysics;
+	public event Action<Hittable, Vector3, Vector3, Vector3, bool> WillApplySwingProjectileHitPhysics;
 
 	public event Action<Hittable, Vector3> WasHitBySwingProjectile;
 
@@ -177,6 +235,10 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 
 	public event Action<PlayerInventory, Vector3> WasHitByRocketLauncherBackBlast;
 
+	public event Action<PlayerGolfer, Vector3, Vector3, Vector3> WillApplyRocketDriverSwingPostHitSpinHitPhysics;
+
+	public event Action<PlayerGolfer, Vector3> WasHitByRocketDriverSwingPostHitSpin;
+
 	public event Action<Vector3> WillApplyReturnedBallHitPhysics;
 
 	public event Action WasHitByReturnedBall;
@@ -185,9 +247,19 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 
 	public event Action WasHitByScoreKnockback;
 
+	public event Action WillApplyJumpPadPhysics;
+
+	public event Action WasHitByJumpPad;
+
 	public event Action<Hittable> HitAsSwingProjectile;
 
+	public event Action SwingProjectileStateChanged;
+
 	public event Action IsPlayingHomingWarningChanged;
+
+	public event Action AppliedPostHitBounce;
+
+	public event Action IsFrozenChanged;
 
 	private void Awake()
 	{
@@ -214,7 +286,21 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 	{
 		if (AsEntity.HasRigidbody)
 		{
-			AsEntity.Rigidbody.maxAngularVelocity = BMath.Max(AsEntity.Rigidbody.maxAngularVelocity, SwingSettings.SwingHitSpinSpeed, SwingSettings.ProjectilePostHitSpinSpeed);
+			AsEntity.Rigidbody.maxAngularVelocity = BMath.Max(AsEntity.Rigidbody.maxAngularVelocity, SwingSettings.SwingHitSpinSpeed, SwingSettings.RocketDriverSwingHitSpinSpeed, SwingSettings.ProjectilePostHitSpinSpeed);
+		}
+		if (AsEntity.IsPlayer)
+		{
+			AsEntity.PlayerInfo.IsInGolfCartChanged += OnPlayerIsInGolfCartChanged;
+			AsEntity.PlayerInfo.Movement.IsGroundedChanged += OnPlayerIsGroundedChanged;
+			AsEntity.PlayerInfo.Movement.IsVisibleChanged += OnPlayerIsVisibleChanged;
+		}
+		if (AsEntity.IsGolfBall)
+		{
+			AsEntity.AsGolfBall.IsHiddenChanged += OnGolfBallIsHiddenChanged;
+		}
+		if (AsEntity.HasLevelBoundsTracker)
+		{
+			AsEntity.LevelBoundsTracker.AuthoritativeBoundsStateChanged += OnBoundsStateChanged;
 		}
 	}
 
@@ -230,6 +316,25 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		{
 			homingWarningSoundInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
 		}
+		if (iceBlock != null)
+		{
+			RemoveIceBlock();
+		}
+		UpdateSwungByRocketDriverTrailEffects();
+		if (AsEntity.IsPlayer)
+		{
+			AsEntity.PlayerInfo.IsInGolfCartChanged -= OnPlayerIsInGolfCartChanged;
+			AsEntity.PlayerInfo.Movement.IsGroundedChanged -= OnPlayerIsGroundedChanged;
+			AsEntity.PlayerInfo.Movement.IsVisibleChanged -= OnPlayerIsVisibleChanged;
+		}
+		if (AsEntity.IsGolfBall)
+		{
+			AsEntity.AsGolfBall.IsHiddenChanged -= OnGolfBallIsHiddenChanged;
+		}
+		if (AsEntity.HasLevelBoundsTracker)
+		{
+			AsEntity.LevelBoundsTracker.AuthoritativeBoundsStateChanged -= OnBoundsStateChanged;
+		}
 		PlayerInfo.LocalPlayerIsInGolfCartChanged -= OnLocalPlayerIsInGolfCartChanged;
 		PlayerSpectator.LocalPlayerIsSpectatingChanged -= OnLocalPlayerIsSpectatingChanged;
 		PlayerSpectator.LocalPlayerSetSpectatingTarget -= OnLocalPlayerSetSpectatingTarget;
@@ -243,6 +348,8 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		serverHitWithDiveCommandRateLimiter = new AntiCheatPerPlayerRateChecker(base.name + " hit with dive", 0.5f, 5, 10, 2f);
 		serverHitWithItemCommandRateLimiter = new AntiCheatPerPlayerRateChecker(base.name + " hit with item", 0.5f, 5, 10, 2f);
 		serverHitWithRocketBackBlastCommandRateLimiter = new AntiCheatPerPlayerRateChecker(base.name + " hit with rocket back blast", 0.5f, 5, 10, 2f);
+		serverHitWithRocketDriverSwingPostHitSpinCommandRateLimiter = new AntiCheatPerPlayerRateChecker(base.name + " hit with rocket driver post hit spin", 0.5f, 5, 10, 2f);
+		serverSetIsSwungByRocketDriverCommandRateLimiter = new AntiCheatPerPlayerRateChecker(base.name + " set is swung by rocket driver", 0.05f, 20, 50, 0.5f, 5);
 		serverRequestInitialStateCommandRateLimiter = new AntiCheatPerPlayerRateChecker(base.name + " request intial hittable state", 100000f, 2, 2, 200000f);
 	}
 
@@ -285,6 +392,12 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 			hitHittable = null;
 		}
 		TryPlayCollisionVfx();
+		bool wasSwungByRocketDriver = isSwungByRocketDriver;
+		ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false, dueToCollision: true);
+		if (!base.isServer && base.isOwned && !AsEntity.IsPredicted)
+		{
+			CmdResetIsSwungByRocketDriverDueToNonPredictedClientCollision();
+		}
 		if (NetworkServer.active)
 		{
 			ParseCollision(out var hitElectromagnetShield, out var hitHomingTarget);
@@ -321,7 +434,7 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 						float value = BMath.Abs(Vector3.Dot(pointVelocity - networkedPointVelocity, contact.normal));
 						float normalizedHitSpeed = BMath.InverseLerpClamped(SwingSettings.ProjectileMinHitCollisionSpeed, SwingSettings.ProjectileMaxHitCollisionSpeed, value);
 						Vector3 worldHitDirection = -contact.normal;
-						hitHittable.HitWithSwingProjectile(localHitPosition, worldHitDirection, normalizedHitSpeed, this, NetworkhomingTargetHittable != null, responsibleSwingProjectilePlayer);
+						hitHittable.HitWithSwingProjectile(localHitPosition, worldHitDirection, normalizedHitSpeed, this, NetworkhomingTargetHittable != null, wasSwungByRocketDriver, responsibleSwingProjectilePlayer);
 						ServerStopBeingSwingProjectile();
 						ServerApplyPostHitBounce(contact.normal);
 						this.HitAsSwingProjectile?.Invoke(hitHittable);
@@ -426,20 +539,20 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		if (!AsEntity.IsGolfBall)
 		{
 			ApplySpinForce();
-			ApplyAirDamping(PhysicsManager.Settings.ItemLinearAirDragFactor);
+			ApplyAirDamping(PhysicsManager.Settings.ItemLinearAirDragFactor, PhysicsManager.Settings.ItemRocketDriverSwingLinearAirDragFactor, ShouldApplyWind());
 		}
-		if (!base.isServer || SwingProjectileState == SwingProjectileState.None)
+		if (((AsEntity.IsGolfBall && !AsEntity.AsGolfBall.IsGrounded) || AsEntity.IsItem) && (!base.isServer || SwingProjectileState == SwingProjectileState.None))
 		{
 			previousVelocity = AsEntity.Rigidbody.linearVelocity;
 			return;
 		}
-		float num = (AsEntity.IsGrounded() ? SwingSettings.GroundedMinProjectileStopSpeedSquared : SwingSettings.AirMinProjectileStopSpeedSquared);
-		if (homingTarget == null && AsEntity.Rigidbody.linearVelocity.sqrMagnitude < num)
-		{
-			ServerStopBeingSwingProjectile();
-		}
 		if (base.isServer)
 		{
+			float num = (AsEntity.IsGrounded() ? SwingSettings.GroundedMinProjectileStopSpeedSquared : SwingSettings.AirMinProjectileStopSpeedSquared);
+			if (homingTarget == null && AsEntity.Rigidbody.linearVelocity.sqrMagnitude < num)
+			{
+				ServerStopBeingSwingProjectile();
+			}
 			swingProjectilePreviousVelocity = AsEntity.Rigidbody.linearVelocity;
 			swingProjectilePreviousAngularVelocity = AsEntity.Rigidbody.angularVelocity;
 		}
@@ -463,9 +576,9 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 			float num = BMath.InverseLerpClamped(1f, GameManager.GolfSettings.HomingProjectileInitialHorizontalDistanceFractionMaxHoming, value);
 			Vector3 linearVelocity = AsEntity.Rigidbody.linearVelocity;
 			float magnitude = linearVelocity.magnitude;
-			Vector3 networkedVelocity = homingTarget.AsEntity.GetNetworkedVelocity();
+			Vector3 vector2 = GetHomingTargetVelocity();
 			float num2 = BMath.Min((vector - AsEntity.Rigidbody.worldCenterOfMass).magnitude / magnitude, 0.5f);
-			linearVelocity = Vector3.RotateTowards(target: vector + networkedVelocity * num2 - AsEntity.Rigidbody.worldCenterOfMass, maxRadiansDelta: num * GameManager.GolfSettings.HomingProjectileMaxVelocityRotationPerSecond * Time.fixedDeltaTime * (MathF.PI / 180f), current: linearVelocity, maxMagnitudeDelta: 0f);
+			linearVelocity = Vector3.RotateTowards(target: vector + vector2 * num2 - AsEntity.Rigidbody.worldCenterOfMass, maxRadiansDelta: num * GameManager.GolfSettings.HomingProjectileMaxVelocityRotationPerSecond * Time.fixedDeltaTime * (MathF.PI / 180f), current: linearVelocity, maxMagnitudeDelta: 0f);
 			float num3 = SwingSettings.MaxPowerSwingHitSpeed - magnitude;
 			float b = num * GameManager.GolfSettings.HomingProjectileMaxAcceleration * Time.fixedDeltaTime;
 			float num4 = (float)BMath.Sign(num3) * BMath.Min(BMath.Abs(num3), b);
@@ -473,7 +586,7 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 			AsEntity.Rigidbody.linearVelocity = linearVelocity;
 			if (drawHomingProjectileDebug)
 			{
-				BDebug.DrawLine(base.transform.position, vector, Color.red);
+				BDebug.DrawLine(AsEntity.Rigidbody.worldCenterOfMass, vector, Color.red);
 			}
 		}
 		void ApplySideSpin()
@@ -487,6 +600,14 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 				float num = magnitude * BMath.Abs(SideSpin);
 				AsEntity.Rigidbody.linearVelocity += num * vector2;
 			}
+		}
+		Vector3 GetHomingTargetVelocity()
+		{
+			if (homingTarget.AsEntity.IsPlayer && homingTarget.AsEntity.PlayerInfo.ActiveGolfCartSeat.IsValid())
+			{
+				return homingTarget.AsEntity.PlayerInfo.ActiveGolfCartSeat.golfCart.AsEntity.GetNetworkedVelocity();
+			}
+			return homingTarget.AsEntity.GetNetworkedVelocity();
 		}
 		void UpdateHomingTarget(out Vector3 reference)
 		{
@@ -509,11 +630,39 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 	}
 
-	public void ApplyAirDamping(float linearAirDragFactor)
+	public void ApplyAirDamping(float linearAirDragFactor, float rocketDriverSwingLinearAirDragFactor, bool shouldApplyWind)
 	{
-		float sqrMagnitude = AsEntity.Rigidbody.linearVelocity.sqrMagnitude;
-		float num = linearAirDragFactor * sqrMagnitude;
-		AsEntity.Rigidbody.linearVelocity *= BMath.Max(0f, 1f - num * Time.fixedDeltaTime);
+		Vector3 vector = Vector3.zero;
+		if (shouldApplyWind)
+		{
+			Vector3 wind = WindManager.Wind;
+			Vector3 vector2 = Vector3.Project(wind, AsEntity.Rigidbody.linearVelocity);
+			Vector3 vector3 = wind - vector2;
+			vector = vector2 * settings.Wind.WindFactor + vector3 * settings.Wind.CrossWindFactor;
+		}
+		float num = (isSwungByRocketDriver ? rocketDriverSwingLinearAirDragFactor : linearAirDragFactor);
+		Vector3 vector4 = AsEntity.Rigidbody.linearVelocity - vector;
+		float sqrMagnitude = vector4.sqrMagnitude;
+		float num2 = num * sqrMagnitude;
+		float num3 = BMath.Max(0f, num2 * Time.fixedDeltaTime);
+		AsEntity.Rigidbody.linearVelocity -= vector4 * num3;
+	}
+
+	private bool ShouldApplyWind()
+	{
+		if (AsEntity.IsPlayer)
+		{
+			return false;
+		}
+		if (AsEntity.IsGolfCart)
+		{
+			return false;
+		}
+		if (WindManager.CurrentWindSpeed <= 0)
+		{
+			return false;
+		}
+		return true;
 	}
 
 	public void ServerApplyPostHitBounce(Vector3 hitNormal)
@@ -547,11 +696,14 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		Quaternion rotation = Quaternion.LookRotation(vector);
 		AsEntity.Rigidbody.linearVelocity = SwingSettings.ProjectilePostHitBounceSpeed * Vector3.up;
 		AsEntity.Rigidbody.angularVelocity = SwingSettings.ProjectilePostHitSpinSpeed * vector;
+		ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
 		VfxManager.PlayPooledVfxLocalOnly(VfxType.ItemPostHitSpin, base.transform.position, rotation, Vector3.one, base.netId);
+		this.AppliedPostHitBounce?.Invoke();
 	}
 
 	public void OnWillTeleport()
 	{
+		ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
 		if (projectileTrailVfx != null)
 		{
 			projectileTrailVfx.BeforeTeleport();
@@ -575,21 +727,21 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		return false;
 	}
 
-	public void HitWithGolfSwing(Vector3 localHitPosition, Vector3 localOrigin, Vector3 worldDirection, bool isPutt, float power, float sideSpin, PlayerGolfer hitter, Hittable homingTargetHittable)
+	public void HitWithGolfSwing(Vector3 localHitPosition, Vector3 localOrigin, Vector3 worldDirection, bool isPutt, float power, float sideSpin, bool isRocketDriver, PlayerGolfer hitter, Hittable homingTargetHittable)
 	{
 		if (IsHittableBySwing(hitter))
 		{
-			HitWithGolfSwingInternal(localHitPosition, localOrigin, worldDirection, isPutt, power, sideSpin, hitter, homingTargetHittable);
-			CmdHitWithGolfSwing(localHitPosition, localOrigin, worldDirection, isPutt, power, sideSpin, hitter, homingTargetHittable);
+			HitWithGolfSwingInternal(localHitPosition, localOrigin, worldDirection, isPutt, power, sideSpin, isRocketDriver, hitter, homingTargetHittable);
+			CmdHitWithGolfSwing(localHitPosition, localOrigin, worldDirection, isPutt, power, sideSpin, isRocketDriver, hitter, homingTargetHittable);
 		}
 	}
 
 	[Command(requiresAuthority = false)]
-	private void CmdHitWithGolfSwing(Vector3 localHitPosition, Vector3 localOrigin, Vector3 worldDirection, bool isPutt, float power, float sideSpin, PlayerGolfer hitter, Hittable homingTargetHittable, NetworkConnectionToClient sender = null)
+	private void CmdHitWithGolfSwing(Vector3 localHitPosition, Vector3 localOrigin, Vector3 worldDirection, bool isPutt, float power, float sideSpin, bool isRocketDriver, PlayerGolfer hitter, Hittable homingTargetHittable, NetworkConnectionToClient sender = null)
 	{
 		if (base.isServer && base.isClient)
 		{
-			UserCode_CmdHitWithGolfSwing__Vector3__Vector3__Vector3__Boolean__Single__Single__PlayerGolfer__Hittable__NetworkConnectionToClient(localHitPosition, localOrigin, worldDirection, isPutt, power, sideSpin, hitter, homingTargetHittable, sender);
+			UserCode_CmdHitWithGolfSwing__Vector3__Vector3__Vector3__Boolean__Single__Single__Boolean__PlayerGolfer__Hittable__NetworkConnectionToClient(localHitPosition, localOrigin, worldDirection, isPutt, power, sideSpin, isRocketDriver, hitter, homingTargetHittable, sender);
 			return;
 		}
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
@@ -599,14 +751,15 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		writer.WriteBool(isPutt);
 		writer.WriteFloat(power);
 		writer.WriteFloat(sideSpin);
+		writer.WriteBool(isRocketDriver);
 		writer.WriteNetworkBehaviour(hitter);
 		writer.WriteNetworkBehaviour(homingTargetHittable);
-		SendCommandInternal("System.Void Hittable::CmdHitWithGolfSwing(UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,System.Boolean,System.Single,System.Single,PlayerGolfer,Hittable,Mirror.NetworkConnectionToClient)", 650517749, writer, 0, requiresAuthority: false);
+		SendCommandInternal("System.Void Hittable::CmdHitWithGolfSwing(UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,System.Boolean,System.Single,System.Single,System.Boolean,PlayerGolfer,Hittable,Mirror.NetworkConnectionToClient)", -2132251882, writer, 0, requiresAuthority: false);
 		NetworkWriterPool.Return(writer);
 	}
 
 	[TargetRpc]
-	private void RpcHitWithGolfSwing(NetworkConnectionToClient connection, Vector3 localHitPosition, Vector3 localOrigin, Vector3 worldDirection, bool isPutt, float power, float sideSpin, PlayerGolfer hitter, Hittable homingTargetHittable)
+	private void RpcHitWithGolfSwing(NetworkConnectionToClient connection, Vector3 localHitPosition, Vector3 localOrigin, Vector3 worldDirection, bool isPutt, float power, float sideSpin, bool isRocketDriver, PlayerGolfer hitter, Hittable homingTargetHittable)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteVector3(localHitPosition);
@@ -615,31 +768,40 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		writer.WriteBool(isPutt);
 		writer.WriteFloat(power);
 		writer.WriteFloat(sideSpin);
+		writer.WriteBool(isRocketDriver);
 		writer.WriteNetworkBehaviour(hitter);
 		writer.WriteNetworkBehaviour(homingTargetHittable);
-		SendTargetRPCInternal(connection, "System.Void Hittable::RpcHitWithGolfSwing(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,System.Boolean,System.Single,System.Single,PlayerGolfer,Hittable)", -1196171200, writer, 0);
+		SendTargetRPCInternal(connection, "System.Void Hittable::RpcHitWithGolfSwing(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,System.Boolean,System.Single,System.Single,System.Boolean,PlayerGolfer,Hittable)", -2050176527, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
-	private void HitWithGolfSwingInternal(Vector3 localHitPosition, Vector3 localOrigin, Vector3 worldDirection, bool isPutt, float power, float sideSpin, PlayerGolfer hitter, Hittable homingTargetHittable)
+	private void HitWithGolfSwingInternal(Vector3 localHitPosition, Vector3 localOrigin, Vector3 worldDirection, bool isPutt, float power, float sideSpin, bool isRocketDriver, PlayerGolfer hitter, Hittable homingTargetHittable)
 	{
 		if (hitter == null)
 		{
 			return;
 		}
 		AsEntity.TemporarilyIgnoreCollisionsWith(hitter.PlayerInfo.AsEntity, 0.25f);
-		float num = GetSwingHitSpeed(isPutt, power) * MatchSetupRules.GetValue(MatchSetupRules.Rule.SwingPower);
+		float num = GetSwingHitSpeed(isPutt, isRocketDriver, power) * MatchSetupRules.GetValue(MatchSetupRules.Rule.SwingPower);
 		if (SwingSettings.CanBecomeSwingProjectile && num >= SwingSettings.MinProjectileSwingSpeed)
 		{
 			BecomeSwingProjectile(hitter, isReflected: false);
 		}
 		if (!AsEntity.IsGolfBall && !AsEntity.IsGolfTee)
 		{
-			VfxManager.PlayPooledVfxLocalOnly(hitter.ClubVfxSettings.Hit, base.transform.TransformPoint(localHitPosition), Quaternion.identity);
+			if (isRocketDriver)
+			{
+				VfxManager.PlayPooledVfxLocalOnly(AsEntity.IsGolfCart ? VfxType.RocketDriverGolfCartHit : VfxType.RocketDriverRegularHit, base.transform.TransformPoint(localHitPosition), Quaternion.LookRotation(worldDirection));
+			}
+			else
+			{
+				VfxManager.PlayPooledVfxLocalOnly(hitter.ClubVfxSettings.Hit, base.transform.TransformPoint(localHitPosition), Quaternion.identity);
+			}
 		}
+		ServerSetIsSwungByRocketDriver(isRocketDriver);
 		if (!CanApplyPhysics())
 		{
-			this.WasHitByGolfSwing?.Invoke(hitter, worldDirection, power);
+			this.WasHitByGolfSwing?.Invoke(hitter, worldDirection, power, isRocketDriver);
 			return;
 		}
 		if (base.isServer)
@@ -657,10 +819,11 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 		Vector3 normalized = worldDirection.normalized;
 		Vector3 vector = normalized * num;
-		this.WillApplyGolfSwingHitPhysics?.Invoke(hitter, power, localHitPosition, localOrigin, vector);
+		float num2 = (isRocketDriver ? SwingSettings.RocketDriverSwingHitSpinSpeed : SwingSettings.SwingHitSpinSpeed);
+		this.WillApplyGolfSwingHitPhysics?.Invoke(hitter, power, localHitPosition, localOrigin, vector, isRocketDriver);
 		AsEntity.Rigidbody.linearVelocity += vector;
-		AsEntity.Rigidbody.angularVelocity += SwingSettings.SwingHitSpinSpeed * Vector3.Cross(normalized, Vector3.up);
-		this.WasHitByGolfSwing?.Invoke(hitter, worldDirection, power);
+		AsEntity.Rigidbody.angularVelocity += num2 * Vector3.Cross(normalized, Vector3.up);
+		this.WasHitByGolfSwing?.Invoke(hitter, worldDirection, power, isRocketDriver);
 		bool CanApplySpin()
 		{
 			if (!AsEntity.HasRigidbody)
@@ -688,21 +851,21 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		return true;
 	}
 
-	public void HitWithSwingProjectile(Vector3 localHitPosition, Vector3 worldHitDirection, float normalizedHitSpeed, Hittable hitter, bool wasHoming, PlayerGolfer responsiblePlayer)
+	public void HitWithSwingProjectile(Vector3 localHitPosition, Vector3 worldHitDirection, float normalizedHitSpeed, Hittable hitter, bool wasHoming, bool wasSwungByRocketDriver, PlayerGolfer responsiblePlayer)
 	{
 		if (!IsUnhittable())
 		{
-			HitWithSwingProjectileInternal(localHitPosition, worldHitDirection, normalizedHitSpeed, hitter, wasHoming, responsiblePlayer);
-			CmdHitWithSwingProjectile(localHitPosition, worldHitDirection, normalizedHitSpeed, hitter, wasHoming, responsiblePlayer);
+			HitWithSwingProjectileInternal(localHitPosition, worldHitDirection, normalizedHitSpeed, hitter, wasHoming, wasSwungByRocketDriver, responsiblePlayer);
+			CmdHitWithSwingProjectile(localHitPosition, worldHitDirection, normalizedHitSpeed, hitter, wasHoming, wasSwungByRocketDriver, responsiblePlayer);
 		}
 	}
 
 	[Command(requiresAuthority = false)]
-	private void CmdHitWithSwingProjectile(Vector3 localHitPosition, Vector3 worldHitDirection, float normalizedHitSpeed, Hittable hitter, bool wasHoming, PlayerGolfer responsiblePlayer, NetworkConnectionToClient sender = null)
+	private void CmdHitWithSwingProjectile(Vector3 localHitPosition, Vector3 worldHitDirection, float normalizedHitSpeed, Hittable hitter, bool wasHoming, bool wasSwungByRocketDriver, PlayerGolfer responsiblePlayer, NetworkConnectionToClient sender = null)
 	{
 		if (base.isServer && base.isClient)
 		{
-			UserCode_CmdHitWithSwingProjectile__Vector3__Vector3__Single__Hittable__Boolean__PlayerGolfer__NetworkConnectionToClient(localHitPosition, worldHitDirection, normalizedHitSpeed, hitter, wasHoming, responsiblePlayer, sender);
+			UserCode_CmdHitWithSwingProjectile__Vector3__Vector3__Single__Hittable__Boolean__Boolean__PlayerGolfer__NetworkConnectionToClient(localHitPosition, worldHitDirection, normalizedHitSpeed, hitter, wasHoming, wasSwungByRocketDriver, responsiblePlayer, sender);
 			return;
 		}
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
@@ -711,13 +874,14 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		writer.WriteFloat(normalizedHitSpeed);
 		writer.WriteNetworkBehaviour(hitter);
 		writer.WriteBool(wasHoming);
+		writer.WriteBool(wasSwungByRocketDriver);
 		writer.WriteNetworkBehaviour(responsiblePlayer);
-		SendCommandInternal("System.Void Hittable::CmdHitWithSwingProjectile(UnityEngine.Vector3,UnityEngine.Vector3,System.Single,Hittable,System.Boolean,PlayerGolfer,Mirror.NetworkConnectionToClient)", -990257822, writer, 0, requiresAuthority: false);
+		SendCommandInternal("System.Void Hittable::CmdHitWithSwingProjectile(UnityEngine.Vector3,UnityEngine.Vector3,System.Single,Hittable,System.Boolean,System.Boolean,PlayerGolfer,Mirror.NetworkConnectionToClient)", -757307613, writer, 0, requiresAuthority: false);
 		NetworkWriterPool.Return(writer);
 	}
 
 	[TargetRpc]
-	private void RpcHitWithSwingProjectile(NetworkConnectionToClient connection, Vector3 localHitPosition, Vector3 worldHitDirection, float normalizedHitSpeed, Hittable hitter, bool wasHoming, PlayerGolfer responsiblePlayer)
+	private void RpcHitWithSwingProjectile(NetworkConnectionToClient connection, Vector3 localHitPosition, Vector3 worldHitDirection, float normalizedHitSpeed, Hittable hitter, bool wasHoming, bool wasSwungByRocketDriver, PlayerGolfer responsiblePlayer)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteVector3(localHitPosition);
@@ -725,23 +889,25 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		writer.WriteFloat(normalizedHitSpeed);
 		writer.WriteNetworkBehaviour(hitter);
 		writer.WriteBool(wasHoming);
+		writer.WriteBool(wasSwungByRocketDriver);
 		writer.WriteNetworkBehaviour(responsiblePlayer);
-		SendTargetRPCInternal(connection, "System.Void Hittable::RpcHitWithSwingProjectile(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,UnityEngine.Vector3,System.Single,Hittable,System.Boolean,PlayerGolfer)", -1332340089, writer, 0);
+		SendTargetRPCInternal(connection, "System.Void Hittable::RpcHitWithSwingProjectile(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,UnityEngine.Vector3,System.Single,Hittable,System.Boolean,System.Boolean,PlayerGolfer)", 1499654124, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
-	private void HitWithSwingProjectileInternal(Vector3 localHitPosition, Vector3 worldHitDirection, float normalizedHitSpeed, Hittable hitter, bool wasHoming, PlayerGolfer responsiblePlayer)
+	private void HitWithSwingProjectileInternal(Vector3 localHitPosition, Vector3 worldHitDirection, float normalizedHitSpeed, Hittable hitter, bool wasHoming, bool wasSwungByRocketDriver, PlayerGolfer responsiblePlayer)
 	{
 		if (!(hitter == null))
 		{
 			worldHitDirection = worldHitDirection.normalized;
 			AsEntity.TemporarilyIgnoreCollisionsWith(hitter.AsEntity, 1f);
 			Vector3 vector = base.transform.TransformPoint(localHitPosition);
-			VfxManager.PlayPooledVfxLocalOnly(VfxType.BasicBallHit, vector, Quaternion.LookRotation(-worldHitDirection));
+			VfxManager.PlayPooledVfxLocalOnly(wasSwungByRocketDriver ? VfxType.RocketDriverGolfCartHit : VfxType.BasicBallHit, vector, Quaternion.LookRotation(-worldHitDirection));
 			if (wasHoming && responsiblePlayer == GameManager.LocalPlayerAsGolfer)
 			{
 				TutorialManager.CompletePrompt(TutorialPrompt.HomingShot);
 			}
+			ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
 			if (!CanApplyPhysics())
 			{
 				PlayHitSound(vector);
@@ -749,7 +915,7 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 				return;
 			}
 			Vector3 vector2 = BMath.LerpClamped(ProjectileSettings.SwingProjectileMinResultingSpeed, ProjectileSettings.SwingProjectileMaxResultingSpeed, normalizedHitSpeed) * worldHitDirection;
-			this.WillApplySwingProjectileHitPhysics?.Invoke(hitter, localHitPosition, hitter.swingHitPosition, vector2);
+			this.WillApplySwingProjectileHitPhysics?.Invoke(hitter, localHitPosition, hitter.swingHitPosition, vector2, wasSwungByRocketDriver);
 			AsEntity.Rigidbody.AddForceAtPosition(vector2, vector, ForceMode.VelocityChange);
 			PlayHitSound(vector);
 			this.WasHitBySwingProjectile?.Invoke(hitter, worldHitDirection);
@@ -818,21 +984,30 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 
 	private void OnBecameSwingProjectile(PlayerGolfer responsiblePlayer, bool isReflected)
 	{
-		SwingProjectileState = ((!isReflected) ? SwingProjectileState.Projectile : SwingProjectileState.ReflectedProjectile);
+		SetSwingProjectileState((!isReflected) ? SwingProjectileState.Projectile : SwingProjectileState.ReflectedProjectile);
 		responsibleSwingProjectilePlayer = responsiblePlayer;
 		Rigidbody rigidbody = AsEntity.Rigidbody;
 		rigidbody.includeLayers = (int)rigidbody.includeLayers | (int)GameManager.LayerSettings.ProjectileHittablesMask;
-		AsEntity.TemporarilyIgnoreCollisionsWith(responsiblePlayer.PlayerInfo.Rigidbody, 0.1f);
+		AsEntity.TemporarilyIgnoreCollisionsWith(responsiblePlayer.PlayerInfo.AsEntity, 0.1f);
 		UpdateIsUpdateLoopRegistered();
 	}
 
 	private void OnStoppedBeingSwingProjectile()
 	{
-		SwingProjectileState = SwingProjectileState.None;
+		SetSwingProjectileState(SwingProjectileState.None);
 		responsibleSwingProjectilePlayer = null;
 		Rigidbody rigidbody = AsEntity.Rigidbody;
 		rigidbody.includeLayers = (int)rigidbody.includeLayers & ~(int)GameManager.LayerSettings.ProjectileHittablesMask;
 		UpdateIsUpdateLoopRegistered();
+	}
+
+	private void SetSwingProjectileState(SwingProjectileState state)
+	{
+		if (state != SwingProjectileState)
+		{
+			SwingProjectileState = state;
+			this.SwingProjectileStateChanged?.Invoke();
+		}
 	}
 
 	public void HitWithDive(Vector3 relativeHitVelocity, PlayerMovement hitter)
@@ -871,22 +1046,42 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 
 	private void HitWithDiveInternal(Vector3 relativeHitVelocity, PlayerMovement hitter)
 	{
-		if (!(hitter == null))
+		if (hitter == null)
 		{
-			if (!CanApplyPhysics())
-			{
-				this.WasHitByDive?.Invoke(hitter);
-				return;
-			}
-			Vector3 normalized = relativeHitVelocity.normalized;
-			float magnitude = relativeHitVelocity.magnitude;
-			float t = BMath.InverseLerpClamped(DiveSettings.MinKnockbackHitRelativeSpeed, DiveSettings.MaxKnockbackHitRelativeSpeed, magnitude);
-			float num = BMath.Lerp(DiveSettings.MinKnockbackSpeed, DiveSettings.MaxKnockbackSpeed, t);
-			float num2 = BMath.Lerp(DiveSettings.MinUpwardsSpeed, DiveSettings.MaxUpwardsSpeed, t);
-			Vector3 vector = num * normalized + num2 * Vector3.up;
-			this.WillApplyDiveHitPhysics?.Invoke(hitter, vector);
-			AsEntity.Rigidbody.linearVelocity += vector;
+			return;
+		}
+		ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
+		if (!CanApplyPhysics())
+		{
 			this.WasHitByDive?.Invoke(hitter);
+			return;
+		}
+		Vector3 normalized = relativeHitVelocity.normalized;
+		float magnitude = relativeHitVelocity.magnitude;
+		float t = BMath.InverseLerpClamped(DiveSettings.MinKnockbackHitRelativeSpeed, DiveSettings.MaxKnockbackHitRelativeSpeed, magnitude);
+		float num = BMath.Lerp(DiveSettings.MinKnockbackSpeed, DiveSettings.MaxKnockbackSpeed, t);
+		float num2 = BMath.Lerp(DiveSettings.MinUpwardsSpeed, DiveSettings.MaxUpwardsSpeed, t);
+		Vector3 vector = num * normalized + num2 * Vector3.up;
+		this.WillApplyDiveHitPhysics?.Invoke(hitter, vector);
+		if (!IsImmuneToHitPhysics())
+		{
+			AsEntity.Rigidbody.linearVelocity += vector;
+		}
+		this.WasHitByDive?.Invoke(hitter);
+		bool IsImmuneToHitPhysics()
+		{
+			if (AsEntity.IsPlayer)
+			{
+				if (AsEntity.PlayerInfo.Movement.KnockoutImmunityStatus.hasImmunity)
+				{
+					return true;
+				}
+				if (hitter != null && AsEntity.PlayerInfo.Movement.IsKnockoutProtectedFromPlayer(hitter.PlayerInfo))
+				{
+					return true;
+				}
+			}
+			return false;
 		}
 	}
 
@@ -946,6 +1141,11 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		{
 			return;
 		}
+		if (base.isServer && itemType == ItemType.FreezeBomb && settings.Item.IsAffectedByFreezeBomb)
+		{
+			ServerFreeze();
+		}
+		ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
 		if (!CanApplyPhysics())
 		{
 			this.WasHitByItem?.Invoke(itemUser, itemType, itemUseId, direction, distance, isReflected);
@@ -1013,6 +1213,81 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 			ServerClearHomingTarget(dueToHomingTargetHit: false);
 		}
 		this.WasHitByItem?.Invoke(itemUser, itemType, itemUseId, direction, distance, isReflected);
+		bool CanBeFrozen()
+		{
+			if (AsEntity.IsPlayer && !AsEntity.PlayerInfo.Movement.CanBeFrozenBy((itemUser != null) ? itemUser.PlayerInfo : null, playBlockedEffects: true))
+			{
+				return false;
+			}
+			return true;
+		}
+		async void ServerFreeze()
+		{
+			if (CanBeFrozen())
+			{
+				lastFrozenTimestamp = Time.timeAsDouble;
+				FreezerPlayerGuid = ((itemUser != null) ? itemUser.PlayerInfo.PlayerId.Guid : 0);
+				if (AsEntity.IsPlayer)
+				{
+					AsEntity.PlayerInfo.AsGolfer.ServerSetPotentialEliminationReason((itemUser != null) ? itemUser.PlayerInfo.AsGolfer : null, EliminationReason.FreezeBomb);
+					AsEntity.PlayerInfo.Movement.ServerInformKnockedOut((itemUser != null) ? itemUser.PlayerInfo : null, KnockoutType.FreezeBomb, localOrigin, distance, AsEntity.PlayerInfo.Inventory.GetEffectivelyEquippedItem(), itemUseId, fromSpecialState: false);
+				}
+				if (itemUser != null && AsEntity.IsGolfCart)
+				{
+					int num4 = 0;
+					foreach (PlayerInfo passenger in AsEntity.AsGolfCart.passengers)
+					{
+						if (passenger != null && passenger != itemUser.PlayerInfo)
+						{
+							num4++;
+						}
+					}
+					itemUser.PlayerInfo.RpcInformFrozeGolfCart(num4);
+				}
+				if (!isFrozen)
+				{
+					NetworkisFrozen = true;
+					if (AsEntity.IsPlayer)
+					{
+						AsEntity.PlayerInfo.RpcInformPlayerFrozen(isFrozen);
+						AsEntity.PlayerInfo.RpcInformAllClientsPlayerFrozen(isFrozen);
+					}
+					else if (AsEntity.IsGolfCart)
+					{
+						foreach (PlayerInfo passenger2 in AsEntity.AsGolfCart.passengers)
+						{
+							if (passenger2 != null)
+							{
+								passenger2.RpcInformPlayerFrozen(isFrozen);
+								passenger2.RpcInformAllClientsPlayerFrozen(isFrozen);
+							}
+						}
+					}
+					while (BMath.GetTimeSince(lastFrozenTimestamp) < GameManager.ItemSettings.FreezeBombFreezeDuration)
+					{
+						await UniTask.Yield();
+					}
+					NetworkisFrozen = false;
+					FreezerPlayerGuid = 0uL;
+					if (AsEntity.IsPlayer)
+					{
+						AsEntity.PlayerInfo.RpcInformPlayerFrozen(isFrozen);
+						AsEntity.PlayerInfo.RpcInformAllClientsPlayerFrozen(isFrozen);
+					}
+					else if (AsEntity.IsGolfCart)
+					{
+						foreach (PlayerInfo passenger3 in AsEntity.AsGolfCart.passengers)
+						{
+							if (passenger3 != null)
+							{
+								passenger3.RpcInformPlayerFrozen(isFrozen);
+								passenger3.RpcInformAllClientsPlayerFrozen(isFrozen);
+							}
+						}
+					}
+				}
+			}
+		}
 		void TransferHitToGolfCartPassengers()
 		{
 			for (int i = 0; i < AsEntity.AsGolfCart.passengers.Count; i++)
@@ -1068,6 +1343,7 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 	{
 		if (!(rocketLauncherUser == null))
 		{
+			ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
 			if (!CanApplyPhysics())
 			{
 				this.WasHitByRocketLauncherBackBlast?.Invoke(rocketLauncherUser, direction);
@@ -1078,6 +1354,65 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 			this.WillApplyRocketLauncherBackBlastHitPhysics?.Invoke(rocketLauncherUser, hitLocalPosition, localOrigin, vector);
 			AsEntity.Rigidbody.AddForceAtPosition(vector, base.transform.TransformPoint(hitLocalPosition), ForceMode.VelocityChange);
 			this.WasHitByRocketLauncherBackBlast?.Invoke(rocketLauncherUser, direction);
+		}
+	}
+
+	public void HitWithRocketDriverSwingPostHitSpin(Vector3 hitLocalPosition, Vector3 localOrigin, Vector3 direction, PlayerGolfer hitter)
+	{
+		if (!IsUnhittable())
+		{
+			HitWithRocketDriverSwingPostHitSpinInternal(hitLocalPosition, localOrigin, direction, hitter);
+			CmdHitWithRocketDriverSwingPostHitSpin(hitLocalPosition, localOrigin, direction, hitter);
+		}
+	}
+
+	[Command(requiresAuthority = false)]
+	private void CmdHitWithRocketDriverSwingPostHitSpin(Vector3 hitLocalPosition, Vector3 localOrigin, Vector3 direction, PlayerGolfer hitter, NetworkConnectionToClient sender = null)
+	{
+		if (base.isServer && base.isClient)
+		{
+			UserCode_CmdHitWithRocketDriverSwingPostHitSpin__Vector3__Vector3__Vector3__PlayerGolfer__NetworkConnectionToClient(hitLocalPosition, localOrigin, direction, hitter, sender);
+			return;
+		}
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		writer.WriteVector3(hitLocalPosition);
+		writer.WriteVector3(localOrigin);
+		writer.WriteVector3(direction);
+		writer.WriteNetworkBehaviour(hitter);
+		SendCommandInternal("System.Void Hittable::CmdHitWithRocketDriverSwingPostHitSpin(UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,PlayerGolfer,Mirror.NetworkConnectionToClient)", -358134514, writer, 0, requiresAuthority: false);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	private void RpcHitWithRocketDriverSwingPostHitSpin(NetworkConnectionToClient connection, Vector3 hitLocalPosition, Vector3 localOrigin, Vector3 direction, PlayerGolfer hitter)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		writer.WriteVector3(hitLocalPosition);
+		writer.WriteVector3(localOrigin);
+		writer.WriteVector3(direction);
+		writer.WriteNetworkBehaviour(hitter);
+		SendTargetRPCInternal(connection, "System.Void Hittable::RpcHitWithRocketDriverSwingPostHitSpin(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,PlayerGolfer)", 2121882957, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	private void HitWithRocketDriverSwingPostHitSpinInternal(Vector3 hitLocalPosition, Vector3 localOrigin, Vector3 direction, PlayerGolfer hitter)
+	{
+		if (!(hitter == null))
+		{
+			Vector3 vector = base.transform.TransformPoint(hitLocalPosition);
+			ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
+			VfxManager.PlayPooledVfxLocalOnly(VfxType.RocketDriverSwingSpinHit, vector, Quaternion.LookRotation(vector));
+			if (!CanApplyPhysics())
+			{
+				this.WasHitByRocketDriverSwingPostHitSpin?.Invoke(hitter, direction);
+				return;
+			}
+			_ = direction.Horizontalized().normalized;
+			Vector3 vector2 = ItemSettings.RocketDriverSwingPostHitSpinHorizontalKnockbackSpeed * direction;
+			vector2.y = BMath.Max(ItemSettings.RocketDriverSwingPostHitSpinUpwardsKnockbackSpeed, vector2.y);
+			this.WillApplyRocketDriverSwingPostHitSpinHitPhysics?.Invoke(hitter, hitLocalPosition, localOrigin, vector2);
+			AsEntity.Rigidbody.AddForceAtPosition(vector2, vector, ForceMode.VelocityChange);
+			this.WasHitByRocketDriverSwingPostHitSpin?.Invoke(hitter, direction);
 		}
 	}
 
@@ -1108,6 +1443,7 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 	private void HitWithReturnedBallInternal()
 	{
 		PlayHitSound(base.transform.position);
+		ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
 		if (!CanApplyPhysics())
 		{
 			this.WasHitByReturnedBall?.Invoke();
@@ -1160,6 +1496,7 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		{
 			return;
 		}
+		ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
 		if (!CanApplyPhysics())
 		{
 			this.WasHitByScoreKnockback?.Invoke();
@@ -1184,6 +1521,20 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		this.WasHitByScoreKnockback?.Invoke();
 	}
 
+	public void HitWithJumpPadLocalOnly(Vector3 jumpVelocity)
+	{
+		ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
+		if (!CanApplyPhysics())
+		{
+			this.WasHitByJumpPad?.Invoke();
+			return;
+		}
+		this.WillApplyJumpPadPhysics?.Invoke();
+		AsEntity.Rigidbody.linearVelocity = jumpVelocity;
+		AsEntity.Rigidbody.angularVelocity *= 0.25f;
+		this.WasHitByJumpPad?.Invoke();
+	}
+
 	[Server]
 	private void ServerClearHomingTarget(bool dueToHomingTargetHit)
 	{
@@ -1199,6 +1550,27 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 			}
 			NetworkhomingTargetHittable = null;
 		}
+	}
+
+	private void ServerSetIsSwungByRocketDriver(bool isSwungByRocketDriver, bool dueToCollision = false)
+	{
+		if (base.isServer && (!(!isSwungByRocketDriver && dueToCollision) || !(BMath.GetTimeSince(isSwungByRocketDriverTimestamp) < 0.25f)))
+		{
+			NetworkisSwungByRocketDriver = isSwungByRocketDriver;
+		}
+	}
+
+	[Command]
+	private void CmdResetIsSwungByRocketDriverDueToNonPredictedClientCollision(NetworkConnectionToClient sender = null)
+	{
+		if (base.isServer && base.isClient)
+		{
+			UserCode_CmdResetIsSwungByRocketDriverDueToNonPredictedClientCollision__NetworkConnectionToClient(sender);
+			return;
+		}
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendCommandInternal("System.Void Hittable::CmdResetIsSwungByRocketDriverDueToNonPredictedClientCollision(Mirror.NetworkConnectionToClient)", -1139642898, writer, 0);
+		NetworkWriterPool.Return(writer);
 	}
 
 	private void UpdateIsUpdateLoopRegistered()
@@ -1286,6 +1658,10 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 			{
 				return false;
 			}
+			if (AsEntity.IsDestroyed)
+			{
+				return false;
+			}
 			PlayerInfo viewedOrLocalPlayer = GameManager.GetViewedOrLocalPlayer();
 			if (viewedOrLocalPlayer == null)
 			{
@@ -1321,6 +1697,17 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 	}
 
+	private void RemoveIceBlock()
+	{
+		if (!(iceBlock == null))
+		{
+			iceBlock.PlayBreakVfxLocalOnly();
+			RuntimeManager.PlayOneShot(GameManager.AudioSettings.FreezeBombUnfreezeEvent, base.transform.position);
+			FreezeBombManager.ReturnIceBlock(iceBlock);
+			iceBlock = null;
+		}
+	}
+
 	private bool CanApplyPhysics()
 	{
 		if (!AsEntity.HasRigidbody)
@@ -1334,10 +1721,19 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		return AsEntity.IsSimulatingRigidbody();
 	}
 
-	private float GetSwingHitSpeed(bool isPutt, float power)
+	private float GetSwingHitSpeed(bool isPutt, bool isRocketDriver, float power)
 	{
 		power = BMath.Max(0f, power);
-		return BMath.Lerp(0f, isPutt ? SwingSettings.MaxPowerPuttHitSpeed : SwingSettings.MaxPowerSwingHitSpeed, power);
+		if (isRocketDriver)
+		{
+			if (isPutt)
+			{
+				return BMath.Remap(GameManager.ItemSettings.RocketDriverBaseNormalizedSwingPower, GameManager.ItemSettings.RocketDriverFullNormalizedSwingPower, SwingSettings.MinPowerRocketDriverPuttHitSpeed, SwingSettings.MaxPowerRocketDriverPuttHitSpeed, power);
+			}
+			return BMath.Remap(GameManager.ItemSettings.RocketDriverBaseNormalizedSwingPower, GameManager.ItemSettings.RocketDriverFullNormalizedSwingPower, SwingSettings.MinPowerRocketDriverSwingHitSpeed, SwingSettings.MaxPowerRocketDriverSwingHitSpeed, power);
+		}
+		float num = (isPutt ? SwingSettings.MaxPowerPuttHitSpeed : SwingSettings.MaxPowerSwingHitSpeed);
+		return power * num;
 	}
 
 	private void PlayHitSound(Vector3 worldPosition)
@@ -1373,11 +1769,176 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		NetworkWriterPool.Return(writer);
 	}
 
+	private void UpdateIceBlock()
+	{
+		if (ShouldShowIceBlock())
+		{
+			if (iceBlock == null)
+			{
+				iceBlock = FreezeBombManager.GetUnusedIceBlock();
+				iceBlock.Initialize(this);
+			}
+		}
+		else if (iceBlock != null)
+		{
+			RemoveIceBlock();
+		}
+		bool ShouldShowIceBlock()
+		{
+			if (!isFrozen)
+			{
+				return false;
+			}
+			if (AsEntity.IsPlayer)
+			{
+				if (!AsEntity.PlayerInfo.Movement.IsVisible)
+				{
+					return false;
+				}
+				if (AsEntity.PlayerInfo.ActiveGolfCartSeat.IsValid())
+				{
+					return false;
+				}
+			}
+			if (AsEntity.IsGolfBall && AsEntity.AsGolfBall.IsHidden)
+			{
+				return false;
+			}
+			return true;
+		}
+	}
+
+	private void UpdateSwungByRocketDriverTrailEffects()
+	{
+		bool flag = swungByRocketDriverTrailVfx != null;
+		bool flag2 = ShouldPlay();
+		if (flag2 != flag)
+		{
+			if (swungByRocketDriverTrailSound.isValid())
+			{
+				swungByRocketDriverTrailSound.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+			}
+			if (flag2)
+			{
+				PlayVfx();
+			}
+			else
+			{
+				ClearVfx();
+			}
+			if (projectileTrailVfx != null)
+			{
+				projectileTrailVfx.SetIsSuppressed(flag2);
+			}
+		}
+		void ClearVfx()
+		{
+			if (swungByRocketDriverTrailVfx != null)
+			{
+				swungByRocketDriverTrailVfx.Stop();
+				swungByRocketDriverTrailVfx = null;
+			}
+			if (!BNetworkManager.IsChangingSceneOrShuttingDown && AsEntity.IsPlayer)
+			{
+				RuntimeManager.PlayOneShot(GameManager.AudioSettings.RocketDriverTrailStopEvent, base.transform.position);
+			}
+		}
+		Transform GetParentTransform()
+		{
+			if (AsEntity.IsPlayer)
+			{
+				return AsEntity.PlayerInfo.ChestBone;
+			}
+			if (AsEntity.IsGolfCart)
+			{
+				return AsEntity.AsGolfCart.ExhaustPosition;
+			}
+			return base.transform;
+		}
+		void PlayVfx()
+		{
+			if (swungByRocketDriverTrailVfx == null && VfxPersistentData.TryGetPooledVfx(VfxType.RocketDriverTrail, out swungByRocketDriverTrailVfx))
+			{
+				swungByRocketDriverTrailVfx.transform.SetParent(GetParentTransform());
+				swungByRocketDriverTrailVfx.transform.localPosition = Vector3.zero;
+				swungByRocketDriverTrailVfx.Play();
+			}
+			swungByRocketDriverTrailSound = RuntimeManager.CreateInstance(GameManager.AudioSettings.RocketDriverTrailLoopEvent);
+			RuntimeManager.AttachInstanceToGameObject(swungByRocketDriverTrailSound, base.gameObject);
+			swungByRocketDriverTrailSound.start();
+			swungByRocketDriverTrailSound.release();
+		}
+		bool ShouldPlay()
+		{
+			if (AsEntity.IsDestroyed)
+			{
+				return false;
+			}
+			if (!isSwungByRocketDriver)
+			{
+				return false;
+			}
+			return true;
+		}
+	}
+
+	private void OnIsSwungByRocketDriverChanged(bool wasSwung, bool isSwung)
+	{
+		isSwungByRocketDriverTimestamp = Time.timeAsDouble;
+		UpdateSwungByRocketDriverTrailEffects();
+	}
+
+	private void OnIsFrozenChanged(bool wasFrozen, bool isFrozen)
+	{
+		IsFrozenChangeTimestamp = Time.timeAsDouble;
+		UpdateIceBlock();
+		this.IsFrozenChanged?.Invoke();
+	}
+
 	private void OnHomingTargetHittableChanged(Hittable previousTarget, Hittable currentTarget)
 	{
 		homingTarget = ((NetworkhomingTargetHittable != null) ? NetworkhomingTargetHittable.AsEntity.AsLockOnTarget : null);
 		UpdateIsUpdateLoopRegistered();
 		UpdateHomingWarning();
+	}
+
+	private void OnPlayerIsInGolfCartChanged()
+	{
+		UpdateIceBlock();
+	}
+
+	private void OnPlayerIsGroundedChanged()
+	{
+		if (base.isServer && AsEntity.PlayerInfo.Movement.IsGrounded)
+		{
+			ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
+		}
+	}
+
+	private void OnPlayerIsVisibleChanged()
+	{
+		if (base.isServer && !AsEntity.PlayerInfo.Movement.IsVisible)
+		{
+			ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
+		}
+		UpdateIceBlock();
+	}
+
+	private void OnGolfBallIsHiddenChanged()
+	{
+		if (base.isServer && AsEntity.AsGolfBall.IsHidden)
+		{
+			ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
+		}
+		UpdateIceBlock();
+	}
+
+	private void OnBoundsStateChanged(BoundsState previousState, BoundsState currentState)
+	{
+		if (base.isServer && currentState.IsInOutOfBoundsHazard())
+		{
+			ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false);
+		}
 	}
 
 	private void OnLocalPlayerIsInGolfCartChanged()
@@ -1407,6 +1968,8 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 
 	public Hittable()
 	{
+		_Mirror_SyncVarHookDelegate_isSwungByRocketDriver = OnIsSwungByRocketDriverChanged;
+		_Mirror_SyncVarHookDelegate_isFrozen = OnIsFrozenChanged;
 		_Mirror_SyncVarHookDelegate_homingTargetHittable = OnHomingTargetHittableChanged;
 		_Mirror_SyncVarHookDelegate_sideSpin = OnSideSpinChanged;
 	}
@@ -1416,20 +1979,23 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		resolvedCollisionVfxHittablePairs = new HashSet<(Hittable, Hittable)>();
 		resolvedCollisionVfxNonHittablePairs = new HashSet<(Hittable, Rigidbody)>();
 		resolvedCollisionVfxNonRigidbodyPairs = new HashSet<(Hittable, GameObject)>();
-		RemoteProcedureCalls.RegisterCommand(typeof(Hittable), "System.Void Hittable::CmdHitWithGolfSwing(UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,System.Boolean,System.Single,System.Single,PlayerGolfer,Hittable,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdHitWithGolfSwing__Vector3__Vector3__Vector3__Boolean__Single__Single__PlayerGolfer__Hittable__NetworkConnectionToClient, requiresAuthority: false);
-		RemoteProcedureCalls.RegisterCommand(typeof(Hittable), "System.Void Hittable::CmdHitWithSwingProjectile(UnityEngine.Vector3,UnityEngine.Vector3,System.Single,Hittable,System.Boolean,PlayerGolfer,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdHitWithSwingProjectile__Vector3__Vector3__Single__Hittable__Boolean__PlayerGolfer__NetworkConnectionToClient, requiresAuthority: false);
+		RemoteProcedureCalls.RegisterCommand(typeof(Hittable), "System.Void Hittable::CmdHitWithGolfSwing(UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,System.Boolean,System.Single,System.Single,System.Boolean,PlayerGolfer,Hittable,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdHitWithGolfSwing__Vector3__Vector3__Vector3__Boolean__Single__Single__Boolean__PlayerGolfer__Hittable__NetworkConnectionToClient, requiresAuthority: false);
+		RemoteProcedureCalls.RegisterCommand(typeof(Hittable), "System.Void Hittable::CmdHitWithSwingProjectile(UnityEngine.Vector3,UnityEngine.Vector3,System.Single,Hittable,System.Boolean,System.Boolean,PlayerGolfer,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdHitWithSwingProjectile__Vector3__Vector3__Single__Hittable__Boolean__Boolean__PlayerGolfer__NetworkConnectionToClient, requiresAuthority: false);
 		RemoteProcedureCalls.RegisterCommand(typeof(Hittable), "System.Void Hittable::CmdHitWithDive(UnityEngine.Vector3,PlayerMovement,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdHitWithDive__Vector3__PlayerMovement__NetworkConnectionToClient, requiresAuthority: false);
 		RemoteProcedureCalls.RegisterCommand(typeof(Hittable), "System.Void Hittable::CmdHitWithItem(ItemType,ItemUseId,UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,System.Single,PlayerInventory,System.Boolean,System.Boolean,System.Boolean,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdHitWithItem__ItemType__ItemUseId__Vector3__Vector3__Vector3__Single__PlayerInventory__Boolean__Boolean__Boolean__NetworkConnectionToClient, requiresAuthority: false);
 		RemoteProcedureCalls.RegisterCommand(typeof(Hittable), "System.Void Hittable::CmdHitWithRocketLauncherBackBlast(UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,PlayerInventory,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdHitWithRocketLauncherBackBlast__Vector3__Vector3__Vector3__PlayerInventory__NetworkConnectionToClient, requiresAuthority: false);
+		RemoteProcedureCalls.RegisterCommand(typeof(Hittable), "System.Void Hittable::CmdHitWithRocketDriverSwingPostHitSpin(UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,PlayerGolfer,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdHitWithRocketDriverSwingPostHitSpin__Vector3__Vector3__Vector3__PlayerGolfer__NetworkConnectionToClient, requiresAuthority: false);
+		RemoteProcedureCalls.RegisterCommand(typeof(Hittable), "System.Void Hittable::CmdResetIsSwungByRocketDriverDueToNonPredictedClientCollision(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdResetIsSwungByRocketDriverDueToNonPredictedClientCollision__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(Hittable), "System.Void Hittable::CmdRequestInitialState(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdRequestInitialState__NetworkConnectionToClient, requiresAuthority: false);
 		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcApplyPostHitBounce(Mirror.NetworkConnectionToClient,UnityEngine.Vector3)", InvokeUserCode_RpcApplyPostHitBounce__NetworkConnectionToClient__Vector3);
-		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcHitWithGolfSwing(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,System.Boolean,System.Single,System.Single,PlayerGolfer,Hittable)", InvokeUserCode_RpcHitWithGolfSwing__NetworkConnectionToClient__Vector3__Vector3__Vector3__Boolean__Single__Single__PlayerGolfer__Hittable);
-		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcHitWithSwingProjectile(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,UnityEngine.Vector3,System.Single,Hittable,System.Boolean,PlayerGolfer)", InvokeUserCode_RpcHitWithSwingProjectile__NetworkConnectionToClient__Vector3__Vector3__Single__Hittable__Boolean__PlayerGolfer);
+		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcHitWithGolfSwing(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,System.Boolean,System.Single,System.Single,System.Boolean,PlayerGolfer,Hittable)", InvokeUserCode_RpcHitWithGolfSwing__NetworkConnectionToClient__Vector3__Vector3__Vector3__Boolean__Single__Single__Boolean__PlayerGolfer__Hittable);
+		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcHitWithSwingProjectile(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,UnityEngine.Vector3,System.Single,Hittable,System.Boolean,System.Boolean,PlayerGolfer)", InvokeUserCode_RpcHitWithSwingProjectile__NetworkConnectionToClient__Vector3__Vector3__Single__Hittable__Boolean__Boolean__PlayerGolfer);
 		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcBecomeSwingProjectile(Mirror.NetworkConnectionToClient,PlayerGolfer,System.Boolean)", InvokeUserCode_RpcBecomeSwingProjectile__NetworkConnectionToClient__PlayerGolfer__Boolean);
 		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcStopBeingSwingProjectile(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcStopBeingSwingProjectile__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcHitWithDive(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,PlayerMovement)", InvokeUserCode_RpcHitWithDive__NetworkConnectionToClient__Vector3__PlayerMovement);
 		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcHitWithItem(Mirror.NetworkConnectionToClient,ItemType,ItemUseId,UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,System.Single,PlayerInventory,System.Boolean,System.Boolean,System.Boolean)", InvokeUserCode_RpcHitWithItem__NetworkConnectionToClient__ItemType__ItemUseId__Vector3__Vector3__Vector3__Single__PlayerInventory__Boolean__Boolean__Boolean);
 		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcHitWithRocketLauncherBackBlast(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,PlayerInventory)", InvokeUserCode_RpcHitWithRocketLauncherBackBlast__NetworkConnectionToClient__Vector3__Vector3__Vector3__PlayerInventory);
+		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcHitWithRocketDriverSwingPostHitSpin(Mirror.NetworkConnectionToClient,UnityEngine.Vector3,UnityEngine.Vector3,UnityEngine.Vector3,PlayerGolfer)", InvokeUserCode_RpcHitWithRocketDriverSwingPostHitSpin__NetworkConnectionToClient__Vector3__Vector3__Vector3__PlayerGolfer);
 		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcHitWithReturnedBall(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcHitWithReturnedBall__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcHitWithScoreKnockback(Mirror.NetworkConnectionToClient,GolfHole)", InvokeUserCode_RpcHitWithScoreKnockback__NetworkConnectionToClient__GolfHole);
 		RemoteProcedureCalls.RegisterRpc(typeof(Hittable), "System.Void Hittable::RpcSetInitialState(Mirror.NetworkConnectionToClient,SwingProjectileState,PlayerGolfer)", InvokeUserCode_RpcSetInitialState__NetworkConnectionToClient__SwingProjectileState__PlayerGolfer);
@@ -1457,7 +2023,7 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 	}
 
-	protected void UserCode_CmdHitWithGolfSwing__Vector3__Vector3__Vector3__Boolean__Single__Single__PlayerGolfer__Hittable__NetworkConnectionToClient(Vector3 localHitPosition, Vector3 localOrigin, Vector3 worldDirection, bool isPutt, float power, float sideSpin, PlayerGolfer hitter, Hittable homingTargetHittable, NetworkConnectionToClient sender)
+	protected void UserCode_CmdHitWithGolfSwing__Vector3__Vector3__Vector3__Boolean__Single__Single__Boolean__PlayerGolfer__Hittable__NetworkConnectionToClient(Vector3 localHitPosition, Vector3 localOrigin, Vector3 worldDirection, bool isPutt, float power, float sideSpin, bool isRocketDriver, PlayerGolfer hitter, Hittable homingTargetHittable, NetworkConnectionToClient sender)
 	{
 		if (!serverHitWithGolfSwingCommandRateLimiter.RegisterHit(sender) || hitter == null || !IsHittableBySwing(hitter))
 		{
@@ -1467,16 +2033,16 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		{
 			if (value != NetworkServer.localConnection && value != sender)
 			{
-				RpcHitWithGolfSwing(value, localHitPosition, localOrigin, worldDirection, isPutt, power, sideSpin, hitter, homingTargetHittable);
+				RpcHitWithGolfSwing(value, localHitPosition, localOrigin, worldDirection, isPutt, power, sideSpin, isRocketDriver, hitter, homingTargetHittable);
 			}
 		}
 		if (sender != null && sender != NetworkServer.localConnection)
 		{
-			HitWithGolfSwingInternal(localHitPosition, localOrigin, worldDirection, isPutt, power, sideSpin, hitter, homingTargetHittable);
+			HitWithGolfSwingInternal(localHitPosition, localOrigin, worldDirection, isPutt, power, sideSpin, isRocketDriver, hitter, homingTargetHittable);
 		}
 	}
 
-	protected static void InvokeUserCode_CmdHitWithGolfSwing__Vector3__Vector3__Vector3__Boolean__Single__Single__PlayerGolfer__Hittable__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_CmdHitWithGolfSwing__Vector3__Vector3__Vector3__Boolean__Single__Single__Boolean__PlayerGolfer__Hittable__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkServer.active)
 		{
@@ -1484,16 +2050,16 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 		else
 		{
-			((Hittable)obj).UserCode_CmdHitWithGolfSwing__Vector3__Vector3__Vector3__Boolean__Single__Single__PlayerGolfer__Hittable__NetworkConnectionToClient(reader.ReadVector3(), reader.ReadVector3(), reader.ReadVector3(), reader.ReadBool(), reader.ReadFloat(), reader.ReadFloat(), reader.ReadNetworkBehaviour<PlayerGolfer>(), reader.ReadNetworkBehaviour<Hittable>(), senderConnection);
+			((Hittable)obj).UserCode_CmdHitWithGolfSwing__Vector3__Vector3__Vector3__Boolean__Single__Single__Boolean__PlayerGolfer__Hittable__NetworkConnectionToClient(reader.ReadVector3(), reader.ReadVector3(), reader.ReadVector3(), reader.ReadBool(), reader.ReadFloat(), reader.ReadFloat(), reader.ReadBool(), reader.ReadNetworkBehaviour<PlayerGolfer>(), reader.ReadNetworkBehaviour<Hittable>(), senderConnection);
 		}
 	}
 
-	protected void UserCode_RpcHitWithGolfSwing__NetworkConnectionToClient__Vector3__Vector3__Vector3__Boolean__Single__Single__PlayerGolfer__Hittable(NetworkConnectionToClient connection, Vector3 localHitPosition, Vector3 localOrigin, Vector3 worldDirection, bool isPutt, float power, float sideSpin, PlayerGolfer hitter, Hittable homingTargetHittable)
+	protected void UserCode_RpcHitWithGolfSwing__NetworkConnectionToClient__Vector3__Vector3__Vector3__Boolean__Single__Single__Boolean__PlayerGolfer__Hittable(NetworkConnectionToClient connection, Vector3 localHitPosition, Vector3 localOrigin, Vector3 worldDirection, bool isPutt, float power, float sideSpin, bool isRocketDriver, PlayerGolfer hitter, Hittable homingTargetHittable)
 	{
-		HitWithGolfSwingInternal(localHitPosition, localOrigin, worldDirection, isPutt, power, sideSpin, hitter, homingTargetHittable);
+		HitWithGolfSwingInternal(localHitPosition, localOrigin, worldDirection, isPutt, power, sideSpin, isRocketDriver, hitter, homingTargetHittable);
 	}
 
-	protected static void InvokeUserCode_RpcHitWithGolfSwing__NetworkConnectionToClient__Vector3__Vector3__Vector3__Boolean__Single__Single__PlayerGolfer__Hittable(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcHitWithGolfSwing__NetworkConnectionToClient__Vector3__Vector3__Vector3__Boolean__Single__Single__Boolean__PlayerGolfer__Hittable(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -1501,11 +2067,11 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 		else
 		{
-			((Hittable)obj).UserCode_RpcHitWithGolfSwing__NetworkConnectionToClient__Vector3__Vector3__Vector3__Boolean__Single__Single__PlayerGolfer__Hittable(null, reader.ReadVector3(), reader.ReadVector3(), reader.ReadVector3(), reader.ReadBool(), reader.ReadFloat(), reader.ReadFloat(), reader.ReadNetworkBehaviour<PlayerGolfer>(), reader.ReadNetworkBehaviour<Hittable>());
+			((Hittable)obj).UserCode_RpcHitWithGolfSwing__NetworkConnectionToClient__Vector3__Vector3__Vector3__Boolean__Single__Single__Boolean__PlayerGolfer__Hittable(null, reader.ReadVector3(), reader.ReadVector3(), reader.ReadVector3(), reader.ReadBool(), reader.ReadFloat(), reader.ReadFloat(), reader.ReadBool(), reader.ReadNetworkBehaviour<PlayerGolfer>(), reader.ReadNetworkBehaviour<Hittable>());
 		}
 	}
 
-	protected void UserCode_CmdHitWithSwingProjectile__Vector3__Vector3__Single__Hittable__Boolean__PlayerGolfer__NetworkConnectionToClient(Vector3 localHitPosition, Vector3 worldHitDirection, float normalizedHitSpeed, Hittable hitter, bool wasHoming, PlayerGolfer responsiblePlayer, NetworkConnectionToClient sender)
+	protected void UserCode_CmdHitWithSwingProjectile__Vector3__Vector3__Single__Hittable__Boolean__Boolean__PlayerGolfer__NetworkConnectionToClient(Vector3 localHitPosition, Vector3 worldHitDirection, float normalizedHitSpeed, Hittable hitter, bool wasHoming, bool wasSwungByRocketDriver, PlayerGolfer responsiblePlayer, NetworkConnectionToClient sender)
 	{
 		if (!serverHitWithSwingProjectileCommandRateLimiter.RegisterHit(sender) || hitter == null || IsUnhittable())
 		{
@@ -1515,16 +2081,16 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		{
 			if (value != NetworkServer.localConnection && value != sender)
 			{
-				RpcHitWithSwingProjectile(value, localHitPosition, worldHitDirection, normalizedHitSpeed, hitter, wasHoming, responsiblePlayer);
+				RpcHitWithSwingProjectile(value, localHitPosition, worldHitDirection, normalizedHitSpeed, hitter, wasHoming, wasSwungByRocketDriver, responsiblePlayer);
 			}
 		}
 		if (sender != null && sender != NetworkServer.localConnection)
 		{
-			HitWithSwingProjectileInternal(localHitPosition, worldHitDirection, normalizedHitSpeed, hitter, wasHoming, responsiblePlayer);
+			HitWithSwingProjectileInternal(localHitPosition, worldHitDirection, normalizedHitSpeed, hitter, wasHoming, wasSwungByRocketDriver, responsiblePlayer);
 		}
 	}
 
-	protected static void InvokeUserCode_CmdHitWithSwingProjectile__Vector3__Vector3__Single__Hittable__Boolean__PlayerGolfer__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_CmdHitWithSwingProjectile__Vector3__Vector3__Single__Hittable__Boolean__Boolean__PlayerGolfer__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkServer.active)
 		{
@@ -1532,16 +2098,16 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 		else
 		{
-			((Hittable)obj).UserCode_CmdHitWithSwingProjectile__Vector3__Vector3__Single__Hittable__Boolean__PlayerGolfer__NetworkConnectionToClient(reader.ReadVector3(), reader.ReadVector3(), reader.ReadFloat(), reader.ReadNetworkBehaviour<Hittable>(), reader.ReadBool(), reader.ReadNetworkBehaviour<PlayerGolfer>(), senderConnection);
+			((Hittable)obj).UserCode_CmdHitWithSwingProjectile__Vector3__Vector3__Single__Hittable__Boolean__Boolean__PlayerGolfer__NetworkConnectionToClient(reader.ReadVector3(), reader.ReadVector3(), reader.ReadFloat(), reader.ReadNetworkBehaviour<Hittable>(), reader.ReadBool(), reader.ReadBool(), reader.ReadNetworkBehaviour<PlayerGolfer>(), senderConnection);
 		}
 	}
 
-	protected void UserCode_RpcHitWithSwingProjectile__NetworkConnectionToClient__Vector3__Vector3__Single__Hittable__Boolean__PlayerGolfer(NetworkConnectionToClient connection, Vector3 localHitPosition, Vector3 worldHitDirection, float normalizedHitSpeed, Hittable hitter, bool wasHoming, PlayerGolfer responsiblePlayer)
+	protected void UserCode_RpcHitWithSwingProjectile__NetworkConnectionToClient__Vector3__Vector3__Single__Hittable__Boolean__Boolean__PlayerGolfer(NetworkConnectionToClient connection, Vector3 localHitPosition, Vector3 worldHitDirection, float normalizedHitSpeed, Hittable hitter, bool wasHoming, bool wasSwungByRocketDriver, PlayerGolfer responsiblePlayer)
 	{
-		HitWithSwingProjectileInternal(localHitPosition, worldHitDirection, normalizedHitSpeed, hitter, wasHoming, responsiblePlayer);
+		HitWithSwingProjectileInternal(localHitPosition, worldHitDirection, normalizedHitSpeed, hitter, wasHoming, wasSwungByRocketDriver, responsiblePlayer);
 	}
 
-	protected static void InvokeUserCode_RpcHitWithSwingProjectile__NetworkConnectionToClient__Vector3__Vector3__Single__Hittable__Boolean__PlayerGolfer(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcHitWithSwingProjectile__NetworkConnectionToClient__Vector3__Vector3__Single__Hittable__Boolean__Boolean__PlayerGolfer(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -1549,7 +2115,7 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 		else
 		{
-			((Hittable)obj).UserCode_RpcHitWithSwingProjectile__NetworkConnectionToClient__Vector3__Vector3__Single__Hittable__Boolean__PlayerGolfer(null, reader.ReadVector3(), reader.ReadVector3(), reader.ReadFloat(), reader.ReadNetworkBehaviour<Hittable>(), reader.ReadBool(), reader.ReadNetworkBehaviour<PlayerGolfer>());
+			((Hittable)obj).UserCode_RpcHitWithSwingProjectile__NetworkConnectionToClient__Vector3__Vector3__Single__Hittable__Boolean__Boolean__PlayerGolfer(null, reader.ReadVector3(), reader.ReadVector3(), reader.ReadFloat(), reader.ReadNetworkBehaviour<Hittable>(), reader.ReadBool(), reader.ReadBool(), reader.ReadNetworkBehaviour<PlayerGolfer>());
 		}
 	}
 
@@ -1731,6 +2297,54 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 	}
 
+	protected void UserCode_CmdHitWithRocketDriverSwingPostHitSpin__Vector3__Vector3__Vector3__PlayerGolfer__NetworkConnectionToClient(Vector3 hitLocalPosition, Vector3 localOrigin, Vector3 direction, PlayerGolfer hitter, NetworkConnectionToClient sender)
+	{
+		if (!serverHitWithRocketDriverSwingPostHitSpinCommandRateLimiter.RegisterHit(sender) || hitter == null || IsUnhittable())
+		{
+			return;
+		}
+		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
+		{
+			if (value != NetworkServer.localConnection && value != sender)
+			{
+				RpcHitWithRocketDriverSwingPostHitSpin(value, hitLocalPosition, localOrigin, direction, hitter);
+			}
+		}
+		if (sender != null && sender != NetworkServer.localConnection)
+		{
+			HitWithRocketDriverSwingPostHitSpinInternal(hitLocalPosition, localOrigin, direction, hitter);
+		}
+	}
+
+	protected static void InvokeUserCode_CmdHitWithRocketDriverSwingPostHitSpin__Vector3__Vector3__Vector3__PlayerGolfer__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogError("Command CmdHitWithRocketDriverSwingPostHitSpin called on client.");
+		}
+		else
+		{
+			((Hittable)obj).UserCode_CmdHitWithRocketDriverSwingPostHitSpin__Vector3__Vector3__Vector3__PlayerGolfer__NetworkConnectionToClient(reader.ReadVector3(), reader.ReadVector3(), reader.ReadVector3(), reader.ReadNetworkBehaviour<PlayerGolfer>(), senderConnection);
+		}
+	}
+
+	protected void UserCode_RpcHitWithRocketDriverSwingPostHitSpin__NetworkConnectionToClient__Vector3__Vector3__Vector3__PlayerGolfer(NetworkConnectionToClient connection, Vector3 hitLocalPosition, Vector3 localOrigin, Vector3 direction, PlayerGolfer hitter)
+	{
+		HitWithRocketDriverSwingPostHitSpinInternal(hitLocalPosition, direction, localOrigin, hitter);
+	}
+
+	protected static void InvokeUserCode_RpcHitWithRocketDriverSwingPostHitSpin__NetworkConnectionToClient__Vector3__Vector3__Vector3__PlayerGolfer(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcHitWithRocketDriverSwingPostHitSpin called on server.");
+		}
+		else
+		{
+			((Hittable)obj).UserCode_RpcHitWithRocketDriverSwingPostHitSpin__NetworkConnectionToClient__Vector3__Vector3__Vector3__PlayerGolfer(null, reader.ReadVector3(), reader.ReadVector3(), reader.ReadVector3(), reader.ReadNetworkBehaviour<PlayerGolfer>());
+		}
+	}
+
 	protected void UserCode_RpcHitWithReturnedBall__NetworkConnectionToClient(NetworkConnectionToClient connection)
 	{
 		HitWithReturnedBallInternal();
@@ -1765,6 +2379,26 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 	}
 
+	protected void UserCode_CmdResetIsSwungByRocketDriverDueToNonPredictedClientCollision__NetworkConnectionToClient(NetworkConnectionToClient sender)
+	{
+		if (isSwungByRocketDriver && serverSetIsSwungByRocketDriverCommandRateLimiter.RegisterHit(sender))
+		{
+			ServerSetIsSwungByRocketDriver(isSwungByRocketDriver: false, dueToCollision: true);
+		}
+	}
+
+	protected static void InvokeUserCode_CmdResetIsSwungByRocketDriverDueToNonPredictedClientCollision__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogError("Command CmdResetIsSwungByRocketDriverDueToNonPredictedClientCollision called on client.");
+		}
+		else
+		{
+			((Hittable)obj).UserCode_CmdResetIsSwungByRocketDriverDueToNonPredictedClientCollision__NetworkConnectionToClient(senderConnection);
+		}
+	}
+
 	protected void UserCode_CmdRequestInitialState__NetworkConnectionToClient(NetworkConnectionToClient sender)
 	{
 		if (serverRequestInitialStateCommandRateLimiter.RegisterHit(sender))
@@ -1787,7 +2421,7 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 
 	protected void UserCode_RpcSetInitialState__NetworkConnectionToClient__SwingProjectileState__PlayerGolfer(NetworkConnectionToClient connection, SwingProjectileState swingProjectileState, PlayerGolfer responsibleSwingProjectilePlayer)
 	{
-		SwingProjectileState = swingProjectileState;
+		SetSwingProjectileState(swingProjectileState);
 		this.responsibleSwingProjectilePlayer = responsibleSwingProjectilePlayer;
 		UpdateIsUpdateLoopRegistered();
 	}
@@ -1810,6 +2444,8 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		if (forceAll)
 		{
 			writer.WriteVector3(swingHitPosition);
+			writer.WriteBool(isSwungByRocketDriver);
+			writer.WriteBool(isFrozen);
 			writer.WriteNetworkBehaviour(NetworkhomingTargetHittable);
 			writer.WriteFloat(homingInitialHorizontalDistance);
 			writer.WriteFloat(sideSpin);
@@ -1822,13 +2458,21 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 		if ((syncVarDirtyBits & 2L) != 0L)
 		{
-			writer.WriteNetworkBehaviour(NetworkhomingTargetHittable);
+			writer.WriteBool(isSwungByRocketDriver);
 		}
 		if ((syncVarDirtyBits & 4L) != 0L)
 		{
-			writer.WriteFloat(homingInitialHorizontalDistance);
+			writer.WriteBool(isFrozen);
 		}
 		if ((syncVarDirtyBits & 8L) != 0L)
+		{
+			writer.WriteNetworkBehaviour(NetworkhomingTargetHittable);
+		}
+		if ((syncVarDirtyBits & 0x10L) != 0L)
+		{
+			writer.WriteFloat(homingInitialHorizontalDistance);
+		}
+		if ((syncVarDirtyBits & 0x20L) != 0L)
 		{
 			writer.WriteFloat(sideSpin);
 		}
@@ -1840,6 +2484,8 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		if (initialState)
 		{
 			GeneratedSyncVarDeserialize(ref swingHitPosition, null, reader.ReadVector3());
+			GeneratedSyncVarDeserialize(ref isSwungByRocketDriver, _Mirror_SyncVarHookDelegate_isSwungByRocketDriver, reader.ReadBool());
+			GeneratedSyncVarDeserialize(ref isFrozen, _Mirror_SyncVarHookDelegate_isFrozen, reader.ReadBool());
 			GeneratedSyncVarDeserialize_NetworkBehaviour(ref homingTargetHittable, _Mirror_SyncVarHookDelegate_homingTargetHittable, reader, ref ___homingTargetHittableNetId);
 			GeneratedSyncVarDeserialize(ref homingInitialHorizontalDistance, null, reader.ReadFloat());
 			GeneratedSyncVarDeserialize(ref sideSpin, _Mirror_SyncVarHookDelegate_sideSpin, reader.ReadFloat());
@@ -1852,13 +2498,21 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 		if ((num & 2L) != 0L)
 		{
-			GeneratedSyncVarDeserialize_NetworkBehaviour(ref homingTargetHittable, _Mirror_SyncVarHookDelegate_homingTargetHittable, reader, ref ___homingTargetHittableNetId);
+			GeneratedSyncVarDeserialize(ref isSwungByRocketDriver, _Mirror_SyncVarHookDelegate_isSwungByRocketDriver, reader.ReadBool());
 		}
 		if ((num & 4L) != 0L)
 		{
-			GeneratedSyncVarDeserialize(ref homingInitialHorizontalDistance, null, reader.ReadFloat());
+			GeneratedSyncVarDeserialize(ref isFrozen, _Mirror_SyncVarHookDelegate_isFrozen, reader.ReadBool());
 		}
 		if ((num & 8L) != 0L)
+		{
+			GeneratedSyncVarDeserialize_NetworkBehaviour(ref homingTargetHittable, _Mirror_SyncVarHookDelegate_homingTargetHittable, reader, ref ___homingTargetHittableNetId);
+		}
+		if ((num & 0x10L) != 0L)
+		{
+			GeneratedSyncVarDeserialize(ref homingInitialHorizontalDistance, null, reader.ReadFloat());
+		}
+		if ((num & 0x20L) != 0L)
 		{
 			GeneratedSyncVarDeserialize(ref sideSpin, _Mirror_SyncVarHookDelegate_sideSpin, reader.ReadFloat());
 		}

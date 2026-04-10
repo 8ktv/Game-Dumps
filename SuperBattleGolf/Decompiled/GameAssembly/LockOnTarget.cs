@@ -23,12 +23,16 @@ public class LockOnTarget : MonoBehaviour
 	{
 		if (AsEntity.IsPlayer)
 		{
+			if (AsEntity.PlayerInfo.ActiveGolfCartSeat.IsValid())
+			{
+				return AsEntity.PlayerInfo.ActiveGolfCartSeat.golfCart.AsEntity.GetTargetReticleWorldPosition();
+			}
 			return AsEntity.PlayerInfo.Spine1Bone.position;
 		}
 		return AsEntity.GetTargetReticleWorldPosition();
 	}
 
-	public bool IsValid()
+	public bool IsValidForLocalPlayer(bool ignoreKnockoutImmunity)
 	{
 		if (AsEntity.IsPlayer)
 		{
@@ -45,6 +49,14 @@ public class LockOnTarget : MonoBehaviour
 				return false;
 			}
 			if (AsEntity.PlayerInfo.AsSpectator.IsSpectating)
+			{
+				return false;
+			}
+			if (AsEntity.PlayerInfo.Movement.KnockoutImmunityStatus.hasImmunity)
+			{
+				return false;
+			}
+			if (!ignoreKnockoutImmunity && GameManager.LocalPlayerInfo != null && AsEntity.PlayerInfo.Movement.IsKnockoutProtectedFromPlayer(GameManager.LocalPlayerInfo))
 			{
 				return false;
 			}

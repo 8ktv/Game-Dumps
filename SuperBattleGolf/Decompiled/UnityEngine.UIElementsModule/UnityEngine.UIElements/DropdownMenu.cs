@@ -11,6 +11,8 @@ public class DropdownMenu
 
 	internal int Count => m_MenuItems.Count;
 
+	internal bool repaintPanelBeforeDisplay { get; set; }
+
 	public bool allowDuplicateNames { get; set; }
 
 	public List<DropdownMenuItem> MenuItems()

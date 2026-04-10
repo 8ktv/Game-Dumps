@@ -13,6 +13,7 @@ public enum InputMode
 	TextChat = 0x80,
 	MatchSetup = 0x100,
 	MainMenu = 0x200,
-	SteamOverlay = 0x400,
-	ForceDisabled = 0x800
+	FullScreenMessage = 0x400,
+	SteamOverlay = 0x800,
+	ForceDisabled = 0x1000
 }

@@ -12,13 +12,13 @@ public class MatchSetupHole : MonoBehaviour, IPointerEnterHandler, IEventSystemH
 
 	public LocalizeStringEvent holeNameLocalizeStringEvent;
 
-	public LocalizeStringEvent courseNameLocalizeStringEvent;
-
 	public TextMeshProUGUI holeNumber;
 
-	public Image foreground;
-
 	public Image background;
+
+	public Image[] difficultyIcons;
+
+	public Sprite[] difficultyIconSprites;
 
 	private ControllerSelectable selectable;
 

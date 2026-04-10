@@ -2,8 +2,6 @@ namespace UnityEngine.UIElements;
 
 internal class KeyboardTextEditorEventHandler : TextEditorEventHandler
 {
-	private readonly Event m_ImguiEvent = new Event();
-
 	internal bool m_Changed;
 
 	internal bool m_ShouldInvokeUpdateValue;
@@ -110,16 +108,15 @@ internal class KeyboardTextEditorEventHandler : TextEditorEventHandler
 			return;
 		}
 		m_Changed = false;
-		evt.GetEquivalentImguiEvent(m_ImguiEvent);
 		bool generatePreview = false;
-		if (editingUtilities.HandleKeyEvent(m_ImguiEvent))
+		if (editingUtilities.HandleKeyEvent(evt.keyCode, evt.modifiers))
 		{
 			if (textElement.text != editingUtilities.text)
 			{
 				m_Changed = true;
 			}
 			evt.StopPropagation();
-			goto IL_03d4;
+			goto IL_03cd;
 		}
 		char c = evt.character;
 		if ((evt.actionKey && (!evt.altKey || c == '\0')) || (evt.keyCode >= KeyCode.F1 && evt.keyCode <= KeyCode.F15) || (evt.keyCode >= KeyCode.F16 && evt.keyCode <= KeyCode.F24) || (evt.altKey && c == '\0') || (c == '\t' && evt.keyCode == KeyCode.None && evt.modifiers == EventModifiers.None))
@@ -153,31 +150,31 @@ internal class KeyboardTextEditorEventHandler : TextEditorEventHandler
 			if (c == '\n' || c == '\r' || c == '\n')
 			{
 				num = !evt.altKey;
-				goto IL_0266;
+				goto IL_025f;
 			}
 		}
 		else if (c == '\n')
 		{
 			num = evt.shiftKey;
-			goto IL_0266;
+			goto IL_025f;
 		}
-		goto IL_0295;
-		IL_0266:
+		goto IL_028e;
+		IL_025f:
 		if (num)
 		{
 			ApplyTextIfNeeded();
 			textElement.edition.MoveFocusToCompositeRoot?.Invoke();
 			return;
 		}
-		goto IL_0295;
-		IL_03d4:
+		goto IL_028e;
+		IL_03cd:
 		if (m_Changed || m_ShouldInvokeUpdateValue)
 		{
 			UpdateLabel(generatePreview);
 		}
 		textElement.edition.UpdateScrollOffset?.Invoke(evt.keyCode == KeyCode.Backspace);
 		return;
-		IL_0295:
+		IL_028e:
 		if (evt.keyCode == KeyCode.Escape)
 		{
 			textElement.edition.RestoreValueAndText();
@@ -206,7 +203,7 @@ internal class KeyboardTextEditorEventHandler : TextEditorEventHandler
 				m_Changed = true;
 			}
 		}
-		goto IL_03d4;
+		goto IL_03cd;
 	}
 
 	private void ApplyTextIfNeeded()

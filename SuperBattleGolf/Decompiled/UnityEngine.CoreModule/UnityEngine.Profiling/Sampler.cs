@@ -6,8 +6,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Profiling;
 
-[UsedByNativeCode]
 [NativeHeader("Runtime/Profiler/ScriptBindings/Sampler.bindings.h")]
+[UsedByNativeCode]
 public class Sampler
 {
 	internal IntPtr m_Ptr;

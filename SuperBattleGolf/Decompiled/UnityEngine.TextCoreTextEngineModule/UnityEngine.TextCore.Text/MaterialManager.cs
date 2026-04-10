@@ -32,6 +32,10 @@ internal static class MaterialManager
 			}
 			s_FallbackMaterials.Remove(key);
 		}
+		if (!flag)
+		{
+			return null;
+		}
 		if (sourceMaterial.HasProperty(TextShaderUtilities.ID_GradientScale) && targetMaterial.HasProperty(TextShaderUtilities.ID_GradientScale))
 		{
 			Texture texture = targetMaterial.GetTexture(TextShaderUtilities.ID_MainTex);

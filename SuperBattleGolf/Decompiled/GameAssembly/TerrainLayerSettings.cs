@@ -28,6 +28,10 @@ public class TerrainLayerSettings : ScriptableObject
 	[field: SerializeField]
 	public bool IsOutOfBounds { get; private set; }
 
+	[field: SerializeField]
+	[field: DisplayIf("IsOutOfBounds", true)]
+	public Color SwingPowerBarOutOfBoundsOverlayColor { get; private set; }
+
 	[field: Header("Physics")]
 	[field: SerializeField]
 	[field: Min(0f)]
@@ -48,6 +52,46 @@ public class TerrainLayerSettings : ScriptableObject
 	[field: SerializeField]
 	[field: Min(0f)]
 	public float FullStopMaxPitch { get; private set; } = 20f;
+
+	[field: SerializeField]
+	[field: Min(0f)]
+	public float FullRollMinPitch { get; private set; } = 20f;
+
+	[field: SerializeField]
+	public AnimationCurve BallFullStopToFullRollCurve { get; private set; }
+
+	[field: SerializeField]
+	public bool DoesOverridePlayerDrag { get; private set; }
+
+	[field: SerializeField]
+	[field: DisplayIf("DoesOverridePlayerDrag", true)]
+	public float PlayerOverrideDrag { get; private set; }
+
+	[field: SerializeField]
+	public bool DoesOverridePlayerDiveDamping { get; private set; }
+
+	[field: SerializeField]
+	[field: DisplayIf("DoesOverridePlayerDiveDamping", true)]
+	public float PlayerOverrideDiveDamping { get; private set; }
+
+	[field: SerializeField]
+	[field: DisplayIf("DoesOverridePlayerDiveDamping", true)]
+	public float PlayerOverrideDiveStaticFriction { get; private set; }
+
+	[field: SerializeField]
+	[field: DisplayIf("DoesOverridePlayerDiveDamping", true)]
+	public float PlayerOverrideDiveDynamicFriction { get; private set; }
+
+	[field: SerializeField]
+	public bool DoesOverrideGolfCartWheelFriction { get; private set; }
+
+	[field: SerializeField]
+	[field: DisplayIf("DoesOverrideGolfCartWheelFriction", true)]
+	public SerializableWheelFrictionCurve GolfCartWheelOverrideForwardFriction { get; private set; }
+
+	[field: SerializeField]
+	[field: DisplayIf("DoesOverrideGolfCartWheelFriction", true)]
+	public SerializableWheelFrictionCurve GolfCartWheelOverrideSidewaysFriction { get; private set; }
 
 	[field: Header("VFX")]
 	[field: SerializeField]

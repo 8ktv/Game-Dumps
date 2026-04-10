@@ -6,9 +6,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Modules/Animation/AnimatorOverrideController.h")]
-[NativeHeader("Modules/Animation/ScriptBindings/Animation.bindings.h")]
 [UsedByNativeCode]
+[NativeHeader("Modules/Animation/ScriptBindings/Animation.bindings.h")]
+[NativeHeader("Modules/Animation/AnimatorOverrideController.h")]
 [HelpURL("AnimatorOverrideController")]
 public class AnimatorOverrideController : RuntimeAnimatorController
 {
@@ -278,8 +278,8 @@ public class AnimatorOverrideController : RuntimeAnimatorController
 		PerformOverrideClipListCleanup_Injected(intPtr);
 	}
 
-	[RequiredByNativeCode]
 	[NativeConditional("UNITY_EDITOR")]
+	[RequiredByNativeCode]
 	internal static void OnInvalidateOverrideController(AnimatorOverrideController controller)
 	{
 		if (controller.OnOverrideControllerDirty != null)

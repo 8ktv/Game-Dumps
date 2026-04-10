@@ -3,10 +3,13 @@ using Unity.Collections.LowLevel.Unsafe;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleEnum<T> : IStyleValue<T>, IEquatable<StyleEnum<T>> where T : struct, IConvertible
 {
+	[SerializeField]
 	private T m_Value;
 
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
 	public T value
@@ -88,5 +91,16 @@ public struct StyleEnum<T> : IStyleValue<T>, IEquatable<StyleEnum<T>> where T : 
 	public override string ToString()
 	{
 		return this.DebugString();
+	}
+
+	internal static bool TryParseString(string str, out StyleEnum<T> styleEnum)
+	{
+		if (Enum.TryParse<T>(str, ignoreCase: true, out var result))
+		{
+			styleEnum = new StyleEnum<T>(result);
+			return true;
+		}
+		styleEnum = default(StyleEnum<T>);
+		return false;
 	}
 }

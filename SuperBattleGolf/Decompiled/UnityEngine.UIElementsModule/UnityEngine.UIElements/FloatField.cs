@@ -11,12 +11,12 @@ public class FloatField : TextValueField<float>
 {
 	[Serializable]
 	[ExcludeFromDocs]
-	public new class UxmlSerializedData : TextInputBaseField<float>.UxmlSerializedData
+	public new class UxmlSerializedData : TextValueField<float>.UxmlSerializedData
 	{
 		[Conditional("UNITY_EDITOR")]
 		public new static void Register()
 		{
-			TextInputBaseField<float>.UxmlSerializedData.Register();
+			TextValueField<float>.UxmlSerializedData.Register();
 		}
 
 		public override object CreateInstance()
@@ -39,7 +39,7 @@ public class FloatField : TextValueField<float>
 	{
 		private FloatField parentFloatField => (FloatField)base.parent;
 
-		protected override string allowedCharacters => UINumericFieldsUtils.k_AllowedCharactersForFloat;
+		protected override string allowedCharacters => parentFloatField.supportExpressions ? UINumericFieldsUtils.k_AllowedCharactersForFloat : UINumericFieldsUtils.k_AllowedCharactersForFloat_NoExpressions;
 
 		internal FloatInput()
 		{

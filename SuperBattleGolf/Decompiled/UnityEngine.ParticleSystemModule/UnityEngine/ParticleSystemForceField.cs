@@ -5,12 +5,12 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[RequireComponent(typeof(Transform))]
-[NativeHeader("Modules/ParticleSystem/ScriptBindings/ParticleSystemScriptBindings.h")]
-[NativeHeader("ParticleSystemScriptingClasses.h")]
 [NativeHeader("Modules/ParticleSystem/ParticleSystem.h")]
 [NativeHeader("Modules/ParticleSystem/ParticleSystemForceField.h")]
 [NativeHeader("Modules/ParticleSystem/ParticleSystemForceFieldManager.h")]
+[NativeHeader("Modules/ParticleSystem/ScriptBindings/ParticleSystemScriptBindings.h")]
+[NativeHeader("ParticleSystemScriptingClasses.h")]
+[RequireComponent(typeof(Transform))]
 public class ParticleSystemForceField : Behaviour
 {
 	[NativeName("ForceShape")]

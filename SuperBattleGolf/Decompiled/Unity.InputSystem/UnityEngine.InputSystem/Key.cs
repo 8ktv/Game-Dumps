@@ -135,5 +135,8 @@ public enum Key
 	F21 = 120,
 	F22 = 121,
 	F23 = 122,
-	F24 = 123
+	F24 = 123,
+	MediaPlayPause = 124,
+	MediaRewind = 125,
+	MediaForward = 126
 }

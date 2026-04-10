@@ -11,8 +11,8 @@ using UnityEngineInternal;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Export/Resources/Resources.bindings.h")]
 [NativeHeader("Runtime/Misc/ResourceManagerUtility.h")]
+[NativeHeader("Runtime/Export/Resources/Resources.bindings.h")]
 public sealed class Resources
 {
 	internal static T[] ConvertObjects<T>(Object[] rawObjects) where T : Object
@@ -84,8 +84,8 @@ public sealed class Resources
 		return ConvertObjects<T>(LoadAll(path, typeof(T)));
 	}
 
-	[TypeInferenceRule(TypeInferenceRules.TypeReferencedByFirstArgument)]
 	[FreeFunction("GetScriptingBuiltinResource", ThrowsException = true)]
+	[TypeInferenceRule(TypeInferenceRules.TypeReferencedByFirstArgument)]
 	public unsafe static Object GetBuiltinResource([NotNull] Type type, string path)
 	{
 		//The blocks IL_0039 are reachable both inside and outside the pinned region starting at IL_0028. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -148,6 +148,7 @@ public sealed class Resources
 		return Unmarshal.UnmarshalUnityObject<Object>(EntityIdToObject_Injected(ref entityId));
 	}
 
+	[Obsolete("InstanceIDToObject is obsolete. Use EntityIdToObject instead.")]
 	public static Object InstanceIDToObject(int instanceID)
 	{
 		return EntityIdToObject(instanceID);
@@ -166,10 +167,32 @@ public sealed class Resources
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[FreeFunction("Resources_Bindings::InstanceIDToObjectList", IsThreadSafe = true)]
-	private static extern void InstanceIDToObjectList(IntPtr instanceIDs, int instanceCount, List<Object> objects);
+	private static extern void EntityIdsToObjectList(IntPtr entityIds, int instanceCount, List<Object> objects);
 
+	public unsafe static void EntityIdsToObjectList(NativeArray<EntityId> entityIds, List<Object> objects)
+	{
+		if (!entityIds.IsCreated)
+		{
+			throw new ArgumentException("NativeArray is uninitialized", "entityIds");
+		}
+		if (objects == null)
+		{
+			throw new ArgumentNullException("objects");
+		}
+		if (entityIds.Length == 0)
+		{
+			objects.Clear();
+		}
+		else
+		{
+			EntityIdsToObjectList((IntPtr)entityIds.GetUnsafeReadOnlyPtr(), entityIds.Length, objects);
+		}
+	}
+
+	[Obsolete("InstanceIDToObjectList is obsolete. Use EntityIdsToObjectList instead.")]
 	public unsafe static void InstanceIDToObjectList(NativeArray<int> instanceIDs, List<Object> objects)
 	{
+		Debug.Assert(4 == sizeof(EntityId), "Update this path to 64bit when we support 64bit");
 		if (!instanceIDs.IsCreated)
 		{
 			throw new ArgumentException("NativeArray is uninitialized", "instanceIDs");
@@ -184,7 +207,7 @@ public sealed class Resources
 		}
 		else
 		{
-			InstanceIDToObjectList((IntPtr)instanceIDs.GetUnsafeReadOnlyPtr(), instanceIDs.Length, objects);
+			EntityIdsToObjectList((IntPtr)instanceIDs.GetUnsafeReadOnlyPtr(), instanceIDs.Length, objects);
 		}
 	}
 
@@ -198,11 +221,13 @@ public sealed class Resources
 		return EntityIdIsValid_Injected(ref entityId);
 	}
 
+	[Obsolete("InstanceIDIsValid is obsolete. Use EntityIdIsValid instead.")]
 	public static bool InstanceIDIsValid(int instanceId)
 	{
 		return EntityIdIsValid(instanceId);
 	}
 
+	[Obsolete("InstanceIDsToValidArray is obsolete. Use EntityIdsToValidArray instead.")]
 	public unsafe static void InstanceIDsToValidArray(NativeArray<int> instanceIDs, NativeArray<bool> validArray)
 	{
 		if (!instanceIDs.IsCreated)

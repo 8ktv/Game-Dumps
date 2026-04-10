@@ -20,6 +20,8 @@ internal class NativePassCompiler : IDisposable
 		public bool disablePassCulling;
 
 		public bool disablePassMerging;
+
+		public RenderTextureUVOriginStrategy renderTextureUVOriginStrategy;
 	}
 
 	internal enum NativeCompilerProfileId
@@ -31,6 +33,7 @@ internal class NativePassCompiler : IDisposable
 		NRPRGComp_TryMergeNativePasses,
 		NRPRGComp_FindResourceUsageRanges,
 		NRPRGComp_DetectMemorylessResources,
+		NRPRGComp_PropagateTextureUVOrigin,
 		NRPRGComp_ExecuteInitializeResources,
 		NRPRGComp_ExecuteBeginRenderpassCommand,
 		NRPRGComp_ExecuteDestroyResources
@@ -44,15 +47,23 @@ internal class NativePassCompiler : IDisposable
 
 	internal CommandBuffer previousCommandBuffer;
 
-	private Stack<int> toVisitPassIds;
+	private Stack<int> m_HasSideEffectPassIdCullingStack;
+
+	private List<Stack<ResourceHandle>> m_UnusedVersionedResourceIdCullingStacks;
+
+	private Dictionary<int, List<ResourceHandle>> m_DelayedLastUseListPerPassMap;
 
 	private RenderGraphCompilationCache m_CompilationCache;
+
+	private RenderTargetIdentifier[][] m_TempMRTArrays;
 
 	internal const int k_EstimatedPassCount = 100;
 
 	internal const int k_MaxSubpass = 8;
 
 	private NativeList<AttachmentDescriptor> m_BeginRenderPassAttachments;
+
+	internal static bool s_ForceGenerateAuditsForTests;
 
 	private const int ArbitraryMaxNbMergedPasses = 16;
 
@@ -62,7 +73,22 @@ internal class NativePassCompiler : IDisposable
 	{
 		m_CompilationCache = cache;
 		defaultContextData = new CompilerContextData();
-		toVisitPassIds = new Stack<int>(100);
+		m_HasSideEffectPassIdCullingStack = new Stack<int>(100);
+		m_UnusedVersionedResourceIdCullingStacks = new List<Stack<ResourceHandle>>();
+		for (int i = 0; i < 3; i++)
+		{
+			m_UnusedVersionedResourceIdCullingStacks.Add(new Stack<ResourceHandle>());
+		}
+		m_DelayedLastUseListPerPassMap = new Dictionary<int, List<ResourceHandle>>(100);
+		for (int j = 0; j < 100; j++)
+		{
+			m_DelayedLastUseListPerPassMap.Add(j, new List<ResourceHandle>());
+		}
+		m_TempMRTArrays = new RenderTargetIdentifier[RenderGraph.kMaxMRTCount][];
+		for (int k = 0; k < RenderGraph.kMaxMRTCount; k++)
+		{
+			m_TempMRTArrays[k] = new RenderTargetIdentifier[k + 1];
+		}
 	}
 
 	~NativePassCompiler()
@@ -86,7 +112,7 @@ internal class NativePassCompiler : IDisposable
 		}
 	}
 
-	public bool Initialize(RenderGraphResourceRegistry resources, List<RenderGraphPass> renderPasses, RenderGraphDebugParams debugParams, string debugName, bool useCompilationCaching, int graphHash, int frameIndex)
+	public bool Initialize(RenderGraphResourceRegistry resources, List<RenderGraphPass> renderPasses, RenderGraphDebugParams debugParams, string debugName, bool useCompilationCaching, int graphHash, int frameIndex, RenderTextureUVOriginStrategy renderTextureUVOriginStrategy)
 	{
 		bool result = false;
 		if (!useCompilationCaching)
@@ -102,19 +128,55 @@ internal class NativePassCompiler : IDisposable
 		graph.disablePassCulling = debugParams.disablePassCulling;
 		graph.disablePassMerging = debugParams.disablePassMerging;
 		graph.debugName = debugName;
+		graph.renderTextureUVOriginStrategy = renderTextureUVOriginStrategy;
 		Clear(!useCompilationCaching);
 		return result;
+	}
+
+	private void HandleExtendedFeatureFlags()
+	{
+		for (int i = 0; i < contextData.nativePassData.Length; i++)
+		{
+			int firstNativeSubPass = contextData.nativePassData[i].firstNativeSubPass;
+			if (firstNativeSubPass < 0)
+			{
+				continue;
+			}
+			int firstGraphPass = contextData.nativePassData[i].firstGraphPass;
+			int j = 0;
+			for (int k = 0; k < contextData.nativePassData[i].numNativeSubPasses; k++)
+			{
+				SubPassFlags subPassFlags = SubPassFlags.MultiviewRenderRegionsCompatible;
+				for (; j < contextData.nativePassData[i].numGraphPasses && contextData.passData[j + firstGraphPass].nativeSubPassIndex == k; j++)
+				{
+					if (contextData.passData[j + firstGraphPass].extendedFeatureFlags.HasFlag(ExtendedFeatureFlags.TileProperties))
+					{
+						subPassFlags |= SubPassFlags.TileProperties;
+					}
+					if (!contextData.passData[j + firstGraphPass].extendedFeatureFlags.HasFlag(ExtendedFeatureFlags.MultiviewRenderRegionsCompatible))
+					{
+						subPassFlags &= ~SubPassFlags.MultiviewRenderRegionsCompatible;
+					}
+				}
+				contextData.nativeSubPassData.ElementAt(firstNativeSubPass + k).flags |= subPassFlags;
+			}
+		}
 	}
 
 	public void Compile(RenderGraphResourceRegistry resources)
 	{
 		SetupContextData(resources);
 		BuildGraph();
-		CullUnusedRenderPasses();
+		CullUnusedRenderGraphPasses();
 		TryMergeNativePasses();
-		FindResourceUsageRanges();
+		HandleExtendedFeatureFlags();
+		FindResourceUsageRangeAndSynchronization();
 		DetectMemoryLessResources();
 		PrepareNativeRenderPasses();
+		if (graph.renderTextureUVOriginStrategy == RenderTextureUVOriginStrategy.PropagateAttachmentOrientation)
+		{
+			PropagateTextureUVOrigin();
+		}
 	}
 
 	public void Clear(bool clearContextData)
@@ -123,12 +185,43 @@ internal class NativePassCompiler : IDisposable
 		{
 			contextData.Clear();
 		}
-		toVisitPassIds.Clear();
+		m_HasSideEffectPassIdCullingStack.Clear();
+		for (int i = 0; i < 3; i++)
+		{
+			m_UnusedVersionedResourceIdCullingStacks[i].Clear();
+		}
+		foreach (KeyValuePair<int, List<ResourceHandle>> item in m_DelayedLastUseListPerPassMap)
+		{
+			item.Value.Clear();
+		}
+		m_DelayedLastUseListPerPassMap.Clear();
 	}
 
 	private void SetPassStatesForNativePass(int nativePassId)
 	{
 		NativePassData.SetPassStatesForNativePass(contextData, nativePassId);
+	}
+
+	[Conditional("DEVELOPMENT_BUILD")]
+	[Conditional("UNITY_EDITOR")]
+	private void ValidatePasses()
+	{
+		if (!RenderGraph.enableValidityChecks)
+		{
+			return;
+		}
+		int num = -1;
+		for (int i = 0; i < graph.m_RenderPasses.Count; i++)
+		{
+			if (graph.m_RenderPasses[i].extendedFeatureFlags.HasFlag(ExtendedFeatureFlags.TileProperties))
+			{
+				if (num > -1)
+				{
+					throw new Exception("ExtendedFeatureFlags.TileProperties can only be set once per render graph (render graph " + graph.debugName + ", pass " + graph.m_RenderPasses[i].name + "), previously set at (pass " + graph.m_RenderPasses[num].name + ").");
+				}
+				num = i;
+			}
+		}
 	}
 
 	private void SetupContextData(RenderGraphResourceRegistry resources)
@@ -137,6 +230,89 @@ internal class NativePassCompiler : IDisposable
 		{
 			contextData.Initialize(resources, 100);
 		}
+	}
+
+	private bool TrySetupRasterFragmentList(ref PassData ctxPass, ref RenderGraphPass inputPass, out string errorMessage)
+	{
+		errorMessage = null;
+		CompilerContextData compilerContextData = contextData;
+		ctxPass.firstFragment = compilerContextData.fragmentData.Length;
+		if (inputPass.depthAccess.textureHandle.handle.IsValid())
+		{
+			ctxPass.fragmentInfoHasDepth = true;
+			if (compilerContextData.TryAddToFragmentList(inputPass.depthAccess, ctxPass.firstFragment, ctxPass.numFragments, out errorMessage))
+			{
+				TextureAccess depthAccess = inputPass.depthAccess;
+				ctxPass.TryAddFragment(in depthAccess.textureHandle.handle, compilerContextData, out errorMessage);
+			}
+			if (errorMessage != null)
+			{
+				errorMessage = $"when trying to add depth attachment of type {inputPass.depthAccess.textureHandle.handle.type} at index {inputPass.depthAccess.textureHandle.handle.index} - {errorMessage}";
+				return false;
+			}
+		}
+		for (int i = 0; i < inputPass.colorBufferMaxIndex + 1; i++)
+		{
+			if (inputPass.colorBufferAccess[i].textureHandle.handle.IsValid())
+			{
+				if (compilerContextData.TryAddToFragmentList(in inputPass.colorBufferAccess[i], ctxPass.firstFragment, ctxPass.numFragments, out errorMessage))
+				{
+					ctxPass.TryAddFragment(in inputPass.colorBufferAccess[i].textureHandle.handle, compilerContextData, out errorMessage);
+				}
+				if (errorMessage != null)
+				{
+					errorMessage = $"when trying to add render attachment of type {inputPass.colorBufferAccess[i].textureHandle.handle.type} at index {inputPass.colorBufferAccess[i].textureHandle.handle.index} - {errorMessage}";
+					return false;
+				}
+			}
+		}
+		if (inputPass.hasShadingRateImage && inputPass.shadingRateAccess.textureHandle.handle.IsValid())
+		{
+			if (compilerContextData.TryAddToFragmentList(inputPass.shadingRateAccess, ctxPass.firstFragment, ctxPass.numFragments, out errorMessage))
+			{
+				ctxPass.shadingRateImageIndex = compilerContextData.fragmentData.Length - 1;
+			}
+			if (errorMessage != null)
+			{
+				errorMessage = $"when trying to add VRS attachment of type {inputPass.shadingRateAccess.textureHandle.handle.type} at index {inputPass.shadingRateAccess.textureHandle.handle.index} - {errorMessage}";
+				return false;
+			}
+		}
+		ctxPass.firstFragmentInput = compilerContextData.fragmentData.Length;
+		for (int j = 0; j < inputPass.fragmentInputMaxIndex + 1; j++)
+		{
+			if (inputPass.fragmentInputAccess[j].textureHandle.IsValid())
+			{
+				if (compilerContextData.TryAddToFragmentList(in inputPass.fragmentInputAccess[j], ctxPass.firstFragmentInput, ctxPass.numFragmentInputs, out errorMessage))
+				{
+					ctxPass.TryAddFragmentInput(in inputPass.fragmentInputAccess[j].textureHandle.handle, compilerContextData, out errorMessage);
+				}
+				if (errorMessage != null)
+				{
+					errorMessage = $"when trying to add input attachment of type {inputPass.fragmentInputAccess[j].textureHandle.handle.type} at index {inputPass.fragmentInputAccess[j].textureHandle.handle.index} - {errorMessage}";
+					return false;
+				}
+			}
+		}
+		ctxPass.firstRandomAccessResource = compilerContextData.randomAccessResourceData.Length;
+		for (int k = 0; k < inputPass.randomAccessResourceMaxIndex + 1; k++)
+		{
+			ref RenderGraphPass.RandomWriteResourceInfo reference = ref inputPass.randomAccessResource[k];
+			if (reference.h.IsValid())
+			{
+				if (compilerContextData.TryAddToRandomAccessResourceList(in reference.h, k, reference.preserveCounterValue, ctxPass.firstRandomAccessResource, ctxPass.numRandomAccessResources, out errorMessage))
+				{
+					ctxPass.AddRandomAccessResource();
+				}
+				if (errorMessage != null)
+				{
+					errorMessage = $"when trying to add random access attachment of type {reference.h.type} at index {reference.h.index} - {errorMessage}";
+					return false;
+				}
+			}
+		}
+		_ = ctxPass.numFragments;
+		return true;
 	}
 
 	private void BuildGraph()
@@ -154,147 +330,163 @@ internal class NativePassCompiler : IDisposable
 				compilerContextData.passNames.Add(new Name(pass.name, computeUTF8ByteCount: true));
 				if (reference.hasSideEffects)
 				{
-					toVisitPassIds.Push(i);
+					m_HasSideEffectPassIdCullingStack.Push(i);
 				}
-				if (reference.type == RenderGraphPassType.Raster)
+				if (reference.type == RenderGraphPassType.Raster && !TrySetupRasterFragmentList(ref reference, ref pass, out var errorMessage))
 				{
-					reference.firstFragment = compilerContextData.fragmentData.Length;
-					if (pass.depthAccess.textureHandle.handle.IsValid())
-					{
-						reference.fragmentInfoHasDepth = true;
-						if (compilerContextData.AddToFragmentList(pass.depthAccess, reference.firstFragment, reference.numFragments))
-						{
-							reference.AddFragment(pass.depthAccess.textureHandle.handle, compilerContextData);
-						}
-					}
-					for (int j = 0; j < pass.colorBufferMaxIndex + 1; j++)
-					{
-						if (pass.colorBufferAccess[j].textureHandle.handle.IsValid() && compilerContextData.AddToFragmentList(pass.colorBufferAccess[j], reference.firstFragment, reference.numFragments))
-						{
-							reference.AddFragment(pass.colorBufferAccess[j].textureHandle.handle, compilerContextData);
-						}
-					}
-					if (pass.hasShadingRateImage && pass.shadingRateAccess.textureHandle.handle.IsValid())
-					{
-						reference.shadingRateImageIndex = compilerContextData.fragmentData.Length;
-						compilerContextData.AddToFragmentList(pass.shadingRateAccess, reference.shadingRateImageIndex, 0);
-					}
-					reference.firstFragmentInput = compilerContextData.fragmentData.Length;
-					for (int k = 0; k < pass.fragmentInputMaxIndex + 1; k++)
-					{
-						if (pass.fragmentInputAccess[k].textureHandle.IsValid())
-						{
-							_ = ref pass.fragmentInputAccess[k];
-							if (compilerContextData.AddToFragmentList(pass.fragmentInputAccess[k], reference.firstFragmentInput, reference.numFragmentInputs))
-							{
-								reference.AddFragmentInput(pass.fragmentInputAccess[k].textureHandle.handle, compilerContextData);
-							}
-						}
-					}
-					reference.firstRandomAccessResource = compilerContextData.randomAccessResourceData.Length;
-					for (int l = 0; l < renderPasses[i].randomAccessResourceMaxIndex + 1; l++)
-					{
-						ref RenderGraphPass.RandomWriteResourceInfo reference2 = ref renderPasses[i].randomAccessResource[l];
-						if (reference2.h.IsValid() && compilerContextData.AddToRandomAccessResourceList(reference2.h, l, reference2.preserveCounterValue, reference.firstRandomAccessResource, reference.numRandomAccessResources))
-						{
-							reference.AddRandomAccessResource();
-						}
-					}
-					_ = reference.numFragments;
+					throw new Exception("In pass '" + pass.name + "', " + errorMessage);
 				}
 				reference.firstInput = compilerContextData.inputData.Length;
 				reference.firstOutput = compilerContextData.outputData.Length;
-				for (int m = 0; m < 3; m++)
+				for (int j = 0; j < 3; j++)
 				{
-					List<ResourceHandle> list = pass.resourceWriteLists[m];
+					List<ResourceHandle> list = pass.resourceWriteLists[j];
 					int count = list.Count;
-					for (int n = 0; n < count; n++)
+					for (int k = 0; k < count; k++)
 					{
-						ResourceHandle resourceHandle = list[n];
-						if (compilerContextData.UnversionedResourceData(resourceHandle).isImported && !reference.hasSideEffects)
+						ResourceHandle h = list[k];
+						if (compilerContextData.UnversionedResourceData(in h).isImported && !reference.hasSideEffects)
 						{
 							reference.hasSideEffects = true;
-							toVisitPassIds.Push(i);
+							m_HasSideEffectPassIdCullingStack.Push(i);
 						}
-						compilerContextData.resources[resourceHandle].SetWritingPass(compilerContextData, resourceHandle, i);
-						compilerContextData.outputData.Add(new PassOutputData(resourceHandle));
+						compilerContextData.resources[h].SetWritingPass(compilerContextData, in h, i);
+						compilerContextData.outputData.Add(new PassOutputData(in h));
 						reference.numOutputs++;
 					}
-					List<ResourceHandle> list2 = pass.resourceReadLists[m];
+					List<ResourceHandle> list2 = pass.resourceReadLists[j];
 					int count2 = list2.Count;
-					for (int num = 0; num < count2; num++)
+					for (int l = 0; l < count2; l++)
 					{
-						ResourceHandle resourceHandle2 = list2[num];
-						compilerContextData.resources[resourceHandle2].RegisterReadingPass(compilerContextData, resourceHandle2, i, reference.numInputs);
-						compilerContextData.inputData.Add(new PassInputData(resourceHandle2));
+						ResourceHandle h2 = list2[l];
+						compilerContextData.resources[h2].RegisterReadingPass(compilerContextData, in h2, i, reference.numInputs);
+						compilerContextData.inputData.Add(new PassInputData(in h2));
 						reference.numInputs++;
 					}
-					List<ResourceHandle> list3 = pass.transientResourceList[m];
+					List<ResourceHandle> list3 = pass.transientResourceList[j];
 					int count3 = list3.Count;
-					for (int num2 = 0; num2 < count3; num2++)
+					for (int m = 0; m < count3; m++)
 					{
-						ResourceHandle resourceHandle3 = list3[num2];
-						compilerContextData.resources[resourceHandle3].RegisterReadingPass(compilerContextData, resourceHandle3, i, reference.numInputs);
-						compilerContextData.inputData.Add(new PassInputData(resourceHandle3));
+						ResourceHandle h3 = list3[m];
+						compilerContextData.resources[h3].RegisterReadingPass(compilerContextData, in h3, i, reference.numInputs);
+						compilerContextData.inputData.Add(new PassInputData(in h3));
 						reference.numInputs++;
-						compilerContextData.resources[resourceHandle3].SetWritingPass(compilerContextData, resourceHandle3, i);
-						compilerContextData.outputData.Add(new PassOutputData(resourceHandle3));
+						compilerContextData.resources[h3].SetWritingPass(compilerContextData, in h3, i);
+						compilerContextData.outputData.Add(new PassOutputData(in h3));
 						reference.numOutputs++;
+					}
+					if (j != 0 || reference.type != RenderGraphPassType.Raster)
+					{
+						continue;
+					}
+					reference.firstSampledOnlyRaster = compilerContextData.sampledData.Length;
+					ReadOnlySpan<PassInputData> readOnlySpan = reference.Inputs(compilerContextData);
+					for (int n = 0; n < readOnlySpan.Length; n++)
+					{
+						ref readonly PassInputData reference2 = ref readOnlySpan[n];
+						if (!reference.IsUsedAsFragment(in reference2.resource, compilerContextData))
+						{
+							compilerContextData.sampledData.Add(in reference2.resource);
+							reference.numSampledOnlyRaster++;
+						}
 					}
 				}
 			}
 		}
 	}
 
-	private void CullUnusedRenderPasses()
+	private void CullUnusedRenderGraphPasses()
 	{
-		CompilerContextData compilerContextData = contextData;
 		using (new ProfilingScope(ProfilingSampler.Get(NativeCompilerProfileId.NRPRGComp_CullNodes)))
 		{
 			if (graph.disablePassCulling)
 			{
 				return;
 			}
+			CompilerContextData compilerContextData = contextData;
 			compilerContextData.CullAllPasses(isCulled: true);
-			ReadOnlySpan<PassInputData> readOnlySpan;
-			while (toVisitPassIds.Count != 0)
+			while (m_HasSideEffectPassIdCullingStack.Count != 0)
 			{
-				int index = toVisitPassIds.Pop();
+				int index = m_HasSideEffectPassIdCullingStack.Pop();
 				ref PassData reference = ref compilerContextData.passData.ElementAt(index);
-				if (reference.culled)
-				{
-					readOnlySpan = reference.Inputs(compilerContextData);
-					for (int i = 0; i < readOnlySpan.Length; i++)
-					{
-						ref readonly PassInputData reference2 = ref readOnlySpan[i];
-						int writePassId = compilerContextData.resources[reference2.resource].writePassId;
-						toVisitPassIds.Push(writePassId);
-					}
-					reference.culled = false;
-				}
-			}
-			int length = compilerContextData.passData.Length;
-			for (int j = 0; j < length; j++)
-			{
-				ref PassData reference3 = ref compilerContextData.passData.ElementAt(j);
-				if (!reference3.culled)
+				if (!reference.culled)
 				{
 					continue;
 				}
-				ReadOnlySpan<PassOutputData> readOnlySpan2 = reference3.Outputs(compilerContextData);
-				for (int i = 0; i < readOnlySpan2.Length; i++)
-				{
-					ResourceHandle resource = readOnlySpan2[i].resource;
-					if (resource.version == compilerContextData.UnversionedResourceData(resource).latestVersionNumber)
-					{
-						compilerContextData.UnversionedResourceData(resource).latestVersionNumber--;
-					}
-				}
-				readOnlySpan = reference3.Inputs(compilerContextData);
+				ReadOnlySpan<PassInputData> readOnlySpan = reference.Inputs(compilerContextData);
 				for (int i = 0; i < readOnlySpan.Length; i++)
 				{
-					ResourceHandle resource2 = readOnlySpan[i].resource;
-					compilerContextData.resources[resource2].RemoveReadingPass(compilerContextData, resource2, reference3.passId);
+					ref readonly PassInputData reference2 = ref readOnlySpan[i];
+					ref ResourceVersionedData reference3 = ref compilerContextData.resources[reference2.resource];
+					if (reference3.written)
+					{
+						m_HasSideEffectPassIdCullingStack.Push(reference3.writePassId);
+					}
+				}
+				reference.culled = false;
+			}
+			for (int num = compilerContextData.passData.Length - 1; num >= 0; num--)
+			{
+				ref PassData reference4 = ref compilerContextData.passData.ElementAt(num);
+				if (reference4.culled)
+				{
+					PassData passData = reference4;
+					passData.DisconnectFromResources(compilerContextData);
+				}
+			}
+		}
+	}
+
+	private void CullRenderGraphPassesWritingOnlyUnusedResources()
+	{
+		CompilerContextData compilerContextData = contextData;
+		int length = compilerContextData.passData.Length;
+		for (int i = 0; i < length; i++)
+		{
+			ref PassData reference = ref compilerContextData.passData.ElementAt(i);
+			reference.tag = reference.numOutputs;
+			ReadOnlySpan<PassOutputData> readOnlySpan = reference.Outputs(compilerContextData);
+			for (int j = 0; j < readOnlySpan.Length; j++)
+			{
+				ref readonly ResourceHandle resource = ref readOnlySpan[j].resource;
+				if (compilerContextData.resources[resource].numReaders == 0)
+				{
+					m_UnusedVersionedResourceIdCullingStacks[resource.iType].Push(resource);
+				}
+			}
+		}
+		for (int k = 0; k < 3; k++)
+		{
+			Stack<ResourceHandle> stack = m_UnusedVersionedResourceIdCullingStacks[k];
+			while (stack.Count != 0)
+			{
+				ResourceHandle h = stack.Pop();
+				if (compilerContextData.resources.unversionedData[k].ElementAt(h.index).isImported)
+				{
+					continue;
+				}
+				ref ResourceVersionedData reference2 = ref compilerContextData.resources[h];
+				ref PassData reference3 = ref compilerContextData.passData.ElementAt(reference2.writePassId);
+				if (reference3.culled)
+				{
+					continue;
+				}
+				reference3.tag--;
+				if (reference3.tag == 0 && !reference3.hasSideEffects)
+				{
+					reference3.culled = true;
+					reference3.DisconnectFromResources(compilerContextData, stack, k);
+					continue;
+				}
+				ResourceHandle h2 = new ResourceHandle(in h, h.version - 1);
+				if (graph.m_RenderPasses[reference3.passId].implicitReadsList.Contains(h2))
+				{
+					ref ResourceVersionedData reference4 = ref compilerContextData.resources[h2];
+					reference4.RemoveReadingPass(compilerContextData, in h2, reference3.passId);
+					if (reference4.written && reference4.numReaders == 0)
+					{
+						stack.Push(h2);
+					}
 				}
 			}
 		}
@@ -344,7 +536,45 @@ internal class NativePassCompiler : IDisposable
 		}
 	}
 
-	private void FindResourceUsageRanges()
+	private bool FindFirstPassIdOnGraphicsQueueAwaitingFenceGoingForward(ref PassData startAsyncPass, out int firstPassIdAwaiting)
+	{
+		CompilerContextData compilerContextData = contextData;
+		firstPassIdAwaiting = startAsyncPass.awaitingMyGraphicsFencePassId;
+		if (firstPassIdAwaiting == -1)
+		{
+			int num = startAsyncPass.passId + 1;
+			int num2 = compilerContextData.passData.Length - 1;
+			while (firstPassIdAwaiting == -1 && num <= num2)
+			{
+				ref PassData reference = ref compilerContextData.passData.ElementAt(num);
+				if (reference.asyncCompute && !reference.culled)
+				{
+					firstPassIdAwaiting = reference.awaitingMyGraphicsFencePassId;
+				}
+				num++;
+			}
+			if (num > num2)
+			{
+				firstPassIdAwaiting = num2;
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private int FindFirstNonCulledPassIdGoingBackward(int startPassId, bool startPassIsIncluded)
+	{
+		CompilerContextData compilerContextData = contextData;
+		int num = (startPassIsIncluded ? startPassId : Math.Max(0, startPassId - 1));
+		ref PassData reference = ref compilerContextData.passData.ElementAt(num);
+		while (reference.culled && num > 0)
+		{
+			reference = ref compilerContextData.passData.ElementAt(--num);
+		}
+		return reference.passId;
+	}
+
+	private void FindResourceUsageRangeAndSynchronization()
 	{
 		CompilerContextData compilerContextData = contextData;
 		using (new ProfilingScope(ProfilingSampler.Get(NativeCompilerProfileId.NRPRGComp_FindResourceUsageRanges)))
@@ -356,102 +586,155 @@ internal class NativePassCompiler : IDisposable
 				{
 					continue;
 				}
+				ClearDelayedLastUseListAtPass(i);
+				reference.waitOnGraphicsFencePassId = -1;
+				reference.awaitingMyGraphicsFencePassId = -1;
+				reference.insertGraphicsFence = false;
 				ReadOnlySpan<PassInputData> readOnlySpan = reference.Inputs(compilerContextData);
 				for (int j = 0; j < readOnlySpan.Length; j++)
 				{
-					ResourceHandle resource = readOnlySpan[j].resource;
-					ref ResourceUnversionedData reference2 = ref compilerContextData.UnversionedResourceData(resource);
+					ResourceHandle h = readOnlySpan[j].resource;
+					ref ResourceUnversionedData reference2 = ref compilerContextData.UnversionedResourceData(in h);
+					ref ResourceVersionedData reference3 = ref compilerContextData.VersionedResourceData(in h);
 					reference2.lastUsePassID = -1;
-					if (resource.version == 0 && reference2.firstUsePassID < 0)
+					if (reference2.firstUsePassID < 0)
 					{
 						reference2.firstUsePassID = reference.passId;
-						reference.AddFirstUse(resource, compilerContextData);
+						reference.AddFirstUse(in h, compilerContextData);
 					}
-					if (reference2.latestVersionNumber == resource.version)
+					if (reference2.latestVersionNumber == h.version)
 					{
 						reference2.tag++;
+					}
+					if (reference3.written)
+					{
+						ref PassData reference4 = ref compilerContextData.passData.ElementAt(reference3.writePassId);
+						if (reference4.asyncCompute != reference.asyncCompute)
+						{
+							int waitOnGraphicsFencePassId = reference.waitOnGraphicsFencePassId;
+							reference.waitOnGraphicsFencePassId = Math.Max(reference4.passId, waitOnGraphicsFencePassId);
+						}
 					}
 				}
 				ReadOnlySpan<PassOutputData> readOnlySpan2 = reference.Outputs(compilerContextData);
 				for (int j = 0; j < readOnlySpan2.Length; j++)
 				{
-					ResourceHandle resource2 = readOnlySpan2[j].resource;
-					ref ResourceUnversionedData reference3 = ref compilerContextData.UnversionedResourceData(resource2);
-					if (resource2.version == 1 && reference3.firstUsePassID < 0)
+					ResourceHandle h2 = readOnlySpan2[j].resource;
+					ref ResourceUnversionedData reference5 = ref compilerContextData.UnversionedResourceData(in h2);
+					ref ResourceVersionedData reference6 = ref compilerContextData.VersionedResourceData(in h2);
+					if (reference5.firstUsePassID < 0)
 					{
-						reference3.firstUsePassID = reference.passId;
-						reference.AddFirstUse(resource2, compilerContextData);
+						reference5.firstUsePassID = reference.passId;
+						reference.AddFirstUse(in h2, compilerContextData);
 					}
-					if (reference3.latestVersionNumber == resource2.version)
+					if (reference5.latestVersionNumber == h2.version)
 					{
-						reference3.lastWritePassID = reference.passId;
+						reference5.lastWritePassID = reference.passId;
+					}
+					int numReaders = reference6.numReaders;
+					for (int k = 0; k < numReaders; k++)
+					{
+						int index = compilerContextData.resources.IndexReader(in h2, k);
+						ref ResourceReaderData reference7 = ref compilerContextData.resources.readerData[h2.iType].ElementAt(index);
+						ref PassData reference8 = ref compilerContextData.passData.ElementAt(reference7.passId);
+						if (reference.asyncCompute != reference8.asyncCompute)
+						{
+							reference.insertGraphicsFence = true;
+							int awaitingMyGraphicsFencePassId = reference.awaitingMyGraphicsFencePassId;
+							reference.awaitingMyGraphicsFencePassId = ((awaitingMyGraphicsFencePassId == -1) ? reference7.passId : Math.Min(awaitingMyGraphicsFencePassId, reference7.passId));
+						}
 					}
 				}
 			}
-			for (int k = 0; k < compilerContextData.passData.Length; k++)
+			for (int l = 0; l < compilerContextData.passData.Length; l++)
 			{
-				ref PassData reference4 = ref compilerContextData.passData.ElementAt(k);
-				if (reference4.culled)
+				ref PassData reference9 = ref compilerContextData.passData.ElementAt(l);
+				if (reference9.culled)
 				{
 					continue;
 				}
-				reference4.waitOnGraphicsFencePassId = -1;
-				reference4.insertGraphicsFence = false;
-				ReadOnlySpan<PassInputData> readOnlySpan = reference4.Inputs(compilerContextData);
+				bool asyncCompute = reference9.asyncCompute;
+				ReadOnlySpan<PassInputData> readOnlySpan = reference9.Inputs(compilerContextData);
 				for (int j = 0; j < readOnlySpan.Length; j++)
 				{
-					ResourceHandle resource3 = readOnlySpan[j].resource;
-					ref ResourceUnversionedData reference5 = ref compilerContextData.UnversionedResourceData(resource3);
-					if (reference5.latestVersionNumber == resource3.version)
-					{
-						int num = reference5.tag - 1;
-						if (num == 0)
-						{
-							reference5.lastUsePassID = reference4.passId;
-							reference4.AddLastUse(resource3, compilerContextData);
-						}
-						reference5.tag = num;
-					}
-					if (reference4.waitOnGraphicsFencePassId != -1)
+					ResourceHandle h3 = readOnlySpan[j].resource;
+					ref ResourceUnversionedData reference10 = ref compilerContextData.UnversionedResourceData(in h3);
+					if (reference10.latestVersionNumber != h3.version)
 					{
 						continue;
 					}
-					ref ResourceVersionedData reference6 = ref compilerContextData.VersionedResourceData(resource3);
-					if (reference6.written)
+					int num = reference10.tag - 1;
+					if (num == 0)
 					{
-						ref PassData reference7 = ref compilerContextData.passData.ElementAt(reference6.writePassId);
-						if (reference7.asyncCompute != reference4.asyncCompute)
+						if (asyncCompute)
 						{
-							reference4.waitOnGraphicsFencePassId = reference7.passId;
+							int firstPassIdAwaiting;
+							bool flag = FindFirstPassIdOnGraphicsQueueAwaitingFenceGoingForward(ref reference9, out firstPassIdAwaiting);
+							AddDelayedLastUseToPass(in h3, reference10.lastUsePassID = FindFirstNonCulledPassIdGoingBackward(firstPassIdAwaiting, !flag));
+						}
+						else
+						{
+							reference10.lastUsePassID = reference9.passId;
+							reference9.AddLastUse(in h3, compilerContextData);
 						}
 					}
+					reference10.tag = num;
 				}
-				ReadOnlySpan<PassOutputData> readOnlySpan2 = reference4.Outputs(compilerContextData);
+				ReadOnlySpan<PassOutputData> readOnlySpan2 = reference9.Outputs(compilerContextData);
 				for (int j = 0; j < readOnlySpan2.Length; j++)
 				{
-					ResourceHandle resource4 = readOnlySpan2[j].resource;
-					ref ResourceUnversionedData reference8 = ref compilerContextData.UnversionedResourceData(resource4);
-					ref ResourceVersionedData reference9 = ref compilerContextData.VersionedResourceData(resource4);
-					if (reference8.latestVersionNumber == resource4.version && reference9.numReaders == 0)
+					ResourceHandle h4 = readOnlySpan2[j].resource;
+					ref ResourceUnversionedData reference11 = ref compilerContextData.UnversionedResourceData(in h4);
+					ref ResourceVersionedData reference12 = ref compilerContextData.VersionedResourceData(in h4);
+					if (reference11.latestVersionNumber == h4.version && reference12.numReaders == 0)
 					{
-						reference8.lastUsePassID = reference4.passId;
-						reference4.AddLastUse(resource4, compilerContextData);
-					}
-					int numReaders = reference9.numReaders;
-					for (int l = 0; l < numReaders; l++)
-					{
-						int index = compilerContextData.resources.IndexReader(resource4, l);
-						ref ResourceReaderData reference10 = ref compilerContextData.resources.readerData[resource4.iType].ElementAt(index);
-						ref PassData reference11 = ref compilerContextData.passData.ElementAt(reference10.passId);
-						if (reference4.asyncCompute != reference11.asyncCompute)
+						if (asyncCompute)
 						{
-							reference4.insertGraphicsFence = true;
-							break;
+							int firstPassIdAwaiting2;
+							bool flag2 = FindFirstPassIdOnGraphicsQueueAwaitingFenceGoingForward(ref reference9, out firstPassIdAwaiting2);
+							AddDelayedLastUseToPass(in h4, reference11.lastUsePassID = FindFirstNonCulledPassIdGoingBackward(firstPassIdAwaiting2, !flag2));
+						}
+						else
+						{
+							reference11.lastUsePassID = reference9.passId;
+							reference9.AddLastUse(in h4, compilerContextData);
 						}
 					}
 				}
+				AddLastUseFromDelayedList(ref reference9);
 			}
 		}
+	}
+
+	private void ClearDelayedLastUseListAtPass(int passId)
+	{
+		if (m_DelayedLastUseListPerPassMap.TryGetValue(passId, out var value))
+		{
+			value.Clear();
+		}
+	}
+
+	private void AddDelayedLastUseToPass(in ResourceHandle releaseResource, int passId)
+	{
+		if (!m_DelayedLastUseListPerPassMap.TryGetValue(passId, out var value))
+		{
+			value = new List<ResourceHandle>();
+			m_DelayedLastUseListPerPassMap.Add(passId, value);
+		}
+		value.Add(releaseResource);
+	}
+
+	public void AddLastUseFromDelayedList(ref PassData passData)
+	{
+		if (!m_DelayedLastUseListPerPassMap.TryGetValue(passData.passId, out var value))
+		{
+			return;
+		}
+		foreach (ResourceHandle item in value)
+		{
+			passData.AddLastUse(item, contextData);
+		}
+		value.Clear();
 	}
 
 	private void PrepareNativeRenderPasses()
@@ -462,7 +745,47 @@ internal class NativePassCompiler : IDisposable
 		}
 	}
 
-	private static bool IsGlobalTextureInPass(RenderGraphPass pass, ResourceHandle handle)
+	private void PropagateTextureUVOrigin()
+	{
+		using (new ProfilingScope(ProfilingSampler.Get(NativeCompilerProfileId.NRPRGComp_PropagateTextureUVOrigin)))
+		{
+			for (int num = contextData.nativePassData.Length - 1; num >= 0; num--)
+			{
+				ref NativePassData reference = ref contextData.nativePassData.ElementAt(num);
+				int size = reference.attachments.size;
+				int index = 0;
+				TextureUVOriginSelection textureUVOriginSelection = TextureUVOriginSelection.Unknown;
+				for (int i = 0; i < size; i++)
+				{
+					ref NativePassAttachment reference2 = ref reference.attachments[i];
+					if (reference2.storeAction != RenderBufferStoreAction.DontCare && reference2.handle.type == RenderGraphResourceType.Texture)
+					{
+						textureUVOriginSelection = contextData.UnversionedResourceData(in reference2.handle).textureUVOrigin;
+						index = i;
+						break;
+					}
+				}
+				for (int j = 0; j < size; j++)
+				{
+					ref NativePassAttachment reference3 = ref reference.attachments[j];
+					if (reference3.handle.type == RenderGraphResourceType.Texture)
+					{
+						ref ResourceUnversionedData reference4 = ref contextData.UnversionedResourceData(in reference3.handle);
+						if (textureUVOriginSelection != TextureUVOriginSelection.Unknown && reference4.textureUVOrigin != TextureUVOriginSelection.Unknown && reference4.textureUVOrigin != textureUVOriginSelection)
+						{
+							ref NativePassAttachment reference5 = ref reference.attachments[index];
+							string renderGraphResourceName = graph.m_ResourcesForDebugOnly.GetRenderGraphResourceName(in reference5.handle);
+							string renderGraphResourceName2 = graph.m_ResourcesForDebugOnly.GetRenderGraphResourceName(in reference3.handle);
+							throw new InvalidOperationException($"From pass '{contextData.passNames[reference.firstGraphPass]}' to pass '{contextData.passNames[reference.lastGraphPass]}' when trying to store resource '{renderGraphResourceName2}' of type {reference3.handle.type} at index {reference3.handle.index} - " + RenderGraph.RenderGraphExceptionMessages.IncompatibleTextureUVOriginStore(renderGraphResourceName, textureUVOriginSelection, renderGraphResourceName2, reference4.textureUVOrigin));
+						}
+						reference4.textureUVOrigin = textureUVOriginSelection;
+					}
+				}
+			}
+		}
+	}
+
+	private static bool IsGlobalTextureInPass(RenderGraphPass pass, in ResourceHandle handle)
 	{
 		foreach (var setGlobals in pass.setGlobalsList)
 		{
@@ -478,11 +801,16 @@ internal class NativePassCompiler : IDisposable
 	{
 		using (new ProfilingScope(ProfilingSampler.Get(NativeCompilerProfileId.NRPRGComp_DetectMemorylessResources)))
 		{
+			if (!SystemInfo.supportsMemorylessTextures)
+			{
+				return;
+			}
 			CompilerContextData.NativePassIterator enumerator = contextData.NativePasses.GetEnumerator();
 			while (enumerator.MoveNext())
 			{
 				ref readonly NativePassData current = ref enumerator.Current;
-				ReadOnlySpan<PassData> readOnlySpan = current.GraphPasses(contextData);
+				NativeArray<PassData> actualPasses;
+				ReadOnlySpan<PassData> readOnlySpan = current.GraphPasses(contextData, out actualPasses);
 				ReadOnlySpan<PassData> readOnlySpan2 = readOnlySpan;
 				for (int i = 0; i < readOnlySpan2.Length; i++)
 				{
@@ -491,12 +819,12 @@ internal class NativePassCompiler : IDisposable
 					for (int j = 0; j < readOnlySpan3.Length; j++)
 					{
 						ref readonly ResourceHandle reference2 = ref readOnlySpan3[j];
-						ref ResourceUnversionedData reference3 = ref contextData.UnversionedResourceData(reference2);
+						ref ResourceUnversionedData reference3 = ref contextData.UnversionedResourceData(in reference2);
 						if (reference2.type != RenderGraphResourceType.Texture || reference3.isImported)
 						{
 							continue;
 						}
-						bool flag = IsGlobalTextureInPass(graph.m_RenderPasses[reference.passId], reference2);
+						bool flag = IsGlobalTextureInPass(graph.m_RenderPasses[reference.passId], in reference2);
 						ReadOnlySpan<PassData> readOnlySpan4 = readOnlySpan;
 						for (int k = 0; k < readOnlySpan4.Length; k++)
 						{
@@ -505,8 +833,8 @@ internal class NativePassCompiler : IDisposable
 							for (int l = 0; l < readOnlySpan5.Length; l++)
 							{
 								ref readonly ResourceHandle reference5 = ref readOnlySpan5[l];
-								ref ResourceUnversionedData reference6 = ref contextData.UnversionedResourceData(reference5);
-								if (reference5.type == RenderGraphResourceType.Texture && !reference6.isImported && reference2.index == reference5.index && !flag && (current.numNativeSubPasses > 1 || reference4.IsUsedAsFragment(reference2, contextData)))
+								ref ResourceUnversionedData reference6 = ref contextData.UnversionedResourceData(in reference5);
+								if (reference5.type == RenderGraphResourceType.Texture && !reference6.isImported && reference2.index == reference5.index && !flag && (current.numNativeSubPasses > 1 || reference4.IsUsedAsFragment(in reference2, contextData)))
 								{
 									reference3.memoryLess = true;
 									reference6.memoryLess = true;
@@ -515,13 +843,19 @@ internal class NativePassCompiler : IDisposable
 						}
 					}
 				}
+				if (actualPasses.IsCreated)
+				{
+					actualPasses.Dispose();
+				}
 			}
 		}
 	}
 
 	internal static bool IsSameNativeSubPass(ref SubPassDescriptor a, ref SubPassDescriptor b)
 	{
-		if (a.flags != b.flags || a.colorOutputs.Length != b.colorOutputs.Length || a.inputs.Length != b.inputs.Length)
+		SubPassFlags num = a.flags & ~(SubPassFlags.TileProperties | SubPassFlags.MultiviewRenderRegionsCompatible);
+		SubPassFlags subPassFlags = b.flags & ~(SubPassFlags.TileProperties | SubPassFlags.MultiviewRenderRegionsCompatible);
+		if (num != subPassFlags || a.colorOutputs.Length != b.colorOutputs.Length || a.inputs.Length != b.inputs.Length)
 		{
 			return false;
 		}
@@ -542,8 +876,9 @@ internal class NativePassCompiler : IDisposable
 		return true;
 	}
 
-	private void ExecuteInitializeResource(InternalRenderGraphContext rgContext, RenderGraphResourceRegistry resources, in PassData pass)
+	private bool ExecuteInitializeResource(InternalRenderGraphContext rgContext, RenderGraphResourceRegistry resources, in PassData pass)
 	{
+		bool flag = false;
 		using (new ProfilingScope(ProfilingSampler.Get(NativeCompilerProfileId.NRPRGComp_ExecuteInitializeResources)))
 		{
 			resources.forceManualClearOfResource = true;
@@ -552,7 +887,8 @@ internal class NativePassCompiler : IDisposable
 			{
 				if (pass.mergeState == PassMergeState.Begin || pass.mergeState == PassMergeState.None)
 				{
-					ReadOnlySpan<PassData> readOnlySpan = contextData.nativePassData.ElementAt(pass.nativePassIndex).GraphPasses(contextData);
+					NativeArray<PassData> actualPasses;
+					ReadOnlySpan<PassData> readOnlySpan = contextData.nativePassData.ElementAt(pass.nativePassIndex).GraphPasses(contextData, out actualPasses);
 					for (int i = 0; i < readOnlySpan.Length; i++)
 					{
 						ref readonly PassData reference = ref readOnlySpan[i];
@@ -560,21 +896,26 @@ internal class NativePassCompiler : IDisposable
 						for (int j = 0; j < readOnlySpan2.Length; j++)
 						{
 							ref readonly ResourceHandle reference2 = ref readOnlySpan2[j];
-							ref ResourceUnversionedData reference3 = ref contextData.UnversionedResourceData(reference2);
-							bool flag = reference.IsUsedAsFragment(reference2, contextData);
-							resources.forceManualClearOfResource = !flag;
-							if (!reference3.memoryLess)
+							ref ResourceUnversionedData reference3 = ref contextData.UnversionedResourceData(in reference2);
+							bool flag2 = reference.IsUsedAsFragment(in reference2, contextData);
+							resources.forceManualClearOfResource = !flag2;
+							if (!reference3.isImported)
 							{
-								if (!reference3.isImported)
+								if (reference3.memoryLess)
 								{
-									resources.CreatePooledResource(rgContext, reference2.iType, reference2.index);
+									resources.SetTextureAsMemoryLess(in reference2);
 								}
-								else if (reference3.clear && resources.forceManualClearOfResource)
-								{
-									resources.ClearResource(rgContext, reference2.iType, reference2.index);
-								}
+								flag |= resources.CreatePooledResource(rgContext, reference2.iType, reference2.index);
+							}
+							else if (reference3.clear && !reference3.memoryLess && resources.forceManualClearOfResource)
+							{
+								flag |= resources.ClearResource(rgContext, reference2.iType, reference2.index);
 							}
 						}
+					}
+					if (actualPasses.IsCreated)
+					{
+						actualPasses.Dispose();
 					}
 				}
 			}
@@ -584,18 +925,19 @@ internal class NativePassCompiler : IDisposable
 				for (int i = 0; i < readOnlySpan2.Length; i++)
 				{
 					ref readonly ResourceHandle reference4 = ref readOnlySpan2[i];
-					ref ResourceUnversionedData reference5 = ref contextData.UnversionedResourceData(reference4);
+					ref ResourceUnversionedData reference5 = ref contextData.UnversionedResourceData(in reference4);
 					if (!reference5.isImported)
 					{
-						resources.CreatePooledResource(rgContext, reference4.iType, reference4.index);
+						flag |= resources.CreatePooledResource(rgContext, reference4.iType, reference4.index);
 					}
 					else if (reference5.clear)
 					{
-						resources.ClearResource(rgContext, reference4.iType, reference4.index);
+						flag |= resources.ClearResource(rgContext, reference4.iType, reference4.index);
 					}
 				}
 			}
 			resources.forceManualClearOfResource = true;
+			return flag;
 		}
 	}
 
@@ -621,14 +963,14 @@ internal class NativePassCompiler : IDisposable
 				}
 				fixedAttachmentArray = fragments;
 				ref PassFragmentData reference = ref fixedAttachmentArray[num];
-				ResourceHandle resource = reference.resource;
+				ResourceHandle handle = reference.resource;
 				bool memoryless = false;
 				int mipLevel = reference.mipLevel;
 				int depthSlice = reference.depthSlice;
 				RenderBufferLoadAction loadAction = RenderBufferLoadAction.DontCare;
 				RenderBufferStoreAction storeAction = RenderBufferStoreAction.DontCare;
 				bool flag = reference.accessFlags.HasFlag(AccessFlags.Write) && !reference.accessFlags.HasFlag(AccessFlags.Discard);
-				ref ResourceUnversionedData reference2 = ref contextData.UnversionedResourceData(reference.resource);
+				ref ResourceUnversionedData reference2 = ref contextData.UnversionedResourceData(in reference.resource);
 				bool isImported = reference2.isImported;
 				int lastUsePassID = reference2.lastUsePassID;
 				bool flag2 = lastUsePassID >= nativePass.lastGraphPass + 1;
@@ -662,12 +1004,12 @@ internal class NativePassCompiler : IDisposable
 						{
 							bool flag5 = flag4 && !reference2.discard;
 							bool flag6 = flag4 && !reference2.bindMS;
-							ReadOnlySpan<ResourceReaderData> readOnlySpan = contextData.Readers(reference.resource);
+							ReadOnlySpan<ResourceReaderData> readOnlySpan = contextData.Readers(in reference.resource);
 							for (int i = 0; i < readOnlySpan.Length; i++)
 							{
 								ref readonly ResourceReaderData reference3 = ref readOnlySpan[i];
 								ref PassData reference4 = ref contextData.passData.ElementAt(reference3.passId);
-								bool flag7 = reference4.IsUsedAsFragment(reference.resource, contextData);
+								bool flag7 = reference4.IsUsedAsFragment(in reference.resource, contextData);
 								if (reference4.type == RenderGraphPassType.Unsafe)
 								{
 									flag5 = true;
@@ -710,7 +1052,7 @@ internal class NativePassCompiler : IDisposable
 				{
 					memoryless = true;
 				}
-				NativePassAttachment data = new NativePassAttachment(resource, loadAction, storeAction, memoryless, mipLevel, depthSlice);
+				NativePassAttachment data = new NativePassAttachment(in handle, loadAction, storeAction, memoryless, mipLevel, depthSlice);
 				nativePass.attachments.Add(in data);
 				num++;
 			}
@@ -736,7 +1078,7 @@ internal class NativePassCompiler : IDisposable
 
 	[Conditional("DEVELOPMENT_BUILD")]
 	[Conditional("UNITY_EDITOR")]
-	private void ValidateAttachment(in RenderTargetInfo attRenderTargetInfo, RenderGraphResourceRegistry resources, int nativePassWidth, int nativePassHeight, int nativePassMSAASamples, bool isVrs)
+	private void ValidateAttachment(in RenderTargetInfo attRenderTargetInfo, RenderGraphResourceRegistry resources, int nativePassWidth, int nativePassHeight, int nativePassMSAASamples, bool isVrs, bool isShaderResolve)
 	{
 		if (!RenderGraph.enableValidityChecks)
 		{
@@ -747,12 +1089,12 @@ internal class NativePassCompiler : IDisposable
 			Vector2Int allocTileSize = ShadingRateImage.GetAllocTileSize(nativePassWidth, nativePassHeight);
 			if (attRenderTargetInfo.width != allocTileSize.x || attRenderTargetInfo.height != allocTileSize.y || attRenderTargetInfo.msaaSamples != 1)
 			{
-				throw new Exception("Low level rendergraph error: Shading rate image attachment in renderpass does not match!");
+				throw new Exception("Low level rendergraph error: Shading rate image attachment in renderpass does not match.");
 			}
 		}
-		else if (attRenderTargetInfo.width != nativePassWidth || attRenderTargetInfo.height != nativePassHeight || attRenderTargetInfo.msaaSamples != nativePassMSAASamples)
+		else if (attRenderTargetInfo.width != nativePassWidth || attRenderTargetInfo.height != nativePassHeight || (attRenderTargetInfo.msaaSamples != nativePassMSAASamples && !isShaderResolve))
 		{
-			throw new Exception("Low level rendergraph error: Attachments in renderpass do not match!");
+			throw new Exception("Low level rendergraph error: Attachments in renderpass do not match.");
 		}
 	}
 
@@ -766,6 +1108,7 @@ internal class NativePassCompiler : IDisposable
 			int height = nativePass.height;
 			int volumeDepth = nativePass.volumeDepth;
 			int samples = nativePass.samples;
+			nativePass.extendedFeatureFlags.HasFlag(ExtendedFeatureFlags.MultisampledShaderResolve);
 			NativeArray<SubPassDescriptor> subPasses = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<SubPassDescriptor>(contextData.nativeSubPassData.GetUnsafeReadOnlyPtr() + nativePass.firstNativeSubPass, nativePass.numNativeSubPasses, Allocator.None);
 			if (nativePass.hasFoveatedRasterization)
 			{
@@ -788,15 +1131,12 @@ internal class NativePassCompiler : IDisposable
 				resources.GetRenderTargetInfo(in handle, out var outInfo);
 				ref AttachmentDescriptor reference = ref m_BeginRenderPassAttachments.ElementAt(i);
 				reference = new AttachmentDescriptor(outInfo.format);
-				if (!attachments[i].memoryless)
+				RTHandle texture = resources.GetTexture(handle.index);
+				RenderTargetIdentifier renderTargetIdentifier = texture;
+				reference.loadStoreTarget = new RenderTargetIdentifier(renderTargetIdentifier, attachments[i].mipLevel, CubemapFace.Unknown, attachments[i].depthSlice);
+				if (attachments[i].storeAction == RenderBufferStoreAction.Resolve || attachments[i].storeAction == RenderBufferStoreAction.StoreAndResolve)
 				{
-					RTHandle texture = resources.GetTexture(handle.index);
-					RenderTargetIdentifier renderTargetIdentifier = texture;
-					reference.loadStoreTarget = new RenderTargetIdentifier(renderTargetIdentifier, attachments[i].mipLevel, CubemapFace.Unknown, attachments[i].depthSlice);
-					if (attachments[i].storeAction == RenderBufferStoreAction.Resolve || attachments[i].storeAction == RenderBufferStoreAction.StoreAndResolve)
-					{
-						reference.resolveTarget = texture;
-					}
+					reference.resolveTarget = texture;
 				}
 				reference.loadAction = attachments[i].loadAction;
 				reference.storeAction = attachments[i].storeAction;
@@ -805,7 +1145,7 @@ internal class NativePassCompiler : IDisposable
 					reference.clearColor = Color.red;
 					reference.clearDepth = 1f;
 					reference.clearStencil = 0u;
-					TextureDesc textureResourceDesc = resources.GetTextureResourceDesc(in handle, noThrowOnInvalidDesc: true);
+					ref readonly TextureDesc textureResourceDesc = ref resources.GetTextureResourceDesc(in handle, noThrowOnInvalidDesc: true);
 					if (i == 0 && nativePass.hasDepth)
 					{
 						reference.clearDepth = 1f;
@@ -814,6 +1154,30 @@ internal class NativePassCompiler : IDisposable
 					{
 						reference.clearColor = textureResourceDesc.clearColor;
 					}
+				}
+			}
+			if (nativePass.extendedFeatureFlags.HasFlag(ExtendedFeatureFlags.MultisampledShaderResolve))
+			{
+				SubPassDescriptor subPassDescriptor = subPasses[subPasses.Length - 1];
+				for (int j = 0; j < subPassDescriptor.inputs.Length; j++)
+				{
+					int index = subPassDescriptor.inputs[j];
+					if (m_BeginRenderPassAttachments.ElementAt(index).storeAction != RenderBufferStoreAction.DontCare)
+					{
+						throw new Exception("Low level rendergraph error: last subpass with shader resolve must have all input attachments as memoryless attachments.");
+					}
+				}
+				if (subPassDescriptor.colorOutputs.Length != 1)
+				{
+					throw new Exception("Low level rendergraph error: last subpass with shader resolve must have one color attachment.");
+				}
+				if (SystemInfo.supportsMultisampledShaderResolve)
+				{
+					int index2 = subPassDescriptor.colorOutputs[0];
+					ref AttachmentDescriptor reference2 = ref m_BeginRenderPassAttachments.ElementAt(index2);
+					reference2.resolveTarget = reference2.loadStoreTarget;
+					reference2.loadStoreTarget = new RenderTargetIdentifier(BuiltinRenderTextureType.None);
+					reference2.storeAction = RenderBufferStoreAction.Store;
 				}
 			}
 			NativeArray<AttachmentDescriptor> attachments2 = m_BeginRenderPassAttachments.AsArray();
@@ -836,35 +1200,89 @@ internal class NativePassCompiler : IDisposable
 				{
 					return;
 				}
-				ReadOnlySpan<PassData> readOnlySpan = contextData.nativePassData.ElementAt(pass.nativePassIndex).GraphPasses(contextData);
+				NativeArray<PassData> actualPasses;
+				ReadOnlySpan<PassData> readOnlySpan = contextData.nativePassData.ElementAt(pass.nativePassIndex).GraphPasses(contextData, out actualPasses);
 				for (int i = 0; i < readOnlySpan.Length; i++)
 				{
 					readOnlySpan2 = readOnlySpan[i].LastUsedResources(contextData);
 					for (int j = 0; j < readOnlySpan2.Length; j++)
 					{
 						ref readonly ResourceHandle reference = ref readOnlySpan2[j];
-						ref ResourceUnversionedData reference2 = ref contextData.UnversionedResourceData(reference);
-						if (!reference2.isImported && !reference2.memoryLess)
+						if (!contextData.UnversionedResourceData(in reference).isImported)
 						{
 							resources.ReleasePooledResource(rgContext, reference.iType, reference.index);
 						}
 					}
+				}
+				if (actualPasses.IsCreated)
+				{
+					actualPasses.Dispose();
 				}
 				return;
 			}
 			readOnlySpan2 = pass.LastUsedResources(contextData);
 			for (int i = 0; i < readOnlySpan2.Length; i++)
 			{
-				ref readonly ResourceHandle reference3 = ref readOnlySpan2[i];
-				if (!contextData.UnversionedResourceData(reference3).isImported)
+				ref readonly ResourceHandle reference2 = ref readOnlySpan2[i];
+				if (!contextData.UnversionedResourceData(in reference2).isImported)
 				{
-					resources.ReleasePooledResource(rgContext, reference3.iType, reference3.index);
+					resources.ReleasePooledResource(rgContext, reference2.iType, reference2.index);
 				}
 			}
 		}
 	}
 
-	internal void ExecuteSetRandomWriteTarget(in CommandBuffer cmd, RenderGraphResourceRegistry resources, int index, ResourceHandle resource, bool preserveCounterValue = true)
+	private void ExecuteSetRenderTargets(RenderGraphPass pass, InternalRenderGraphContext rgContext)
+	{
+		bool flag = pass.depthAccess.textureHandle.IsValid();
+		if (!flag && pass.colorBufferMaxIndex == -1)
+		{
+			return;
+		}
+		RenderGraphResourceRegistry resourcesForDebugOnly = graph.m_ResourcesForDebugOnly;
+		TextureAccess[] colorBufferAccess = pass.colorBufferAccess;
+		if (pass.colorBufferMaxIndex > 0)
+		{
+			RenderTargetIdentifier[] array = m_TempMRTArrays[pass.colorBufferMaxIndex];
+			for (int i = 0; i <= pass.colorBufferMaxIndex; i++)
+			{
+				array[i] = resourcesForDebugOnly.GetTexture(in colorBufferAccess[i].textureHandle);
+			}
+			if (!flag)
+			{
+				throw new InvalidOperationException("In pass " + pass.name + " - Setting multiple render textures (MRTs) without a depth buffer is not supported.");
+			}
+			CommandBuffer cmd = rgContext.cmd;
+			TextureAccess depthAccess = pass.depthAccess;
+			CoreUtils.SetRenderTarget(cmd, array, resourcesForDebugOnly.GetTexture(in depthAccess.textureHandle));
+		}
+		else if (flag)
+		{
+			if (pass.colorBufferMaxIndex > -1)
+			{
+				CommandBuffer cmd2 = rgContext.cmd;
+				RTHandle texture = resourcesForDebugOnly.GetTexture(in pass.colorBufferAccess[0].textureHandle);
+				TextureAccess depthAccess = pass.depthAccess;
+				CoreUtils.SetRenderTarget(cmd2, texture, resourcesForDebugOnly.GetTexture(in depthAccess.textureHandle));
+			}
+			else
+			{
+				CommandBuffer cmd3 = rgContext.cmd;
+				TextureAccess depthAccess = pass.depthAccess;
+				CoreUtils.SetRenderTarget(cmd3, resourcesForDebugOnly.GetTexture(in depthAccess.textureHandle));
+			}
+		}
+		else
+		{
+			if (!pass.colorBufferAccess[0].textureHandle.IsValid())
+			{
+				throw new InvalidOperationException("In pass " + pass.name + " - Neither depth nor color render targets are correctly set up.");
+			}
+			CoreUtils.SetRenderTarget(rgContext.cmd, resourcesForDebugOnly.GetTexture(in pass.colorBufferAccess[0].textureHandle));
+		}
+	}
+
+	internal void ExecuteSetRandomWriteTarget(in CommandBuffer cmd, RenderGraphResourceRegistry resources, int index, in ResourceHandle resource, bool preserveCounterValue = true)
 	{
 		if (resource.type == RenderGraphResourceType.Texture)
 		{
@@ -885,15 +1303,16 @@ internal class NativePassCompiler : IDisposable
 			}
 			return;
 		}
-		throw new Exception($"Invalid resource type {resource.type}, expected texture or buffer");
+		string renderGraphResourceName = resources.GetRenderGraphResourceName(in resource);
+		throw new Exception($"When trying to use resource '{renderGraphResourceName}' of type {resource.type} - " + "Invalid resource type, expected texture or buffer");
 	}
 
-	internal void ExecuteGraphNode(ref InternalRenderGraphContext rgContext, RenderGraphResourceRegistry resources, RenderGraphPass pass)
+	internal void ExecuteRenderGraphPass(ref InternalRenderGraphContext rgContext, RenderGraphResourceRegistry resources, RenderGraphPass pass)
 	{
 		rgContext.executingPass = pass;
 		if (!pass.HasRenderFunc())
 		{
-			throw new InvalidOperationException($"RenderPass {pass.name} was not provided with an execute function.");
+			throw new InvalidOperationException("In pass " + pass.name + " - RenderPass was not provided with an execute function.");
 		}
 		using (new ProfilingScope(rgContext.cmd, pass.customSampler))
 		{
@@ -907,7 +1326,7 @@ internal class NativePassCompiler : IDisposable
 
 	public void ExecuteGraph(InternalRenderGraphContext rgContext, RenderGraphResourceRegistry resources, in List<RenderGraphPass> passes)
 	{
-		bool flag = false;
+		bool inRenderPass = false;
 		previousCommandBuffer = rgContext.cmd;
 		rgContext.cmd.ClearRandomWriteTargets();
 		for (int i = 0; i < contextData.passData.Length; i++)
@@ -917,11 +1336,15 @@ internal class NativePassCompiler : IDisposable
 			{
 				continue;
 			}
-			bool flag2 = reference.type == RenderGraphPassType.Raster;
-			ExecuteInitializeResource(rgContext, resources, in reference);
-			bool flag3 = reference.type == RenderGraphPassType.Compute && reference.asyncCompute;
-			if (flag3)
+			bool nrpBegan = false;
+			bool flag = ExecuteInitializeResource(rgContext, resources, in reference);
+			if (reference.type == RenderGraphPassType.Compute && reference.asyncCompute)
 			{
+				GraphicsFence fence = default(GraphicsFence);
+				if (flag)
+				{
+					fence = rgContext.cmd.CreateGraphicsFence(GraphicsFenceType.AsyncQueueSynchronisation, SynchronisationStageFlags.AllGPUOperations);
+				}
 				if (!rgContext.contextlessTesting)
 				{
 					rgContext.renderContext.ExecuteCommandBuffer(rgContext.cmd);
@@ -930,26 +1353,35 @@ internal class NativePassCompiler : IDisposable
 				CommandBuffer commandBuffer = CommandBufferPool.Get("async cmd");
 				commandBuffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
 				rgContext.cmd = commandBuffer;
+				if (flag)
+				{
+					rgContext.cmd.WaitOnAsyncGraphicsFence(fence, SynchronisationStageFlags.PixelProcessing);
+				}
 			}
 			if (reference.waitOnGraphicsFencePassId != -1)
 			{
-				GraphicsFence fence = contextData.fences[reference.waitOnGraphicsFencePassId];
-				rgContext.cmd.WaitOnAsyncGraphicsFence(fence);
+				rgContext.cmd.WaitOnAsyncGraphicsFence(contextData.fences[reference.waitOnGraphicsFencePassId], SynchronisationStageFlags.PixelProcessing);
 			}
-			bool flag4 = false;
-			if (flag2 && reference.mergeState <= PassMergeState.Begin && reference.nativePassIndex >= 0)
+			if (reference.type == RenderGraphPassType.Raster && reference.mergeState <= PassMergeState.Begin)
 			{
-				ref NativePassData reference2 = ref contextData.nativePassData.ElementAt(reference.nativePassIndex);
-				if (reference2.fragments.size > 0)
+				if (reference.nativePassIndex >= 0)
 				{
-					ExecuteBeginRenderPass(rgContext, resources, ref reference2);
-					flag4 = true;
-					flag = true;
+					ref NativePassData reference2 = ref contextData.nativePassData.ElementAt(reference.nativePassIndex);
+					if (reference2.fragments.size > 0)
+					{
+						ExecuteBeginRenderPass(rgContext, resources, ref reference2);
+						nrpBegan = true;
+						inRenderPass = true;
+					}
 				}
+			}
+			else if (reference.type == RenderGraphPassType.Unsafe)
+			{
+				ExecuteSetRenderTargets(passes[i], rgContext);
 			}
 			if (reference.mergeState >= PassMergeState.SubPass && reference.beginNativeSubpass)
 			{
-				if (!flag)
+				if (!inRenderPass)
 				{
 					throw new Exception("Compiler error: Pass is marked as beginning a native sub pass but no pass is currently active.");
 				}
@@ -960,59 +1392,64 @@ internal class NativePassCompiler : IDisposable
 				ReadOnlySpan<PassRandomWriteData> readOnlySpan = reference.RandomWriteTextures(contextData);
 				for (int j = 0; j < readOnlySpan.Length; j++)
 				{
-					PassRandomWriteData passRandomWriteData = readOnlySpan[j];
-					ExecuteSetRandomWriteTarget(in rgContext.cmd, resources, passRandomWriteData.index, passRandomWriteData.resource);
+					ref readonly PassRandomWriteData reference3 = ref readOnlySpan[j];
+					ExecuteSetRandomWriteTarget(in rgContext.cmd, resources, reference3.index, in reference3.resource);
 				}
 			}
-			ExecuteGraphNode(ref rgContext, resources, passes[reference.passId]);
-			if (reference.numRandomAccessResources > 0)
+			ExecuteRenderGraphPass(ref rgContext, resources, passes[reference.passId]);
+			EndRenderGraphPass(ref rgContext, ref reference, ref inRenderPass, resources, nrpBegan);
+		}
+	}
+
+	private void EndRenderGraphPass(ref InternalRenderGraphContext rgContext, ref PassData passData, ref bool inRenderPass, RenderGraphResourceRegistry resources, bool nrpBegan)
+	{
+		if (passData.numRandomAccessResources > 0)
+		{
+			rgContext.cmd.ClearRandomWriteTargets();
+		}
+		if (passData.insertGraphicsFence)
+		{
+			GraphicsFence value = rgContext.cmd.CreateAsyncGraphicsFence();
+			contextData.fences[passData.passId] = value;
+		}
+		if (passData.type == RenderGraphPassType.Raster)
+		{
+			if (((passData.mergeState == PassMergeState.None && nrpBegan) || passData.mergeState == PassMergeState.End) && passData.nativePassIndex >= 0)
 			{
-				rgContext.cmd.ClearRandomWriteTargets();
-			}
-			if (reference.insertGraphicsFence)
-			{
-				GraphicsFence value = rgContext.cmd.CreateAsyncGraphicsFence();
-				contextData.fences[reference.passId] = value;
-			}
-			if (flag2)
-			{
-				if (((reference.mergeState == PassMergeState.None && flag4) || reference.mergeState == PassMergeState.End) && reference.nativePassIndex >= 0)
+				ref NativePassData reference = ref contextData.nativePassData.ElementAt(passData.nativePassIndex);
+				if (reference.fragments.size > 0)
 				{
-					ref NativePassData reference3 = ref contextData.nativePassData.ElementAt(reference.nativePassIndex);
-					if (reference3.fragments.size > 0)
+					if (!inRenderPass)
 					{
-						if (!flag)
-						{
-							throw new Exception("Compiler error: Generated a subpass pass but no pass is currently active.");
-						}
-						if (reference3.hasFoveatedRasterization)
-						{
-							rgContext.cmd.SetFoveatedRenderingMode(FoveatedRenderingMode.Disabled);
-						}
-						rgContext.cmd.EndRenderPass();
-						CommandBuffer.ThrowOnSetRenderTarget = false;
-						flag = false;
-						if (reference3.hasShadingRateStates || reference3.hasShadingRateImage)
-						{
-							rgContext.cmd.ResetShadingRate();
-						}
+						throw new Exception("Compiler error: Generated a subpass pass but no pass is currently active.");
+					}
+					if (reference.hasFoveatedRasterization)
+					{
+						rgContext.cmd.SetFoveatedRenderingMode(FoveatedRenderingMode.Disabled);
+					}
+					rgContext.cmd.EndRenderPass();
+					CommandBuffer.ThrowOnSetRenderTarget = false;
+					inRenderPass = false;
+					if (reference.hasShadingRateStates || reference.hasShadingRateImage)
+					{
+						rgContext.cmd.ResetShadingRate();
 					}
 				}
 			}
-			else if (flag3)
-			{
-				rgContext.renderContext.ExecuteCommandBufferAsync(rgContext.cmd, ComputeQueueType.Background);
-				CommandBufferPool.Release(rgContext.cmd);
-				rgContext.cmd = previousCommandBuffer;
-			}
-			ExecuteDestroyResource(rgContext, resources, ref reference);
 		}
+		else if (passData.type == RenderGraphPassType.Compute && passData.asyncCompute)
+		{
+			rgContext.renderContext.ExecuteCommandBufferAsync(rgContext.cmd, ComputeQueueType.Background);
+			CommandBufferPool.Release(rgContext.cmd);
+			rgContext.cmd = previousCommandBuffer;
+		}
+		ExecuteDestroyResource(rgContext, resources, ref passData);
 	}
 
 	private static RenderGraph.DebugData.PassData.NRPInfo.NativeRenderPassInfo.AttachmentInfo MakeAttachmentInfo(CompilerContextData ctx, in NativePassData nativePass, int attachmentIndex)
 	{
-		NativePassAttachment attachment = nativePass.attachments[attachmentIndex];
-		ResourceUnversionedData resourceUnversionedData = ctx.UnversionedResourceData(attachment.handle);
+		NativePassAttachment att = nativePass.attachments[attachmentIndex];
+		ResourceUnversionedData resourceUnversionedData = ctx.UnversionedResourceData(in att.handle);
 		LoadAudit loadAudit = nativePass.loadAudit[attachmentIndex];
 		string text = LoadAudit.LoadReasonMessages[(int)loadAudit.reason];
 		if (loadAudit.passId >= 0)
@@ -1036,12 +1473,12 @@ internal class NativePassCompiler : IDisposable
 		}
 		return new RenderGraph.DebugData.PassData.NRPInfo.NativeRenderPassInfo.AttachmentInfo
 		{
-			resourceName = resourceUnversionedData.GetName(ctx, attachment.handle),
+			resourceName = resourceUnversionedData.GetName(ctx, in att.handle),
 			attachmentIndex = attachmentIndex,
 			loadReason = text,
 			storeReason = text2,
 			storeMsaaReason = text3,
-			attachment = attachment
+			attachment = new RenderGraph.DebugData.SerializableNativePassAttachment(att)
 		};
 	}
 
@@ -1055,7 +1492,7 @@ internal class NativePassCompiler : IDisposable
 		return text + PassBreakAudit.BreakReasonMessages[(int)nativePass.breakAudit.reason];
 	}
 
-	internal static string MakePassMergeMessage(CompilerContextData ctx, in PassData pass, in PassData prevPass, PassBreakAudit mergeResult)
+	internal static string MakePassMergeMessage(CompilerContextData ctx, in PassData pass, in PassData prevPass, in PassBreakAudit mergeResult)
 	{
 		string text = ((mergeResult.reason == PassBreakReason.Merged) ? "The passes are <b>compatible</b> to be merged.\n\n" : "The passes are <b>incompatible</b> to be merged.\n\n");
 		string text2 = InjectSpaces(pass.GetName(ctx).name);
@@ -1071,7 +1508,9 @@ internal class NativePassCompiler : IDisposable
 		case PassBreakReason.TargetSizeMismatch:
 			return text + "The fragment attachments of the passes have different sizes or sample counts.\n" + $"- {text3}: {prevPass.fragmentInfoWidth}x{prevPass.fragmentInfoHeight}, {prevPass.fragmentInfoSamples} sample(s).\n" + $"- {text2}: {pass.fragmentInfoWidth}x{pass.fragmentInfoHeight}, {pass.fragmentInfoSamples} sample(s).";
 		case PassBreakReason.NextPassReadsTexture:
-			return text + "The next pass reads one of the outputs as a regular texture, the pass needs to break.";
+			return text + text3 + " output is sampled by " + text2 + " as a regular texture, the pass needs to break.";
+		case PassBreakReason.NextPassTargetsTexture:
+			return text + text3 + " reads a texture that " + text2 + " targets to, the pass needs to break.";
 		case PassBreakReason.NonRasterPass:
 			return text + $"{text3} is type {prevPass.type}. Only Raster passes can be merged.";
 		case PassBreakReason.DifferentDepthTextures:
@@ -1086,6 +1525,8 @@ internal class NativePassCompiler : IDisposable
 			return text + text3 + " uses a different shading rate image than " + text2 + ".";
 		case PassBreakReason.DifferentShadingRateStates:
 			return text + text3 + " uses different shading rate states than " + text2 + ".";
+		case PassBreakReason.MultisampledShaderResolveMustBeLastPass:
+			return text + text3 + " uses multisampled shader resolve and so can't have any more passes merged into it.";
 		case PassBreakReason.PassMergingDisabled:
 			return text + "The pass merging is disabled.";
 		default:
@@ -1225,20 +1666,17 @@ internal class NativePassCompiler : IDisposable
 			RenderGraphPass renderGraphPass = graph.m_RenderPasses[m];
 			ref PassData reference3 = ref reference.passData.ElementAt(m);
 			string name2 = InjectSpaces(reference3.GetName(reference).name);
-			RenderGraph.DebugData.PassData item2 = new RenderGraph.DebugData.PassData
-			{
-				name = name2,
-				type = reference3.type,
-				culled = reference3.culled,
-				async = reference3.asyncCompute,
-				nativeSubPassIndex = reference3.nativeSubPassIndex,
-				generateDebugData = renderGraphPass.generateDebugData,
-				resourceReadLists = new List<int>[3],
-				resourceWriteLists = new List<int>[3]
-			};
-			RenderGraph.DebugData.s_PassScriptMetadata.TryGetValue(renderGraphPass, out item2.scriptInfo);
-			item2.syncFromPassIndex = -1;
-			item2.syncToPassIndex = -1;
+			RenderGraph.DebugData.PassData item2 = default(RenderGraph.DebugData.PassData);
+			item2.name = name2;
+			item2.type = reference3.type;
+			item2.culled = reference3.culled;
+			item2.async = reference3.asyncCompute;
+			item2.nativeSubPassIndex = reference3.nativeSubPassIndex;
+			item2.generateDebugData = renderGraphPass.generateDebugData;
+			item2.resourceReadLists = new RenderGraph.DebugData.PassData.ResourceIdLists();
+			item2.resourceWriteLists = new RenderGraph.DebugData.PassData.ResourceIdLists();
+			item2.syncFromPassIndex = reference3.awaitingMyGraphicsFencePassId;
+			item2.syncToPassIndex = reference3.waitOnGraphicsFencePassId;
 			item2.nrpInfo = new RenderGraph.DebugData.PassData.NRPInfo();
 			item2.nrpInfo.width = reference3.fragmentInfoWidth;
 			item2.nrpInfo.height = reference3.fragmentInfoHeight;
@@ -1291,7 +1729,7 @@ internal class NativePassCompiler : IDisposable
 				{
 					nativeRenderPassInfo.attachmentInfos.Add(MakeAttachmentInfo(reference, in current8, num3));
 				}
-				nativeRenderPassInfo.passCompatibility = new Dictionary<int, RenderGraph.DebugData.PassData.NRPInfo.NativeRenderPassInfo.PassCompatibilityInfo>();
+				nativeRenderPassInfo.passCompatibility = new SerializedDictionary<int, RenderGraph.DebugData.PassData.NRPInfo.NativeRenderPassInfo.PassCompatibilityInfo>();
 				nativeRenderPassInfo.mergedPassIds = list;
 				for (int num4 = 0; num4 < list.Count; num4++)
 				{
@@ -1314,12 +1752,12 @@ internal class NativePassCompiler : IDisposable
 			for (int num = 0; num < readOnlySpan2.Length; num++)
 			{
 				ref readonly PassInputData reference5 = ref readOnlySpan2[num];
-				ref ResourceVersionedData reference6 = ref reference.VersionedResourceData(reference5.resource);
+				ref ResourceVersionedData reference6 = ref reference.VersionedResourceData(in reference5.resource);
 				if (reference6.written)
 				{
 					PassData prevPass = reference.passData[reference6.writePassId];
 					PassBreakAudit mergeResult = ((prevPass.nativePassIndex >= 0) ? NativePassData.CanMerge(reference, prevPass.nativePassIndex, reference4.passId) : new PassBreakAudit(PassBreakReason.NonRasterPass, reference4.passId));
-					string message = "This pass writes to a resource that is read by the currently selected pass.\n\n" + MakePassMergeMessage(reference, in reference4, in prevPass, mergeResult);
+					string message = "This pass writes to a resource that is read by the currently selected pass.\n\n" + MakePassMergeMessage(reference, in reference4, in prevPass, in mergeResult);
 					nativePassInfo.passCompatibility.TryAdd(prevPass.passId, new RenderGraph.DebugData.PassData.NRPInfo.NativeRenderPassInfo.PassCompatibilityInfo
 					{
 						message = message,
@@ -1335,16 +1773,16 @@ internal class NativePassCompiler : IDisposable
 			for (int num = 0; num < readOnlySpan3.Length; num++)
 			{
 				ref readonly PassOutputData reference7 = ref readOnlySpan3[num];
-				if (reference.UnversionedResourceData(reference7.resource).lastUsePassID != reference4.passId)
+				if (reference.UnversionedResourceData(in reference7.resource).lastUsePassID != reference4.passId)
 				{
-					int numReaders = reference.VersionedResourceData(reference7.resource).numReaders;
+					int numReaders = reference.VersionedResourceData(in reference7.resource).numReaders;
 					for (int num6 = 0; num6 < numReaders; num6++)
 					{
-						int index2 = reference.resources.IndexReader(reference7.resource, num6);
+						int index2 = reference.resources.IndexReader(in reference7.resource, num6);
 						ref ResourceReaderData reference8 = ref reference.resources.readerData[reference7.resource.iType].ElementAt(index2);
 						PassData pass = reference.passData[reference8.passId];
 						PassBreakAudit mergeResult2 = NativePassData.CanMerge(reference, reference4.nativePassIndex, pass.passId);
-						string message2 = "This pass reads a resource that is written to by the currently selected pass.\n\n" + MakePassMergeMessage(reference, in pass, in reference4, mergeResult2);
+						string message2 = "This pass reads a resource that is written to by the currently selected pass.\n\n" + MakePassMergeMessage(reference, in pass, in reference4, in mergeResult2);
 						nativePassInfo.passCompatibility.TryAdd(pass.passId, new RenderGraph.DebugData.PassData.NRPInfo.NativeRenderPassInfo.PassCompatibilityInfo
 						{
 							message = message2,

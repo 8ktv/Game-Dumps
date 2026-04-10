@@ -8,10 +8,10 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Transform/ScriptBindings/TransformScriptBindings.h")]
 [RequiredByNativeCode]
-[NativeHeader("Configuration/UnityConfigure.h")]
+[NativeHeader("Runtime/Transform/ScriptBindings/TransformScriptBindings.h")]
 [NativeHeader("Runtime/Transform/Transform.h")]
+[NativeHeader("Configuration/UnityConfigure.h")]
 public class Transform : Component, IEnumerable
 {
 	private class Enumerator : IEnumerator
@@ -1071,7 +1071,7 @@ public class Transform : Component, IEnumerable
 		SendTransformChangedScale_Injected(intPtr);
 	}
 
-	[FreeFunction("Internal_IsChildOrSameTransform", HasExplicitThis = true)]
+	[FreeFunction("Internal_IsChildOrSameAsOtherTransform", HasExplicitThis = true)]
 	public bool IsChildOf([NotNull] Transform parent)
 	{
 		if ((object)parent == null)
@@ -1124,8 +1124,8 @@ public class Transform : Component, IEnumerable
 		RotateAroundLocal_Injected(intPtr, ref axis, angle);
 	}
 
-	[NativeThrows]
 	[FreeFunction("GetChild", HasExplicitThis = true)]
+	[NativeThrows]
 	public Transform GetChild(int index)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1136,8 +1136,8 @@ public class Transform : Component, IEnumerable
 		return Unmarshal.UnmarshalUnityObject<Transform>(GetChild_Injected(intPtr, index));
 	}
 
-	[NativeMethod("GetChildrenCount")]
 	[Obsolete("warning use Transform.childCount instead (UnityUpgradable) -> Transform.childCount", false)]
+	[NativeMethod("GetChildrenCount")]
 	public int GetChildCount()
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1181,8 +1181,8 @@ public class Transform : Component, IEnumerable
 		return internal_getHierarchyCount_Injected(intPtr);
 	}
 
-	[FreeFunction("IsNonUniformScaleTransform", HasExplicitThis = true)]
 	[NativeConditional("UNITY_EDITOR")]
+	[FreeFunction("IsNonUniformScaleTransform", HasExplicitThis = true)]
 	internal bool IsNonUniformScaleTransform()
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);

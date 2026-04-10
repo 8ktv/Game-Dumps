@@ -8,8 +8,8 @@ using UnityEngine.Scripting.APIUpdating;
 namespace UnityEngine.Windows.WebCam;
 
 [NativeHeader("PlatformDependent/Win/Webcam/PhotoCaptureFrame.h")]
-[MovedFrom("UnityEngine.XR.WSA.WebCam")]
 [NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
+[MovedFrom("UnityEngine.XR.WSA.WebCam")]
 public sealed class PhotoCaptureFrame : IDisposable
 {
 	internal static class BindingsMarshaller
@@ -72,8 +72,8 @@ public sealed class PhotoCaptureFrame : IDisposable
 		return false;
 	}
 
-	[NativeName("GetCameraToWorld")]
 	[ThreadAndSerializationSafe]
+	[NativeName("GetCameraToWorld")]
 	[NativeConditional("PLATFORM_WIN && !PLATFORM_XBOXONE", "Matrix4x4f()")]
 	private Matrix4x4 GetCameraToWorldMatrix()
 	{
@@ -148,8 +148,8 @@ public sealed class PhotoCaptureFrame : IDisposable
 		UploadImageDataToTexture_Internal(targetTexture);
 	}
 
-	[NativeName("UploadImageDataToTexture")]
 	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
+	[NativeName("UploadImageDataToTexture")]
 	[ThreadAndSerializationSafe]
 	private void UploadImageDataToTexture_Internal(Texture2D targetTexture)
 	{
@@ -242,9 +242,9 @@ public sealed class PhotoCaptureFrame : IDisposable
 		}
 	}
 
-	[NativeName("Dispose")]
-	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
 	[ThreadAndSerializationSafe]
+	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
+	[NativeName("Dispose")]
 	private void Dispose_Internal()
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);

@@ -7,8 +7,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.U2D;
 
-[NativeHeader("Runtime/Graphics/Mesh/SpriteRenderer.h")]
 [NativeHeader("Runtime/2D/Common/SpriteDataAccess.h")]
+[NativeHeader("Runtime/Graphics/Mesh/SpriteRenderer.h")]
 public static class SpriteRendererDataAccessExtensions
 {
 	internal unsafe static void SetDeformableBuffer(this SpriteRenderer spriteRenderer, NativeArray<byte> src)

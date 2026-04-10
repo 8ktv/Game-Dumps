@@ -20,6 +20,9 @@ public class GameManager : SingletonBehaviour<GameManager>
 	private LayerSettings layerSettings;
 
 	[SerializeField]
+	private PlayerMovementSettings playerMovementSettings;
+
+	[SerializeField]
 	private GolfSettings golfSettings;
 
 	[SerializeField]
@@ -30,6 +33,15 @@ public class GameManager : SingletonBehaviour<GameManager>
 
 	[SerializeField]
 	private MatchSettings matchSettings;
+
+	[SerializeField]
+	private KnockoutSettings knockoutSettings;
+
+	[SerializeField]
+	private EliminationSettings eliminationSettings;
+
+	[SerializeField]
+	private HazardSettings hazardSettings;
 
 	[SerializeField]
 	private PlayerInventorySettings playerInventorySettings;
@@ -51,6 +63,9 @@ public class GameManager : SingletonBehaviour<GameManager>
 
 	[SerializeField]
 	private AllEmoteSettings emoteSettings;
+
+	[SerializeField]
+	private AllSpectatorEmoteSettings spectatorEmoteSettings;
 
 	[SerializeField]
 	private AchievementCollection achievements;
@@ -84,6 +99,9 @@ public class GameManager : SingletonBehaviour<GameManager>
 
 	[SerializeField]
 	private TextAsset[] badWordsTextAssets;
+
+	[SerializeField]
+	private TextAsset badWordsWhitelist;
 
 	private Camera camera;
 
@@ -140,6 +158,18 @@ public class GameManager : SingletonBehaviour<GameManager>
 		}
 	}
 
+	public static PlayerMovementSettings PlayerMovementSettings
+	{
+		get
+		{
+			if (!SingletonBehaviour<GameManager>.HasInstance)
+			{
+				return null;
+			}
+			return SingletonBehaviour<GameManager>.Instance.playerMovementSettings;
+		}
+	}
+
 	public static GolfSettings GolfSettings
 	{
 		get
@@ -185,6 +215,42 @@ public class GameManager : SingletonBehaviour<GameManager>
 				return null;
 			}
 			return SingletonBehaviour<GameManager>.Instance.matchSettings;
+		}
+	}
+
+	public static KnockoutSettings KnockoutSettings
+	{
+		get
+		{
+			if (!SingletonBehaviour<GameManager>.HasInstance)
+			{
+				return null;
+			}
+			return SingletonBehaviour<GameManager>.Instance.knockoutSettings;
+		}
+	}
+
+	public static EliminationSettings EliminationSettings
+	{
+		get
+		{
+			if (!SingletonBehaviour<GameManager>.HasInstance)
+			{
+				return null;
+			}
+			return SingletonBehaviour<GameManager>.Instance.eliminationSettings;
+		}
+	}
+
+	public static HazardSettings HazardSettings
+	{
+		get
+		{
+			if (!SingletonBehaviour<GameManager>.HasInstance)
+			{
+				return null;
+			}
+			return SingletonBehaviour<GameManager>.Instance.hazardSettings;
 		}
 	}
 
@@ -269,6 +335,18 @@ public class GameManager : SingletonBehaviour<GameManager>
 				return null;
 			}
 			return SingletonBehaviour<GameManager>.Instance.emoteSettings;
+		}
+	}
+
+	public static AllSpectatorEmoteSettings SpectatorEmoteSettings
+	{
+		get
+		{
+			if (!SingletonBehaviour<GameManager>.HasInstance)
+			{
+				return null;
+			}
+			return SingletonBehaviour<GameManager>.Instance.spectatorEmoteSettings;
 		}
 	}
 
@@ -874,20 +952,33 @@ public class GameManager : SingletonBehaviour<GameManager>
 			List<string> value;
 			using (CollectionPool<List<string>, string>.Get(out value))
 			{
-				TextAsset[] array = badWordsTextAssets;
-				foreach (TextAsset textAsset in array)
+				HashSet<string> whitelist;
+				using (CollectionPool<HashSet<string>, string>.Get(out whitelist))
 				{
-					value.AddRange(from x in textAsset.text.ToLower().Split(new string[3] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries)
-						where !string.IsNullOrWhiteSpace(x)
-						select x);
+					string[] array = StringToArray(badWordsWhitelist.text);
+					foreach (string item in array)
+					{
+						whitelist.Add(item);
+					}
+					TextAsset[] array2 = badWordsTextAssets;
+					foreach (TextAsset textAsset in array2)
+					{
+						value.AddRange(from x in StringToArray(textAsset.text)
+							where !string.IsNullOrWhiteSpace(x) && !whitelist.Contains(x)
+							select x);
+					}
+					badWordsRegex = new Regex("\\b(" + string.Join("|", Enumerable.Select(value, Regex.Escape)) + ")\\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 				}
-				badWordsRegex = new Regex("\\b(" + string.Join("|", Enumerable.Select(value, Regex.Escape)) + ")\\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 			}
 		}
 		catch (Exception exception)
 		{
 			Debug.LogError("Failed to load bad words list!");
 			Debug.LogException(exception);
+		}
+		static string[] StringToArray(string text)
+		{
+			return text.ToLower().Split(new string[3] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
 		}
 	}
 
@@ -996,6 +1087,31 @@ public class GameManager : SingletonBehaviour<GameManager>
 				}
 				return text;
 			}
+		}
+	}
+
+	public static void UpdateConsoleEnabled()
+	{
+		if (SingletonBehaviour<GameManager>.HasInstance)
+		{
+			SingletonBehaviour<GameManager>.Instance.UpdateConsoleEnabledInternal();
+		}
+	}
+
+	private void UpdateConsoleEnabledInternal()
+	{
+		DevConsoleGui.SetEnabled(CanEnable());
+		static bool CanEnable()
+		{
+			if (SingletonBehaviour<MainMenu>.HasInstance)
+			{
+				return true;
+			}
+			if (SingletonNetworkBehaviour<MatchSetupRules>.HasInstance)
+			{
+				return MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.ConsoleCommands);
+			}
+			return false;
 		}
 	}
 

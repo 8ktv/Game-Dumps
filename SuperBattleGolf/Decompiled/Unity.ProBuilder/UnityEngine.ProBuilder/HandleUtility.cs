@@ -267,7 +267,7 @@ public static class HandleUtility
 		{
 			return mesh.transform.rotation;
 		}
-		Vector3 upwards = Vector3.Cross(zero, zero2 * zero2.w);
+		Vector3 upwards = Vector3.Cross(zero, (Vector3)(zero2 * zero2.w));
 		return mesh.transform.rotation * Quaternion.LookRotation(zero, upwards);
 	}
 

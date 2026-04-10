@@ -331,10 +331,15 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 		if (modelSlot != PlayerCosmeticObject.ModelSlot.None && categories.TryGetValues(currentCategory, out var values))
 		{
 			int num = -1;
+			int num2 = values.Count;
+			if (cosmeticsButtons[0].gameObject.activeSelf)
+			{
+				num2++;
+			}
 			if (InputManager.UsingKeyboard && RectTransformUtility.RectangleContainsScreenPoint(scrollRect.content, Mouse.current.position.value))
 			{
 				Vector2 value = Mouse.current.position.value;
-				for (int i = 0; i < values.Count; i++)
+				for (int i = 0; i < num2; i++)
 				{
 					if (RectTransformUtility.RectangleContainsScreenPoint(cosmeticsButtons[i].select.image.rectTransform, value))
 					{
@@ -345,7 +350,7 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 			}
 			else if (InputManager.UsingGamepad)
 			{
-				for (int j = 0; j < values.Count; j++)
+				for (int j = 0; j < num2; j++)
 				{
 					if (cosmeticsButtons[j].GetComponentInChildren<ControllerSelectable>().IsSelected)
 					{
@@ -457,14 +462,10 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 		SetEnabled(enabled: false, fromInteraction: false);
 	}
 
-	public async void SetLoadout(int index, bool resetCategory, bool setPrevToPlayer)
+	public async void SetLoadout(int index, bool resetCategory)
 	{
 		PlayerCosmetics.Loadout loadout = GameManager.LocalPlayerInfo.Cosmetics.GetLoadout(index);
 		_ = selectedLoadout;
-		if (setPrevToPlayer)
-		{
-			GameManager.LocalPlayerInfo.Cosmetics.SetLoadout(characterPreview.cosmeticsSwitcher, selectedVictoryDance, selectedLoadout, equip: false, save: false).Forget();
-		}
 		characterPreview.Refresh();
 		characterPreview.SetPreviewEnabled(enabled: false);
 		selectedVictoryDance = loadout.GetVictoryDance();
@@ -488,7 +489,12 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 				value.Add(SetGolfBallModel(loadout.golfBall, isPlayerSelection: false));
 				SetSkinColorIndex(loadout.skinColorIndex, isPlayerSelection: false);
 				await UniTask.WhenAll(value);
-				SetCategory((int)((!resetCategory) ? currentCategory : PlayerCosmeticsMetadata.Category.Head));
+				if (this == null)
+				{
+					return;
+				}
+				SetCategory((int)((!resetCategory) ? currentCategory : PlayerCosmeticsMetadata.Category.Head), checkLoadoutOwnership: false);
+				SaveLoadout();
 			}
 		}
 		finally
@@ -513,7 +519,7 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 			{
 				if (isOn)
 				{
-					SetLoadout(loadout, resetCategory: false, setPrevToPlayer: true);
+					SetLoadout(loadout, resetCategory: false);
 				}
 			});
 		}
@@ -575,7 +581,7 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 			SetEnabled(enabled: true);
 			InputManager.EnableMode(InputMode.Paused);
 			InputManager.SwitchedInputDeviceType += OnSwitchedInputDevice;
-			SetLoadout(GameManager.LocalPlayerInfo.Cosmetics.GetEquippedLoadoutIndex(), resetCategory: true, setPrevToPlayer: false);
+			SetLoadout(GameManager.LocalPlayerInfo.Cosmetics.GetEquippedLoadoutIndex(), resetCategory: true);
 			UpdateLoadoutToggles();
 			RegisterBUpdateDelayed();
 			for (int i = 0; i < tabs.Length; i++)
@@ -631,7 +637,7 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 		void ApplyCosmetics()
 		{
 			CleanUpCallbacks();
-			GameManager.LocalPlayerInfo.Cosmetics.SetLoadout(characterPreview.cosmeticsSwitcher, selectedVictoryDance, selectedLoadout, equip: true, save: true).Forget();
+			GameManager.LocalPlayerInfo.Cosmetics.SetAndEquipLoadout(characterPreview.cosmeticsSwitcher, selectedVictoryDance, selectedLoadout, loadCosmetics: true, save: true, GetCosmeticsSlotsToApply()).Forget();
 			SetEnabled(enabled: false);
 			FullScreenMessage.Hide();
 		}
@@ -662,6 +668,7 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 			CleanUpCallbacks();
 			SetEnabled(enabled: false);
 			FullScreenMessage.Hide();
+			ApplyCosmetics();
 		}
 		void SetEnabled(bool flag)
 		{
@@ -671,12 +678,10 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 			if (flag)
 			{
 				PlayerCustomizationMenu.OnOpened?.Invoke();
-				RuntimeManager.PlayOneShot(GameManager.AudioSettings.CosmeticsOpen);
 			}
 			else
 			{
 				PlayerCustomizationMenu.OnClosed?.Invoke();
-				RuntimeManager.PlayOneShot(GameManager.AudioSettings.CosmeticsOpen);
 			}
 		}
 	}
@@ -750,7 +755,7 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 		{
 			component2.PlaySelectSfx(InputManager.UsingGamepad);
 		}
-		SetCategory(category);
+		SetCategory(category, checkLoadoutOwnership: true);
 	}
 
 	private int WrapCategory(int category)
@@ -767,6 +772,11 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 	}
 
 	public void SetCategory(int category)
+	{
+		SetCategory(category, checkLoadoutOwnership: true);
+	}
+
+	public void SetCategory(int category, bool checkLoadoutOwnership)
 	{
 		PlayerCosmeticsMetadata.Category category2 = currentCategory;
 		currentCategory = (PlayerCosmeticsMetadata.Category)category;
@@ -794,6 +804,30 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 		}
 		SetNavigationMode(NavigationMode.Cosmetics);
 		UpdateCategoryUnequipWarning(PlayerCosmeticObject.ModelSlot.None, 1f);
+		if (checkLoadoutOwnership && IsUnownedEquipped())
+		{
+			SetLoadout(selectedLoadout, resetCategory: false);
+			if (category2 == PlayerCosmeticsMetadata.Category.VictoryDance)
+			{
+				UpdateOwnershipWarnings(PlayerCosmeticsMetadata.Category.VictoryDance, (PlayerCosmeticsVictoryDanceMetadata)null);
+			}
+		}
+	}
+
+	private bool IsUnownedEquipped()
+	{
+		for (int i = 0; i < selectedCosmetics.Length; i++)
+		{
+			if (selectedCosmetics[i] != null && !CosmeticsUnlocksManager.OwnsCosmetic(selectedCosmetics[i].metadata))
+			{
+				return true;
+			}
+		}
+		if (selectedVictoryDance > VictoryDance.None && !CosmeticsUnlocksManager.OwnsDance(selectedVictoryDance))
+		{
+			return true;
+		}
+		return false;
 	}
 
 	private Sprite GetDefaultIcon(PlayerCosmeticsMetadata.Category category)
@@ -824,7 +858,7 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 			await UniTask.WhenAll(value);
 			UpdateCosmeticsButtons();
 			Addressables.Release(handle);
-			SetCategory(0);
+			SetCategory(0, checkLoadoutOwnership: false);
 		}
 		async UniTask LoadMetadata(string key)
 		{
@@ -905,6 +939,7 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 			VictoryDance victoryDance2 = (selectedVictoryDance = allVictoryDances[num].dance);
 			characterPreview.cosmeticsSwitcher.rightHand.SetEquipmentPreviewLocal(EquipmentType.None);
 			SetPreviewAnimation(victoryDance2);
+			SaveLoadout();
 			if (isPlayerSelection && victoryDance2 != victoryDance)
 			{
 				TutorialManager.CompleteObjective(TutorialObjective.CustomizeAppearance);
@@ -1043,7 +1078,7 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 			string secondaryMessage = string.Empty;
 			if (playerCosmeticsMetadata.unlockedByAchievment)
 			{
-				message = string.Format(playerCosmeticsMetadata.IsHidden() ? Localization.UI.CUSTOMIZE_Tooltip_UnlockedByAchievement : Localization.UI.CUSTOMIZE_Tooltip_AchievementUnlockable, string.Concat(str1: LocalizationManager.GetString(StringTable.Achievements, $"ACHIEVEMENT_Title_{playerCosmeticsMetadata.requiredAchievement}"), str0: GameManager.UiSettings.TextOrangeHighlightStartTag, str2: GameManager.UiSettings.TextColorEndTag));
+				message = string.Format((!playerCosmeticsMetadata.IsHidden()) ? Localization.UI.CUSTOMIZE_Tooltip_UnlockedByAchievement : Localization.UI.CUSTOMIZE_Tooltip_AchievementUnlockable, string.Concat(str1: LocalizationManager.GetString(StringTable.Achievements, $"ACHIEVEMENT_Title_{playerCosmeticsMetadata.requiredAchievement}"), str0: GameManager.UiSettings.TextOrangeHighlightStartTag, str2: GameManager.UiSettings.TextColorEndTag));
 			}
 			if (!string.IsNullOrEmpty(playerCosmeticsMetadata.externalIpCredit))
 			{
@@ -1104,7 +1139,8 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 				button.buy.onClick.AddListener(delegate
 				{
 					buy();
-					SetCategory((int)currentCategory);
+					SetCategory((int)currentCategory, checkLoadoutOwnership: false);
+					SaveLoadout();
 				});
 			}
 		}
@@ -1151,6 +1187,7 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 						variationIndex = (sbyte)buttonIndex
 					}, arg2: true);
 					SetColorButtonSelected(buttonIndex);
+					SaveLoadout();
 				});
 			}
 		}
@@ -1180,6 +1217,7 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 			component.onClick.AddListener(delegate
 			{
 				SetSkinColorIndex(skinColorIndex, isPlayerSelection: true);
+				SaveLoadout();
 			});
 		}
 		SetSkinColorIndex(characterPreview.cosmeticsSwitcher.CurrentSkinColorIndex, isPlayerSelection: false);
@@ -1344,6 +1382,10 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 	{
 		if (IsCosmeticButtonSelected(buttonIndex))
 		{
+			if (reference == null)
+			{
+				return;
+			}
 			int num = ((!cosmeticsButtons[0].gameObject.activeSelf) ? 1 : 0);
 			if (num != buttonIndex)
 			{
@@ -1440,9 +1482,10 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 		{
 			PurchaseCosmetic?.Invoke();
 			UpdateOwnershipWarningsInternal(selectedCategory, validCosmetic, OwnsCosmetic, PurchaseCosmetic, persistentGuid, cost);
-			SetCategory((int)selectedCategory);
+			SetCategory((int)selectedCategory, checkLoadoutOwnership: false);
 			buyPrompt.SetActive(value: false);
 			RuntimeManager.PlayOneShot(GameManager.AudioSettings.CosmeticsPurchase);
+			SaveLoadout();
 		}
 	}
 
@@ -1469,6 +1512,10 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 		selectedCosmetics[(int)category] = metadataReference;
 		selectedCosmeticKeys[(int)category] = cosmeticKey;
 		UpdateOwnershipWarnings(category, metadataReference?.metadata);
+		if (metadataReference != null && CosmeticsUnlocksManager.OwnsCosmetic(metadataReference.metadata))
+		{
+			SaveLoadout();
+		}
 	}
 
 	private async UniTask SetHatModel(PlayerCosmeticsSwitcher.CosmeticKey cosmeticKey, bool isPlayerSelection)
@@ -1608,5 +1655,47 @@ public class PlayerCustomizationMenu : SingletonBehaviour<PlayerCustomizationMen
 			TutorialManager.CompleteObjective(TutorialObjective.CustomizeAppearance);
 		}
 		UpdateCategorySelection(PlayerCosmeticsMetadata.Category.Golfball, cosmeticKey);
+	}
+
+	private void SaveLoadout()
+	{
+		if (!(this == null))
+		{
+			PlayerCosmetics.LoadoutSlot cosmeticsSlotsToApply = GetCosmeticsSlotsToApply();
+			GameManager.LocalPlayerInfo.Cosmetics.SetAndEquipLoadout(characterPreview.cosmeticsSwitcher, selectedVictoryDance, selectedLoadout, loadCosmetics: false, save: true, cosmeticsSlotsToApply).Forget();
+		}
+	}
+
+	private PlayerCosmetics.LoadoutSlot GetCosmeticsSlotsToApply()
+	{
+		PlayerCosmetics.LoadoutSlot loadoutSlot = PlayerCosmetics.LoadoutSlot.All;
+		for (int i = 0; i < selectedCosmetics.Length; i++)
+		{
+			if (selectedCosmetics[i] != null && !CosmeticsUnlocksManager.OwnsCosmetic(selectedCosmetics[i].metadata))
+			{
+				loadoutSlot &= ~CategoryToSlot(i);
+			}
+		}
+		return loadoutSlot;
+		static PlayerCosmetics.LoadoutSlot CategoryToSlot(int num)
+		{
+			return (PlayerCosmeticsMetadata.Category)num switch
+			{
+				PlayerCosmeticsMetadata.Category.Head => PlayerCosmetics.LoadoutSlot.Head, 
+				PlayerCosmeticsMetadata.Category.Hair => PlayerCosmetics.LoadoutSlot.Head, 
+				PlayerCosmeticsMetadata.Category.Hat => PlayerCosmetics.LoadoutSlot.Hat, 
+				PlayerCosmeticsMetadata.Category.Face => PlayerCosmetics.LoadoutSlot.UpperFace, 
+				PlayerCosmeticsMetadata.Category.FaceLower => PlayerCosmetics.LoadoutSlot.LowerFace, 
+				PlayerCosmeticsMetadata.Category.Clothing => PlayerCosmetics.LoadoutSlot.Body, 
+				PlayerCosmeticsMetadata.Category.Club => PlayerCosmetics.LoadoutSlot.Club, 
+				PlayerCosmeticsMetadata.Category.Golfball => PlayerCosmetics.LoadoutSlot.GolfBall, 
+				PlayerCosmeticsMetadata.Category.Mouth => PlayerCosmetics.LoadoutSlot.Mouth, 
+				PlayerCosmeticsMetadata.Category.Eyes => PlayerCosmetics.LoadoutSlot.Eyes, 
+				PlayerCosmeticsMetadata.Category.Brows => PlayerCosmetics.LoadoutSlot.Brows, 
+				PlayerCosmeticsMetadata.Category.Cheeks => PlayerCosmetics.LoadoutSlot.Cheeks, 
+				PlayerCosmeticsMetadata.Category.VictoryDance => PlayerCosmetics.LoadoutSlot.VictoryDance, 
+				_ => PlayerCosmetics.LoadoutSlot.None, 
+			};
+		}
 	}
 }

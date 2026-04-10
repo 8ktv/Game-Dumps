@@ -4,8 +4,8 @@ using UnityEngine.Bindings;
 
 namespace Unity.IO.LowLevel.Unsafe;
 
-[NativeHeader("Runtime/VirtualFileSystem/VirtualFileSystem.h")]
 [StaticAccessor("GetFileSystem()", StaticAccessorType.Dot)]
+[NativeHeader("Runtime/VirtualFileSystem/VirtualFileSystem.h")]
 public static class VirtualFileSystem
 {
 	[FreeFunction(IsThreadSafe = true)]

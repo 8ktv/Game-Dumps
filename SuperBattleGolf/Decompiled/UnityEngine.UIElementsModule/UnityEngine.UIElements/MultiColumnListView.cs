@@ -23,8 +23,8 @@ public class MultiColumnListView : BaseListView
 		[SerializeField]
 		private ColumnSortingMode sortingMode;
 
-		[SerializeField]
 		[HideInInspector]
+		[SerializeField]
 		private bool sortingEnabled;
 
 		[UxmlIgnore]
@@ -32,14 +32,14 @@ public class MultiColumnListView : BaseListView
 		[HideInInspector]
 		private UxmlAttributeFlags sortingEnabled_UxmlAttributeFlags;
 
-		[HideInInspector]
 		[UxmlIgnore]
 		[SerializeField]
+		[HideInInspector]
 		private UxmlAttributeFlags sortingMode_UxmlAttributeFlags;
 
-		[SerializeField]
 		[HideInInspector]
 		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags columns_UxmlAttributeFlags;
 
 		[SerializeField]

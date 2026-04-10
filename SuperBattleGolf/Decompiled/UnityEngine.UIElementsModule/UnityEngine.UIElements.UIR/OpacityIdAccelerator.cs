@@ -31,7 +31,9 @@ internal class OpacityIdAccelerator : IDisposable
 
 	private const int k_JobLimit = 256;
 
-	private NativeArray<JobHandle> m_Jobs = new NativeArray<JobHandle>(256, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+	private static readonly MemoryLabel k_MemoryLabel = new MemoryLabel("UIElements", "Renderer.OpacityIdAccelerator");
+
+	private NativeArray<JobHandle> m_Jobs = new NativeArray<JobHandle>(256, k_MemoryLabel, NativeArrayOptions.UninitializedMemory);
 
 	private int m_NextJobIndex;
 
@@ -44,7 +46,7 @@ internal class OpacityIdAccelerator : IDisposable
 			oldVerts = oldVerts,
 			newVerts = newVerts,
 			opacityData = opacityData
-		}.ScheduleOrRunJob(vertexCount, 128);
+		}.Schedule(vertexCount, 128);
 		if (m_NextJobIndex == m_Jobs.Length)
 		{
 			m_Jobs[0] = JobHandle.CombineDependencies(m_Jobs);

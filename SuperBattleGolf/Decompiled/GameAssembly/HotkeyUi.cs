@@ -15,6 +15,9 @@ public class HotkeyUi : MonoBehaviour
 	private Image icon;
 
 	[SerializeField]
+	private Image disarmed;
+
+	[SerializeField]
 	private RectTransform usesParent;
 
 	[SerializeField]
@@ -42,20 +45,26 @@ public class HotkeyUi : MonoBehaviour
 
 	private Coroutine sizeAnimationCoroutine;
 
-	private float defaultNameYOffset;
-
 	private readonly List<Image> uses = new List<Image>();
+
+	private bool isInitialized;
 
 	public RectTransform RectTransform => rectTransform;
 
 	private void Awake()
 	{
-		defaultSize = rectTransform.sizeDelta;
-		if (name != null)
+		Initialize();
+	}
+
+	private void Initialize()
+	{
+		if (!isInitialized)
 		{
-			defaultNameYOffset = name.anchoredPosition.y;
+			isInitialized = true;
+			defaultSize = rectTransform.sizeDelta;
+			selected.alpha = 0f;
+			disarmed.enabled = false;
 		}
-		selected.alpha = 0f;
 	}
 
 	public void ShowButtonPrompt()
@@ -90,11 +99,12 @@ public class HotkeyUi : MonoBehaviour
 		}
 	}
 
-	public void SetIsGreyedOut(bool greyedOut)
+	public void SetState(bool greyedOut, bool isDisarmed)
 	{
 		Color color = icon.color;
 		color.a = (greyedOut ? 0.5f : 1f);
 		icon.color = color;
+		disarmed.enabled = isDisarmed;
 	}
 
 	public void SetIcon(Sprite icon)
@@ -152,6 +162,7 @@ public class HotkeyUi : MonoBehaviour
 
 	public void Expand(bool animate)
 	{
+		Initialize();
 		if (sizeAnimationCoroutine != null)
 		{
 			StopCoroutine(sizeAnimationCoroutine);
@@ -159,7 +170,7 @@ public class HotkeyUi : MonoBehaviour
 		Vector2 vector = defaultSize * selectScale;
 		if (animate && base.gameObject.activeInHierarchy)
 		{
-			sizeAnimationCoroutine = StartCoroutine(AnimateSizeRoutine(vector, 1f, 0.1f, BMath.EaseOut));
+			sizeAnimationCoroutine = StartCoroutine(AnimateSelectionRoutine(vector, 1f, 0.1f, BMath.EaseOut));
 			return;
 		}
 		rectTransform.sizeDelta = vector;
@@ -168,30 +179,33 @@ public class HotkeyUi : MonoBehaviour
 
 	public void ResetSize(bool animate)
 	{
+		Initialize();
 		if (sizeAnimationCoroutine != null)
 		{
 			StopCoroutine(sizeAnimationCoroutine);
 		}
 		if (animate && base.gameObject.activeInHierarchy)
 		{
-			sizeAnimationCoroutine = StartCoroutine(AnimateSizeRoutine(defaultSize, 0f, 0.1f, BMath.EaseOut));
+			sizeAnimationCoroutine = StartCoroutine(AnimateSelectionRoutine(defaultSize, 0f, 0.1f, BMath.EaseOut));
 			return;
 		}
 		rectTransform.sizeDelta = defaultSize;
 		selected.alpha = 0f;
 	}
 
-	private IEnumerator AnimateSizeRoutine(Vector2 targetSize, float selectAlpha, float duration, Func<float, float> Easing)
+	private IEnumerator AnimateSelectionRoutine(Vector2 targetSize, float targetSelectionAlpha, float duration, Func<float, float> Easing)
 	{
 		Vector2 initialSize = rectTransform.sizeDelta;
 		float initialAlpha = selected.alpha;
 		for (float time = 0f; time < duration; time += Time.deltaTime)
 		{
 			float arg = time / duration;
-			rectTransform.sizeDelta = Vector2.LerpUnclamped(initialSize, targetSize, Easing(arg));
-			selected.alpha = BMath.Lerp(initialAlpha, selectAlpha, Easing(arg));
+			float t = Easing(arg);
+			rectTransform.sizeDelta = Vector2.LerpUnclamped(initialSize, targetSize, t);
+			selected.alpha = BMath.Lerp(initialAlpha, targetSelectionAlpha, t);
 			yield return null;
 		}
 		rectTransform.sizeDelta = targetSize;
+		selected.alpha = targetSelectionAlpha;
 	}
 }

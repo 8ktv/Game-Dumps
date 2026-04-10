@@ -5,8 +5,8 @@ using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine.Animations;
 
-[NativeHeader("Modules/Animation/Director/AnimationSceneHandles.h")]
 [MovedFrom("UnityEngine.Experimental.Animations")]
+[NativeHeader("Modules/Animation/Director/AnimationSceneHandles.h")]
 public struct PropertySceneHandle
 {
 	private uint valid;

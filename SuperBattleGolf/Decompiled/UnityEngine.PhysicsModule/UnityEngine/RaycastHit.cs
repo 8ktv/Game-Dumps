@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using UnityEngine.Bindings;
@@ -5,10 +6,10 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Interfaces/IRaycast.h")]
-[NativeHeader("PhysicsScriptingClasses.h")]
-[NativeHeader("Modules/Physics/RaycastHit.h")]
+[NativeHeader("Runtime/Interfaces/IPhysics.h")]
 [UsedByNativeCode]
+[NativeHeader("Modules/Physics/RaycastHit.h")]
+[NativeHeader("PhysicsScriptingClasses.h")]
 public struct RaycastHit
 {
 	[NativeName("point")]
@@ -27,11 +28,14 @@ public struct RaycastHit
 	internal Vector2 m_UV;
 
 	[NativeName("collider")]
-	internal int m_Collider;
+	internal EntityId m_Collider;
 
 	public Collider collider => Object.FindObjectFromInstanceID(m_Collider) as Collider;
 
+	[Obsolete("RaycastHit.colliderInstanceID is obsolete. Use RaycastHit.colliderEntityId instead.")]
 	public int colliderInstanceID => m_Collider;
+
+	public EntityId colliderEntityId => m_Collider;
 
 	public Vector3 point
 	{
@@ -124,12 +128,12 @@ public struct RaycastHit
 	}
 
 	[NativeMethod("CalculateRaycastTexCoord", true, true)]
-	private static Vector2 CalculateRaycastTexCoord(int colliderInstanceID, Vector2 uv, Vector3 pos, uint face, int textcoord)
+	private static Vector2 CalculateRaycastTexCoord(EntityId colliderInstanceID, Vector2 uv, Vector3 pos, uint face, int textcoord)
 	{
-		CalculateRaycastTexCoord_Injected(colliderInstanceID, ref uv, ref pos, face, textcoord, out var ret);
+		CalculateRaycastTexCoord_Injected(ref colliderInstanceID, ref uv, ref pos, face, textcoord, out var ret);
 		return ret;
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void CalculateRaycastTexCoord_Injected(int colliderInstanceID, [In] ref Vector2 uv, [In] ref Vector3 pos, uint face, int textcoord, out Vector2 ret);
+	private static extern void CalculateRaycastTexCoord_Injected([In] ref EntityId colliderInstanceID, [In] ref Vector2 uv, [In] ref Vector3 pos, uint face, int textcoord, out Vector2 ret);
 }

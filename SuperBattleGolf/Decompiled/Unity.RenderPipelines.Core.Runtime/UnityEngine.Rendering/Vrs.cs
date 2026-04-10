@@ -109,7 +109,7 @@ public static class Vrs
 			return TextureHandle.nullHandle;
 		}
 		ConversionPassData passData;
-		using IComputeRenderGraphBuilder computeRenderGraphBuilder = renderGraph.AddComputePass<ConversionPassData>("TextureToShadingRateImage", out passData, s_VrsResources.conversionProfilingSampler, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\Vrs\\Vrs.cs", 159);
+		using IComputeRenderGraphBuilder computeRenderGraphBuilder = renderGraph.AddComputePass<ConversionPassData>("TextureToShadingRateImage", out passData, s_VrsResources.conversionProfilingSampler, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\Vrs\\Vrs.cs", 159);
 		passData.sriTextureHandle = sriTextureHandle;
 		passData.mainTexHandle = colorMaskHandle;
 		passData.mainTexDimension = colorMaskDimension;
@@ -150,7 +150,7 @@ public static class Vrs
 			return;
 		}
 		VisualizationPassData passData;
-		using IRasterRenderGraphBuilder rasterRenderGraphBuilder = renderGraph.AddRasterRenderPass<VisualizationPassData>("ShadingRateImageToTexture", out passData, s_VrsResources.visualizationProfilingSampler, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\Vrs\\Vrs.cs", 214);
+		using IRasterRenderGraphBuilder rasterRenderGraphBuilder = renderGraph.AddRasterRenderPass<VisualizationPassData>("ShadingRateImageToTexture", out passData, s_VrsResources.visualizationProfilingSampler, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\Vrs\\Vrs.cs", 214);
 		passData.material = s_VrsResources.visualizationMaterial;
 		if (sriTextureHandle.IsValid())
 		{

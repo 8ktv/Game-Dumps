@@ -56,6 +56,9 @@ public class Scoreboard : SingletonBehaviour<Scoreboard>
 	[SerializeField]
 	private TMP_Text parInfo;
 
+	[SerializeField]
+	private GameObject cheatsWarning;
+
 	[Header("Local player stats")]
 	[SerializeField]
 	private TMP_Text localPlayerScore;
@@ -220,6 +223,7 @@ public class Scoreboard : SingletonBehaviour<Scoreboard>
 				RadialMenu.Hide();
 			}
 			visibilityCoroutine = StartCoroutine(AnimateVisibilityRoutine(1f, 0.075f, BMath.EaseOut));
+			cheatsWarning.SetActive(MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.ConsoleCommands));
 		}
 		else
 		{
@@ -283,7 +287,6 @@ public class Scoreboard : SingletonBehaviour<Scoreboard>
 			{
 				list2.Add(new CourseManager.PlayerState
 				{
-					name = "Player McPlayerface",
 					isConnected = true,
 					isSpectator = (UnityEngine.Random.Range(0, 2) == 0),
 					matchScore = UnityEngine.Random.Range(0, 1000),
@@ -357,11 +360,13 @@ public class Scoreboard : SingletonBehaviour<Scoreboard>
 		}
 		localPlayerScore.text = localPlayerState.courseScore.ToString();
 		bestHoleScore.Initialize(GetStrokesUnderPar(localPlayerState.bestHoleScore), GetMedal(num6, localPlayerState.bestHoleScore > StrokesUnderParType.None));
-		longestChipIn.Initialize((localPlayerState.longestChipIn > float.Epsilon) ? $"{localPlayerState.longestChipIn:0.0}m" : "-", GetMedal(num7, localPlayerState.longestChipIn > float.Epsilon));
+		float distanceInCurrentUnitsFloat = GameSettings.All.General.GetDistanceInCurrentUnitsFloat(localPlayerState.longestChipIn);
+		string value = ((distanceInCurrentUnitsFloat > float.Epsilon) ? string.Format(GameSettings.All.General.GetLocalizedDistanceUnitName(), $"{distanceInCurrentUnitsFloat:0.0}") : "-");
+		longestChipIn.Initialize(value, GetMedal(num7, localPlayerState.longestChipIn > float.Epsilon));
 		avgFinishTime.Initialize((localPlayerState.avgFinishTime > float.Epsilon) ? $"{localPlayerState.avgFinishTime:0.0}s" : "-", GetMedal(num8, localPlayerState.avgFinishTime > float.Epsilon));
 		itemPickups.Initialize($"{localPlayerState.itemPickups}", GetMedal(num9));
-		string value = (float.IsFinite(num11) ? $"{num11:0.00}" : ((!(num11 > 0f)) ? "-" : "∞"));
-		knockoutRatio.Initialize(value, GetMedal(num10, num11 > float.Epsilon));
+		string value2 = (float.IsFinite(num11) ? $"{num11:0.00}" : ((!(num11 > 0f)) ? "-" : "∞"));
+		knockoutRatio.Initialize(value2, GetMedal(num10, num11 > float.Epsilon));
 		int num13 = 0;
 		int num14 = 0;
 		string text = string.Empty;

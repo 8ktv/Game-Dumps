@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine.Bindings;
+using UnityEngine.Internal;
 using UnityEngine.Rendering;
 
 namespace UnityEngine.Experimental.Rendering;
@@ -45,6 +47,8 @@ public sealed class GraphicsStateCollection : Object
 
 		public int sampleCount;
 
+		public bool hasEyeTexture;
+
 		public bool wireframe;
 
 		public bool invertCulling;
@@ -52,6 +56,46 @@ public sealed class GraphicsStateCollection : Object
 		public bool negativeScale;
 
 		public bool invertProjection;
+
+		public void SetMeshData(Mesh mesh, int submesh, [DefaultValue("null")] Renderer renderer = null)
+		{
+			SetMeshData_Injected(ref this, MarshalledUnityObject.Marshal(mesh), submesh, MarshalledUnityObject.Marshal(renderer));
+		}
+
+		[NativeName("SetRenderPassData")]
+		private unsafe void SetRenderPassData_Internal(int samples, ReadOnlySpan<AttachmentDescriptor> attachments, ReadOnlySpan<SubPassDescriptor> subPasses, int subPassIndex, int depthAttachmentIndex, int shadingRateIndex)
+		{
+			ReadOnlySpan<AttachmentDescriptor> readOnlySpan = attachments;
+			fixed (AttachmentDescriptor* begin = readOnlySpan)
+			{
+				ManagedSpanWrapper managedSpanWrapper = new ManagedSpanWrapper(begin, readOnlySpan.Length);
+				ReadOnlySpan<SubPassDescriptor> readOnlySpan2 = subPasses;
+				fixed (SubPassDescriptor* begin2 = readOnlySpan2)
+				{
+					ManagedSpanWrapper managedSpanWrapper2 = new ManagedSpanWrapper(begin2, readOnlySpan2.Length);
+					SetRenderPassData_Internal_Injected(ref this, samples, ref managedSpanWrapper, ref managedSpanWrapper2, subPassIndex, depthAttachmentIndex, shadingRateIndex);
+				}
+			}
+		}
+
+		public void SetRenderPassData(int samples, NativeArray<AttachmentDescriptor> attachments, NativeArray<SubPassDescriptor> subPasses, [DefaultValue("0")] int subPassIndex = 0, [DefaultValue("-1")] int depthAttachmentIndex = -1, [DefaultValue("-1")] int shadingRateIndex = -1)
+		{
+			SetRenderPassData_Internal(samples, attachments, subPasses, subPassIndex, depthAttachmentIndex, shadingRateIndex);
+		}
+
+		public void SetRenderStateData(Shader shader, PassIdentifier passId)
+		{
+			SetRenderStateData_Injected(ref this, MarshalledUnityObject.Marshal(shader), ref passId);
+		}
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		private static extern void SetMeshData_Injected(ref GraphicsState _unity_self, IntPtr mesh, int submesh, [DefaultValue("null")] IntPtr renderer);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		private static extern void SetRenderPassData_Internal_Injected(ref GraphicsState _unity_self, int samples, ref ManagedSpanWrapper attachments, ref ManagedSpanWrapper subPasses, int subPassIndex, int depthAttachmentIndex, int shadingRateIndex);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		private static extern void SetRenderStateData_Injected(ref GraphicsState _unity_self, IntPtr shader, [In] ref PassIdentifier passId);
 	}
 
 	public struct ShaderVariant
@@ -61,6 +105,20 @@ public sealed class GraphicsStateCollection : Object
 		public PassIdentifier passId;
 
 		public LocalKeyword[] keywords;
+
+		public ShaderVariant(Shader shader, PassIdentifier passId, LocalKeyword[] keywords)
+		{
+			this.shader = shader;
+			this.passId = passId;
+			this.keywords = keywords;
+		}
+
+		public ShaderVariant(Material material, PassIdentifier passId)
+		{
+			shader = material.shader;
+			this.passId = passId;
+			keywords = material.enabledKeywords;
+		}
 	}
 
 	public bool isTracing
@@ -433,32 +491,108 @@ public sealed class GraphicsStateCollection : Object
 
 	public bool AddVariant(Shader shader, PassIdentifier passId, LocalKeyword[] keywords)
 	{
+		return AddVariantByShader(shader, passId, keywords);
+	}
+
+	public bool AddVariant(Material mat, PassIdentifier passId)
+	{
+		return AddVariantByMaterial(mat, passId);
+	}
+
+	[NativeName("AddVariant")]
+	private bool AddVariantByShader(Shader shader, PassIdentifier passId, LocalKeyword[] keywords)
+	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 		if (intPtr == (IntPtr)0)
 		{
 			ThrowHelper.ThrowNullReferenceException(this);
 		}
-		return AddVariant_Injected(intPtr, MarshalledUnityObject.Marshal(shader), ref passId, keywords);
+		return AddVariantByShader_Injected(intPtr, MarshalledUnityObject.Marshal(shader), ref passId, keywords);
+	}
+
+	[NativeName("AddVariant")]
+	private bool AddVariantByMaterial(Material mat, PassIdentifier passId)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return AddVariantByMaterial_Injected(intPtr, MarshalledUnityObject.Marshal(mat), ref passId);
+	}
+
+	public bool AddVariants(Material mat, [DefaultValue("-1")] int subshaderIndex = -1)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return AddVariants_Injected(intPtr, MarshalledUnityObject.Marshal(mat), subshaderIndex);
 	}
 
 	public bool RemoveVariant(Shader shader, PassIdentifier passId, LocalKeyword[] keywords)
 	{
-		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
-		if (intPtr == (IntPtr)0)
-		{
-			ThrowHelper.ThrowNullReferenceException(this);
-		}
-		return RemoveVariant_Injected(intPtr, MarshalledUnityObject.Marshal(shader), ref passId, keywords);
+		return RemoveVariantByShader(shader, passId, keywords);
 	}
 
-	public bool ContainsVariant(Shader shader, PassIdentifier passId, LocalKeyword[] keywords)
+	public bool RemoveVariant(Material mat, PassIdentifier passId)
+	{
+		return RemoveVariantByMaterial(mat, passId);
+	}
+
+	[NativeName("RemoveVariant")]
+	private bool RemoveVariantByShader(Shader shader, PassIdentifier passId, LocalKeyword[] keywords)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 		if (intPtr == (IntPtr)0)
 		{
 			ThrowHelper.ThrowNullReferenceException(this);
 		}
-		return ContainsVariant_Injected(intPtr, MarshalledUnityObject.Marshal(shader), ref passId, keywords);
+		return RemoveVariantByShader_Injected(intPtr, MarshalledUnityObject.Marshal(shader), ref passId, keywords);
+	}
+
+	[NativeName("RemoveVariant")]
+	private bool RemoveVariantByMaterial(Material mat, PassIdentifier passId)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return RemoveVariantByMaterial_Injected(intPtr, MarshalledUnityObject.Marshal(mat), ref passId);
+	}
+
+	public bool ContainsVariant(Shader shader, PassIdentifier passId, LocalKeyword[] keywords)
+	{
+		return ContainsVariantByShader(shader, passId, keywords);
+	}
+
+	public bool ContainsVariant(Material mat, PassIdentifier passId)
+	{
+		return ContainsVariantByMaterial(mat, passId);
+	}
+
+	[NativeName("ContainsVariant")]
+	private bool ContainsVariantByShader(Shader shader, PassIdentifier passId, LocalKeyword[] keywords)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return ContainsVariantByShader_Injected(intPtr, MarshalledUnityObject.Marshal(shader), ref passId, keywords);
+	}
+
+	[NativeName("ContainsVariant")]
+	private bool ContainsVariantByMaterial(Material mat, PassIdentifier passId)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return ContainsVariantByMaterial_Injected(intPtr, MarshalledUnityObject.Marshal(mat), ref passId);
 	}
 
 	public void ClearVariants()
@@ -491,6 +625,16 @@ public sealed class GraphicsStateCollection : Object
 		return RemoveGraphicsStatesForVariant_Injected(intPtr, MarshalledUnityObject.Marshal(shader), ref passId, keywords);
 	}
 
+	public bool CopyGraphicsStatesForVariant(Shader srcShader, PassIdentifier srcPassId, LocalKeyword[] srcKeywords, Shader dstShader, PassIdentifier dstPassId, LocalKeyword[] dstKeywords)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		return CopyGraphicsStatesForVariant_Injected(intPtr, MarshalledUnityObject.Marshal(srcShader), ref srcPassId, srcKeywords, MarshalledUnityObject.Marshal(dstShader), ref dstPassId, dstKeywords);
+	}
+
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[NativeName("CreateFromScript")]
 	private static extern void Internal_Create([Writable] GraphicsStateCollection gsc);
@@ -514,6 +658,21 @@ public sealed class GraphicsStateCollection : Object
 	public int GetGraphicsStateCountForVariant(ShaderVariant variant)
 	{
 		return GetGraphicsStateCountForVariant(variant.shader, variant.passId, variant.keywords);
+	}
+
+	public bool AddGraphicsStateForVariant(ShaderVariant variant, GraphicsState setup)
+	{
+		return AddGraphicsStateForVariant(variant.shader, variant.passId, variant.keywords, setup);
+	}
+
+	public bool RemoveGraphicsStatesForVariant(ShaderVariant variant)
+	{
+		return RemoveGraphicsStatesForVariant(variant.shader, variant.passId, variant.keywords);
+	}
+
+	public bool CopyGraphicsStatesForVariant(ShaderVariant srcVariant, ShaderVariant dstVariant)
+	{
+		return CopyGraphicsStatesForVariant(srcVariant.shader, srcVariant.passId, srcVariant.keywords, dstVariant.shader, dstVariant.passId, dstVariant.keywords);
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -586,13 +745,25 @@ public sealed class GraphicsStateCollection : Object
 	private static extern int GetGraphicsStateCountForVariant_Injected(IntPtr _unity_self, IntPtr shader, [In] ref PassIdentifier passId, LocalKeyword[] keywords);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern bool AddVariant_Injected(IntPtr _unity_self, IntPtr shader, [In] ref PassIdentifier passId, LocalKeyword[] keywords);
+	private static extern bool AddVariantByShader_Injected(IntPtr _unity_self, IntPtr shader, [In] ref PassIdentifier passId, LocalKeyword[] keywords);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern bool RemoveVariant_Injected(IntPtr _unity_self, IntPtr shader, [In] ref PassIdentifier passId, LocalKeyword[] keywords);
+	private static extern bool AddVariantByMaterial_Injected(IntPtr _unity_self, IntPtr mat, [In] ref PassIdentifier passId);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern bool ContainsVariant_Injected(IntPtr _unity_self, IntPtr shader, [In] ref PassIdentifier passId, LocalKeyword[] keywords);
+	private static extern bool AddVariants_Injected(IntPtr _unity_self, IntPtr mat, [DefaultValue("-1")] int subshaderIndex);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool RemoveVariantByShader_Injected(IntPtr _unity_self, IntPtr shader, [In] ref PassIdentifier passId, LocalKeyword[] keywords);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool RemoveVariantByMaterial_Injected(IntPtr _unity_self, IntPtr mat, [In] ref PassIdentifier passId);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool ContainsVariantByShader_Injected(IntPtr _unity_self, IntPtr shader, [In] ref PassIdentifier passId, LocalKeyword[] keywords);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool ContainsVariantByMaterial_Injected(IntPtr _unity_self, IntPtr mat, [In] ref PassIdentifier passId);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void ClearVariants_Injected(IntPtr _unity_self);
@@ -602,4 +773,7 @@ public sealed class GraphicsStateCollection : Object
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern bool RemoveGraphicsStatesForVariant_Injected(IntPtr _unity_self, IntPtr shader, [In] ref PassIdentifier passId, LocalKeyword[] keywords);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool CopyGraphicsStatesForVariant_Injected(IntPtr _unity_self, IntPtr srcShader, [In] ref PassIdentifier srcPassId, LocalKeyword[] srcKeywords, IntPtr dstShader, [In] ref PassIdentifier dstPassId, LocalKeyword[] dstKeywords);
 }

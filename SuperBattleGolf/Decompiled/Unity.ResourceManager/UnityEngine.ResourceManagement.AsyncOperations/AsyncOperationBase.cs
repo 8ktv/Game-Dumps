@@ -370,7 +370,7 @@ public abstract class AsyncOperationBase<TObject> : IAsyncOperation
 		Object obj = Result as Object;
 		if (obj != null)
 		{
-			text = "(" + obj.GetInstanceID() + ")";
+			text = "(" + obj.GetEntityId().ToString() + ")";
 		}
 		return $"{base.ToString()}, result='{obj?.ToString() + text}', status='{m_Status}'";
 	}

@@ -5,9 +5,9 @@ namespace UnityEngine;
 
 internal struct TransformDispatchData : IDisposable
 {
-	public NativeArray<int> transformedID;
+	public NativeArray<EntityId> transformedID;
 
-	public NativeArray<int> parentID;
+	public NativeArray<EntityId> parentID;
 
 	public NativeArray<Matrix4x4> localToWorldMatrices;
 

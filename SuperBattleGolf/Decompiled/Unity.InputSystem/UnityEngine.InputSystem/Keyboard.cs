@@ -11,7 +11,7 @@ public class Keyboard : InputDevice, ITextInputReceiver, IEventPreProcessor
 {
 	public const int KeyCount = 110;
 
-	internal const int ExtendedKeyCount = 123;
+	internal const int ExtendedKeyCount = 126;
 
 	private InlinedArray<Action<char>> m_TextInputListeners;
 
@@ -292,6 +292,12 @@ public class Keyboard : InputDevice, ITextInputReceiver, IEventPreProcessor
 
 	public KeyControl f24Key => this[Key.F24];
 
+	public KeyControl mediaPlayPause => this[Key.MediaPlayPause];
+
+	public KeyControl mediaRewind => this[Key.MediaRewind];
+
+	public KeyControl mediaForward => this[Key.MediaForward];
+
 	public ButtonControl shiftKey { get; protected set; }
 
 	public ButtonControl ctrlKey { get; protected set; }
@@ -307,7 +313,7 @@ public class Keyboard : InputDevice, ITextInputReceiver, IEventPreProcessor
 			int num = (int)(key - 1);
 			if (num < 0 || num >= m_Keys.Length)
 			{
-				throw new ArgumentOutOfRangeException("key");
+				throw new ArgumentOutOfRangeException(string.Format("{0}: {1}", "key", key));
 			}
 			return m_Keys[num];
 		}
@@ -396,7 +402,7 @@ public class Keyboard : InputDevice, ITextInputReceiver, IEventPreProcessor
 
 	protected override void FinishSetup()
 	{
-		string[] array = new string[123]
+		string[] array = new string[126]
 		{
 			"space", "enter", "tab", "backquote", "quote", "semicolon", "comma", "period", "slash", "backslash",
 			"leftbracket", "rightbracket", "minus", "equals", "a", "b", "c", "d", "e", "f",
@@ -409,17 +415,14 @@ public class Keyboard : InputDevice, ITextInputReceiver, IEventPreProcessor
 			"numpadminus", "numpadperiod", "numpadequals", "numpad0", "numpad1", "numpad2", "numpad3", "numpad4", "numpad5", "numpad6",
 			"numpad7", "numpad8", "numpad9", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
 			"f8", "f9", "f10", "f11", "f12", "oem1", "oem2", "oem3", "oem4", "oem5",
-			null, "f13", "f14", "f15", "f16", "f17", "f18", "f19", "f20", "f21",
-			"f22", "f23", "f24"
+			"IMESelectedObsoleteKey", "f13", "f14", "f15", "f16", "f17", "f18", "f19", "f20", "f21",
+			"f22", "f23", "f24", "mediaPlayPause", "mediaRewind", "mediaForward"
 		};
 		m_Keys = new KeyControl[array.Length];
 		for (int i = 0; i < array.Length; i++)
 		{
-			if (!string.IsNullOrEmpty(array[i]))
-			{
-				m_Keys[i] = GetChildControl<KeyControl>(array[i]);
-				m_Keys[i].keyCode = (Key)(i + 1);
-			}
+			m_Keys[i] = GetChildControl<KeyControl>(array[i]);
+			m_Keys[i].keyCode = (Key)(i + 1);
 		}
 		anyKey = GetChildControl<AnyKeyControl>("anyKey");
 		shiftKey = GetChildControl<ButtonControl>("shift");

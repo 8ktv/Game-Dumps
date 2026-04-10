@@ -5,8 +5,8 @@ using UnityEngine.Scripting;
 namespace UnityEngine.Playables;
 
 [Serializable]
-[RequiredByNativeCode]
 [AssetFileNameExtension("playable", new string[] { })]
+[RequiredByNativeCode]
 public abstract class PlayableAsset : ScriptableObject, IPlayableAsset
 {
 	public virtual double duration => PlayableBinding.DefaultDuration;

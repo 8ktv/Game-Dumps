@@ -40,6 +40,10 @@ public class SteamAchievementManager : AchievementsManager
 
 	public override void Unlock(AchievementId id)
 	{
+		if (steamAchievementsVerbose)
+		{
+			Debug.Log($"[STEAM] Attempting to unlock achievement {id}");
+		}
 		if (!IsAchievementProgressAllowed())
 		{
 			return;
@@ -63,6 +67,10 @@ public class SteamAchievementManager : AchievementsManager
 
 	public override void SetProgress(AchievementId id, int value, bool canLower)
 	{
+		if (steamAchievementsVerbose)
+		{
+			Debug.Log($"[STEAM] Attempting to set achievement {id} progress to {value} (can lower: {canLower})");
+		}
 		if (!IsAchievementProgressAllowed())
 		{
 			return;
@@ -92,6 +100,10 @@ public class SteamAchievementManager : AchievementsManager
 
 	public override void IncrementProgress(AchievementId id, int amount)
 	{
+		if (steamAchievementsVerbose)
+		{
+			Debug.Log($"[STEAM] Attempting to increment achievement {id} progress by {amount}");
+		}
 		if (!IsAchievementProgressAllowed())
 		{
 			return;
@@ -143,6 +155,10 @@ public class SteamAchievementManager : AchievementsManager
 
 	public override void IndicateProgressOnMultipleOf(AchievementId id, int amount)
 	{
+		if (steamAchievementsVerbose)
+		{
+			Debug.Log($"[STEAM] Attempting to indicate progress of achievement {id} (multiple of {amount})");
+		}
 		if (!IsAchievementProgressAllowed())
 		{
 			return;
@@ -171,6 +187,10 @@ public class SteamAchievementManager : AchievementsManager
 
 	public override void ResetAchievement(AchievementId id)
 	{
+		if (steamAchievementsVerbose)
+		{
+			Debug.Log($"[STEAM] Attempting to reset achievement {id}");
+		}
 		if (!achievementsById.TryGetValue(id, out var value))
 		{
 			Debug.LogError($"Steam achievement {id} was not found");
@@ -199,6 +219,10 @@ public class SteamAchievementManager : AchievementsManager
 
 	public override void ResetAllAchievements()
 	{
+		if (steamAchievementsVerbose)
+		{
+			Debug.Log("[STEAM] Attempting to reset all achievements");
+		}
 		bool flag = SteamUserStats.ResetAll(includeAchievements: true);
 		if (steamAchievementsVerbose)
 		{
@@ -209,6 +233,10 @@ public class SteamAchievementManager : AchievementsManager
 
 	private async void EnsureStatsStored(bool skipTimer)
 	{
+		if (steamAchievementsVerbose)
+		{
+			Debug.Log("[STEAM] Ensuring stats stored");
+		}
 		if (skipTimer)
 		{
 			lastStoreStatsTimestamp = double.MinValue;
@@ -286,15 +314,27 @@ public class SteamAchievementManager : AchievementsManager
 
 	private void OnAchievementProgress(Achievement achievement, int currentProgress, int maxProgress)
 	{
+		bool flag = currentProgress == 0 && maxProgress == 0;
 		if (steamAchievementsVerbose)
 		{
-			if (currentProgress == 0 && maxProgress == 0)
+			if (flag)
 			{
 				Debug.Log("[STEAM] Achievement " + achievement.Name + " unlocked");
 			}
 			else
 			{
 				Debug.Log($"[STEAM] Achievement {achievement.Name} progressed to {currentProgress}/{maxProgress}");
+			}
+		}
+		if (flag)
+		{
+			if (!GameManager.Achievements.achievementsBySteamApiName.TryGetValue(achievement.Identifier, out var value))
+			{
+				Debug.LogError("Failed to retrieve achievment " + achievement.Identifier);
+			}
+			else
+			{
+				OnAchievementUnlocked(value.Id);
 			}
 		}
 	}

@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace TMPro;
 
-[AddComponentMenu("UI/Dropdown - TextMeshPro", 35)]
+[AddComponentMenu("UI (Canvas)/Dropdown - TextMeshPro", 35)]
 [RequireComponent(typeof(RectTransform))]
 public class TMP_Dropdown : Selectable, IPointerClickHandler, IEventSystemHandler, ISubmitHandler, ICancelHandler
 {

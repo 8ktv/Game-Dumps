@@ -190,8 +190,8 @@ public class PlatformEffector2D : Effector2D
 		}
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("PlatformEffector2D.sideBounce has been obsolete. Use PlatformEffector2D.useSideBounce instead (UnityUpgradable) -> useSideBounce", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public bool sideBounce
 	{
 		get
@@ -204,8 +204,8 @@ public class PlatformEffector2D : Effector2D
 		}
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("PlatformEffector2D.sideAngleVariance has been obsolete. Use PlatformEffector2D.sideArc instead (UnityUpgradable) -> sideArc", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public float sideAngleVariance
 	{
 		get

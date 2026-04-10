@@ -4,10 +4,13 @@ using System.Linq;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleList<T> : IStyleValue<List<T>>, IEquatable<StyleList<T>>
 {
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
+	[SerializeField]
 	private List<T> m_Value;
 
 	public List<T> value

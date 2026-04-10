@@ -3,6 +3,7 @@ using Unity.Properties;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct BackgroundRepeat : IEquatable<BackgroundRepeat>
 {
 	internal class PropertyBag : ContainerPropertyBag<BackgroundRepeat>

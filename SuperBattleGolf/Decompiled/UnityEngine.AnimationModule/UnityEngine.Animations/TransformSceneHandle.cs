@@ -5,9 +5,9 @@ using UnityEngine.Scripting.APIUpdating;
 
 namespace UnityEngine.Animations;
 
-[NativeHeader("Modules/Animation/Director/AnimationSceneHandles.h")]
-[MovedFrom("UnityEngine.Experimental.Animations")]
 [NativeHeader("Modules/Animation/ScriptBindings/AnimationStreamHandles.bindings.h")]
+[MovedFrom("UnityEngine.Experimental.Animations")]
+[NativeHeader("Modules/Animation/Director/AnimationSceneHandles.h")]
 public struct TransformSceneHandle
 {
 	private uint valid;

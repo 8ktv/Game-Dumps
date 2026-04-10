@@ -14,5 +14,7 @@ public enum EquipmentType
 	Electromagnet,
 	OrbitalLaser,
 	GolfCartBase,
-	GolfCartLid
+	GolfCartLid,
+	RocketDriver,
+	FreezeBomb
 }

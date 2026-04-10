@@ -7,8 +7,8 @@ namespace UnityEngine.Events;
 [Serializable]
 internal class PersistentCall : ISerializationCallbackReceiver
 {
-	[SerializeField]
 	[FormerlySerializedAs("instance")]
+	[SerializeField]
 	private Object m_Target;
 
 	[SerializeField]
@@ -18,17 +18,17 @@ internal class PersistentCall : ISerializationCallbackReceiver
 	[SerializeField]
 	private string m_MethodName;
 
-	[FormerlySerializedAs("mode")]
 	[SerializeField]
+	[FormerlySerializedAs("mode")]
 	private PersistentListenerMode m_Mode = PersistentListenerMode.EventDefined;
 
-	[FormerlySerializedAs("arguments")]
 	[SerializeField]
+	[FormerlySerializedAs("arguments")]
 	private ArgumentCache m_Arguments = new ArgumentCache();
 
-	[SerializeField]
-	[FormerlySerializedAs("enabled")]
 	[FormerlySerializedAs("m_Enabled")]
+	[FormerlySerializedAs("enabled")]
+	[SerializeField]
 	private UnityEventCallState m_CallState = UnityEventCallState.RuntimeOnly;
 
 	public Object target => m_Target;

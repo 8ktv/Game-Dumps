@@ -1,3 +1,4 @@
+#define UNITY_ASSERTIONS
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -8,7 +9,11 @@ namespace UnityEngine.UIElements.UIR;
 
 internal class CommandList : IDisposable
 {
+	private static readonly MemoryLabel k_MemoryLabel = new MemoryLabel("UIElements", "Renderer.CommandList");
+
 	public VisualElement m_Owner;
+
+	public UIRenderer m_Renderer;
 
 	private readonly IntPtr m_VertexDecl;
 
@@ -16,15 +21,15 @@ internal class CommandList : IDisposable
 
 	public MaterialPropertyBlock constantProps = new MaterialPropertyBlock();
 
-	public MaterialPropertyBlock batchProps = new MaterialPropertyBlock();
-
 	public GCHandle handle;
 
 	public Material m_Material;
 
+	public CommandFlags flags;
+
 	private List<SerializedCommand> m_Commands = new List<SerializedCommand>();
 
-	private Vector4[] m_GpuTextureData = new Vector4[TextureSlotManager.k_SlotSize * TextureSlotManager.k_SlotCount];
+	private Vector4[] m_GpuTextureData = new Vector4[TextureSlotManager.k_SlotSize * TextureSlotManager.k_MaxSlotCount];
 
 	private NativeList<DrawBufferRange> m_DrawRanges;
 
@@ -32,27 +37,35 @@ internal class CommandList : IDisposable
 
 	protected bool disposed { get; private set; }
 
-	public CommandList(VisualElement owner, IntPtr vertexDecl, IntPtr stencilState, Material material)
+	public CommandList(IntPtr vertexDecl, IntPtr stencilState)
 	{
-		m_Owner = owner;
 		m_VertexDecl = vertexDecl;
 		m_StencilState = stencilState;
-		m_DrawRanges = new NativeList<DrawBufferRange>(1024);
+		m_DrawRanges = new NativeList<DrawBufferRange>(1024, k_MemoryLabel);
 		handle = GCHandle.Alloc(this);
-		m_Material = material;
 	}
 
-	public void Reset(VisualElement newOwner, Material material)
+	public void Reset()
 	{
-		m_Owner = newOwner;
+		m_Owner = null;
+		m_Renderer = null;
+		m_Material = null;
 		m_Commands.Clear();
 		m_DrawRanges.Clear();
+		constantProps.Clear();
+	}
+
+	public void Init(VisualElement owner, Material material, CommandFlags commandFlags)
+	{
+		Debug.Assert(m_Owner == null);
+		m_Owner = owner;
+		m_Renderer = (owner as UIDocumentRootElement)?.uiRenderer;
 		m_Material = material;
+		flags = commandFlags;
 		for (int i = 0; i < m_GpuTextureData.Length; i++)
 		{
 			m_GpuTextureData[i] = Vector4.zero;
 		}
-		batchProps.Clear();
 	}
 
 	public unsafe void Execute()
@@ -60,27 +73,45 @@ internal class CommandList : IDisposable
 		IntPtr* ptr = stackalloc IntPtr[1];
 		Utility.SetPropertyBlock(constantProps);
 		Utility.SetStencilState(m_StencilState, 0);
-		for (int i = 0; i < m_Commands.Count; i++)
+		int num = 0;
+		int* ptr2 = stackalloc int[8];
+		IntPtr* ptr3 = stackalloc IntPtr[8];
+		IntPtr shaderPropertySheet = Utility.AllocateShaderPropertySheet();
+		try
 		{
-			SerializedCommand serializedCommand = m_Commands[i];
-			switch (serializedCommand.type)
+			for (int i = 0; i < m_Commands.Count; i++)
 			{
-			case SerializedCommandType.SetTexture:
-				batchProps.SetTexture(serializedCommand.textureName, serializedCommand.texture);
-				m_GpuTextureData[serializedCommand.gpuDataOffset] = serializedCommand.gpuData0;
-				m_GpuTextureData[serializedCommand.gpuDataOffset + 1] = serializedCommand.gpuData1;
-				batchProps.SetVectorArray(TextureSlotManager.textureTableId, m_GpuTextureData);
-				break;
-			case SerializedCommandType.ApplyBatchProps:
-				Utility.SetPropertyBlock(batchProps);
-				break;
-			case SerializedCommandType.DrawRanges:
-				*ptr = serializedCommand.vertexBuffer;
-				Utility.DrawRanges(serializedCommand.indexBuffer, ptr, 1, new IntPtr(m_DrawRanges.GetSlice(serializedCommand.firstRange, serializedCommand.rangeCount).GetUnsafePtr()), serializedCommand.rangeCount, m_VertexDecl);
-				break;
-			default:
-				throw new NotImplementedException();
+				SerializedCommand serializedCommand = m_Commands[i];
+				switch (serializedCommand.type)
+				{
+				case SerializedCommandType.SetTexture:
+					ptr2[num] = serializedCommand.textureName;
+					ptr3[num] = serializedCommand.texturePtr;
+					num++;
+					m_GpuTextureData[serializedCommand.gpuDataOffset] = serializedCommand.gpuData0;
+					m_GpuTextureData[serializedCommand.gpuDataOffset + 1] = serializedCommand.gpuData1;
+					break;
+				case SerializedCommandType.ApplyBatchProps:
+					Utility.SetAllTextures(shaderPropertySheet, new IntPtr(ptr2), new IntPtr(ptr3), num);
+					num = 0;
+					Utility.SetVectorArray(shaderPropertySheet, TextureSlotManager.textureTableId, m_GpuTextureData);
+					Utility.ApplyShaderPropertySheet(shaderPropertySheet);
+					break;
+				case SerializedCommandType.ApplyUserProps:
+					Utility.SetPropertyBlock(serializedCommand.userProps);
+					break;
+				case SerializedCommandType.DrawRanges:
+					*ptr = serializedCommand.vertexBuffer;
+					Utility.DrawRanges(serializedCommand.indexBuffer, ptr, 1, new IntPtr(m_DrawRanges.GetSlice(serializedCommand.firstRange, serializedCommand.rangeCount).GetUnsafePtr()), serializedCommand.rangeCount, m_VertexDecl);
+					break;
+				default:
+					throw new NotImplementedException();
+				}
 			}
+		}
+		finally
+		{
+			Utility.ReleasePropertySheet(shaderPropertySheet);
 		}
 	}
 
@@ -90,10 +121,20 @@ internal class CommandList : IDisposable
 		{
 			type = SerializedCommandType.SetTexture,
 			textureName = name,
-			texture = texture,
+			texturePtr = Object.MarshalledUnityObject.MarshalNotNull(texture),
 			gpuDataOffset = gpuDataOffset,
 			gpuData0 = gpuData0,
 			gpuData1 = gpuData1
+		};
+		m_Commands.Add(item);
+	}
+
+	public void ApplyUserProps(MaterialPropertyBlock userProps)
+	{
+		SerializedCommand item = new SerializedCommand
+		{
+			type = SerializedCommandType.ApplyUserProps,
+			userProps = userProps
 		};
 		m_Commands.Add(item);
 	}
@@ -124,7 +165,6 @@ internal class CommandList : IDisposable
 	public void Dispose()
 	{
 		Dispose(disposing: true);
-		GC.SuppressFinalize(this);
 	}
 
 	protected void Dispose(bool disposing)

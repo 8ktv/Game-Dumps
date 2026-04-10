@@ -10,12 +10,12 @@ public class RadioButton : BaseBoolField, IGroupBoxOption
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : BaseBoolField.UxmlSerializedData
 	{
-		[SerializeField]
 		[MultilineTextField]
+		[SerializeField]
 		private string text;
 
-		[HideInInspector]
 		[SerializeField]
+		[HideInInspector]
 		[UxmlIgnore]
 		private UxmlAttributeFlags text_UxmlAttributeFlags;
 

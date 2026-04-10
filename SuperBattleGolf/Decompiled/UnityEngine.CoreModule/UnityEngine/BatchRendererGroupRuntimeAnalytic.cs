@@ -8,8 +8,8 @@ namespace UnityEngine;
 
 [Serializable]
 [StructLayout(LayoutKind.Sequential)]
-[ExcludeFromDocs]
 [RequiredByNativeCode(GenerateProxy = true)]
+[ExcludeFromDocs]
 internal class BatchRendererGroupRuntimeAnalytic : AnalyticsEventBase
 {
 	private int brgRuntimeStatus;

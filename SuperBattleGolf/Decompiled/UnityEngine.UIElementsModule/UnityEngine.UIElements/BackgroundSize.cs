@@ -3,6 +3,7 @@ using Unity.Properties;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct BackgroundSize : IEquatable<BackgroundSize>
 {
 	internal class PropertyBag : ContainerPropertyBag<BackgroundSize>
@@ -66,10 +67,13 @@ public struct BackgroundSize : IEquatable<BackgroundSize>
 		}
 	}
 
+	[SerializeField]
 	private BackgroundSizeType m_SizeType;
 
+	[SerializeField]
 	private Length m_X;
 
+	[SerializeField]
 	private Length m_Y;
 
 	public BackgroundSizeType sizeType

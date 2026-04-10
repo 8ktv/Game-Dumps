@@ -12,6 +12,21 @@ public class SwingHittableSettings : ScriptableObject
 	[field: SerializeField]
 	public float SwingHitSpinSpeed { get; private set; }
 
+	[field: SerializeField]
+	public float MinPowerRocketDriverSwingHitSpeed { get; private set; }
+
+	[field: SerializeField]
+	public float MaxPowerRocketDriverSwingHitSpeed { get; private set; }
+
+	[field: SerializeField]
+	public float MinPowerRocketDriverPuttHitSpeed { get; private set; }
+
+	[field: SerializeField]
+	public float MaxPowerRocketDriverPuttHitSpeed { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverSwingHitSpinSpeed { get; private set; }
+
 	[field: Header("As projectile")]
 	[field: SerializeField]
 	public bool CanBecomeSwingProjectile { get; private set; }

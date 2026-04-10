@@ -11,15 +11,15 @@ public class Button : TextElement
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : TextElement.UxmlSerializedData
 	{
-		[ImageFieldValueDecorator]
 		[UxmlAttributeBindingPath("iconImage")]
 		[UxmlAttribute("icon-image")]
 		[SerializeField]
+		[ImageFieldValueDecorator("Icon Image")]
 		private Object iconImageReference;
 
+		[HideInInspector]
 		[UxmlIgnore]
 		[SerializeField]
-		[HideInInspector]
 		private UxmlAttributeFlags iconImageReference_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]

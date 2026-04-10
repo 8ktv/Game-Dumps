@@ -396,6 +396,10 @@ public static class InputActionRebindingExtensions
 
 		private float m_WaitSecondsAfterMatch;
 
+		private InputEventHandledPolicy m_SavedInputEventHandledPolicy;
+
+		private InputEventHandledPolicy m_TargetInputEventHandledPolicy;
+
 		private InputControlList<InputControl> m_Candidates;
 
 		private Action<RebindingOperation> m_OnComplete;
@@ -658,6 +662,7 @@ public static class InputActionRebindingExtensions
 
 		public RebindingOperation WithTimeout(float timeInSeconds)
 		{
+			ThrowIfRebindInProgress();
 			m_Timeout = timeInSeconds;
 			return this;
 		}
@@ -704,6 +709,13 @@ public static class InputActionRebindingExtensions
 			return this;
 		}
 
+		public RebindingOperation WithActionEventNotificationsBeingSuppressed(bool value = true)
+		{
+			ThrowIfRebindInProgress();
+			m_TargetInputEventHandledPolicy = (value ? InputEventHandledPolicy.SuppressActionEventNotifications : InputEventHandledPolicy.SuppressStateUpdates);
+			return this;
+		}
+
 		public RebindingOperation Start()
 		{
 			if (started)
@@ -719,6 +731,8 @@ public static class InputActionRebindingExtensions
 				throw new InvalidOperationException("Must either have an action (call WithAction()) to apply binding to or have a custom callback to apply the binding (call OnApplyBinding())");
 			}
 			m_StartTime = InputState.currentTime;
+			m_SavedInputEventHandledPolicy = InputSystem.s_Manager.inputEventHandledPolicy;
+			InputSystem.s_Manager.inputEventHandledPolicy = m_TargetInputEventHandledPolicy;
 			if (m_WaitSecondsAfterMatch > 0f || m_Timeout > 0f)
 			{
 				HookOnAfterUpdate();
@@ -858,6 +872,7 @@ public static class InputActionRebindingExtensions
 				void* statePtrFromStateEventUnchecked = item.GetStatePtrFromStateEventUnchecked(eventPtr, type);
 				if (!string.IsNullOrEmpty(m_CancelBinding) && InputControlPath.Matches(m_CancelBinding, item) && item.HasValueChangeInState(statePtrFromStateEventUnchecked))
 				{
+					eventPtr.handled = true;
 					OnCancel();
 					break;
 				}
@@ -1086,6 +1101,7 @@ public static class InputActionRebindingExtensions
 			m_StartingActuations.Clear();
 			UnhookOnEvent();
 			UnhookOnAfterUpdate();
+			InputSystem.s_Manager.inputEventHandledPolicy = m_SavedInputEventHandledPolicy;
 		}
 
 		private void ThrowIfRebindInProgress()

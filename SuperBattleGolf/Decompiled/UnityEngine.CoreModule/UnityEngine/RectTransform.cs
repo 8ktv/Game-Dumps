@@ -6,8 +6,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeClass("UI::RectTransform")]
 [NativeHeader("Runtime/Transform/RectTransform.h")]
+[NativeClass("UI::RectTransform")]
 public sealed class RectTransform : Transform
 {
 	public enum Edge
@@ -243,6 +243,28 @@ public sealed class RectTransform : Transform
 		}
 	}
 
+	public bool sendChildDimensionsChange
+	{
+		get
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			return get_sendChildDimensionsChange_Injected(intPtr);
+		}
+		set
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			set_sendChildDimensionsChange_Injected(intPtr, value);
+		}
+	}
+
 	public static event ReapplyDrivenProperties reapplyDrivenProperties;
 
 	[NativeMethod("UpdateIfTransformDispatchIsDirty")]
@@ -392,6 +414,12 @@ public sealed class RectTransform : Transform
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void set_drivenProperties_Injected(IntPtr _unity_self, DrivenTransformProperties value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool get_sendChildDimensionsChange_Injected(IntPtr _unity_self);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_sendChildDimensionsChange_Injected(IntPtr _unity_self, bool value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void ForceUpdateRectTransforms_Injected(IntPtr _unity_self);

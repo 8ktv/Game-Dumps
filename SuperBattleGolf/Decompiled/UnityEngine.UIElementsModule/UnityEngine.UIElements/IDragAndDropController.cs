@@ -7,6 +7,11 @@ internal interface IDragAndDropController<in TArgs>
 {
 	bool CanStartDrag(IEnumerable<int> itemIds);
 
+	bool CanDrop()
+	{
+		return true;
+	}
+
 	StartDragArgs SetupDragAndDrop(IEnumerable<int> itemIds, bool skipText = false);
 
 	DragVisualMode HandleDragAndDrop(TArgs args);

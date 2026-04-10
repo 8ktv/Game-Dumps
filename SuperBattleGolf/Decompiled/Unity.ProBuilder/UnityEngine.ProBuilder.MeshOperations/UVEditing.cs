@@ -71,7 +71,7 @@ internal static class UVEditing
 		Vector2 vector4 = uVs[array2[0]] - uVs[array[0]];
 		Vector2 vector5 = uVs[array2[1]] - uVs[array[1]];
 		float num6 = Vector2.Angle(vector4, vector5);
-		if (Vector3.Cross(vector4, vector5).z < 0f)
+		if (Vector3.Cross((Vector3)vector4, (Vector3)vector5).z < 0f)
 		{
 			num6 = 360f - num6;
 		}

@@ -716,6 +716,10 @@ internal class MeshGenerator : IMeshGenerator, IDisposable
 		}
 	}
 
+	private const string k_MemoryLabelName = "Renderer.MeshGenerator";
+
+	private static readonly MemoryLabel k_MemoryLabel = new MemoryLabel("UIElements", "Renderer.MeshGenerator");
+
 	private static readonly ProfilerMarker k_MarkerDrawRectangle = new ProfilerMarker("MeshGenerator.DrawRectangle");
 
 	private static readonly ProfilerMarker k_MarkerDrawBorder = new ProfilerMarker("MeshGenerator.DrawBorder");
@@ -834,10 +838,14 @@ internal class MeshGenerator : IMeshGenerator, IDisposable
 	private void DrawTextBase(TextInfo textInfo, NativeTextInfo nativeTextInfo, Vector2 pos, bool isNative)
 	{
 		int i = 0;
-		for (int num = (isNative ? nativeTextInfo.meshInfos.Length : textInfo.meshInfo.Length); i < num; i++)
+		for (int num = (isNative ? nativeTextInfo.meshInfoCount : textInfo.meshInfo.Length); i < num; i++)
 		{
 			MeshInfo meshInfo = default(MeshInfo);
 			FontAsset fontAsset = null;
+			SpriteAsset spriteAsset = null;
+			bool flag = false;
+			Span<ATGMeshInfo> span = default(Span<ATGMeshInfo>);
+			ATGMeshInfo aTGMeshInfo = default(ATGMeshInfo);
 			int num2;
 			if (!isNative)
 			{
@@ -847,64 +855,99 @@ internal class MeshGenerator : IMeshGenerator, IDisposable
 			}
 			else
 			{
-				int num3 = nativeTextInfo.meshInfos[i].textElementInfos.Length;
-				num2 = num3 * 4;
-				fontAsset = nativeTextInfo.meshInfos[i].fontAsset;
+				aTGMeshInfo = nativeTextInfo.meshInfos[i];
+				int length = aTGMeshInfo.textElementInfos.Length;
+				num2 = length * 4;
+				UnityEngine.TextCore.Text.TextAsset textAssetByID = UnityEngine.TextCore.Text.TextAsset.GetTextAssetByID(aTGMeshInfo.textAssetId);
+				if (textAssetByID == null)
+				{
+					continue;
+				}
+				if (textAssetByID is FontAsset)
+				{
+					fontAsset = textAssetByID as FontAsset;
+				}
+				else
+				{
+					flag = true;
+					spriteAsset = textAssetByID as SpriteAsset;
+				}
 			}
 			int b = (int)(UIRenderDevice.maxVerticesPerPage & -4);
 			float inverseScale = 1f / currentElement.scaledPixelsPerPoint;
 			while (num2 > 0)
 			{
-				int num4 = Mathf.Min(num2, b);
-				int num5 = num4 >> 2;
-				int indexCount = num5 * 6;
-				m_Atlases.Add(isNative ? ((Texture2D)fontAsset.material.mainTexture) : ((Texture2D)meshInfo.material.mainTexture));
-				m_RenderModes.Add(isNative ? fontAsset.atlasRenderMode : meshInfo.glyphRenderMode);
-				float item = 0f;
+				int num3 = Mathf.Min(num2, b);
+				int num4 = num3 >> 2;
+				int indexCount = num4 * 6;
+				Texture2D item;
+				GlyphRenderMode item2;
+				if (isNative)
+				{
+					if (flag)
+					{
+						item = (Texture2D)spriteAsset.material.mainTexture;
+						item2 = GlyphRenderMode.COLOR;
+					}
+					else
+					{
+						item = (Texture2D)fontAsset.material.mainTexture;
+						item2 = fontAsset.atlasRenderMode;
+					}
+				}
+				else
+				{
+					item = (Texture2D)meshInfo.material.mainTexture;
+					item2 = meshInfo.glyphRenderMode;
+				}
+				m_Atlases.Add(item);
+				m_RenderModes.Add(item2);
+				float item3 = 0f;
 				List<GlyphRenderMode> renderModes = m_RenderModes;
 				if (!TextGeneratorUtilities.IsBitmapRendering(renderModes[renderModes.Count - 1]))
 				{
 					List<Texture2D> atlases = m_Atlases;
 					if (atlases[atlases.Count - 1].format == TextureFormat.Alpha8)
 					{
-						item = ((!isNative) ? meshInfo.material.GetFloat(TextShaderUtilities.ID_GradientScale) : ((float)(fontAsset.atlasPadding + 1)));
+						item3 = ((!isNative) ? meshInfo.material.GetFloat(TextShaderUtilities.ID_GradientScale) : ((float)((!flag) ? (fontAsset.atlasPadding + 1) : 0)));
 					}
 				}
-				m_SdfScales.Add(item);
-				m_MeshGenerationContext.AllocateTempMesh(num4, indexCount, out var vertices, out var indices);
+				m_SdfScales.Add(item3);
+				m_MeshGenerationContext.AllocateTempMesh(num3, indexCount, out var vertices, out var indices);
+				int num5 = 0;
 				int num6 = 0;
 				int num7 = 0;
-				int num8 = 0;
-				while (num6 < num4)
+				while (num5 < num3)
 				{
 					if (isNative)
 					{
-						bool isColorGlyph = fontAsset.atlasRenderMode == GlyphRenderMode.COLOR || fontAsset.atlasRenderMode == GlyphRenderMode.COLOR_HINTED;
-						vertices[num6] = ConvertTextVertexToUIRVertex(ref nativeTextInfo.meshInfos[i].textElementInfos[num7].bottomLeft, pos, inverseScale, isDynamicColor: false, isColorGlyph);
-						vertices[num6 + 1] = ConvertTextVertexToUIRVertex(ref nativeTextInfo.meshInfos[i].textElementInfos[num7].topLeft, pos, inverseScale, isDynamicColor: false, isColorGlyph);
-						vertices[num6 + 2] = ConvertTextVertexToUIRVertex(ref nativeTextInfo.meshInfos[i].textElementInfos[num7].topRight, pos, inverseScale, isDynamicColor: false, isColorGlyph);
-						vertices[num6 + 3] = ConvertTextVertexToUIRVertex(ref nativeTextInfo.meshInfos[i].textElementInfos[num7].bottomRight, pos, inverseScale, isDynamicColor: false, isColorGlyph);
+						Span<NativeTextElementInfo> textElementInfos = aTGMeshInfo.textElementInfos;
+						bool isColorGlyph = !flag && (fontAsset.atlasRenderMode == GlyphRenderMode.COLOR || fontAsset.atlasRenderMode == GlyphRenderMode.COLOR_HINTED);
+						vertices[num5] = ConvertTextVertexToUIRVertex(ref textElementInfos[num6].bottomLeft, pos, inverseScale, isDynamicColor: false, isColorGlyph);
+						vertices[num5 + 1] = ConvertTextVertexToUIRVertex(ref textElementInfos[num6].topLeft, pos, inverseScale, isDynamicColor: false, isColorGlyph);
+						vertices[num5 + 2] = ConvertTextVertexToUIRVertex(ref textElementInfos[num6].topRight, pos, inverseScale, isDynamicColor: false, isColorGlyph);
+						vertices[num5 + 3] = ConvertTextVertexToUIRVertex(ref textElementInfos[num6].bottomRight, pos, inverseScale, isDynamicColor: false, isColorGlyph);
 					}
 					else
 					{
-						vertices[num6] = ConvertTextVertexToUIRVertex(ref meshInfo.vertexData[num6], pos, inverseScale);
-						vertices[num6 + 1] = ConvertTextVertexToUIRVertex(ref meshInfo.vertexData[num6 + 1], pos, inverseScale);
-						vertices[num6 + 2] = ConvertTextVertexToUIRVertex(ref meshInfo.vertexData[num6 + 2], pos, inverseScale);
-						vertices[num6 + 3] = ConvertTextVertexToUIRVertex(ref meshInfo.vertexData[num6 + 3], pos, inverseScale);
+						vertices[num5] = ConvertTextVertexToUIRVertex(ref meshInfo.vertexData[num5], pos, inverseScale);
+						vertices[num5 + 1] = ConvertTextVertexToUIRVertex(ref meshInfo.vertexData[num5 + 1], pos, inverseScale);
+						vertices[num5 + 2] = ConvertTextVertexToUIRVertex(ref meshInfo.vertexData[num5 + 2], pos, inverseScale);
+						vertices[num5 + 3] = ConvertTextVertexToUIRVertex(ref meshInfo.vertexData[num5 + 3], pos, inverseScale);
 					}
-					indices[num8] = (ushort)num6;
-					indices[num8 + 1] = (ushort)(num6 + 1);
-					indices[num8 + 2] = (ushort)(num6 + 2);
-					indices[num8 + 3] = (ushort)(num6 + 2);
-					indices[num8 + 4] = (ushort)(num6 + 3);
-					indices[num8 + 5] = (ushort)num6;
-					num6 += 4;
-					num7++;
-					num8 += 6;
+					indices[num7] = (ushort)num5;
+					indices[num7 + 1] = (ushort)(num5 + 1);
+					indices[num7 + 2] = (ushort)(num5 + 2);
+					indices[num7 + 3] = (ushort)(num5 + 2);
+					indices[num7 + 4] = (ushort)(num5 + 3);
+					indices[num7 + 5] = (ushort)num5;
+					num5 += 4;
+					num6++;
+					num7 += 6;
 				}
 				m_VerticesArray.Add(vertices);
 				m_IndicesArray.Add(indices);
-				num2 -= num4;
+				num2 -= num3;
 			}
 			Debug.Assert(num2 == 0);
 		}
@@ -1049,7 +1092,7 @@ internal class MeshGenerator : IMeshGenerator, IDisposable
 		{
 			m_MeshGenerationContext.entryRecorder.DrawMesh(m_MeshGenerationContext.parentEntry, vertices, indices);
 		}
-		Matrix4x4 matrix4x = Matrix4x4.TRS(offset, Quaternion.AngleAxis(rotationAngle.ToDegrees(), Vector3.forward), new Vector3(scale.x, scale.y, 1f));
+		Matrix4x4 matrix4x = Matrix4x4.TRS((Vector3)offset, Quaternion.AngleAxis(rotationAngle.ToDegrees(), Vector3.forward), new Vector3(scale.x, scale.y, 1f));
 		bool flag = (scale.x < 0f) ^ (scale.y < 0f);
 		int num = vectorImage.vertices.Length;
 		for (int i = 0; i < num; i++)
@@ -1375,7 +1418,7 @@ internal class MeshGenerator : IMeshGenerator, IDisposable
 		{
 			if (m_BackgroundRepeatInstanceList == null)
 			{
-				m_BackgroundRepeatInstanceList = new NativePagedList<BackgroundRepeatInstance>(8, Allocator.Persistent, Allocator.TempJob);
+				m_BackgroundRepeatInstanceList = new NativePagedList<BackgroundRepeatInstance>(8, "Renderer.MeshGenerator", Allocator.Persistent, Allocator.TempJob);
 			}
 			rectParams.backgroundRepeatInstanceList = m_BackgroundRepeatInstanceList;
 			rectParams.backgroundRepeatInstanceListStartIndex = m_BackgroundRepeatInstanceList.GetCount();
@@ -1383,14 +1426,10 @@ internal class MeshGenerator : IMeshGenerator, IDisposable
 		int num18 = 0;
 		foreach (RepeatRectUV item7 in m_RepeatRectUVList[1])
 		{
-			Rect rect14 = item7.rect;
-			rect2.y = rect14.y;
-			rect14 = item7.rect;
-			rect2.height = rect14.height;
-			rect14 = item7.uv;
-			rect.y = rect14.y;
-			rect14 = item7.uv;
-			rect.height = rect14.height;
+			rect2.y = item7.rect.y;
+			rect2.height = item7.rect.height;
+			rect.y = item7.uv.y;
+			rect.height = item7.uv.height;
 			if (rect2.y < totalRect.y)
 			{
 				float num19 = totalRect.y - rect2.y;
@@ -1420,14 +1459,10 @@ internal class MeshGenerator : IMeshGenerator, IDisposable
 			}
 			foreach (RepeatRectUV item8 in m_RepeatRectUVList[0])
 			{
-				rect14 = item8.rect;
-				rect2.x = rect14.x;
-				rect14 = item8.rect;
-				rect2.width = rect14.width;
-				rect14 = item8.uv;
-				rect.x = rect14.x;
-				rect14 = item8.uv;
-				rect.width = rect14.width;
+				rect2.x = item8.rect.x;
+				rect2.width = item8.rect.width;
+				rect.x = item8.uv.x;
+				rect.width = item8.uv.width;
 				if (rect2.x < totalRect.x)
 				{
 					float num30 = totalRect.x - rect2.x;
@@ -1573,7 +1608,7 @@ internal class MeshGenerator : IMeshGenerator, IDisposable
 			if (m_JobParameters.Length < count)
 			{
 				m_JobParameters.Dispose();
-				m_JobParameters = new NativeArray<TessellationJobParameters>(count, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+				m_JobParameters = new NativeArray<TessellationJobParameters>(count, k_MemoryLabel, NativeArrayOptions.UninitializedMemory);
 			}
 			for (int i = 0; i < count; i++)
 			{
@@ -1585,7 +1620,7 @@ internal class MeshGenerator : IMeshGenerator, IDisposable
 				jobParameters = m_JobParameters.Slice(0, count)
 			};
 			mgc.GetTempMeshAllocator(out jobData.allocator);
-			JobHandle jobHandle = jobData.ScheduleOrRunJob(count, 1);
+			JobHandle jobHandle = jobData.Schedule(count, 1);
 			mgc.AddMeshGenerationJob(jobHandle);
 			mgc.AddMeshGenerationCallback(m_OnMeshGenerationDelegate, null, MeshGenerationCallbackType.Work, isJobDependent: true);
 		}

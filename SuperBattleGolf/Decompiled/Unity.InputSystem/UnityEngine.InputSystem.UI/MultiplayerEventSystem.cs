@@ -2,7 +2,7 @@ using UnityEngine.EventSystems;
 
 namespace UnityEngine.InputSystem.UI;
 
-[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.14/manual/UISupport.html#multiplayer-uis")]
+[HelpURL("https://docs.unity3d.com/Packages/com.unity.inputsystem@1.18/manual/UISupport.html#multiplayer-uis")]
 public class MultiplayerEventSystem : EventSystem
 {
 	[Tooltip("If set, only process mouse and navigation events for any game objects which are children of this game object.")]
@@ -35,13 +35,10 @@ public class MultiplayerEventSystem : EventSystem
 
 	private void InitializePlayerRoot()
 	{
-		if (!(m_PlayerRoot == null))
+		InputSystemUIInputModule component = GetComponent<InputSystemUIInputModule>();
+		if (component != null)
 		{
-			InputSystemUIInputModule component = GetComponent<InputSystemUIInputModule>();
-			if (component != null)
-			{
-				component.localMultiPlayerRoot = m_PlayerRoot;
-			}
+			component.localMultiPlayerRoot = m_PlayerRoot;
 		}
 	}
 

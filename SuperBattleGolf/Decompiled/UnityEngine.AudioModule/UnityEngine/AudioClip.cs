@@ -1,14 +1,15 @@
 using System;
 using System.Runtime.CompilerServices;
+using Unity.IntegerTime;
 using UnityEngine.Audio;
 using UnityEngine.Bindings;
 using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[StaticAccessor("AudioClipBindings", StaticAccessorType.DoubleColon)]
 [NativeHeader("Modules/Audio/Public/ScriptBindings/Audio.bindings.h")]
-public sealed class AudioClip : AudioResource
+[StaticAccessor("AudioClipBindings", StaticAccessorType.DoubleColon)]
+public sealed class AudioClip : AudioResource, IAudioGenerator, GeneratorInstance.ICapabilities
 {
 	public delegate void PCMReaderCallback(float[] data);
 
@@ -147,6 +148,30 @@ public sealed class AudioClip : AudioResource
 				ThrowHelper.ThrowNullReferenceException(this);
 			}
 			return get_loadState_Injected(intPtr);
+		}
+	}
+
+	bool GeneratorInstance.ICapabilities.isRealtime
+	{
+		get
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	bool GeneratorInstance.ICapabilities.isFinite
+	{
+		get
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	DiscreteTime? GeneratorInstance.ICapabilities.length
+	{
+		get
+		{
+			throw new NotImplementedException();
 		}
 	}
 
@@ -404,6 +429,11 @@ public sealed class AudioClip : AudioResource
 		{
 			this.m_PCMSetPositionCallback(position);
 		}
+	}
+
+	GeneratorInstance IAudioGenerator.CreateInstance(ControlContext context, AudioFormat? nestedFormat, ProcessorInstance.CreationParameters parameters)
+	{
+		throw new NotImplementedException();
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]

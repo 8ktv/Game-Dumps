@@ -13,7 +13,7 @@ public class ShopVfxTester : MonoBehaviour
 	{
 		if (Keyboard.current[Key.Q].wasPressedThisFrame)
 		{
-			buildingVfx.OpenDoors();
+			buildingVfx.TryOpenDoors();
 			doorParticles.Play();
 		}
 	}

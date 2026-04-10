@@ -8,9 +8,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
+[StaticAccessor("GetQualitySettings()", StaticAccessorType.Dot)]
 [NativeHeader("Runtime/Graphics/QualitySettings.h")]
 [NativeHeader("Runtime/Misc/PlayerSettings.h")]
-[StaticAccessor("GetQualitySettings()", StaticAccessorType.Dot)]
 public sealed class QualitySettings : Object
 {
 	[Obsolete("Use GetQualityLevel and SetQualityLevel", false)]
@@ -372,6 +372,7 @@ public sealed class QualitySettings : Object
 		}
 		set
 		{
+			GraphicsSettings.ValidateSetRenderPipelineAsset(value);
 			INTERNAL_renderPipeline = value;
 		}
 	}
@@ -471,8 +472,8 @@ public sealed class QualitySettings : Object
 	public static extern ColorSpace desiredColorSpace
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		[NativeName("GetColorSpace")]
 		[StaticAccessor("GetPlayerSettings()", StaticAccessorType.Dot)]
+		[NativeName("GetColorSpace")]
 		get;
 	}
 
@@ -486,10 +487,17 @@ public sealed class QualitySettings : Object
 
 	public static event Action<int, int> activeQualityLevelChanged;
 
+	public static event Action<string, string> activeQualityLevelRenamed;
+
 	[RequiredByNativeCode]
 	internal static void OnActiveQualityLevelChanged(int previousQualityLevel, int currentQualityLevel)
 	{
 		QualitySettings.activeQualityLevelChanged?.Invoke(previousQualityLevel, currentQualityLevel);
+	}
+
+	internal static void OnActiveQualityLevelRenamed(string previousName, string newName)
+	{
+		QualitySettings.activeQualityLevelRenamed?.Invoke(previousName, newName);
 	}
 
 	public static void IncreaseLevel([DefaultValue("false")] bool applyExpensiveChanges)
@@ -567,8 +575,8 @@ public sealed class QualitySettings : Object
 	[NativeName("SetLODSettings")]
 	public static extern void SetLODSettings(float lodBias, int maximumLODLevel, bool setDirty = true);
 
-	[NativeName("SetTextureMipmapLimitSettings")]
 	[NativeThrows]
+	[NativeName("SetTextureMipmapLimitSettings")]
 	public unsafe static void SetTextureMipmapLimitSettings(string groupName, TextureMipmapLimitSettings textureMipmapLimitSettings)
 	{
 		//The blocks IL_0029 are reachable both inside and outside the pinned region starting at IL_0018. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -592,8 +600,8 @@ public sealed class QualitySettings : Object
 		}
 	}
 
-	[NativeThrows]
 	[NativeName("GetTextureMipmapLimitSettings")]
+	[NativeThrows]
 	public unsafe static TextureMipmapLimitSettings GetTextureMipmapLimitSettings(string groupName)
 	{
 		//The blocks IL_0029 are reachable both inside and outside the pinned region starting at IL_0018. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.

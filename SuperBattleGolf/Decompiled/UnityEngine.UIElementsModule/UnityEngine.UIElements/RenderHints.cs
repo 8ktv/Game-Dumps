@@ -12,12 +12,14 @@ internal enum RenderHints
 	MaskContainer = 8,
 	DynamicColor = 0x10,
 	DynamicPostProcessing = 0x20,
-	DirtyOffset = 6,
-	DirtyGroupTransform = 0x40,
-	DirtyBoneTransform = 0x80,
-	DirtyClipWithScissors = 0x100,
-	DirtyMaskContainer = 0x200,
-	DirtyDynamicColor = 0x400,
-	DirtyDynamicPostProcessing = 0x800,
-	DirtyAll = 0xFC0
+	LargePixelCoverage = 0x40,
+	DirtyOffset = 7,
+	DirtyGroupTransform = 0x80,
+	DirtyBoneTransform = 0x100,
+	DirtyClipWithScissors = 0x200,
+	DirtyMaskContainer = 0x400,
+	DirtyDynamicColor = 0x800,
+	DirtyDynamicPostProcessing = 0x1000,
+	DirtyLargePixelCoverage = 0x2000,
+	DirtyAll = 0x3F80
 }

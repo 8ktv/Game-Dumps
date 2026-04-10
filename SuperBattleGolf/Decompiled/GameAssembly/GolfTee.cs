@@ -63,7 +63,7 @@ public class GolfTee : NetworkBehaviour
 		return base.transform.TransformPoint(GameManager.GolfSettings.TeeBallLocalSpawnHeight * Vector3.up);
 	}
 
-	private void OnServerWasHitByGolfSwing(PlayerGolfer hitter, Vector3 worldDirection, float power)
+	private void OnServerWasHitByGolfSwing(PlayerGolfer hitter, Vector3 worldDirection, float power, bool isRocketDriver)
 	{
 		SpawnHitTeeInternal(worldDirection, power);
 		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)

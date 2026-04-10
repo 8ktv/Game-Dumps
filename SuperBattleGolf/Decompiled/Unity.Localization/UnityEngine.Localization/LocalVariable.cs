@@ -11,7 +11,7 @@ internal class LocalVariable
 {
 	[Serializable]
 	[CompilerGenerated]
-	internal class UxmlSerializedData : UnityEngine.UIElements.UxmlSerializedData
+	public class UxmlSerializedData : UnityEngine.UIElements.UxmlSerializedData
 	{
 		[UxmlObjectReference]
 		[SerializeReference]

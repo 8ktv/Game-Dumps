@@ -1,17 +1,18 @@
 #define UNITY_ASSERTIONS
 using System;
 using System.Collections.Generic;
+using UnityEngine.Bindings;
 using UnityEngine.Pool;
+using UnityEngine.TextCore.Text;
 using UnityEngine.UIElements.Layout;
 using UnityEngine.UIElements.UIR;
 
 namespace UnityEngine.UIElements;
 
+[VisibleToOtherModules(new string[] { "UnityEditor.UIToolkitAuthoringModule" })]
 internal static class UIElementsRuntimeUtility
 {
 	public delegate BaseRuntimePanel CreateRuntimePanelDelegate(ScriptableObject ownerObject);
-
-	internal static Func<bool> IsEditingPrefab;
 
 	private static bool s_RegisteredPlayerloopCallback;
 
@@ -43,9 +44,10 @@ internal static class UIElementsRuntimeUtility
 
 	public static event Action<BaseRuntimePanel> onCreatePanel;
 
+	public static event Action<BaseRuntimePanel> onWillDestroyPanel;
+
 	static UIElementsRuntimeUtility()
 	{
-		IsEditingPrefab = null;
 		s_RegisteredPlayerloopCallback = false;
 		s_SortedScreenOverlayPanels = new List<BaseRuntimePanel>();
 		s_CachedWorldSpacePanels = new List<BaseRuntimePanel>();
@@ -94,6 +96,7 @@ internal static class UIElementsRuntimeUtility
 	{
 		if (UIElementsUtility.TryGetPanel(ownerObject.GetInstanceID(), out var panel))
 		{
+			UIElementsRuntimeUtility.onWillDestroyPanel?.Invoke((BaseRuntimePanel)panel);
 			panel.Dispose();
 			RemoveCachedPanelInternal(ownerObject.GetInstanceID());
 		}
@@ -208,7 +211,7 @@ internal static class UIElementsRuntimeUtility
 			{
 				break;
 			}
-			if (baseRuntimePanel.targetDisplay == displayIndex && baseRuntimePanel.targetTexture == null)
+			if ((!(baseRuntimePanel is RuntimePanel runtimePanel) || !(runtimePanel.panelSettings != null) || !runtimePanel.panelSettings.isTransient) && baseRuntimePanel.targetDisplay == displayIndex && baseRuntimePanel.targetTexture == null)
 			{
 				RenderPanel(baseRuntimePanel);
 			}
@@ -231,6 +234,7 @@ internal static class UIElementsRuntimeUtility
 				RepaintPanel(sortedPlayerPanel);
 			}
 		}
+		TextGenerationInfo.OnRepaintEnd();
 	}
 
 	public static void RegisterEventSystem(Object eventSystem)

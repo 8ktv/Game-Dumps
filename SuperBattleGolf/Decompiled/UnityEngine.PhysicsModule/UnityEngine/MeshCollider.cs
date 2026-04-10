@@ -4,9 +4,9 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
+[NativeHeader("Modules/Physics/MeshCollider.h")]
 [RequireComponent(typeof(Transform))]
 [NativeHeader("Runtime/Graphics/Mesh/Mesh.h")]
-[NativeHeader("Modules/Physics/MeshCollider.h")]
 public class MeshCollider : Collider
 {
 	public Mesh sharedMesh

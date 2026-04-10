@@ -3,8 +3,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[AttributeUsage(AttributeTargets.Assembly)]
 [RequiredByNativeCode]
+[AttributeUsage(AttributeTargets.Assembly)]
 public class AssemblyIsEditorAssembly : Attribute
 {
 }

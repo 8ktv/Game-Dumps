@@ -22,8 +22,8 @@ public static class PhysicsSceneExtensions2D
 		throw new Exception("The physics scene associated with the Unity scene is invalid.");
 	}
 
-	[StaticAccessor("GetPhysicsManager2D()", StaticAccessorType.Arrow)]
 	[NativeMethod("GetPhysicsSceneFromUnityScene")]
+	[StaticAccessor("GetPhysicsManager2D()", StaticAccessorType.Arrow)]
 	private static PhysicsScene2D GetPhysicsScene_Internal(Scene scene)
 	{
 		GetPhysicsScene_Internal_Injected(ref scene, out var ret);

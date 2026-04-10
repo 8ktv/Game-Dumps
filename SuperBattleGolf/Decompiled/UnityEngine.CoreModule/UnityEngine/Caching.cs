@@ -50,8 +50,8 @@ public sealed class Caching
 		get;
 	}
 
-	[Obsolete("This property is only used for the current cache, use Cache.maximumAvailableStorageSpace to access the maximum available storage space per cache.")]
 	[StaticAccessor("GetCachingManager().GetCurrentCache()", StaticAccessorType.Dot)]
+	[Obsolete("This property is only used for the current cache, use Cache.maximumAvailableStorageSpace to access the maximum available storage space per cache.")]
 	public static extern long maximumAvailableDiskSpace
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
@@ -62,8 +62,8 @@ public sealed class Caching
 		set;
 	}
 
-	[StaticAccessor("GetCachingManager().GetCurrentCache()", StaticAccessorType.Dot)]
 	[Obsolete("This property is only used for the current cache, use Cache.expirationDelay to access the expiration delay per cache.")]
+	[StaticAccessor("GetCachingManager().GetCurrentCache()", StaticAccessorType.Dot)]
 	public static extern int expirationDelay
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
@@ -98,8 +98,8 @@ public sealed class Caching
 			get_currentCacheForWriting_Injected(out var ret);
 			return ret;
 		}
-		[NativeThrows]
 		[NativeName("Caching_SetCurrentCacheByHandle")]
+		[NativeThrows]
 		set
 		{
 			set_currentCacheForWriting_Injected(ref value);
@@ -442,18 +442,18 @@ public sealed class Caching
 		return result;
 	}
 
-	[NativeName("Caching_GetCacheHandleAt")]
 	[NativeThrows]
 	[StaticAccessor("CachingManagerWrapper", StaticAccessorType.DoubleColon)]
+	[NativeName("Caching_GetCacheHandleAt")]
 	public static Cache GetCacheAt(int cacheIndex)
 	{
 		GetCacheAt_Injected(cacheIndex, out var ret);
 		return ret;
 	}
 
-	[NativeThrows]
-	[NativeName("Caching_GetCacheHandleByPath")]
 	[StaticAccessor("CachingManagerWrapper", StaticAccessorType.DoubleColon)]
+	[NativeName("Caching_GetCacheHandleByPath")]
+	[NativeThrows]
 	public unsafe static Cache GetCacheByPath(string cachePath)
 	{
 		//The blocks IL_0029 are reachable both inside and outside the pinned region starting at IL_0018. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -500,17 +500,17 @@ public sealed class Caching
 		return RemoveCache_Injected(ref cache);
 	}
 
+	[NativeThrows]
 	[NativeName("Caching_MoveCacheBeforeByHandle")]
 	[StaticAccessor("CachingManagerWrapper", StaticAccessorType.DoubleColon)]
-	[NativeThrows]
 	public static void MoveCacheBefore(Cache src, Cache dst)
 	{
 		MoveCacheBefore_Injected(ref src, ref dst);
 	}
 
-	[NativeName("Caching_MoveCacheAfterByHandle")]
 	[NativeThrows]
 	[StaticAccessor("CachingManagerWrapper", StaticAccessorType.DoubleColon)]
+	[NativeName("Caching_MoveCacheAfterByHandle")]
 	public static void MoveCacheAfter(Cache src, Cache dst)
 	{
 		MoveCacheAfter_Injected(ref src, ref dst);

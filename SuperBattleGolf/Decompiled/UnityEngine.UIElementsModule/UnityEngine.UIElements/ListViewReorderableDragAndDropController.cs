@@ -14,7 +14,7 @@ internal class ListViewReorderableDragAndDropController : BaseReorderableDragAnd
 
 	public override DragVisualMode HandleDragAndDrop(IListDragAndDropArgs args)
 	{
-		if (args.dragAndDropPosition == DragAndDropPosition.OverItem)
+		if (args.dragAndDropPosition == DragAndDropPosition.OverItem || !CanDrop())
 		{
 			return DragVisualMode.Rejected;
 		}
@@ -23,6 +23,7 @@ internal class ListViewReorderableDragAndDropController : BaseReorderableDragAnd
 
 	public override void OnDrop(IListDragAndDropArgs args)
 	{
+		base.OnDrop(args);
 		if (!m_ListView.reorderable)
 		{
 			return;

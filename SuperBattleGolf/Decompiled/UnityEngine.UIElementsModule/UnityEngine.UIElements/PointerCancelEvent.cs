@@ -49,6 +49,10 @@ public sealed class PointerCancelEvent : PointerEventBase<PointerCancelEvent>
 		{
 			PointerDeviceState.RemoveTrackedState(base.pointerId);
 		}
+		if (panel is Panel panel2)
+		{
+			panel2.contextualMenuManager?.AfterPointerUp();
+		}
 		base.PostDispatch(panel);
 		panel.ActivateCompatibilityMouseEvents(base.pointerId);
 	}

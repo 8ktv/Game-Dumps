@@ -96,4 +96,44 @@ public static class BoundsJobHelper
 			return true;
 		}
 	}
+
+	public static bool IsInOrOverLevelHazard(float3 point, NativeList<BoundsManager.LevelHazardInstance> hazards, out bool isOverHazard, out float hazardHeight, out LevelHazardType hazardType, out int levelHazardInstanceId)
+	{
+		hazardType = (LevelHazardType)(-1);
+		levelHazardInstanceId = 0;
+		foreach (BoundsManager.LevelHazardInstance item in hazards)
+		{
+			if (IsInLevelHazardBounds(item))
+			{
+				hazardHeight = item.worldHeight;
+				levelHazardInstanceId = item.instanceId;
+				hazardType = item.type;
+				isOverHazard = point.y > item.worldHeight;
+				return true;
+			}
+		}
+		hazardHeight = float.MinValue;
+		isOverHazard = false;
+		return false;
+		bool IsInLevelHazardBounds(BoundsManager.LevelHazardInstance secondaryHazard)
+		{
+			if (point.x < secondaryHazard.worldHorizontalMin.x)
+			{
+				return false;
+			}
+			if (point.x > secondaryHazard.worldHorizontalMax.x)
+			{
+				return false;
+			}
+			if (point.z < secondaryHazard.worldHorizontalMin.y)
+			{
+				return false;
+			}
+			if (point.z > secondaryHazard.worldHorizontalMax.y)
+			{
+				return false;
+			}
+			return true;
+		}
+	}
 }

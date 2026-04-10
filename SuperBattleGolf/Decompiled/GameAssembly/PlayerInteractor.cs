@@ -27,6 +27,10 @@ public class PlayerInteractor : MonoBehaviour
 			{
 				return false;
 			}
+			if (playerInfo.AsHittable.IsFrozen)
+			{
+				return false;
+			}
 			if (playerInfo.AsGolfer.IsChargingSwing)
 			{
 				return false;

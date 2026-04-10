@@ -513,7 +513,7 @@ public sealed class Animation : Behaviour, IEnumerable
 	}
 
 	[FreeFunction("AnimationBindings::CrossFadeQueuedImpl", HasExplicitThis = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public unsafe AnimationState CrossFadeQueued(string animation, [DefaultValue("0.3F")] float fadeLength, [DefaultValue("QueueMode.CompleteOthers")] QueueMode queue, [DefaultValue("PlayMode.StopSameLayer")] PlayMode mode)
 	{
 		//The blocks IL_0039 are reachable both inside and outside the pinned region starting at IL_0028. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -554,7 +554,7 @@ public sealed class Animation : Behaviour, IEnumerable
 	}
 
 	[FreeFunction("AnimationBindings::PlayQueuedImpl", HasExplicitThis = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public unsafe AnimationState PlayQueued(string animation, [DefaultValue("QueueMode.CompleteOthers")] QueueMode queue, [DefaultValue("PlayMode.StopSameLayer")] PlayMode mode)
 	{
 		//The blocks IL_0039 are reachable both inside and outside the pinned region starting at IL_0028. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -721,7 +721,7 @@ public sealed class Animation : Behaviour, IEnumerable
 	}
 
 	[FreeFunction("AnimationBindings::GetState", HasExplicitThis = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	internal unsafe AnimationState GetState(string name)
 	{
 		//The blocks IL_0039 are reachable both inside and outside the pinned region starting at IL_0028. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -750,7 +750,7 @@ public sealed class Animation : Behaviour, IEnumerable
 	}
 
 	[FreeFunction("AnimationBindings::GetStateAtIndex", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	internal AnimationState GetStateAtIndex(int index)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);

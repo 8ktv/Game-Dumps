@@ -1,27 +1,21 @@
 using System;
 using System.Collections.Generic;
+using Unity.Collections;
 using UnityEngine.Bindings;
 
 namespace UnityEngine.UIElements;
 
 [Serializable]
-[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
-internal class VisualElementAsset : UxmlAsset, ISerializationCallbackReceiver
+[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEditor.UIToolkitAuthoringModule" })]
+internal class VisualElementAsset : UxmlAsset
 {
-	[SerializeField]
-	private string m_Name = string.Empty;
+	internal const string k_LostInlineStyles = "VisualElementAsset previously had inline styles that were lost.";
 
 	[SerializeField]
 	private int m_RuleIndex = -1;
 
 	[SerializeField]
-	private string m_Text = string.Empty;
-
-	[SerializeField]
-	private PickingMode m_PickingMode = PickingMode.Position;
-
-	[SerializeField]
-	private string[] m_Classes;
+	private string[] m_Classes = Array.Empty<string>();
 
 	[SerializeField]
 	private List<string> m_StylesheetPaths;
@@ -30,7 +24,7 @@ internal class VisualElementAsset : UxmlAsset, ISerializationCallbackReceiver
 	private List<StyleSheet> m_Stylesheets;
 
 	[SerializeReference]
-	internal UxmlSerializedData m_SerializedData;
+	private UxmlSerializedData m_SerializedData;
 
 	[SerializeField]
 	private bool m_SkipClone;
@@ -53,7 +47,7 @@ internal class VisualElementAsset : UxmlAsset, ISerializationCallbackReceiver
 		{
 			return m_Classes;
 		}
-		set
+		internal set
 		{
 			m_Classes = value;
 		}
@@ -115,26 +109,6 @@ internal class VisualElementAsset : UxmlAsset, ISerializationCallbackReceiver
 	public VisualElementAsset(string fullTypeName, UxmlNamespaceDefinition xmlNamespace = default(UxmlNamespaceDefinition))
 		: base(fullTypeName, xmlNamespace)
 	{
-	}
-
-	public void OnBeforeSerialize()
-	{
-	}
-
-	public void OnAfterDeserialize()
-	{
-		if (!string.IsNullOrEmpty(m_Name) && !m_Properties.Contains("name"))
-		{
-			SetAttribute("name", m_Name);
-		}
-		if (!string.IsNullOrEmpty(m_Text) && !m_Properties.Contains("text"))
-		{
-			SetAttribute("text", m_Text);
-		}
-		if (m_PickingMode != PickingMode.Position && !m_Properties.Contains("picking-mode") && !m_Properties.Contains("pickingMode"))
-		{
-			SetAttribute("picking-mode", m_PickingMode.ToString());
-		}
 	}
 
 	private static bool IdsPathMatchesAttributeOverrideIdsPath(List<int> idsPath, List<int> attributeOverrideIdsPath, int templateId)
@@ -205,8 +179,85 @@ internal class VisualElementAsset : UxmlAsset, ISerializationCallbackReceiver
 		return visualElement;
 	}
 
+	internal override bool Accepts(UxmlAsset asset, out string errorMessage)
+	{
+		bool flag = !asset.isRoot;
+		errorMessage = ((!flag) ? "[UI Toolkit] Cannot add a root UXML asset as a children of a UXML asset." : null);
+		return flag;
+	}
+
 	public override string ToString()
 	{
-		return $"{m_Name}({base.fullTypeName})({base.id})";
+		string value;
+		return TryGetAttributeValue("name", out value) ? $"{value}({base.fullTypeName})({base.id})" : $"({base.fullTypeName})({base.id})";
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal void AddStyleSheet(StyleSheet styleSheet)
+	{
+		if (!(styleSheet == null) && !stylesheets.Contains(styleSheet))
+		{
+			stylesheets.Add(styleSheet);
+		}
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	public void AddStyleSheets(IEnumerable<StyleSheet> styleSheets)
+	{
+		foreach (StyleSheet styleSheet in styleSheets)
+		{
+			AddStyleSheet(styleSheet);
+		}
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal void RemoveStyleSheet(StyleSheet styleSheet)
+	{
+		stylesheets.RemoveAll((StyleSheet s) => s == styleSheet);
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal void AddStyleClass(string className)
+	{
+		if (m_Classes == null)
+		{
+			m_Classes = Array.Empty<string>();
+		}
+		if (Array.IndexOf(m_Classes, className) == -1)
+		{
+			Unity.Collections.CollectionExtensions.AddToArray(ref m_Classes, className);
+		}
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal void RemoveStyleClass(string className)
+	{
+		if (m_Classes != null)
+		{
+			Unity.Collections.CollectionExtensions.RemoveFromArray(ref m_Classes, className);
+		}
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	public void ClearStyleSheets()
+	{
+		stylesheets.Clear();
+	}
+
+	private protected override void OnVisualTreeAssetChanged(VisualTreeAsset previousVta, VisualTreeAsset newVta)
+	{
+		base.OnVisualTreeAssetChanged(previousVta, newVta);
+		if (ruleIndex >= 0)
+		{
+			if (!previousVta)
+			{
+				ruleIndex = -1;
+				Debug.LogWarning("VisualElementAsset previously had inline styles that were lost.");
+			}
+			else if ((bool)newVta)
+			{
+				VisualTreeAsset.SwallowStyleRule(previousVta, newVta, this);
+			}
+		}
 	}
 }

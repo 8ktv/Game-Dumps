@@ -6,6 +6,7 @@ using UnityEngine.Internal;
 
 namespace UnityEngine.UIElements;
 
+[UxmlElement(null, new Type[] { typeof(Tab) })]
 public class TabView : VisualElement
 {
 	[Serializable]
@@ -15,9 +16,9 @@ public class TabView : VisualElement
 		[SerializeField]
 		private bool reorderable;
 
-		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags reorderable_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -137,6 +138,19 @@ public class TabView : VisualElement
 		public void OnAfterDeserialize()
 		{
 			m_HasPersistedData = true;
+		}
+	}
+
+	private class TabViewContentContainer : VisualElement
+	{
+		internal override void OnChildAdded(VisualElement ve)
+		{
+			((TabView)base.parent).OnElementAdded(ve);
+		}
+
+		internal override void OnChildRemoved(VisualElement ve)
+		{
+			((TabView)base.parent).OnElementRemoved(ve);
 		}
 	}
 
@@ -292,7 +306,7 @@ public class TabView : VisualElement
 		};
 		header.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
 		contentViewport.Add(m_HeaderContainer);
-		m_ContentContainer = new VisualElement
+		m_ContentContainer = new TabViewContentContainer
 		{
 			name = contentContainerUssClassName,
 			classList = { contentContainerUssClassName }
@@ -308,8 +322,6 @@ public class TabView : VisualElement
 		};
 		contentViewport.Add(nextButton);
 		contentViewport.Add(previousButton);
-		m_ContentContainer.elementAdded += OnElementAdded;
-		m_ContentContainer.elementRemoved += OnElementRemoved;
 		RegisterCallback<DetachFromPanelEvent>(OnDetachFromPanel);
 	}
 
@@ -405,13 +417,14 @@ public class TabView : VisualElement
 		}
 	}
 
-	private void OnElementAdded(VisualElement ve, int index)
+	private void OnElementAdded(VisualElement ve)
 	{
 		if (ve is Tab tab && !m_Reordering)
 		{
 			VisualElement tabHeader = tab.tabHeader;
 			if (tabHeader != null)
 			{
+				int index = m_ContentContainer.IndexOf(tab);
 				m_HeaderContainer.Insert(index, tabHeader);
 				m_TabHeaders.Insert(index, tabHeader);
 				m_Tabs.Insert(index, tab);

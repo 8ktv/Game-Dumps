@@ -3,8 +3,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.Experimental.GlobalIllumination;
 
-[StaticAccessor("GetRenderSettings()", StaticAccessorType.Dot)]
 [NativeHeader("Runtime/Camera/RenderSettings.h")]
+[StaticAccessor("GetRenderSettings()", StaticAccessorType.Dot)]
 public class RenderSettings
 {
 	public static extern bool useRadianceAmbientProbe

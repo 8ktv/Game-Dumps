@@ -8,8 +8,8 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
-[NativeHeader("Runtime/Export/Math/Gradient.bindings.h")]
 [RequiredByNativeCode]
+[NativeHeader("Runtime/Export/Math/Gradient.bindings.h")]
 public class Gradient : IEquatable<Gradient>
 {
 	internal static class BindingsMarshaller
@@ -313,8 +313,8 @@ public class Gradient : IEquatable<Gradient>
 		}
 	}
 
-	[SecurityCritical]
 	[FreeFunction(Name = "Gradient_Bindings::GetAlphaKeysWithSpan", HasExplicitThis = true, IsThreadSafe = true)]
+	[SecurityCritical]
 	private unsafe void GetAlphaKeysWithSpan(Span<GradientAlphaKey> keys)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -358,19 +358,11 @@ public class Gradient : IEquatable<Gradient>
 
 	public override bool Equals(object o)
 	{
-		if (o == null)
+		if (o is Gradient other)
 		{
-			return false;
+			return Equals(other);
 		}
-		if (this == o)
-		{
-			return true;
-		}
-		if (o.GetType() != GetType())
-		{
-			return false;
-		}
-		return Equals((Gradient)o);
+		return false;
 	}
 
 	public bool Equals(Gradient other)

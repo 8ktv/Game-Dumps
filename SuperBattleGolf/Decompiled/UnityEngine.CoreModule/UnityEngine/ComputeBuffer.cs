@@ -10,9 +10,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeClass("GraphicsBuffer")]
-[NativeHeader("Runtime/Export/Graphics/GraphicsBuffer.bindings.h")]
 [UsedByNativeCode]
+[NativeHeader("Runtime/Export/Graphics/GraphicsBuffer.bindings.h")]
+[NativeClass("GraphicsBuffer")]
 [NativeHeader("Runtime/Shaders/GraphicsBuffer.h")]
 public sealed class ComputeBuffer : IDisposable
 {

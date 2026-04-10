@@ -291,7 +291,7 @@ internal class TextEventHandler
 		if (hasLinkTag)
 		{
 			hasLinkTag = false;
-			m_TextElement.uitkTextHandle.RemoveTextInfoFromPermanentCache();
+			m_TextElement.uitkTextHandle.RemoveFromPermanentCache();
 		}
 	}
 
@@ -310,7 +310,7 @@ internal class TextEventHandler
 		if (hasATag)
 		{
 			hasATag = false;
-			m_TextElement.uitkTextHandle.RemoveTextInfoFromPermanentCache();
+			m_TextElement.uitkTextHandle.RemoveFromPermanentCache();
 		}
 	}
 }

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "Swing Slash VFX Settings", menuName = "Scriptable Objects/VFX/Swing Slash Settings")]
+[CreateAssetMenu(fileName = "Swing Slash VFX Settings", menuName = "Settings/VFX/Swing Slash Settings")]
 public class SwingSlashVfxSettings : ScriptableObject
 {
 	[SerializeField]

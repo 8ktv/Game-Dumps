@@ -6,8 +6,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[StaticAccessor("GetAudioManager()", StaticAccessorType.Dot)]
 [NativeHeader("Modules/Audio/Public/ScriptBindings/Audio.bindings.h")]
+[StaticAccessor("GetAudioManager()", StaticAccessorType.Dot)]
 public sealed class AudioSettings
 {
 	public delegate void AudioConfigurationChangeHandler(bool deviceWasChanged);
@@ -109,6 +109,18 @@ public sealed class AudioSettings
 		set;
 	}
 
+	public static AudioSpatialExperience audioSpatialExperience
+	{
+		get
+		{
+			return AudioSpatialExperience.Bypassed;
+		}
+		set
+		{
+			Debug.LogWarning("AudioSettings.audioSpatialExperience is not implemented on this platform.");
+		}
+	}
+
 	public static event AudioConfigurationChangeHandler OnAudioConfigurationChanged;
 
 	internal static event Action OnAudioSystemShuttingDown;
@@ -118,8 +130,8 @@ public sealed class AudioSettings
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern AudioSpeakerMode GetSpeakerMode();
 
-	[NativeMethod(Name = "AudioSettings::SetConfiguration", IsFreeFunction = true)]
 	[NativeThrows]
+	[NativeMethod(Name = "AudioSettings::SetConfiguration", IsFreeFunction = true)]
 	private static bool SetConfiguration(AudioConfiguration config)
 	{
 		return SetConfiguration_Injected(ref config);

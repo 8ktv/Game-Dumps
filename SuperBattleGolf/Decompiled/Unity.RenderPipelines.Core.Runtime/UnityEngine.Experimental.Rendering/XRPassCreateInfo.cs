@@ -36,5 +36,7 @@ public struct XRPassCreateInfo
 
 	internal bool spaceWarpRightHandedNDC;
 
+	internal bool isLastCameraPass;
+
 	internal XRDisplaySubsystem.XRRenderPass xrSdkRenderPass;
 }

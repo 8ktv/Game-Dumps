@@ -7,9 +7,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[UsedByNativeCode]
 [NativeHeader("Modules/Terrain/Public/TerrainDataScriptingInterface.h")]
 [NativeHeader("TerrainScriptingClasses.h")]
+[UsedByNativeCode]
 public sealed class TerrainData : Object
 {
 	private enum BoundaryValueType
@@ -648,6 +648,7 @@ public sealed class TerrainData : Object
 	public TerrainLayer[] terrainLayers
 	{
 		[FreeFunction("TerrainDataScriptingInterface::GetTerrainLayers", HasExplicitThis = true)]
+		[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 		get
 		{
 			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -658,7 +659,7 @@ public sealed class TerrainData : Object
 			return get_terrainLayers_Injected(intPtr);
 		}
 		[FreeFunction("TerrainDataScriptingInterface::SetTerrainLayers", HasExplicitThis = true)]
-		[param: Unmarshalled]
+		[param: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 		set
 		{
 			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -672,7 +673,7 @@ public sealed class TerrainData : Object
 
 	internal TextureFormat atlasFormat
 	{
-		[NativeName("GetDetailDatabase().GetAtlasTexture()->GetTextureFormat")]
+		[NativeName("GetDetailDatabase().GetAtlasTextureFormat")]
 		get
 		{
 			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -704,8 +705,8 @@ public sealed class TerrainData : Object
 	public static string HolesTextureName => "holes";
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[StaticAccessor("TerrainDataScriptingInterface", StaticAccessorType.DoubleColon)]
 	[ThreadSafe]
+	[StaticAccessor("TerrainDataScriptingInterface", StaticAccessorType.DoubleColon)]
 	private static extern int GetBoundaryValue(BoundaryValueType type);
 
 	public TerrainData()
@@ -854,7 +855,7 @@ public sealed class TerrainData : Object
 	}
 
 	[FreeFunction("TerrainDataScriptingInterface::GetHeights", HasExplicitThis = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	private float[,] Internal_GetHeights(int xBase, int yBase, int width, int height)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1110,7 +1111,7 @@ public sealed class TerrainData : Object
 	}
 
 	[FreeFunction("TerrainDataScriptingInterface::GetHoles", HasExplicitThis = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	private bool[,] Internal_GetHoles(int xBase, int yBase, int width, int height)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1291,7 +1292,7 @@ public sealed class TerrainData : Object
 	}
 
 	[FreeFunction("TerrainDataScriptingInterface::GetDetailLayer", HasExplicitThis = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public int[,] GetDetailLayer(int xBase, int yBase, int width, int height, int layer)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1441,8 +1442,8 @@ public sealed class TerrainData : Object
 		return ret;
 	}
 
-	[FreeFunction("TerrainDataScriptingInterface::SetTreeInstance", HasExplicitThis = true)]
 	[NativeThrows]
+	[FreeFunction("TerrainDataScriptingInterface::SetTreeInstance", HasExplicitThis = true)]
 	public void SetTreeInstance(int index, TreeInstance instance)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1507,7 +1508,7 @@ public sealed class TerrainData : Object
 	}
 
 	[FreeFunction("TerrainDataScriptingInterface::GetAlphamaps", HasExplicitThis = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	private float[,,] Internal_GetAlphamaps(int x, int y, int width, int height)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1518,8 +1519,8 @@ public sealed class TerrainData : Object
 		return Internal_GetAlphamaps_Injected(intPtr, x, y, width, height);
 	}
 
-	[NativeName("GetSplatDatabase().GetAlphamapResolution")]
 	[RequiredByNativeCode]
+	[NativeName("GetSplatDatabase().GetAlphamapResolution")]
 	internal float GetAlphamapResolutionInternal()
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);

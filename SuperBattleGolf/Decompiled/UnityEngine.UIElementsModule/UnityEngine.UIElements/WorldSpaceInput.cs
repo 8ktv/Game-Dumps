@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using JetBrains.Annotations;
 using UnityEngine.Bindings;
 
 namespace UnityEngine.UIElements;
@@ -27,25 +26,6 @@ internal static class WorldSpaceInput
 		public Vector3 point;
 
 		public Vector3 localPoint;
-
-		internal int CompareDrawOrder([JetBrains.Annotations.NotNull] UIDocument otherDocument, float otherDistance)
-		{
-			if (document == null)
-			{
-				return 1;
-			}
-			int num = document.panelSettings.sortingOrder.CompareTo(otherDocument.panelSettings.sortingOrder);
-			if (num != 0)
-			{
-				return num;
-			}
-			int num2 = document.sortingOrder.CompareTo(otherDocument.sortingOrder);
-			if (num2 != 0)
-			{
-				return num2;
-			}
-			return distance.CompareTo(otherDistance);
-		}
 
 		internal void ComputeCollisionData(Ray ray)
 		{
@@ -187,10 +167,10 @@ internal static class WorldSpaceInput
 			Vector3 vector2 = localToWorldMatrix.MultiplyVector(vector);
 			float num4 = Vector3.Distance(worldRay.origin, b) + vector2.magnitude / 2f + 0.001f;
 			maxDistance = Mathf.Min(maxDistance, num + num4);
-			if (result.CompareDrawOrder(componentInParent, distance) > 0)
+			if (!(distance >= result.distance))
 			{
 				VisualElement visualElement = Pick3D(componentInParent, worldRay, out distance);
-				if (visualElement != null && distance <= maxDistance && result.CompareDrawOrder(componentInParent, distance) > 0)
+				if (visualElement != null && distance <= maxDistance && distance < result.distance)
 				{
 					result = new PickResult
 					{
@@ -333,7 +313,7 @@ internal static class WorldSpaceInput
 			return ve.localBoundsPicking3D;
 		}
 		Rect boundingBox = ve.boundingBox;
-		return new Bounds(boundingBox.center, boundingBox.size);
+		return new Bounds((Vector3)boundingBox.center, (Vector3)boundingBox.size);
 	}
 
 	public static Vector3 LocalPointToGameObjectWorldSpace(VisualElement element, Vector3 localPoint)

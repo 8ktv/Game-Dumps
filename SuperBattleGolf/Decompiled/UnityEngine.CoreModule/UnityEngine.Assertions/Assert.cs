@@ -40,8 +40,8 @@ public static class Assert
 		throw new InvalidOperationException("Assert.Equals should not be used for Assertions");
 	}
 
-	[Obsolete("Assert.ReferenceEquals should not be used for Assertions", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Assert.ReferenceEquals should not be used for Assertions", true)]
 	public new static bool ReferenceEquals(object obj1, object obj2)
 	{
 		throw new InvalidOperationException("Assert.ReferenceEquals should not be used for Assertions");

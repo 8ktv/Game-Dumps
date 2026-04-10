@@ -9,9 +9,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Export/Debug/Debug.bindings.h")]
 [NativeHeader("Runtime/Diagnostics/Validation.h")]
 [NativeHeader("Runtime/Diagnostics/IntegrityCheck.h")]
+[NativeHeader("Runtime/Export/Debug/Debug.bindings.h")]
 public class Debug
 {
 	[NativeHeader("Runtime/Export/Debug/LogCapture.bindings.h")]
@@ -59,8 +59,8 @@ public class Debug
 		get;
 	}
 
-	[Obsolete("Debug.logger is obsolete. Please use Debug.unityLogger instead (UnityUpgradable) -> unityLogger")]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Debug.logger is obsolete. Please use Debug.unityLogger instead (UnityUpgradable) -> unityLogger")]
 	public static ILogger logger => s_Logger;
 
 	[ExcludeFromDocs]
@@ -377,7 +377,7 @@ public class Debug
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[FreeFunction("RetrieveStartupLogs")]
+	[FreeFunction("RetrieveStartupLogs_Internal")]
 	public static extern StartupLog[] RetrieveStartupLogs();
 
 	[FreeFunction("CheckApplicationIntegrity")]
@@ -400,9 +400,9 @@ public class Debug
 	[FreeFunction("IsValidationLevelEnabled")]
 	public static extern bool IsValidationLevelEnabled(ValidationLevel level);
 
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Assert(bool, string, params object[]) is obsolete. Use AssertFormat(bool, string, params object[]) (UnityUpgradable) -> AssertFormat(*)", true)]
 	[Conditional("UNITY_ASSERTIONS")]
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	public static void Assert(bool condition, string format, params object[] args)
 	{
 		if (!condition)

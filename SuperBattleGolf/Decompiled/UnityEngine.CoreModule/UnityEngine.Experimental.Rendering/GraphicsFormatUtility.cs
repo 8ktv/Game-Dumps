@@ -8,8 +8,8 @@ using UnityEngine.Rendering;
 namespace UnityEngine.Experimental.Rendering;
 
 [NativeHeader("Runtime/Graphics/GraphicsFormatUtility.bindings.h")]
-[NativeHeader("Runtime/Graphics/Format.h")]
 [NativeHeader("Runtime/Graphics/TextureFormat.h")]
+[NativeHeader("Runtime/Graphics/Format.h")]
 public class GraphicsFormatUtility
 {
 	private static readonly GraphicsFormat[] tableNoStencil = new GraphicsFormat[5]
@@ -419,9 +419,11 @@ public class GraphicsFormatUtility
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release", false)]
 	[FreeFunction(IsThreadSafe = true)]
 	public static extern bool IsPVRTCFormat(GraphicsFormat format);
 
+	[Obsolete("Texture compression format PVRTC has been deprecated and will be removed in a future release", false)]
 	public static bool IsPVRTCFormat(TextureFormat format)
 	{
 		return IsPVRTCFormat(GetGraphicsFormat(format, isSRGB: false));

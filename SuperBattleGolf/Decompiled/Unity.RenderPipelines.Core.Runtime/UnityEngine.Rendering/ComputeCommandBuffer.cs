@@ -49,6 +49,11 @@ public class ComputeCommandBuffer : BaseCommandBuffer, IComputeCommandBuffer, IB
 		m_WrappedCommandBuffer.SetComputeMatrixArrayParam(computeShader, nameID, values);
 	}
 
+	public void SetRayTracingShaderPass(RayTracingShader rayTracingShader, string passName)
+	{
+		m_WrappedCommandBuffer.SetRayTracingShaderPass(rayTracingShader, passName);
+	}
+
 	public void SetViewport(Rect pixelRect)
 	{
 		m_WrappedCommandBuffer.SetViewport(pixelRect);
@@ -432,6 +437,11 @@ public class ComputeCommandBuffer : BaseCommandBuffer, IComputeCommandBuffer, IB
 		m_WrappedCommandBuffer.SetComputeConstantBufferParam(computeShader, name, buffer, offset, size);
 	}
 
+	public void SetComputeParamsFromMaterial(ComputeShader computeShader, int kernelIndex, Material material)
+	{
+		m_WrappedCommandBuffer.SetComputeParamsFromMaterial(computeShader, kernelIndex, material);
+	}
+
 	public void DispatchCompute(ComputeShader computeShader, int kernelIndex, int threadGroupsX, int threadGroupsY, int threadGroupsZ)
 	{
 		m_WrappedCommandBuffer.DispatchCompute(computeShader, kernelIndex, threadGroupsX, threadGroupsY, threadGroupsZ);
@@ -455,6 +465,11 @@ public class ComputeCommandBuffer : BaseCommandBuffer, IComputeCommandBuffer, IB
 	public void BuildRayTracingAccelerationStructure(RayTracingAccelerationStructure accelerationStructure, Vector3 relativeOrigin)
 	{
 		m_WrappedCommandBuffer.BuildRayTracingAccelerationStructure(accelerationStructure, relativeOrigin);
+	}
+
+	public void BuildRayTracingAccelerationStructure(RayTracingAccelerationStructure accelerationStructure, RayTracingAccelerationStructure.BuildSettings buildSettings)
+	{
+		m_WrappedCommandBuffer.BuildRayTracingAccelerationStructure(accelerationStructure, buildSettings);
 	}
 
 	public void SetRayTracingAccelerationStructure(RayTracingShader rayTracingShader, string name, RayTracingAccelerationStructure rayTracingAccelerationStructure)

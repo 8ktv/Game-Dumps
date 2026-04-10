@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -27,6 +28,8 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		internal static readonly BindingId alignItemsProperty = "resolvedStyle.alignItems";
 
 		internal static readonly BindingId alignSelfProperty = "resolvedStyle.alignSelf";
+
+		internal static readonly BindingId aspectRatioProperty = "resolvedStyle.aspectRatio";
 
 		internal static readonly BindingId backgroundColorProperty = "resolvedStyle.backgroundColor";
 
@@ -69,6 +72,8 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		internal static readonly BindingId colorProperty = "resolvedStyle.color";
 
 		internal static readonly BindingId displayProperty = "resolvedStyle.display";
+
+		internal static readonly BindingId filterProperty = "resolvedStyle.filter";
 
 		internal static readonly BindingId flexBasisProperty = "resolvedStyle.flexBasis";
 
@@ -150,6 +155,8 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 		internal static readonly BindingId unityFontStyleAndWeightProperty = "resolvedStyle.unityFontStyleAndWeight";
 
+		internal static readonly BindingId unityMaterialProperty = "resolvedStyle.unityMaterial";
+
 		internal static readonly BindingId unityParagraphSpacingProperty = "resolvedStyle.unityParagraphSpacing";
 
 		internal static readonly BindingId unitySliceBottomProperty = "resolvedStyle.unitySliceBottom";
@@ -191,6 +198,8 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		internal static readonly BindingId alignItemsProperty = "style.alignItems";
 
 		internal static readonly BindingId alignSelfProperty = "style.alignSelf";
+
+		internal static readonly BindingId aspectRatioProperty = "style.aspectRatio";
 
 		internal static readonly BindingId backgroundColorProperty = "style.backgroundColor";
 
@@ -235,6 +244,8 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		internal static readonly BindingId cursorProperty = "style.cursor";
 
 		internal static readonly BindingId displayProperty = "style.display";
+
+		internal static readonly BindingId filterProperty = "style.filter";
 
 		internal static readonly BindingId flexBasisProperty = "style.flexBasis";
 
@@ -324,6 +335,8 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 		internal static readonly BindingId unityFontStyleAndWeightProperty = "style.unityFontStyleAndWeight";
 
+		internal static readonly BindingId unityMaterialProperty = "style.unityMaterial";
+
 		internal static readonly BindingId unityOverflowClipBoxProperty = "style.unityOverflowClipBox";
 
 		internal static readonly BindingId unityParagraphSpacingProperty = "style.unityParagraphSpacing";
@@ -368,8 +381,8 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		[SerializeField]
 		private string name;
 
-		[HideInInspector]
 		[SerializeReference]
+		[HideInInspector]
 		[UxmlObjectReference("Bindings")]
 		private List<Binding.UxmlSerializedData> bindings;
 
@@ -378,22 +391,23 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 		[HideInInspector]
 		[SerializeField]
-		[Tooltip("The path to the value in the data source used by this binding. To see resolved bindings in the UI Builder, define a path that is compatible with the target source property.")]
 		[UxmlAttribute("data-source-path")]
+		[Tooltip("The path to the value in the data source used by this binding. To see resolved bindings in the UI Builder, define a path that is compatible with the target source property.")]
 		private string dataSourcePathString;
 
-		[Tooltip("A data source is a collection of information. By default, a binding will inherit the existing data source from the hierarchy. You can instead define another object here as the data source, or define the type of property it may be if the source is not yet available.")]
-		[UxmlAttribute("data-source-type")]
 		[UxmlTypeReference(typeof(object))]
 		[HideInInspector]
 		[SerializeField]
+		[Tooltip("A data source is a collection of information. By default, a binding will inherit the existing data source from the hierarchy. You can instead define another object here as the data source, or define the type of property it may be if the source is not yet available.")]
+		[UxmlAttribute("data-source-type")]
 		private string dataSourceTypeString;
 
-		[UxmlAttribute("data-source")]
-		[DataSourceDrawer]
-		[HideInInspector]
-		[SerializeField]
 		[Tooltip("A data source is a collection of information. By default, a binding will inherit the existing data source from the hierarchy. You can instead define another object here as the data source, or define the type of property it may be if the source is not yet available.")]
+		[UxmlAttribute("data-source")]
+		[UxmlAttributeBindingPath("dataSource")]
+		[HideInInspector]
+		[DataSourceDrawer]
+		[SerializeField]
 		private Object dataSourceUnityObject;
 
 		[SerializeField]
@@ -416,54 +430,54 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		[SerializeField]
 		private bool focusable;
 
-		[SerializeField]
-		[Tooltip("Sets the element to disabled which will not accept input. Utilizes the :disabled pseudo state.")]
 		[UxmlAttribute("enabled")]
+		[Tooltip("Sets the element to disabled which will not accept input. Utilizes the :disabled pseudo state.")]
+		[SerializeField]
 		private bool enabledSelf;
 
+		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
-		[HideInInspector]
 		private UxmlAttributeFlags name_UxmlAttributeFlags;
 
 		[UxmlIgnore]
-		[HideInInspector]
 		[SerializeField]
+		[HideInInspector]
 		private UxmlAttributeFlags enabledSelf_UxmlAttributeFlags;
 
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		[SerializeField]
 		private UxmlAttributeFlags viewDataKey_UxmlAttributeFlags;
 
+		[SerializeField]
 		[HideInInspector]
 		[UxmlIgnore]
-		[SerializeField]
 		private UxmlAttributeFlags pickingMode_UxmlAttributeFlags;
 
 		[SerializeField]
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags tooltip_UxmlAttributeFlags;
 
-		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags usageHints_UxmlAttributeFlags;
 
-		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags tabIndex_UxmlAttributeFlags;
 
+		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
-		[HideInInspector]
 		private UxmlAttributeFlags focusable_UxmlAttributeFlags;
 
 		[HideInInspector]
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags languageDirection_UxmlAttributeFlags;
 
 		[UxmlIgnore]
@@ -471,18 +485,18 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		[SerializeField]
 		private UxmlAttributeFlags dataSourceUnityObject_UxmlAttributeFlags;
 
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		[HideInInspector]
 		private UxmlAttributeFlags dataSourcePathString_UxmlAttributeFlags;
 
-		[SerializeField]
-		[UxmlIgnore]
 		[HideInInspector]
+		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags dataSourceTypeString_UxmlAttributeFlags;
 
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		[HideInInspector]
 		private UxmlAttributeFlags bindings_UxmlAttributeFlags;
 
@@ -797,7 +811,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 			child.InvokeHierarchyChanged(HierarchyChangeType.AddedToParent);
 			child.IncrementVersion(VersionChangeType.Hierarchy);
 			m_Owner.IncrementVersion(VersionChangeType.Hierarchy);
-			m_Owner.elementAdded?.Invoke(child, index);
+			m_Owner.OnChildAdded(child);
 		}
 
 		public void Remove(VisualElement child)
@@ -848,7 +862,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 			}
 			m_Owner.elementPanel?.OnVersionChanged(visualElement, VersionChangeType.Hierarchy);
 			m_Owner.IncrementVersion(VersionChangeType.Hierarchy);
-			m_Owner.elementRemoved?.Invoke(visualElement);
+			m_Owner.OnChildRemoved(visualElement);
 		}
 
 		public void Clear()
@@ -882,7 +896,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 				item.hierarchy.SetParent(null);
 				item.m_LogicalParent = null;
 				m_Owner.elementPanel?.OnVersionChanged(item, VersionChangeType.Hierarchy);
-				m_Owner.elementRemoved?.Invoke(item);
+				m_Owner.OnChildRemoved(item);
 			}
 			if (m_Owner.imguiContainerDescendantCount > 0)
 			{
@@ -1078,7 +1092,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 	private abstract class BaseVisualElementScheduledItem : ScheduledItem, IVisualElementScheduledItem
 	{
-		public bool isScheduled = false;
+		public TimerEventScheduler scheduler = null;
 
 		private readonly EventCallback<AttachToPanelEvent> m_OnAttachToPanelCallback;
 
@@ -1086,11 +1100,14 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 		public VisualElement element { get; private set; }
 
+		public bool isScheduled => scheduler != null;
+
 		public bool isActive { get; private set; }
 
 		public bool isDetaching { get; private set; }
 
 		protected BaseVisualElementScheduledItem(VisualElement handler)
+			: base(handler.TimeSinceStartupMs())
 		{
 			element = handler;
 			m_OnAttachToPanelCallback = OnElementAttachToPanelCallback;
@@ -1137,6 +1154,10 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		{
 			if (isActive)
 			{
+				if (isScheduled && scheduler != element.elementPanel.scheduler)
+				{
+					OnPanelDeactivate();
+				}
 				SendActivation();
 			}
 		}
@@ -1193,7 +1214,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		internal override void OnItemUnscheduled()
 		{
 			base.OnItemUnscheduled();
-			isScheduled = false;
+			scheduler = null;
 			if (!isDetaching)
 			{
 				SetActive(action: false);
@@ -1216,7 +1237,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 			{
 				Resume();
 			}
-			ResetStartTime();
+			ResetStartTime(element.TimeSinceStartupMs());
 			StartingIn(delayMs);
 		}
 
@@ -1224,9 +1245,9 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		{
 			if (!isScheduled)
 			{
-				isScheduled = true;
-				ResetStartTime();
-				element.elementPanel.scheduler.Schedule(this);
+				ResetStartTime(element.TimeSinceStartupMs());
+				scheduler = element.elementPanel.scheduler;
+				scheduler.Schedule(this);
 			}
 		}
 
@@ -1234,8 +1255,9 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		{
 			if (isScheduled)
 			{
-				isScheduled = false;
-				element.elementPanel.scheduler.Unschedule(this);
+				TimerEventScheduler timerEventScheduler = scheduler;
+				scheduler = null;
+				timerEventScheduler.Unschedule(this);
 			}
 		}
 
@@ -1274,7 +1296,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 		public override void PerformTimerUpdate(TimerState state)
 		{
-			if (isScheduled)
+			if (base.isScheduled)
 			{
 				updateEvent(state);
 			}
@@ -1290,7 +1312,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 		public override void PerformTimerUpdate(TimerState state)
 		{
-			if (isScheduled)
+			if (base.isScheduled)
 			{
 				updateEvent();
 			}
@@ -1447,6 +1469,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		}
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIToolkitAuthoringModule" })]
 	internal class TypeData
 	{
 		private string m_FullTypeName = string.Empty;
@@ -1557,6 +1580,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 	internal int inheritedStylesHash = 0;
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIToolkitAuthoringModule" })]
 	internal readonly uint controlid;
 
 	internal int imguiContainerDescendantCount = 0;
@@ -1570,10 +1594,6 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 	private LanguageDirection m_LocalLanguageDirection;
 
 	private static readonly ProfilerMarker k_GenerateVisualContentMarker = new ProfilerMarker("GenerateVisualContent");
-
-	private static Material s_runtimeMaterial;
-
-	private Material m_defaultMaterial;
 
 	private List<IValueAnimationUpdate> m_RunningAnimations;
 
@@ -1589,6 +1609,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 	internal static readonly BindingId enabledInHierarchyProperty = "enabledInHierarchy";
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIToolkitAuthoringModule" })]
 	internal static readonly BindingId enabledSelfProperty = "enabledSelf";
 
 	internal static readonly BindingId layoutProperty = "layout";
@@ -1597,6 +1618,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 	internal static readonly BindingId localBoundProperty = "localBound";
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIToolkitAuthoringModule" })]
 	internal static readonly BindingId nameProperty = "name";
 
 	internal static readonly BindingId panelProperty = "panel";
@@ -1647,6 +1669,10 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 	private VisualElement m_CachedNextParentWithEventInterests;
 
+	private const string k_VisualElementAssetPropertyName = "--unity-visual-element-asset-property";
+
+	private const string k_LinkedTemplateAssetOwnerPropertyName = "--unity-linked-template-asset-owner";
+
 	internal const string k_RootVisualContainerName = "rootVisualContainer";
 
 	private VisualElement m_PhysicalParent;
@@ -1681,6 +1707,8 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 	Align IResolvedStyle.alignItems => resolvedStyle.alignItems;
 
 	Align IResolvedStyle.alignSelf => resolvedStyle.alignSelf;
+
+	Ratio IResolvedStyle.aspectRatio => resolvedStyle.aspectRatio;
 
 	Color IResolvedStyle.backgroundColor => resolvedStyle.backgroundColor;
 
@@ -1723,6 +1751,8 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 	Color IResolvedStyle.color => resolvedStyle.color;
 
 	DisplayStyle IResolvedStyle.display => resolvedStyle.display;
+
+	IEnumerable<FilterFunction> IResolvedStyle.filter => resolvedStyle.filter;
 
 	StyleFloat IResolvedStyle.flexBasis => resolvedStyle.flexBasis;
 
@@ -1803,6 +1833,8 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 	FontDefinition IResolvedStyle.unityFontDefinition => resolvedStyle.unityFontDefinition;
 
 	FontStyle IResolvedStyle.unityFontStyleAndWeight => resolvedStyle.unityFontStyleAndWeight;
+
+	MaterialDefinition IResolvedStyle.unityMaterial => resolvedStyle.unityMaterial;
 
 	float IResolvedStyle.unityParagraphSpacing => resolvedStyle.unityParagraphSpacing;
 
@@ -2014,7 +2046,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 	{
 		get
 		{
-			return (UsageHints)((((renderHints & RenderHints.GroupTransform) != RenderHints.None) ? 2 : 0) | (((renderHints & RenderHints.BoneTransform) != RenderHints.None) ? 1 : 0) | (((renderHints & RenderHints.MaskContainer) != RenderHints.None) ? 4 : 0) | (((renderHints & RenderHints.DynamicColor) != RenderHints.None) ? 8 : 0));
+			return (UsageHints)((((renderHints & RenderHints.GroupTransform) != RenderHints.None) ? 2 : 0) | (((renderHints & RenderHints.BoneTransform) != RenderHints.None) ? 1 : 0) | (((renderHints & RenderHints.MaskContainer) != RenderHints.None) ? 4 : 0) | (((renderHints & RenderHints.DynamicColor) != RenderHints.None) ? 8 : 0) | (((renderHints & RenderHints.DynamicPostProcessing) != RenderHints.None) ? 16 : 0) | (((renderHints & RenderHints.LargePixelCoverage) != RenderHints.None) ? 32 : 0));
 		}
 		set
 		{
@@ -2050,6 +2082,22 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 			{
 				renderHints &= ~RenderHints.DynamicColor;
 			}
+			if ((value & UsageHints.DynamicPostProcessing) != UsageHints.None)
+			{
+				renderHints |= RenderHints.DynamicPostProcessing;
+			}
+			else
+			{
+				renderHints &= ~RenderHints.DynamicPostProcessing;
+			}
+			if ((value & UsageHints.LargePixelCoverage) != UsageHints.None)
+			{
+				renderHints |= RenderHints.LargePixelCoverage;
+			}
+			else
+			{
+				renderHints &= ~RenderHints.LargePixelCoverage;
+			}
 			NotifyPropertyChanged(in usageHintsProperty);
 		}
 	}
@@ -2068,14 +2116,47 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 			if (renderHints3 != RenderHints.None)
 			{
 				RenderHints renderHints4 = m_RenderHints & RenderHints.DirtyAll;
-				RenderHints renderHints5 = (RenderHints)((int)renderHints3 << 6);
+				RenderHints renderHints5 = (RenderHints)((int)renderHints3 << 7);
 				m_RenderHints = renderHints2 | renderHints4 | renderHints5;
 				IncrementVersion(VersionChangeType.RenderHints);
 			}
 		}
 	}
 
-	internal bool useRenderTexture => false;
+	internal bool useRenderTexture
+	{
+		get
+		{
+			Rect rect = layout;
+			if (rect.width <= 0f || rect.height <= 0f || float.IsNaN(rect.width) || float.IsNaN(rect.height))
+			{
+				return false;
+			}
+			if (!(resolvedStyle.filter is List<FilterFunction> list))
+			{
+				throw new ArgumentException("resolvedStyle.filter is not a List<FilterFunction>");
+			}
+			bool flag = false;
+			foreach (FilterFunction item in list)
+			{
+				FilterFunctionDefinition definition = item.GetDefinition();
+				if (definition == null)
+				{
+					continue;
+				}
+				PostProcessingPass[] passes = definition.passes;
+				foreach (PostProcessingPass postProcessingPass in passes)
+				{
+					if (postProcessingPass.material != null)
+					{
+						flag = true;
+						break;
+					}
+				}
+			}
+			return flag || (renderHints & RenderHints.DynamicPostProcessing) != 0;
+		}
+	}
 
 	[Obsolete("When writing the value, use VisualElement.style.translate, VisualElement.style.rotate or VisualElement.style.scale instead. When reading the value, use VisualElement.resolvedStyle.translate, scale and rotate")]
 	public ITransform transform => this;
@@ -2544,25 +2625,33 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		{
 			PseudoStates pseudoStates = m_PseudoStates ^ value;
 			m_PseudoStates = value;
-			if (pseudoStates <= (PseudoStates)0)
-			{
-				return;
-			}
-			if ((value & PseudoStates.Root) == PseudoStates.Root)
-			{
-				isRootVisualContainer = true;
-			}
-			if (pseudoStates != PseudoStates.Root)
+			if (pseudoStates > PseudoStates.None && pseudoStates != PseudoStates.Root)
 			{
 				PseudoStates pseudoStates2 = pseudoStates & value;
 				PseudoStates pseudoStates3 = pseudoStates ^ pseudoStates2;
-				if ((triggerPseudoMask & pseudoStates2) != 0 || (dependencyPseudoMask & pseudoStates3) != 0)
+				if ((triggerPseudoMask & pseudoStates2) != PseudoStates.None || (dependencyPseudoMask & pseudoStates3) != PseudoStates.None)
 				{
 					IncrementVersion(VersionChangeType.StyleSheet);
 				}
 			}
 		}
 	}
+
+	public bool hasActivePseudoState => (pseudoStates & PseudoStates.Active) != 0;
+
+	public bool hasInactivePseudoState => (pseudoStates & PseudoStates.Active) == 0;
+
+	public bool hasHoverPseudoState => (pseudoStates & PseudoStates.Hover) != 0;
+
+	public bool hasCheckedPseudoState => (pseudoStates & PseudoStates.Checked) != 0;
+
+	public bool hasEnabledPseudoState => (pseudoStates & PseudoStates.Disabled) == 0;
+
+	public bool hasDisabledPseudoState => (pseudoStates & PseudoStates.Disabled) != 0;
+
+	public bool hasFocusPseudoState => (pseudoStates & PseudoStates.Focus) != 0;
+
+	public bool hasRootPseudoState => (pseudoStates & PseudoStates.Root) != 0;
 
 	internal int containedPointerIds { get; set; }
 
@@ -2626,7 +2715,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 	internal string typeName
 	{
-		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEditor.UIToolkitAuthoringModule" })]
 		get
 		{
 			return typeData.typeName;
@@ -2776,22 +2865,6 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		}
 	}
 
-	internal Material defaultMaterial
-	{
-		get
-		{
-			return m_defaultMaterial;
-		}
-		private set
-		{
-			if (!(m_defaultMaterial == value))
-			{
-				m_defaultMaterial = value;
-				IncrementVersion(VersionChangeType.Layout | VersionChangeType.Repaint);
-			}
-		}
-	}
-
 	[CreateProperty]
 	public object dataSource
 	{
@@ -2812,7 +2885,6 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		}
 	}
 
-	[UxmlAttributeBindingPath("dataSource")]
 	internal Object dataSourceUnityObject
 	{
 		get
@@ -2951,7 +3023,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 	public Hierarchy hierarchy { get; }
 
-	internal bool isRootVisualContainer { get; set; }
+	internal bool isRootVisualContainer => styleSheets.count > 0;
 
 	[Obsolete("VisualElement.cacheAsBitmap is deprecated and has no effect")]
 	public bool cacheAsBitmap { get; set; }
@@ -3005,9 +3077,36 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		{
 			return m_VisualTreeAssetSource;
 		}
+		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 		internal set
 		{
 			m_VisualTreeAssetSource = value;
+		}
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEditor.UIToolkitAuthoringModule" })]
+	internal VisualElementAsset visualElementAsset
+	{
+		get
+		{
+			return (VisualElementAsset)GetProperty("--unity-visual-element-asset-property");
+		}
+		set
+		{
+			SetProperty("--unity-visual-element-asset-property", value);
+		}
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIToolkitAuthoringModule" })]
+	internal TemplateAsset templateAsset
+	{
+		get
+		{
+			return (TemplateAsset)GetProperty("--unity-linked-template-asset-owner");
+		}
+		set
+		{
+			SetProperty("--unity-linked-template-asset-owner", value);
 		}
 	}
 
@@ -3144,13 +3243,21 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		}
 	}
 
-	internal event Action<VisualElement, int> elementAdded;
-
-	internal event Action<VisualElement> elementRemoved;
-
 	private IStylePropertyAnimationSystem GetStylePropertyAnimationSystem()
 	{
 		return elementPanel?.styleAnimationSystem;
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal bool HasRunningAnimation(StylePropertyId id)
+	{
+		return GetStylePropertyAnimationSystem()?.HasRunningAnimation(this, id) ?? false;
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal void CancelAnimation(StylePropertyId id)
+	{
+		GetStylePropertyAnimationSystem()?.CancelAnimation(this, id);
 	}
 
 	bool IStylePropertyAnimations.Start(StylePropertyId id, float from, float to, int durationMs, int delayMs, Func<float, float> easingCurve)
@@ -3213,6 +3320,11 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		return GetStylePropertyAnimationSystem().StartTransition(this, id, from, to, durationMs, delayMs, easingCurve);
 	}
 
+	bool IStylePropertyAnimations.Start(StylePropertyId id, Ratio from, Ratio to, int durationMs, int delayMs, Func<float, float> easingCurve)
+	{
+		return GetStylePropertyAnimationSystem().StartTransition(this, id, from, to, durationMs, delayMs, easingCurve);
+	}
+
 	bool IStylePropertyAnimations.Start(StylePropertyId id, TransformOrigin from, TransformOrigin to, int durationMs, int delayMs, Func<float, float> easingCurve)
 	{
 		return GetStylePropertyAnimationSystem().StartTransition(this, id, from, to, durationMs, delayMs, easingCurve);
@@ -3234,6 +3346,11 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 	}
 
 	bool IStylePropertyAnimations.Start(StylePropertyId id, List<FilterFunction> from, List<FilterFunction> to, int durationMs, int delayMs, Func<float, float> easingCurve)
+	{
+		return GetStylePropertyAnimationSystem().StartTransition(this, id, from, to, durationMs, delayMs, easingCurve);
+	}
+
+	bool IStylePropertyAnimations.Start(StylePropertyId id, MaterialDefinition from, MaterialDefinition to, int durationMs, int delayMs, Func<float, float> easingCurve)
 	{
 		return GetStylePropertyAnimationSystem().StartTransition(this, id, from, to, durationMs, delayMs, easingCurve);
 	}
@@ -3520,9 +3637,9 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		if (!needs3DBounds)
 		{
 			Rect rect = boundingBox;
-			Bounds bounds = new Bounds(rect.center, rect.size);
+			Bounds bounds = new Bounds((Vector3)rect.center, (Vector3)rect.size);
 			Rect rect2 = boundingBoxWithoutNested;
-			Bounds localBoundsWithoutNested3D = new Bounds(rect2.center, rect2.size);
+			Bounds localBoundsWithoutNested3D = new Bounds((Vector3)rect2.center, (Vector3)rect2.size);
 			WorldSpaceDataStore.SetWorldSpaceData(this, new WorldSpaceData
 			{
 				localBounds3D = bounds,
@@ -3532,7 +3649,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 			});
 			return;
 		}
-		Bounds bounds2 = new Bounds(this.rect.center, this.rect.size);
+		Bounds bounds2 = new Bounds((Vector3)this.rect.center, (Vector3)this.rect.size);
 		Bounds bounds3 = bounds2;
 		Bounds bounds4 = ((pickingMode == PickingMode.Position) ? bounds3 : WorldSpaceData.k_Empty3DBounds);
 		if (!ShouldClip())
@@ -3626,6 +3743,16 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		return Rect.MinMaxRect(Mathf.Min(vector.x, Mathf.Min(vector2.x, Mathf.Min(vector3.x, vector4.x))), Mathf.Min(vector.y, Mathf.Min(vector2.y, Mathf.Min(vector3.y, vector4.y))), Mathf.Max(vector.x, Mathf.Max(vector2.x, Mathf.Max(vector3.x, vector4.x))), Mathf.Max(vector.y, Mathf.Max(vector2.y, Mathf.Max(vector3.y, vector4.y))));
 	}
 
+	public void SetActivePseudoState(bool value)
+	{
+		pseudoStates = (value ? (pseudoStates | PseudoStates.Active) : (pseudoStates & ~PseudoStates.Active));
+	}
+
+	public void SetCheckedPseudoState(bool value)
+	{
+		pseudoStates = (value ? (pseudoStates | PseudoStates.Checked) : (pseudoStates & ~PseudoStates.Checked));
+	}
+
 	internal void UpdateHoverPseudoState()
 	{
 		if (containedPointerIds == 0 || panel == null)
@@ -3706,6 +3833,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		}
 	}
 
+	[DynamicDependency("InitializeUIElementsManaged", typeof(UIElementsInitialization))]
 	public VisualElement()
 	{
 		m_Children = s_EmptyList;
@@ -3738,17 +3866,20 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		}
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
-	internal virtual Rect GetTooltipRect()
-	{
-		return worldBound;
-	}
-
 	internal void SetTooltip(TooltipEvent e)
 	{
 		if (e.currentTarget is VisualElement visualElement && !string.IsNullOrEmpty(visualElement.tooltip))
 		{
-			e.rect = visualElement.GetTooltipRect();
+			if (e.rect != Rect.zero)
+			{
+				e.rect = e.rect;
+			}
+			else
+			{
+				Rect rect = visualElement.worldBound;
+				Rect rect2 = visualElement.worldClip;
+				e.rect = new Rect(rect.x, rect.y, Math.Clamp(rect.width, 0f, rect2.width), Mathf.Clamp(rect.height, 0f, rect2.height));
+			}
 			e.tooltip = visualElement.tooltip;
 			e.StopImmediatePropagation();
 		}
@@ -3764,6 +3895,15 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		{
 			base.Focus();
 		}
+	}
+
+	internal long TimeSinceStartupMs()
+	{
+		if (elementPanel != null)
+		{
+			return elementPanel.TimeSinceStartupMs();
+		}
+		return (long)(BaseVisualElementPanel.DefaultTimeSinceStartup() * 1000.0);
 	}
 
 	internal void SetPanel(BaseVisualElementPanel p)
@@ -3854,9 +3994,8 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		}
 		if ((m_Flags & VisualElementFlags.NeedsAttachToPanelEvent) == 0 && HasSelfEventInterests(EventBase<DetachFromPanelEvent>.EventCategory))
 		{
-			using DetachFromPanelEvent detachFromPanelEvent = PanelChangedEventBase<DetachFromPanelEvent>.GetPooled(elementPanel, destinationPanel);
-			detachFromPanelEvent.elementTarget = this;
-			EventDispatchUtilities.HandleEventAtTargetAndDefaultPhase(detachFromPanelEvent, elementPanel, this);
+			using DetachFromPanelEvent evt = PanelChangedEventBase<DetachFromPanelEvent>.GetPooled(elementPanel, destinationPanel);
+			EventDispatchUtilities.SendEventDirectlyToTarget(evt, elementPanel, this);
 		}
 		UnregisterRunningAnimations();
 	}
@@ -3871,7 +4010,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 			ProcessBindingRequests();
 			AttachDataSource();
 			pseudoStates &= ~(PseudoStates.Active | PseudoStates.Hover);
-			if ((pseudoStates & PseudoStates.Focus) != 0 && !focusController.IsFocused(this))
+			if ((pseudoStates & PseudoStates.Focus) != PseudoStates.None && !focusController.IsFocused(this))
 			{
 				pseudoStates &= ~PseudoStates.Focus;
 			}
@@ -3880,9 +4019,8 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 			{
 				if (HasSelfEventInterests(EventBase<AttachToPanelEvent>.EventCategory))
 				{
-					using AttachToPanelEvent attachToPanelEvent = PanelChangedEventBase<AttachToPanelEvent>.GetPooled(prevPanel, elementPanel);
-					attachToPanelEvent.elementTarget = this;
-					EventDispatchUtilities.HandleEventAtTargetAndDefaultPhase(attachToPanelEvent, elementPanel, this);
+					using AttachToPanelEvent evt = PanelChangedEventBase<AttachToPanelEvent>.GetPooled(prevPanel, elementPanel);
+					EventDispatchUtilities.SendEventDirectlyToTarget(evt, elementPanel, this);
 				}
 				m_Flags &= ~VisualElementFlags.NeedsAttachToPanelEvent;
 			}
@@ -3890,6 +4028,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		else
 		{
 			layoutNode.Config = LayoutManager.SharedManager.GetDefaultConfig();
+			layoutNode.Cache.ClearCachedMeasurements();
 		}
 		styleInitialized = false;
 		IncrementVersion(VersionChangeType.Layout | VersionChangeType.StyleSheet | VersionChangeType.Transform);
@@ -4003,6 +4142,15 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 	public void MarkDirtyRepaint()
 	{
 		IncrementVersion(VersionChangeType.Repaint);
+	}
+
+	public bool IsMarkedForRepaint()
+	{
+		if (renderData == null)
+		{
+			return true;
+		}
+		return (renderData.dirtiedValues & RenderDataDirtyTypes.Visuals) == RenderDataDirtyTypes.Visuals;
 	}
 
 	internal void InvokeGenerateVisualContent(MeshGenerationContext mgc)
@@ -4252,7 +4400,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 
 	public override string ToString()
 	{
-		return GetType().Name + " " + name + " " + layout.ToString() + " world rect: " + worldBound.ToString();
+		return GetType().Name + " " + name + " " + layout.ToString() + " world rect: " + worldBound;
 	}
 
 	public IEnumerable<string> GetClasses()
@@ -4361,7 +4509,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		return null;
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEditor.UIToolkitAuthoringModule" })]
 	internal object GetProperty(PropertyName key)
 	{
 		CheckUserKeyArgument(key);
@@ -4373,20 +4521,21 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		return null;
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEditor.UIToolkitAuthoringModule" })]
 	internal void SetProperty(PropertyName key, object value)
 	{
 		CheckUserKeyArgument(key);
 		SetPropertyInternal(key, value);
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEditor.UIToolkitAuthoringModule" })]
 	internal bool HasProperty(PropertyName key)
 	{
 		CheckUserKeyArgument(key);
 		return m_PropertyBag?.ContainsKey(key) ?? false;
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIToolkitAuthoringModule" })]
 	internal bool ClearProperty(PropertyName key)
 	{
 		CheckUserKeyArgument(key);
@@ -4445,24 +4594,6 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 				elementPanel.cursorManager.ResetCursor();
 			}
 		}
-	}
-
-	private Material getRuntimeMaterial()
-	{
-		if (s_runtimeMaterial != null)
-		{
-			return s_runtimeMaterial;
-		}
-		Shader shader = Shader.Find(UIRUtility.k_DefaultShaderName);
-		Debug.Assert(shader != null, "Failed to load UIElements default shader");
-		if (shader != null)
-		{
-			shader.hideFlags |= HideFlags.DontSaveInEditor;
-			Material material = new Material(shader);
-			material.hideFlags |= HideFlags.DontSaveInEditor;
-			return s_runtimeMaterial = material;
-		}
-		return null;
 	}
 
 	private VisualElementAnimationSystem GetAnimationSystem()
@@ -5469,6 +5600,14 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		hierarchy.parent.hierarchy.PlaceInFront(this, sibling);
 	}
 
+	internal virtual void OnChildAdded(VisualElement child)
+	{
+	}
+
+	internal virtual void OnChildRemoved(VisualElement child)
+	{
+	}
+
 	public void RemoveFromHierarchy()
 	{
 		if (hierarchy.parent != null)
@@ -5498,7 +5637,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		return null;
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEditor.UIToolkitAuthoringModule" })]
 	internal VisualElement GetFirstAncestorWhere(Predicate<VisualElement> predicate)
 	{
 		for (VisualElement visualElement = hierarchy.parent; visualElement != null; visualElement = visualElement.hierarchy.parent)
@@ -5598,7 +5737,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
-	internal VisualElement GetRootVisualContainer()
+	internal VisualElement GetRootVisualContainer(bool stopAtNearestRoot = false)
 	{
 		VisualElement result = null;
 		for (VisualElement visualElement = this; visualElement != null; visualElement = visualElement.hierarchy.parent)
@@ -5606,6 +5745,10 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 			if (visualElement.isRootVisualContainer)
 			{
 				result = visualElement;
+				if (stopAtNearestRoot)
+				{
+					return result;
+				}
 			}
 		}
 		return result;
@@ -5740,10 +5883,10 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		Vector2 vector2 = new Vector2(rect.xMax, rect.yMax);
 		Vector2 vector3 = new Vector2(rect.xMax, rect.yMin);
 		Vector2 vector4 = new Vector2(rect.xMin, rect.yMax);
-		Vector3 vector5 = matrix.MultiplyPoint3x4(vector);
-		Vector3 vector6 = matrix.MultiplyPoint3x4(vector2);
-		Vector3 vector7 = matrix.MultiplyPoint3x4(vector3);
-		Vector3 vector8 = matrix.MultiplyPoint3x4(vector4);
+		Vector3 vector5 = matrix.MultiplyPoint3x4((Vector3)vector);
+		Vector3 vector6 = matrix.MultiplyPoint3x4((Vector3)vector2);
+		Vector3 vector7 = matrix.MultiplyPoint3x4((Vector3)vector3);
+		Vector3 vector8 = matrix.MultiplyPoint3x4((Vector3)vector4);
 		Vector2 vector9 = new Vector2(Min(vector5.x, vector6.x, vector7.x, vector8.x), Min(vector5.y, vector6.y, vector7.y, vector8.y));
 		Vector2 vector10 = new Vector2(Max(vector5.x, vector6.x, vector7.x, vector8.x), Max(vector5.y, vector6.y, vector7.y, vector8.y));
 		return new Rect(vector9.x, vector9.y, vector10.x - vector9.x, vector10.y - vector9.y);
@@ -6064,6 +6207,7 @@ public class VisualElement : Focusable, IResolvedStyle, IStylePropertyAnimations
 		return (float.IsNaN(value.x) || float.IsNaN(value.y) || float.IsNaN(value.z)) ? Vector3.one : value;
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIToolkitAuthoringModule" })]
 	internal static TypeData GetOrCreateTypeData(Type t)
 	{
 		if (!s_TypeData.TryGetValue(t, out var value))

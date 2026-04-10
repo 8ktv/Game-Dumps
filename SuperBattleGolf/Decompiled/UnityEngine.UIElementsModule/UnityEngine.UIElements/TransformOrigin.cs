@@ -4,6 +4,7 @@ using Unity.Properties;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct TransformOrigin : IEquatable<TransformOrigin>
 {
 	internal class PropertyBag : ContainerPropertyBag<TransformOrigin>
@@ -67,10 +68,13 @@ public struct TransformOrigin : IEquatable<TransformOrigin>
 		}
 	}
 
+	[SerializeField]
 	private Length m_X;
 
+	[SerializeField]
 	private Length m_Y;
 
+	[SerializeField]
 	private float m_Z;
 
 	public Length x

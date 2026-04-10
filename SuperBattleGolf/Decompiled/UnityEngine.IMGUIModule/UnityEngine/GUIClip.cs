@@ -50,8 +50,8 @@ internal sealed class GUIClip
 
 	internal static Rect topmostRect
 	{
-		[FreeFunction("GetGUIState().m_CanvasGUIState.m_GUIClipState.GetTopMostPhysicalRect")]
 		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+		[FreeFunction("GetGUIState().m_CanvasGUIState.m_GUIClipState.GetTopMostPhysicalRect")]
 		get
 		{
 			get_topmostRect_Injected(out var ret);

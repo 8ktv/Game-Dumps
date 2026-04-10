@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine.Bindings;
 
@@ -7,7 +6,7 @@ namespace UnityEngine.TextCore.Text;
 [VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
 internal class TextHandleTemporaryCache
 {
-	internal LinkedList<TextInfo> s_TextInfoPool = new LinkedList<TextInfo>();
+	internal LinkedList<TextCacheEntry> s_Cache = new LinkedList<TextCacheEntry>();
 
 	internal const int s_MinFramesInCache = 2;
 
@@ -17,18 +16,18 @@ internal class TextHandleTemporaryCache
 
 	public void ClearTemporaryCache()
 	{
-		for (int i = 0; i < s_TextInfoPool.Count; i++)
+		foreach (TextCacheEntry item in s_Cache)
 		{
-			s_TextInfoPool.First.Value.RemoveFromCache();
+			ResetEntryState(item.textHandle);
 		}
-		s_TextInfoPool.Clear();
+		s_Cache.Clear();
 	}
 
 	public void AddTextInfoToCache(TextHandle textHandle, int hashCode)
 	{
 		lock (syncRoot)
 		{
-			if (textHandle.IsCachedPermanent)
+			if (textHandle.IsCachedPermanentTextCore)
 			{
 				return;
 			}
@@ -36,7 +35,7 @@ internal class TextHandleTemporaryCache
 			{
 				currentFrame = Time.frameCount;
 			}
-			if (s_TextInfoPool.Count > 0 && ((double)currentFrame - s_TextInfoPool.Last.Value.lastTimeInCache < 0.0 || (double)currentFrame - s_TextInfoPool.First.Value.lastTimeInCache < 0.0))
+			if (s_Cache.Count > 0 && ((float)currentFrame - s_Cache.Last.Value.lastTimeInCache < 0f || (float)currentFrame - s_Cache.First.Value.lastTimeInCache < 0f))
 			{
 				ClearTemporaryCache();
 			}
@@ -45,17 +44,15 @@ internal class TextHandleTemporaryCache
 				RefreshCaching(textHandle);
 				return;
 			}
-			if (s_TextInfoPool.Count > 0 && (double)currentFrame - s_TextInfoPool.Last.Value.lastTimeInCache > 2.0)
+			if (s_Cache.Count > 0 && (float)currentFrame - s_Cache.Last.Value.lastTimeInCache > 2f)
 			{
 				RecycleTextInfoFromCache(textHandle);
 			}
 			else
 			{
-				TextInfo textInfo = new TextInfo();
-				textHandle.TextInfoNode = new LinkedListNode<TextInfo>(textInfo);
-				s_TextInfoPool.AddFirst(textHandle.TextInfoNode);
-				textInfo.lastTimeInCache = currentFrame;
-				textInfo.removedFromCache = (Action)Delegate.Combine(textInfo.removedFromCache, new Action(textHandle.RemoveTextInfoFromTemporaryCache));
+				TextInfo info = new TextInfo();
+				textHandle.TextInfoNode = new LinkedListNode<TextCacheEntry>(new TextCacheEntry(textHandle, info, currentFrame));
+				s_Cache.AddFirst(textHandle.TextInfoNode);
 			}
 		}
 		textHandle.IsCachedTemporary = true;
@@ -64,22 +61,30 @@ internal class TextHandleTemporaryCache
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
-	public virtual void RemoveTextInfoFromCache(TextHandle textHandle)
+	internal void RemoveFromCache(TextHandle handle)
 	{
 		lock (syncRoot)
 		{
-			if (textHandle.IsCachedTemporary)
+			if (handle.IsCachedTemporary)
 			{
-				textHandle.IsCachedTemporary = false;
-				textHandle.TextInfoNode.Value.lastTimeInCache = 0.0;
-				textHandle.TextInfoNode.Value.removedFromCache = null;
-				if (textHandle.TextInfoNode != null)
+				if (handle.TextInfoNode != null)
 				{
-					s_TextInfoPool.Remove(textHandle.TextInfoNode);
-					s_TextInfoPool.AddLast(textHandle.TextInfoNode);
+					s_Cache.Remove(handle.TextInfoNode);
+					s_Cache.AddLast(handle.TextInfoNode);
 				}
-				textHandle.TextInfoNode = null;
+				ResetEntryState(handle);
 			}
+		}
+	}
+
+	internal void ResetEntryState(TextHandle handle)
+	{
+		if (handle != null && handle.IsCachedTemporary)
+		{
+			handle.IsCachedTemporary = false;
+			handle.TextInfoNode.SetTime(0f);
+			handle.TextInfoNode.SetTextHandle(null);
+			handle.TextInfoNode = null;
 		}
 	}
 
@@ -89,9 +94,9 @@ internal class TextHandleTemporaryCache
 		{
 			currentFrame = Time.frameCount;
 		}
-		textHandle.TextInfoNode.Value.lastTimeInCache = currentFrame;
-		s_TextInfoPool.Remove(textHandle.TextInfoNode);
-		s_TextInfoPool.AddFirst(textHandle.TextInfoNode);
+		textHandle.TextInfoNode.SetTime(currentFrame);
+		s_Cache.Remove(textHandle.TextInfoNode);
+		s_Cache.AddFirst(textHandle.TextInfoNode);
 	}
 
 	private void RecycleTextInfoFromCache(TextHandle textHandle)
@@ -100,14 +105,17 @@ internal class TextHandleTemporaryCache
 		{
 			currentFrame = Time.frameCount;
 		}
-		textHandle.TextInfoNode = s_TextInfoPool.Last;
-		textHandle.TextInfoNode.Value.RemoveFromCache();
-		s_TextInfoPool.RemoveLast();
-		s_TextInfoPool.AddFirst(textHandle.TextInfoNode);
+		textHandle.RemoveFromTemporaryCache();
+		if (s_Cache.Last.Value.textHandle != null)
+		{
+			s_Cache.Last.Value.textHandle.RemoveFromTemporaryCache();
+		}
+		textHandle.TextInfoNode = s_Cache.Last;
+		textHandle.TextInfoNode.SetTextHandle(textHandle);
+		textHandle.TextInfoNode.SetTime(currentFrame);
 		textHandle.IsCachedTemporary = true;
-		TextInfo value = textHandle.TextInfoNode.Value;
-		value.removedFromCache = (Action)Delegate.Combine(value.removedFromCache, new Action(textHandle.RemoveTextInfoFromTemporaryCache));
-		textHandle.TextInfoNode.Value.lastTimeInCache = currentFrame;
+		s_Cache.RemoveLast();
+		s_Cache.AddFirst(textHandle.TextInfoNode);
 	}
 
 	public void UpdateCurrentFrame()

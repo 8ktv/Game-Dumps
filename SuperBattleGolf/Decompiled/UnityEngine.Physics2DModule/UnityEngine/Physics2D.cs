@@ -9,10 +9,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[StaticAccessor("GetPhysicsManager2D()", StaticAccessorType.Arrow)]
-[NativeHeader("Physics2DScriptingClasses.h")]
 [NativeHeader("Modules/Physics2D/PhysicsManager2D.h")]
 [NativeHeader("Physics2DScriptingClasses.h")]
+[StaticAccessor("GetPhysicsManager2D()", StaticAccessorType.Arrow)]
 public class Physics2D
 {
 	[Flags]
@@ -99,15 +98,6 @@ public class Physics2D
 
 	[StaticAccessor("GetPhysics2DSettings()")]
 	public static extern bool reuseCollisionCallbacks
-	{
-		[MethodImpl(MethodImplOptions.InternalCall)]
-		get;
-		[MethodImpl(MethodImplOptions.InternalCall)]
-		set;
-	}
-
-	[StaticAccessor("GetPhysics2DSettings()")]
-	public static extern bool autoSyncTransforms
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		get;
@@ -296,8 +286,20 @@ public class Physics2D
 		set;
 	}
 
-	[Obsolete("Physics2D.raycastsHitTriggers is obsolete. Use Physics2D.queriesHitTriggers instead. (UnityUpgradable) -> queriesHitTriggers", true)]
+	[Obsolete("Physics2D.autoSyncTransforms has been deprecated please use Physics2D.SyncTransforms instead to manually sync physics transforms when required.", false)]
+	[ExcludeFromDocs]
+	[StaticAccessor("GetPhysics2DSettings()")]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	public static extern bool autoSyncTransforms
+	{
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		get;
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		set;
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Physics2D.raycastsHitTriggers is obsolete. Use Physics2D.queriesHitTriggers instead. (UnityUpgradable) -> queriesHitTriggers", true)]
 	public static bool raycastsHitTriggers
 	{
 		get
@@ -324,8 +326,8 @@ public class Physics2D
 		}
 	}
 
-	[Obsolete("Physics2D.deleteStopsCallbacks is obsolete.(UnityUpgradable) -> changeStopsCallbacks", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Physics2D.deleteStopsCallbacks is obsolete.(UnityUpgradable) -> changeStopsCallbacks", true)]
 	public static bool deleteStopsCallbacks
 	{
 		get
@@ -392,8 +394,8 @@ public class Physics2D
 		}
 	}
 
-	[ExcludeFromDocs]
 	[Obsolete("Physics2D.colliderAwakeColor is obsolete. This options has been moved to 2D Preferences.", true)]
+	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	public static Color colliderAwakeColor
 	{
@@ -407,9 +409,9 @@ public class Physics2D
 		}
 	}
 
-	[Obsolete("Physics2D.colliderAsleepColor is obsolete. This options has been moved to 2D Preferences.", true)]
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Physics2D.colliderAsleepColor is obsolete. This options has been moved to 2D Preferences.", true)]
 	public static Color colliderAsleepColor
 	{
 		get
@@ -422,8 +424,8 @@ public class Physics2D
 		}
 	}
 
-	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	[Obsolete("Physics2D.colliderContactColor is obsolete. This options has been moved to 2D Preferences.", true)]
 	public static Color colliderContactColor
 	{
@@ -438,8 +440,8 @@ public class Physics2D
 	}
 
 	[Obsolete("Physics2D.colliderAABBColor is obsolete. All Physics 2D colors moved to Preferences. This is now known as 'Collider Bounds Color'.", true)]
-	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	public static Color colliderAABBColor
 	{
 		get
@@ -468,8 +470,8 @@ public class Physics2D
 	}
 
 	[EditorBrowsable(EditorBrowsableState.Never)]
-	[Obsolete("Physics2D.alwaysShowColliders is obsolete. It is no longer available in the Editor or Builds.", true)]
 	[ExcludeFromDocs]
+	[Obsolete("Physics2D.alwaysShowColliders is obsolete. It is no longer available in the Editor or Builds.", true)]
 	public static bool alwaysShowColliders
 	{
 		get
@@ -482,8 +484,8 @@ public class Physics2D
 		}
 	}
 
-	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	[Obsolete("Physics2D.showCollidersFilled is obsolete. It is no longer available in the Editor or Builds.", true)]
 	public static bool showCollidersFilled
 	{
@@ -497,8 +499,8 @@ public class Physics2D
 		}
 	}
 
-	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	[Obsolete("Physics2D.showColliderSleep is obsolete. It is no longer available in the Editor or Builds.", true)]
 	public static bool showColliderSleep
 	{
@@ -527,9 +529,9 @@ public class Physics2D
 		}
 	}
 
-	[Obsolete("Physics2D.showColliderAABB is obsolete. It is no longer available in the Editor or Builds.", true)]
 	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Physics2D.showColliderAABB is obsolete. It is no longer available in the Editor or Builds.", true)]
 	public static bool showColliderAABB
 	{
 		get
@@ -593,8 +595,8 @@ public class Physics2D
 		IgnoreCollision_Injected(intPtr, intPtr2, ignore);
 	}
 
-	[StaticAccessor("PhysicsScene2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("GetIgnoreCollision_Binding")]
+	[StaticAccessor("PhysicsScene2D", StaticAccessorType.DoubleColon)]
 	public static bool GetIgnoreCollision([NotNull] Collider2D collider1, [NotNull] Collider2D collider2)
 	{
 		if ((object)collider1 == null)
@@ -638,8 +640,8 @@ public class Physics2D
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[StaticAccessor("GetPhysics2DSettings()")]
 	[NativeMethod("IgnoreLayerCollision")]
+	[StaticAccessor("GetPhysics2DSettings()")]
 	private static extern void IgnoreLayerCollision_Internal(int layer1, int layer2, bool ignore);
 
 	public static bool GetIgnoreLayerCollision(int layer1, int layer2)
@@ -684,8 +686,8 @@ public class Physics2D
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[StaticAccessor("GetPhysics2DSettings()")]
 	[NativeMethod("GetLayerCollisionMask")]
+	[StaticAccessor("GetPhysics2DSettings()")]
 	private static extern int GetLayerCollisionMask_Internal(int layer);
 
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
@@ -747,8 +749,8 @@ public class Physics2D
 		return IsTouching_SingleColliderWithFilter(collider, contactFilter);
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("IsTouching")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private static bool IsTouching_SingleColliderWithFilter([NotNull] Collider2D collider, ContactFilter2D contactFilter)
 	{
 		if ((object)collider == null)
@@ -832,8 +834,8 @@ public class Physics2D
 		return ret;
 	}
 
-	[NativeMethod("DistanceFrom")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
+	[NativeMethod("DistanceFrom")]
 	private static ColliderDistance2D DistanceFrom_Internal([NotNull] Collider2D colliderA, Vector2 positionA, float angleA, [NotNull] Collider2D colliderB, Vector2 positionB, float angleB)
 	{
 		if ((object)colliderA == null)
@@ -973,8 +975,8 @@ public class Physics2D
 		return LinecastAll_Internal(defaultPhysicsScene, start, end, contactFilter);
 	}
 
-	[NativeMethod("LinecastAll_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
+	[NativeMethod("LinecastAll_Binding")]
 	private static RaycastHit2D[] LinecastAll_Internal(PhysicsScene2D physicsScene, Vector2 start, Vector2 end, ContactFilter2D contactFilter)
 	{
 		BlittableArrayWrapper ret = default(BlittableArrayWrapper);
@@ -1011,8 +1013,8 @@ public class Physics2D
 		return defaultPhysicsScene.Raycast(origin, direction, distance);
 	}
 
-	[ExcludeFromDocs]
 	[RequiredByNativeCode]
+	[ExcludeFromDocs]
 	public static RaycastHit2D Raycast(Vector2 origin, Vector2 direction, float distance, int layerMask)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, float.NegativeInfinity, float.PositiveInfinity);
@@ -1365,8 +1367,8 @@ public class Physics2D
 		return CapsuleCastAll_Internal(defaultPhysicsScene, origin, size, capsuleDirection, angle, direction, distance, contactFilter);
 	}
 
-	[NativeMethod("CapsuleCastAll_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
+	[NativeMethod("CapsuleCastAll_Binding")]
 	private static RaycastHit2D[] CapsuleCastAll_Internal(PhysicsScene2D physicsScene, Vector2 origin, Vector2 size, CapsuleDirection2D capsuleDirection, float angle, Vector2 direction, float distance, ContactFilter2D contactFilter)
 	{
 		BlittableArrayWrapper ret = default(BlittableArrayWrapper);
@@ -1463,8 +1465,8 @@ public class Physics2D
 		return result;
 	}
 
-	[RequiredByNativeCode]
 	[ExcludeFromDocs]
+	[RequiredByNativeCode]
 	public static int GetRayIntersectionNonAlloc(Ray ray, RaycastHit2D[] results, float distance, [UnityEngine.Internal.DefaultValue("DefaultRaycastLayers")] int layerMask = -5)
 	{
 		return defaultPhysicsScene.GetRayIntersection(ray, distance, results, layerMask);
@@ -1496,7 +1498,7 @@ public class Physics2D
 		return defaultPhysicsScene.OverlapPoint(point, contactFilter);
 	}
 
-	public static int OverlapPoint(Vector2 point, ContactFilter2D contactFilter, [Unmarshalled] Collider2D[] results)
+	public static int OverlapPoint(Vector2 point, ContactFilter2D contactFilter, [UnityMarshalAs(NativeType.ScriptingObjectPtr)] Collider2D[] results)
 	{
 		return defaultPhysicsScene.OverlapPoint(point, contactFilter, results);
 	}
@@ -1533,8 +1535,8 @@ public class Physics2D
 		return OverlapPointAll_Internal(defaultPhysicsScene, point, contactFilter);
 	}
 
-	[NativeMethod("OverlapPointAll_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
+	[NativeMethod("OverlapPointAll_Binding")]
 	private static Collider2D[] OverlapPointAll_Internal(PhysicsScene2D physicsScene, Vector2 point, ContactFilter2D contactFilter)
 	{
 		return OverlapPointAll_Internal_Injected(ref physicsScene, ref point, ref contactFilter);
@@ -1673,8 +1675,8 @@ public class Physics2D
 		return OverlapBoxAll_Internal(defaultPhysicsScene, point, size, angle, contactFilter);
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("OverlapBoxAll_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private static Collider2D[] OverlapBoxAll_Internal(PhysicsScene2D physicsScene, Vector2 point, Vector2 size, float angle, ContactFilter2D contactFilter)
 	{
 		return OverlapBoxAll_Internal_Injected(ref physicsScene, ref point, ref size, angle, ref contactFilter);
@@ -1903,8 +1905,8 @@ public class Physics2D
 		return colliderContactsArray_Injected;
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("GetColliderColliderContactsArray_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private unsafe static int GetColliderColliderContactsArray([NotNull] Collider2D collider1, [NotNull] Collider2D collider2, ContactFilter2D contactFilter, [NotNull] ContactPoint2D[] results)
 	{
 		if ((object)collider1 == null)
@@ -1939,8 +1941,8 @@ public class Physics2D
 		return colliderColliderContactsArray_Injected;
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("GetRigidbodyContactsArray_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private unsafe static int GetRigidbodyContactsArray([NotNull] Rigidbody2D rigidbody, ContactFilter2D contactFilter, [NotNull] ContactPoint2D[] results)
 	{
 		if ((object)rigidbody == null)
@@ -1966,9 +1968,9 @@ public class Physics2D
 		return rigidbodyContactsArray_Injected;
 	}
 
-	[NativeMethod("GetColliderContactsCollidersOnlyArray_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
-	private static int GetColliderContactsCollidersOnlyArray([NotNull] Collider2D collider, ContactFilter2D contactFilter, [NotNull][Unmarshalled] Collider2D[] results)
+	[NativeMethod("GetColliderContactsCollidersOnlyArray_Binding")]
+	private static int GetColliderContactsCollidersOnlyArray([NotNull] Collider2D collider, ContactFilter2D contactFilter, [NotNull][UnityMarshalAs(NativeType.ScriptingObjectPtr)] Collider2D[] results)
 	{
 		if ((object)collider == null)
 		{
@@ -1988,7 +1990,7 @@ public class Physics2D
 
 	[NativeMethod("GetRigidbodyContactsCollidersOnlyArray_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
-	private static int GetRigidbodyContactsCollidersOnlyArray([NotNull] Rigidbody2D rigidbody, ContactFilter2D contactFilter, [NotNull][Unmarshalled] Collider2D[] results)
+	private static int GetRigidbodyContactsCollidersOnlyArray([NotNull] Rigidbody2D rigidbody, ContactFilter2D contactFilter, [NotNull][UnityMarshalAs(NativeType.ScriptingObjectPtr)] Collider2D[] results)
 	{
 		if ((object)rigidbody == null)
 		{
@@ -2090,8 +2092,8 @@ public class Physics2D
 		}
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("GetColliderColliderContactsList_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private unsafe static int GetColliderColliderContactsList([NotNull] Collider2D collider1, [NotNull] Collider2D collider2, ContactFilter2D contactFilter, [NotNull] List<ContactPoint2D> results)
 	{
 		if ((object)collider1 == null)
@@ -2197,8 +2199,8 @@ public class Physics2D
 		return GetColliderContactsCollidersOnlyList_Injected(intPtr, ref contactFilter, results);
 	}
 
-	[NativeMethod("GetRigidbodyContactsCollidersOnlyList_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
+	[NativeMethod("GetRigidbodyContactsCollidersOnlyList_Binding")]
 	private static int GetRigidbodyContactsCollidersOnlyList([NotNull] Rigidbody2D rigidbody, ContactFilter2D contactFilter, [NotNull] List<Collider2D> results)
 	{
 		if ((object)rigidbody == null)
@@ -2243,9 +2245,9 @@ public class Physics2D
 		}
 	}
 
-	[Obsolete("LinecastNonAlloc has neen deprecated. Please use Linecast.", false)]
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("LinecastNonAlloc has neen deprecated. Please use Linecast.", false)]
 	public static int LinecastNonAlloc(Vector2 start, Vector2 end, RaycastHit2D[] results)
 	{
 		return defaultPhysicsScene.Linecast(start, end, results);
@@ -2260,17 +2262,17 @@ public class Physics2D
 		return defaultPhysicsScene.Linecast(start, end, contactFilter, results);
 	}
 
+	[Obsolete("LinecastNonAlloc has been deprecated. Please use Linecast.", false)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
-	[Obsolete("LinecastNonAlloc has been deprecated. Please use Linecast.", false)]
 	public static int LinecastNonAlloc(Vector2 start, Vector2 end, RaycastHit2D[] results, int layerMask, float minDepth)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, minDepth, float.PositiveInfinity);
 		return defaultPhysicsScene.Linecast(start, end, contactFilter, results);
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("LinecastNonAlloc has been deprecated. Please use Linecast.", false)]
 	public static int LinecastNonAlloc(Vector2 start, Vector2 end, RaycastHit2D[] results, [UnityEngine.Internal.DefaultValue("DefaultRaycastLayers")] int layerMask, [UnityEngine.Internal.DefaultValue("-Mathf.Infinity")] float minDepth, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float maxDepth)
 	{
@@ -2278,25 +2280,25 @@ public class Physics2D
 		return defaultPhysicsScene.Linecast(start, end, contactFilter, results);
 	}
 
-	[Obsolete("RaycastNonAlloc has been deprecated. Please use Raycast.", false)]
 	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("RaycastNonAlloc has been deprecated. Please use Raycast.", false)]
 	public static int RaycastNonAlloc(Vector2 origin, Vector2 direction, RaycastHit2D[] results)
 	{
 		return defaultPhysicsScene.Raycast(origin, direction, float.PositiveInfinity, results);
 	}
 
-	[ExcludeFromDocs]
 	[Obsolete("RaycastNonAlloc has been deprecated. Please use Raycast.", false)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	public static int RaycastNonAlloc(Vector2 origin, Vector2 direction, RaycastHit2D[] results, float distance)
 	{
 		return defaultPhysicsScene.Raycast(origin, direction, distance, results);
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	[ExcludeFromDocs]
 	[Obsolete("RaycastNonAlloc has been deprecated. Please use Raycast.", false)]
+	[ExcludeFromDocs]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public static int RaycastNonAlloc(Vector2 origin, Vector2 direction, RaycastHit2D[] results, float distance, int layerMask, float minDepth)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, minDepth, float.PositiveInfinity);
@@ -2304,51 +2306,51 @@ public class Physics2D
 	}
 
 	[Obsolete("RaycastNonAlloc has been deprecated. Please use Raycast.", false)]
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public static int RaycastNonAlloc(Vector2 origin, Vector2 direction, RaycastHit2D[] results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance, [UnityEngine.Internal.DefaultValue("DefaultRaycastLayers")] int layerMask, [UnityEngine.Internal.DefaultValue("-Mathf.Infinity")] float minDepth, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float maxDepth)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, minDepth, maxDepth);
 		return defaultPhysicsScene.Raycast(origin, direction, distance, contactFilter, results);
 	}
 
-	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	[Obsolete("CircleCastNonAlloc has been deprecated. Please use CircleCast instead.", false)]
 	public static int CircleCastNonAlloc(Vector2 origin, float radius, Vector2 direction, RaycastHit2D[] results)
 	{
 		return defaultPhysicsScene.CircleCast(origin, radius, direction, float.PositiveInfinity, results);
 	}
 
+	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("CircleCastNonAlloc has been deprecated. Please use CircleCast instead.", false)]
-	[ExcludeFromDocs]
 	public static int CircleCastNonAlloc(Vector2 origin, float radius, Vector2 direction, RaycastHit2D[] results, float distance)
 	{
 		return defaultPhysicsScene.CircleCast(origin, radius, direction, distance, results);
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	[Obsolete("CircleCastNonAlloc has been deprecated. Please use CircleCast instead.", false)]
 	[ExcludeFromDocs]
+	[Obsolete("CircleCastNonAlloc has been deprecated. Please use CircleCast instead.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public static int CircleCastNonAlloc(Vector2 origin, float radius, Vector2 direction, RaycastHit2D[] results, float distance, int layerMask)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, float.NegativeInfinity, float.PositiveInfinity);
 		return defaultPhysicsScene.CircleCast(origin, radius, direction, distance, contactFilter, results);
 	}
 
-	[ExcludeFromDocs]
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("CircleCastNonAlloc has been deprecated. Please use CircleCast instead.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	public static int CircleCastNonAlloc(Vector2 origin, float radius, Vector2 direction, RaycastHit2D[] results, float distance, int layerMask, float minDepth)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, minDepth, float.PositiveInfinity);
 		return defaultPhysicsScene.CircleCast(origin, radius, direction, distance, contactFilter, results);
 	}
 
-	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("CircleCastNonAlloc has been deprecated. Please use CircleCast instead.", false)]
+	[ExcludeFromDocs]
 	public static int CircleCastNonAlloc(Vector2 origin, float radius, Vector2 direction, RaycastHit2D[] results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance, [UnityEngine.Internal.DefaultValue("DefaultRaycastLayers")] int layerMask, [UnityEngine.Internal.DefaultValue("-Mathf.Infinity")] float minDepth, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float maxDepth)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, minDepth, maxDepth);
@@ -2363,35 +2365,35 @@ public class Physics2D
 		return defaultPhysicsScene.BoxCast(origin, size, angle, direction, float.PositiveInfinity, results);
 	}
 
-	[ExcludeFromDocs]
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("BoxCastNonAlloc has been deprecated. Please use BoxCast.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	public static int BoxCastNonAlloc(Vector2 origin, Vector2 size, float angle, Vector2 direction, RaycastHit2D[] results, float distance)
 	{
 		return defaultPhysicsScene.BoxCast(origin, size, angle, direction, distance, results);
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("BoxCastNonAlloc has been deprecated. Please use BoxCast.", false)]
 	[ExcludeFromDocs]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public static int BoxCastNonAlloc(Vector2 origin, Vector2 size, float angle, Vector2 direction, RaycastHit2D[] results, float distance, int layerMask)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, float.NegativeInfinity, float.PositiveInfinity);
 		return defaultPhysicsScene.BoxCast(origin, size, angle, direction, distance, contactFilter, results);
 	}
 
-	[Obsolete("BoxCastNonAlloc has been deprecated. Please use BoxCast.", false)]
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("BoxCastNonAlloc has been deprecated. Please use BoxCast.", false)]
 	public static int BoxCastNonAlloc(Vector2 origin, Vector2 size, float angle, Vector2 direction, RaycastHit2D[] results, float distance, int layerMask, float minDepth)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, minDepth, float.PositiveInfinity);
 		return defaultPhysicsScene.BoxCast(origin, size, angle, direction, distance, contactFilter, results);
 	}
 
+	[ExcludeFromDocs]
 	[Obsolete("BoxCastNonAlloc has been deprecated. Please use BoxCast.", false)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
-	[ExcludeFromDocs]
 	public static int BoxCastNonAlloc(Vector2 origin, Vector2 size, float angle, Vector2 direction, RaycastHit2D[] results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance, [UnityEngine.Internal.DefaultValue("DefaultRaycastLayers")] int layerMask, [UnityEngine.Internal.DefaultValue("-Mathf.Infinity")] float minDepth, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float maxDepth)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, minDepth, maxDepth);
@@ -2406,16 +2408,16 @@ public class Physics2D
 		return defaultPhysicsScene.CapsuleCast(origin, size, capsuleDirection, angle, direction, float.PositiveInfinity, results);
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("CapsuleCastNonAlloc has been deprecated. Please use CapsuleCast.", false)]
 	public static int CapsuleCastNonAlloc(Vector2 origin, Vector2 size, CapsuleDirection2D capsuleDirection, float angle, Vector2 direction, RaycastHit2D[] results, float distance)
 	{
 		return defaultPhysicsScene.CapsuleCast(origin, size, capsuleDirection, angle, direction, distance, results);
 	}
 
-	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	[Obsolete("CapsuleCastNonAlloc has been deprecated. Please use CapsuleCast.", false)]
 	public static int CapsuleCastNonAlloc(Vector2 origin, Vector2 size, CapsuleDirection2D capsuleDirection, float angle, Vector2 direction, RaycastHit2D[] results, float distance, int layerMask)
 	{
@@ -2432,8 +2434,8 @@ public class Physics2D
 		return defaultPhysicsScene.CapsuleCast(origin, size, capsuleDirection, angle, direction, distance, contactFilter, results);
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("CapsuleCastNonAlloc has been deprecated. Please use CapsuleCast.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
 	public static int CapsuleCastNonAlloc(Vector2 origin, Vector2 size, CapsuleDirection2D capsuleDirection, float angle, Vector2 direction, RaycastHit2D[] results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance, [UnityEngine.Internal.DefaultValue("DefaultRaycastLayers")] int layerMask, [UnityEngine.Internal.DefaultValue("-Mathf.Infinity")] float minDepth, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float maxDepth)
 	{
@@ -2449,8 +2451,8 @@ public class Physics2D
 		return defaultPhysicsScene.GetRayIntersection(ray, float.PositiveInfinity, results);
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("GetRayIntersectionNonAlloc is deprecated. Please use GetRayIntersection.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
 	public static int GetRayIntersectionNonAlloc(Ray ray, RaycastHit2D[] results, float distance)
 	{
@@ -2465,9 +2467,9 @@ public class Physics2D
 		return defaultPhysicsScene.OverlapPoint(point, results);
 	}
 
-	[Obsolete("OverlapPointNonAlloc has been deprecated. Please use OverlapPoint.", false)]
 	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("OverlapPointNonAlloc has been deprecated. Please use OverlapPoint.", false)]
 	public static int OverlapPointNonAlloc(Vector2 point, Collider2D[] results, int layerMask)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, float.NegativeInfinity, float.PositiveInfinity);
@@ -2492,17 +2494,17 @@ public class Physics2D
 		return defaultPhysicsScene.OverlapPoint(point, contactFilter, results);
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
 	[Obsolete("OverlapCircleNonAlloc has been deprecated. Please use OverlapCircle.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public static int OverlapCircleNonAlloc(Vector2 point, float radius, Collider2D[] results)
 	{
 		return defaultPhysicsScene.OverlapCircle(point, radius, results);
 	}
 
-	[ExcludeFromDocs]
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("OverlapCircleNonAlloc has been deprecated. Please use OverlapCircle.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	public static int OverlapCircleNonAlloc(Vector2 point, float radius, Collider2D[] results, int layerMask)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, float.NegativeInfinity, float.PositiveInfinity);
@@ -2510,8 +2512,8 @@ public class Physics2D
 	}
 
 	[ExcludeFromDocs]
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("OverlapCircleNonAlloc has been deprecated. Please use OverlapCircle.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public static int OverlapCircleNonAlloc(Vector2 point, float radius, Collider2D[] results, int layerMask, float minDepth)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, minDepth, float.PositiveInfinity);
@@ -2544,9 +2546,9 @@ public class Physics2D
 		return defaultPhysicsScene.OverlapBox(point, size, angle, contactFilter, results);
 	}
 
-	[ExcludeFromDocs]
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("OverlapBoxNonAlloc has been deprecated. Please use OverlapBox.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	public static int OverlapBoxNonAlloc(Vector2 point, Vector2 size, float angle, Collider2D[] results, int layerMask, float minDepth)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, minDepth, float.PositiveInfinity);
@@ -2562,17 +2564,17 @@ public class Physics2D
 		return defaultPhysicsScene.OverlapBox(point, size, angle, contactFilter, results);
 	}
 
-	[ExcludeFromDocs]
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("OverlapAreaNonAlloc has been deprecated. Please use OverlapArea.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	public static int OverlapAreaNonAlloc(Vector2 pointA, Vector2 pointB, Collider2D[] results)
 	{
 		return defaultPhysicsScene.OverlapArea(pointA, pointB, results);
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	[Obsolete("OverlapAreaNonAlloc has been deprecated. Please use OverlapArea.", false)]
 	[ExcludeFromDocs]
+	[Obsolete("OverlapAreaNonAlloc has been deprecated. Please use OverlapArea.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public static int OverlapAreaNonAlloc(Vector2 pointA, Vector2 pointB, Collider2D[] results, int layerMask)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, float.NegativeInfinity, float.PositiveInfinity);
@@ -2589,24 +2591,24 @@ public class Physics2D
 	}
 
 	[ExcludeFromDocs]
-	[Obsolete("OverlapAreaNonAlloc has been deprecated. Please use OverlapArea.", false)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("OverlapAreaNonAlloc has been deprecated. Please use OverlapArea.", false)]
 	public static int OverlapAreaNonAlloc(Vector2 pointA, Vector2 pointB, Collider2D[] results, [UnityEngine.Internal.DefaultValue("DefaultRaycastLayers")] int layerMask, [UnityEngine.Internal.DefaultValue("-Mathf.Infinity")] float minDepth, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float maxDepth)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, minDepth, maxDepth);
 		return defaultPhysicsScene.OverlapArea(pointA, pointB, contactFilter, results);
 	}
 
-	[Obsolete("OverlapCapsuleNonAlloc has been deprecated. Please use OverlapCapsule.", false)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("OverlapCapsuleNonAlloc has been deprecated. Please use OverlapCapsule.", false)]
 	[ExcludeFromDocs]
 	public static int OverlapCapsuleNonAlloc(Vector2 point, Vector2 size, CapsuleDirection2D direction, float angle, Collider2D[] results)
 	{
 		return defaultPhysicsScene.OverlapCapsule(point, size, direction, angle, results);
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("OverlapCapsuleNonAlloc has been deprecated. Please use OverlapCapsule.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
 	public static int OverlapCapsuleNonAlloc(Vector2 point, Vector2 size, CapsuleDirection2D direction, float angle, Collider2D[] results, int layerMask)
 	{
@@ -2614,18 +2616,18 @@ public class Physics2D
 		return defaultPhysicsScene.OverlapCapsule(point, size, direction, angle, contactFilter, results);
 	}
 
-	[Obsolete("OverlapCapsuleNonAlloc has been deprecated. Please use OverlapCapsule.", false)]
-	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
+	[Obsolete("OverlapCapsuleNonAlloc has been deprecated. Please use OverlapCapsule.", false)]
 	public static int OverlapCapsuleNonAlloc(Vector2 point, Vector2 size, CapsuleDirection2D direction, float angle, Collider2D[] results, int layerMask, float minDepth)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, minDepth, float.PositiveInfinity);
 		return defaultPhysicsScene.OverlapCapsule(point, size, direction, angle, contactFilter, results);
 	}
 
-	[Obsolete("OverlapCapsuleNonAlloc has been deprecated. Please use OverlapCapsule.", false)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
+	[Obsolete("OverlapCapsuleNonAlloc has been deprecated. Please use OverlapCapsule.", false)]
 	public static int OverlapCapsuleNonAlloc(Vector2 point, Vector2 size, CapsuleDirection2D direction, float angle, Collider2D[] results, [UnityEngine.Internal.DefaultValue("DefaultRaycastLayers")] int layerMask, [UnityEngine.Internal.DefaultValue("-Mathf.Infinity")] float minDepth, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float maxDepth)
 	{
 		ContactFilter2D contactFilter = ContactFilter2D.CreateLegacyFilter(layerMask, minDepth, maxDepth);

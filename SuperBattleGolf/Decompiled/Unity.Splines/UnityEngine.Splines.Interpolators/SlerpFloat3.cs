@@ -8,6 +8,6 @@ public struct SlerpFloat3 : IInterpolator<float3>
 {
 	public float3 Interpolate(float3 a, float3 b, float t)
 	{
-		return Vector3.Slerp(a, b, t);
+		return Vector3.Slerp((Vector3)a, (Vector3)b, t);
 	}
 }

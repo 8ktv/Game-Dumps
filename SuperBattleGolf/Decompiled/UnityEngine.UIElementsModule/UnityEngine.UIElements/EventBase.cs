@@ -422,7 +422,7 @@ public abstract class EventBase : IDisposable
 
 	private void LocalInit()
 	{
-		timestamp = Panel.TimeSinceStartupMs();
+		timestamp = 0L;
 		triggerEventId = 0uL;
 		eventId = s_NextEventId++;
 		propagation = EventPropagation.None;
@@ -456,6 +456,11 @@ public abstract class EventBase : IDisposable
 	internal abstract void Acquire();
 
 	public abstract void Dispose();
+
+	internal void AssignTimeStamp(long time)
+	{
+		timestamp = time;
+	}
 }
 [EventCategory(EventCategory.Default)]
 public abstract class EventBase<T> : EventBase where T : EventBase<T>, new()
@@ -470,7 +475,7 @@ public abstract class EventBase<T> : EventBase where T : EventBase<T>, new()
 
 	public override long eventTypeId => s_TypeId;
 
-	internal static void SetCreateFunction(Func<T> createMethod)
+	protected internal static void SetCreateFunction(Func<T> createMethod)
 	{
 		s_Pool.CreateFunc = createMethod;
 	}

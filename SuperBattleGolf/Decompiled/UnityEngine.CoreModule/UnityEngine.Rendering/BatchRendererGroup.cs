@@ -10,9 +10,9 @@ using UnityEngine.Scripting;
 namespace UnityEngine.Rendering;
 
 [StructLayout(LayoutKind.Sequential)]
-[RequiredByNativeCode]
 [NativeHeader("Runtime/Camera/BatchRendererGroup.h")]
 [NativeHeader("Runtime/Math/Matrix4x4.h")]
+[RequiredByNativeCode]
 public class BatchRendererGroup : IDisposable
 {
 	public delegate JobHandle OnPerformCulling(BatchRendererGroup rendererGroup, BatchCullingContext cullingContext, BatchCullingOutput cullingOutput, IntPtr userContext);
@@ -124,15 +124,15 @@ public class BatchRendererGroup : IDisposable
 		return ret;
 	}
 
-	internal unsafe void RegisterMaterials(ReadOnlySpan<int> materialID, Span<BatchMaterialID> batchMaterialID)
+	internal unsafe void RegisterMaterials(ReadOnlySpan<EntityId> materialID, Span<BatchMaterialID> batchMaterialID)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
 		if (intPtr == (IntPtr)0)
 		{
 			ThrowHelper.ThrowNullReferenceException(this);
 		}
-		ReadOnlySpan<int> readOnlySpan = materialID;
-		fixed (int* begin = readOnlySpan)
+		ReadOnlySpan<EntityId> readOnlySpan = materialID;
+		fixed (EntityId* begin = readOnlySpan)
 		{
 			ManagedSpanWrapper materialID2 = new ManagedSpanWrapper(begin, readOnlySpan.Length);
 			Span<BatchMaterialID> span = batchMaterialID;
@@ -175,15 +175,15 @@ public class BatchRendererGroup : IDisposable
 		return ret;
 	}
 
-	internal unsafe void RegisterMeshes(ReadOnlySpan<int> meshID, Span<BatchMeshID> batchMeshID)
+	internal unsafe void RegisterMeshes(ReadOnlySpan<EntityId> meshID, Span<BatchMeshID> batchMeshID)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
 		if (intPtr == (IntPtr)0)
 		{
 			ThrowHelper.ThrowNullReferenceException(this);
 		}
-		ReadOnlySpan<int> readOnlySpan = meshID;
-		fixed (int* begin = readOnlySpan)
+		ReadOnlySpan<EntityId> readOnlySpan = meshID;
+		fixed (EntityId* begin = readOnlySpan)
 		{
 			ManagedSpanWrapper meshID2 = new ManagedSpanWrapper(begin, readOnlySpan.Length);
 			Span<BatchMeshID> span = batchMeshID;
@@ -280,7 +280,7 @@ public class BatchRendererGroup : IDisposable
 	public static extern int GetConstantBufferOffsetAlignment();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private unsafe static extern IntPtr Create([Unmarshalled] BatchRendererGroup group, void* userContext);
+	private unsafe static extern IntPtr Create([UnityMarshalAs(NativeType.ScriptingObjectPtr)] BatchRendererGroup group, void* userContext);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void Destroy(IntPtr groupHandle);

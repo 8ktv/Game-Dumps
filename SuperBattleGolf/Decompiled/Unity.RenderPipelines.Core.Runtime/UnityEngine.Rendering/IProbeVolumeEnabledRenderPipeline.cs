@@ -8,6 +8,6 @@ public interface IProbeVolumeEnabledRenderPipeline
 
 	ProbeVolumeSHBands maxSHBands { get; }
 
-	[Obsolete("This field is no longer necessary")]
+	[Obsolete("This field is no longer necessary. #from(2023.3)")]
 	ProbeVolumeSceneData probeVolumeSceneData { get; }
 }

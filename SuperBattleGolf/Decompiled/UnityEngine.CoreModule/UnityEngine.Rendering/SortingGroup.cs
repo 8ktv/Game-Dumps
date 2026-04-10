@@ -4,8 +4,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.Rendering;
 
-[RequireComponent(typeof(Transform))]
 [NativeType(Header = "Runtime/2D/Sorting/SortingGroup.h")]
+[RequireComponent(typeof(Transform))]
 public sealed class SortingGroup : Behaviour
 {
 	[StaticAccessor("SortingGroup", StaticAccessorType.DoubleColon)]
@@ -183,6 +183,19 @@ public sealed class SortingGroup : Behaviour
 		}
 	}
 
+	internal bool sort3DAs2D
+	{
+		get
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			return get_sort3DAs2D_Injected(intPtr);
+		}
+	}
+
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[StaticAccessor("SortingGroup", StaticAccessorType.DoubleColon)]
 	public static extern void UpdateAllSortingGroups();
@@ -231,4 +244,7 @@ public sealed class SortingGroup : Behaviour
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern uint get_sortingKey_Injected(IntPtr _unity_self);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern bool get_sort3DAs2D_Injected(IntPtr _unity_self);
 }

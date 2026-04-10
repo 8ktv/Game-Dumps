@@ -5,9 +5,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Playables;
 
+[NativeHeader("Runtime/Director/Core/FrameRate.h")]
 [VisibleToOtherModules(new string[] { "UnityEngine.DirectorModule" })]
 [UsedByNativeCode("FrameRate")]
-[NativeHeader("Runtime/Director/Core/FrameRate.h")]
 internal struct FrameRate : IEquatable<FrameRate>
 {
 	[Ignore]

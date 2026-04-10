@@ -118,8 +118,8 @@ public struct ReadHandle : IDisposable
 		return GetReadStatus_Injected(ref handle);
 	}
 
-	[FreeFunction("AsyncReadManagerManaged::GetReadCount", IsThreadSafe = true)]
 	[ThreadAndSerializationSafe]
+	[FreeFunction("AsyncReadManagerManaged::GetReadCount", IsThreadSafe = true)]
 	private static long GetReadCount(ReadHandle handle)
 	{
 		return GetReadCount_Injected(ref handle);
@@ -139,8 +139,8 @@ public struct ReadHandle : IDisposable
 		return GetBytesReadForCommand_Injected(ref handle, readCommandIndex);
 	}
 
-	[FreeFunction("AsyncReadManagerManaged::GetBytesReadArray", IsThreadSafe = true)]
 	[ThreadAndSerializationSafe]
+	[FreeFunction("AsyncReadManagerManaged::GetBytesReadArray", IsThreadSafe = true)]
 	private unsafe static ulong* GetBytesReadArray(ReadHandle handle)
 	{
 		return GetBytesReadArray_Injected(ref handle);
@@ -153,8 +153,8 @@ public struct ReadHandle : IDisposable
 		ReleaseReadHandle_Injected(ref handle);
 	}
 
-	[ThreadAndSerializationSafe]
 	[FreeFunction("AsyncReadManagerManaged::IsReadHandleValid", IsThreadSafe = true)]
+	[ThreadAndSerializationSafe]
 	private static bool IsReadHandleValid(ReadHandle handle)
 	{
 		return IsReadHandleValid_Injected(ref handle);

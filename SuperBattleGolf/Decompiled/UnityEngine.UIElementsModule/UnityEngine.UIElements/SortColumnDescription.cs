@@ -22,8 +22,8 @@ public class SortColumnDescription : INotifyBindablePropertyChanged
 		[SerializeField]
 		private SortDirection direction;
 
-		[HideInInspector]
 		[SerializeField]
+		[HideInInspector]
 		[UxmlIgnore]
 		private UxmlAttributeFlags columnName_UxmlAttributeFlags;
 

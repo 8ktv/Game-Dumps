@@ -3,8 +3,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Graphics/ColorGamut.h")]
 [UsedByNativeCode]
+[NativeHeader("Runtime/Graphics/ColorGamut.h")]
 public enum TransferFunction
 {
 	Unknown = -1,

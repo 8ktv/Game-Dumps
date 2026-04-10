@@ -94,7 +94,7 @@ internal class ListViewDragger : DragEventsProcessor
 	{
 	}
 
-	protected override bool CanStartDrag(Vector3 pointerPosition)
+	protected override bool CanStartDrag(Vector3 pointerPosition, EventModifiers modifiers)
 	{
 		if (dragAndDropController == null)
 		{
@@ -118,7 +118,7 @@ internal class ListViewDragger : DragEventsProcessor
 				enumerable2 = targetView.selectedIds;
 			}
 			IEnumerable<int> ids = enumerable2;
-			return targetView.RaiseCanStartDrag(recycledItem, ids);
+			return targetView.RaiseCanStartDrag(recycledItem, ids, modifiers);
 		}
 		if (targetView.selectedIds.Any())
 		{
@@ -127,7 +127,7 @@ internal class ListViewDragger : DragEventsProcessor
 		return recycledItem != null && dragAndDropController.CanStartDrag(new int[1] { recycledItem.id });
 	}
 
-	protected internal override StartDragArgs StartDrag(Vector3 pointerPosition)
+	protected internal override StartDragArgs StartDrag(Vector3 pointerPosition, EventModifiers modifiers)
 	{
 		ReusableCollectionItem recycledItem = GetRecycledItem(pointerPosition);
 		IEnumerable<int> itemIds;
@@ -156,10 +156,10 @@ internal class ListViewDragger : DragEventsProcessor
 		return args;
 	}
 
-	protected internal override void UpdateDrag(Vector3 pointerPosition)
+	protected internal override void UpdateDrag(Vector3 pointerPosition, EventModifiers modifiers)
 	{
 		DragPosition dragPosition = default(DragPosition);
-		DragVisualMode visualMode = GetVisualMode(pointerPosition, ref dragPosition);
+		DragVisualMode visualMode = GetVisualMode(pointerPosition, modifiers, ref dragPosition);
 		if (visualMode == DragVisualMode.Rejected)
 		{
 			ClearDragAndDropUI(dragCancelled: false);
@@ -174,14 +174,14 @@ internal class ListViewDragger : DragEventsProcessor
 		base.dragAndDrop.UpdateDrag(pointerPosition);
 	}
 
-	private DragVisualMode GetVisualMode(Vector3 pointerPosition, ref DragPosition dragPosition)
+	private DragVisualMode GetVisualMode(Vector3 pointerPosition, EventModifiers modifiers, ref DragPosition dragPosition)
 	{
 		if (dragAndDropController == null)
 		{
 			return DragVisualMode.Rejected;
 		}
 		bool flag = TryGetDragPosition(pointerPosition, ref dragPosition);
-		DragAndDropArgs dragAndDropArgs = MakeDragAndDropArgs(dragPosition);
+		DragAndDropArgs dragAndDropArgs = MakeDragAndDropArgs(dragPosition, modifiers);
 		DragVisualMode dragVisualMode = targetView.RaiseHandleDragAndDrop(pointerPosition, dragAndDropArgs);
 		if (dragVisualMode != DragVisualMode.None)
 		{
@@ -190,14 +190,14 @@ internal class ListViewDragger : DragEventsProcessor
 		return flag ? dragAndDropController.HandleDragAndDrop(dragAndDropArgs) : DragVisualMode.Rejected;
 	}
 
-	protected internal override void OnDrop(Vector3 pointerPosition)
+	protected internal override void OnDrop(Vector3 pointerPosition, EventModifiers modifiers)
 	{
 		DragPosition dragPosition = default(DragPosition);
 		if (!TryGetDragPosition(pointerPosition, ref dragPosition))
 		{
 			return;
 		}
-		DragAndDropArgs dragAndDropArgs = MakeDragAndDropArgs(dragPosition);
+		DragAndDropArgs dragAndDropArgs = MakeDragAndDropArgs(dragPosition, modifiers);
 		switch (targetView.RaiseDrop(pointerPosition, dragAndDropArgs))
 		{
 		default:
@@ -513,7 +513,7 @@ internal class ListViewDragger : DragEventsProcessor
 		}
 	}
 
-	protected DragAndDropArgs MakeDragAndDropArgs(DragPosition dragPosition)
+	protected DragAndDropArgs MakeDragAndDropArgs(DragPosition dragPosition, EventModifiers modifiers)
 	{
 		object target = null;
 		ReusableCollectionItem recycledItem = dragPosition.recycledItem;
@@ -528,7 +528,8 @@ internal class ListViewDragger : DragEventsProcessor
 			parentId = dragPosition.parentId,
 			childIndex = dragPosition.childIndex,
 			dragAndDropPosition = dragPosition.dropPosition,
-			dragAndDropData = DragAndDropUtility.GetDragAndDrop(m_Target.panel).data
+			dragAndDropData = DragAndDropUtility.GetDragAndDrop(m_Target.panel).data,
+			modifiers = modifiers
 		};
 	}
 

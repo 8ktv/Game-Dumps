@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace UnityEngine.Rendering;
 
-[Obsolete("This is not longer supported Please use DebugDisplaySettingsVolume. #from(6000.2)", false)]
+[Obsolete("This is not longer supported Please use DebugDisplaySettingsVolume. #from(6000.2)")]
 public interface IVolumeDebugSettings
 {
 	int selectedComponent { get; set; }

@@ -1,6 +1,5 @@
 using System;
 using UnityEngine.Experimental.Rendering;
-using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.RenderGraphModule.Util;
 
 namespace UnityEngine.Rendering;
@@ -17,6 +16,8 @@ public static class Blitter
 
 		public static readonly int _BlitScaleBiasRt = Shader.PropertyToID("_BlitScaleBiasRt");
 
+		public static readonly int _SourceResolution = Shader.PropertyToID("_SourceResolution");
+
 		public static readonly int _BlitMipLevel = Shader.PropertyToID("_BlitMipLevel");
 
 		public static readonly int _BlitTexArraySlice = Shader.PropertyToID("_BlitTexArraySlice");
@@ -28,6 +29,10 @@ public static class Blitter
 		public static readonly int _BlitDecodeInstructions = Shader.PropertyToID("_BlitDecodeInstructions");
 
 		public static readonly int _InputDepth = Shader.PropertyToID("_InputDepthTexture");
+
+		public static readonly int _InputDepthXR = Shader.PropertyToID("_InputDepthTextureXR");
+
+		public static readonly int _InputDepthXRMS = Shader.PropertyToID("_InputDepthTextureXR_MS");
 	}
 
 	private enum BlitShaderPassNames
@@ -60,7 +65,8 @@ public static class Blitter
 	private enum BlitColorAndDepthPassNames
 	{
 		ColorOnly,
-		ColorAndDepth
+		ColorAndDepth,
+		DepthOnly
 	}
 
 	private static Material s_Copy;
@@ -81,6 +87,12 @@ public static class Blitter
 
 	private static LocalKeyword s_DecodeHdrKeyword;
 
+	private static LocalKeyword s_ResolveDepthMSAA2X;
+
+	private static LocalKeyword s_ResolveDepthMSAA4X;
+
+	private static LocalKeyword s_ResolveDepthMSAA8X;
+
 	private static int[] s_BlitShaderPassIndicesMap;
 
 	private static int[] s_BlitColorAndDepthShaderPassIndicesMap;
@@ -95,9 +107,13 @@ public static class Blitter
 		s_Blit = CoreUtils.CreateEngineMaterial(blitPS);
 		s_BlitColorAndDepth = CoreUtils.CreateEngineMaterial(blitColorAndDepthPS);
 		s_DecodeHdrKeyword = new LocalKeyword(blitPS, "BLIT_DECODE_HDR");
+		s_ResolveDepthMSAA2X = new LocalKeyword(s_BlitColorAndDepth.shader, "_MSAA_2X");
+		s_ResolveDepthMSAA4X = new LocalKeyword(s_BlitColorAndDepth.shader, "_MSAA_4X");
+		s_ResolveDepthMSAA8X = new LocalKeyword(s_BlitColorAndDepth.shader, "_MSAA_8X");
 		if (TextureXR.useTexArray)
 		{
 			s_Blit.EnableKeyword("DISABLE_TEXTURE2D_X_ARRAY");
+			s_BlitColorAndDepth.EnableKeyword("DISABLE_TEXTURE2D_X_ARRAY");
 			s_BlitTexArray = CoreUtils.CreateEngineMaterial(blitPS);
 			s_BlitTexArraySingleSlice = CoreUtils.CreateEngineMaterial(blitPS);
 			s_BlitTexArraySingleSlice.EnableKeyword("BLIT_SINGLE_SLICE");
@@ -277,10 +293,10 @@ public static class Blitter
 		return s_Copy.passCount == 2;
 	}
 
-	internal static bool CanCopyMSAA(in TextureDesc sourceDesc)
+	internal static bool CanCopyMSAA(bool srcBindTextureMS)
 	{
 		bool flag = SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12;
-		if (SystemInfo.supportsMultisampleAutoResolve && !flag && !sourceDesc.bindTextureMS)
+		if (SystemInfo.supportsMultisampleAutoResolve && !flag && !srcBindTextureMS)
 		{
 			return false;
 		}
@@ -319,8 +335,9 @@ public static class Blitter
 
 	public static void BlitTexture(CommandBuffer cmd, RTHandle source, Vector4 scaleBias, float mipLevel, bool bilinear)
 	{
+		TextureDimension dimension = ((source.rt != null) ? source.rt.dimension : TextureXR.dimension);
 		s_PropertyBlock.SetFloat(BlitShaderIDs._BlitMipLevel, mipLevel);
-		BlitTexture(cmd, source, scaleBias, GetBlitMaterial(TextureXR.dimension), s_BlitShaderPassIndicesMap[bilinear ? 1 : 0]);
+		BlitTexture(cmd, source, scaleBias, GetBlitMaterial(dimension), s_BlitShaderPassIndicesMap[bilinear ? 1 : 0]);
 	}
 
 	public static void BlitTexture2D(RasterCommandBuffer cmd, RTHandle source, Vector4 scaleBias, float mipLevel, bool bilinear)
@@ -349,6 +366,25 @@ public static class Blitter
 			s_PropertyBlock.SetTexture(BlitShaderIDs._InputDepth, sourceDepth, RenderTextureSubElement.Depth);
 		}
 		DrawTriangle(cmd, s_BlitColorAndDepth, s_BlitColorAndDepthShaderPassIndicesMap[blitDepth ? 1 : 0]);
+	}
+
+	public static void BlitDepth(CommandBuffer cmd, RenderTexture sourceDepth, Vector4 scaleBias, float mipLevel)
+	{
+		s_PropertyBlock.SetFloat(BlitShaderIDs._BlitMipLevel, mipLevel);
+		s_PropertyBlock.SetVector(BlitShaderIDs._BlitScaleBias, scaleBias);
+		s_PropertyBlock.SetVector(BlitShaderIDs._SourceResolution, new Vector2(sourceDepth.width, sourceDepth.height));
+		cmd.SetKeyword(s_BlitColorAndDepth, in s_ResolveDepthMSAA2X, sourceDepth.antiAliasing == 2);
+		cmd.SetKeyword(s_BlitColorAndDepth, in s_ResolveDepthMSAA4X, sourceDepth.antiAliasing == 4);
+		cmd.SetKeyword(s_BlitColorAndDepth, in s_ResolveDepthMSAA8X, sourceDepth.antiAliasing == 8);
+		if (sourceDepth.antiAliasing > 1)
+		{
+			s_PropertyBlock.SetTexture(BlitShaderIDs._InputDepthXRMS, sourceDepth, RenderTextureSubElement.Depth);
+		}
+		else
+		{
+			s_PropertyBlock.SetTexture(BlitShaderIDs._InputDepthXR, sourceDepth, RenderTextureSubElement.Depth);
+		}
+		DrawTriangle(cmd, s_BlitColorAndDepth, s_BlitColorAndDepthShaderPassIndicesMap[2]);
 	}
 
 	public static void BlitTexture(RasterCommandBuffer cmd, RTHandle source, Vector4 scaleBias, Material material, int pass)
@@ -432,11 +468,16 @@ public static class Blitter
 		BlitTexture(cmd, source, vector, material, pass);
 	}
 
+	public static void BlitCameraTexture(CommandBuffer cmd, RTHandle source, RTHandle destination, Vector4 scaleBias, RenderBufferLoadAction loadAction, RenderBufferStoreAction storeAction, Material material, int pass)
+	{
+		CoreUtils.SetRenderTarget(cmd, destination, loadAction, storeAction, ClearFlag.None, Color.clear);
+		BlitTexture(cmd, source, scaleBias, material, pass);
+	}
+
 	public static void BlitCameraTexture(CommandBuffer cmd, RTHandle source, RTHandle destination, RenderBufferLoadAction loadAction, RenderBufferStoreAction storeAction, Material material, int pass)
 	{
 		Vector2 vector = (source.useScaling ? new Vector2(source.rtHandleProperties.rtHandleScale.x, source.rtHandleProperties.rtHandleScale.y) : Vector2.one);
-		CoreUtils.SetRenderTarget(cmd, destination, loadAction, storeAction, ClearFlag.None, Color.clear);
-		BlitTexture(cmd, source, vector, material, pass);
+		BlitCameraTexture(cmd, source, destination, vector, loadAction, storeAction, material, pass);
 	}
 
 	public static void BlitCameraTexture(CommandBuffer cmd, RTHandle source, RTHandle destination, Vector4 scaleBias, float mipLevel = 0f, bool bilinear = false)

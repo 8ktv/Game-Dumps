@@ -10,9 +10,9 @@ using UnityEngine.Scripting.APIUpdating;
 namespace UnityEngine.Windows.WebCam;
 
 [StructLayout(LayoutKind.Sequential)]
+[StaticAccessor("VideoCaptureBindings", StaticAccessorType.DoubleColon)]
 [NativeHeader("PlatformDependent/Win/Webcam/VideoCaptureBindings.h")]
 [MovedFrom("UnityEngine.XR.WSA.WebCam")]
-[StaticAccessor("VideoCaptureBindings", StaticAccessorType.DoubleColon)]
 public class VideoCapture : IDisposable
 {
 	public enum CaptureResultType
@@ -76,8 +76,8 @@ public class VideoCapture : IDisposable
 
 	public bool IsRecording
 	{
-		[NativeMethod("VideoCaptureBindings::IsRecording", HasExplicitThis = true)]
 		[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
+		[NativeMethod("VideoCaptureBindings::IsRecording", HasExplicitThis = true)]
 		get
 		{
 			IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -107,8 +107,8 @@ public class VideoCapture : IDisposable
 		return result;
 	}
 
-	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
 	[NativeName("GetSupportedResolutions")]
+	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
 	private static Resolution[] GetSupportedResolutions_Internal()
 	{
 		BlittableArrayWrapper ret = default(BlittableArrayWrapper);
@@ -374,9 +374,9 @@ public class VideoCapture : IDisposable
 		}
 	}
 
-	[ThreadAndSerializationSafe]
 	[NativeConditional("(PLATFORM_WIN || PLATFORM_WINRT) && !PLATFORM_XBOXONE")]
 	[NativeMethod("VideoCaptureBindings::DisposeThreaded", HasExplicitThis = true)]
+	[ThreadAndSerializationSafe]
 	private void DisposeThreaded_Internal()
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);

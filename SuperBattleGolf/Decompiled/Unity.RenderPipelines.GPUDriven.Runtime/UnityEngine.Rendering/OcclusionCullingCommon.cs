@@ -156,7 +156,7 @@ internal class OcclusionCullingCommon : IDisposable
 		cmd.SetComputeBufferParam(shader.cs, kernel, ShaderIDs._OcclusionDebugOverlay, occluderHandles.occlusionDebugOverlay);
 	}
 
-	public void RenderDebugOcclusionTestOverlay(RenderGraph renderGraph, DebugDisplayGPUResidentDrawer debugSettings, int viewInstanceID, TextureHandle colorBuffer)
+	public void RenderDebugOcclusionTestOverlay(RenderGraph renderGraph, DebugDisplayGPUResidentDrawer debugSettings, int viewInstanceID, in TextureHandle colorBuffer)
 	{
 		if (debugSettings == null || !debugSettings.occlusionTestOverlayEnable)
 		{
@@ -168,7 +168,7 @@ internal class OcclusionCullingCommon : IDisposable
 			return;
 		}
 		OcclusionTestOverlaySetupPassData passData;
-		using (IComputeRenderGraphBuilder computeRenderGraphBuilder = renderGraph.AddComputePass<OcclusionTestOverlaySetupPassData>("OcclusionTestOverlay", out passData, m_ProfilingSamplerOcclusionTestOverlay, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\GPUDriven\\OcclusionCullingCommon.cs", 275))
+		using (IComputeRenderGraphBuilder computeRenderGraphBuilder = renderGraph.AddComputePass<OcclusionTestOverlaySetupPassData>("OcclusionTestOverlay", out passData, m_ProfilingSamplerOcclusionTestOverlay, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\GPUDriven\\OcclusionCullingCommon.cs", 275))
 		{
 			computeRenderGraphBuilder.AllowPassCulling(value: false);
 			passData.cb = occlusionTestDebugOutput.cb;
@@ -181,7 +181,7 @@ internal class OcclusionCullingCommon : IDisposable
 			});
 		}
 		OcclusionTestOverlayPassData passData2;
-		using IRasterRenderGraphBuilder rasterRenderGraphBuilder = renderGraph.AddRasterRenderPass<OcclusionTestOverlayPassData>("OcclusionTestOverlay", out passData2, m_ProfilingSamplerOcclusionTestOverlay, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\GPUDriven\\OcclusionCullingCommon.cs", 297);
+		using IRasterRenderGraphBuilder rasterRenderGraphBuilder = renderGraph.AddRasterRenderPass<OcclusionTestOverlayPassData>("OcclusionTestOverlay", out passData2, m_ProfilingSamplerOcclusionTestOverlay, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\GPUDriven\\OcclusionCullingCommon.cs", 297);
 		rasterRenderGraphBuilder.AllowGlobalStateModification(value: true);
 		passData2.debugPyramid = renderGraph.ImportBuffer(occlusionTestDebugOutput.occlusionDebugOverlay);
 		rasterRenderGraphBuilder.SetRenderAttachment(colorBuffer, 0);
@@ -193,7 +193,7 @@ internal class OcclusionCullingCommon : IDisposable
 		});
 	}
 
-	public void RenderDebugOccluderOverlay(RenderGraph renderGraph, DebugDisplayGPUResidentDrawer debugSettings, Vector2 screenPos, float maxHeight, TextureHandle colorBuffer)
+	public void RenderDebugOccluderOverlay(RenderGraph renderGraph, DebugDisplayGPUResidentDrawer debugSettings, Vector2 screenPos, float maxHeight, in TextureHandle colorBuffer)
 	{
 		if (debugSettings == null || !debugSettings.occluderDebugViewEnable || !debugSettings.GetOccluderViewInstanceID(out var viewInstanceID))
 		{
@@ -211,7 +211,7 @@ internal class OcclusionCullingCommon : IDisposable
 		vector *= num;
 		Rect viewport = new Rect(screenPos.x, screenPos.y, vector.x, vector.y);
 		OccluderOverlayPassData passData;
-		using IRasterRenderGraphBuilder rasterRenderGraphBuilder = renderGraph.AddRasterRenderPass<OccluderOverlayPassData>("OccluderOverlay", out passData, m_ProfilingSamplerOccluderOverlay, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\GPUDriven\\OcclusionCullingCommon.cs", 353);
+		using IRasterRenderGraphBuilder rasterRenderGraphBuilder = renderGraph.AddRasterRenderPass<OccluderOverlayPassData>("OccluderOverlay", out passData, m_ProfilingSamplerOccluderOverlay, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\GPUDriven\\OcclusionCullingCommon.cs", 353);
 		rasterRenderGraphBuilder.AllowGlobalStateModification(value: true);
 		rasterRenderGraphBuilder.SetRenderAttachment(colorBuffer, 0);
 		passData.debugMaterial = occluderDebugViewMaterial;
@@ -292,7 +292,7 @@ internal class OcclusionCullingCommon : IDisposable
 			return false;
 		}
 		UpdateOccludersPassData passData;
-		using (IComputeRenderGraphBuilder computeRenderGraphBuilder = renderGraph.AddComputePass<UpdateOccludersPassData>("Update Occluders", out passData, m_ProfilingSamplerUpdateOccluders, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@e2a954003fc5\\Runtime\\GPUDriven\\OcclusionCullingCommon.cs", 454))
+		using (IComputeRenderGraphBuilder computeRenderGraphBuilder = renderGraph.AddComputePass<UpdateOccludersPassData>("Update Occluders", out passData, m_ProfilingSamplerUpdateOccluders, ".\\Library\\PackageCache\\com.unity.render-pipelines.core@04ab0eefa0c3\\Runtime\\GPUDriven\\OcclusionCullingCommon.cs", 454))
 		{
 			computeRenderGraphBuilder.AllowGlobalStateModification(value: true);
 			passData.occluderParams = occluderParams;

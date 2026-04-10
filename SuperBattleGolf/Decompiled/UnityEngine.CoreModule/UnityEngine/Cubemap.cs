@@ -10,8 +10,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Graphics/CubemapTexture.h")]
 [ExcludeFromPreset]
+[NativeHeader("Runtime/Graphics/CubemapTexture.h")]
 public sealed class Cubemap : Texture
 {
 	public TextureFormat format
@@ -244,7 +244,7 @@ public sealed class Cubemap : Texture
 	}
 
 	[FreeFunction(Name = "CubemapScripting::GetPixels", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public Color[] GetPixels(CubemapFace face, int miplevel)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -400,8 +400,8 @@ public sealed class Cubemap : Texture
 	{
 	}
 
-	[RequiredByNativeCode]
 	[ExcludeFromDocs]
+	[RequiredByNativeCode]
 	public Cubemap(int width, GraphicsFormat format, TextureCreationFlags flags)
 		: this(width, format, flags, Texture.GenerateAllMips)
 	{

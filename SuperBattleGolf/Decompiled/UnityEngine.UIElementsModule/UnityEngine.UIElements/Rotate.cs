@@ -4,6 +4,7 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct Rotate : IEquatable<Rotate>
 {
 	internal class PropertyBag : ContainerPropertyBag<Rotate>
@@ -49,10 +50,13 @@ public struct Rotate : IEquatable<Rotate>
 		}
 	}
 
+	[SerializeField]
 	private Angle m_Angle;
 
+	[SerializeField]
 	private Vector3 m_Axis;
 
+	[SerializeField]
 	private bool m_IsNone;
 
 	public Angle angle
@@ -147,7 +151,7 @@ public struct Rotate : IEquatable<Rotate>
 
 	public override string ToString()
 	{
-		return m_Angle.ToString() + " " + m_Axis.ToString();
+		return m_Angle.ToString() + " " + m_Axis;
 	}
 
 	internal Quaternion ToQuaternion()

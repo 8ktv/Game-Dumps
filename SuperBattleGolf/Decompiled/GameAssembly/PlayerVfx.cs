@@ -63,6 +63,10 @@ public class PlayerVfx : MonoBehaviour
 			{
 				return false;
 			}
+			if (playerInfo.AsSpectator.IsSpectating)
+			{
+				return false;
+			}
 			return true;
 		}
 		void UpdateVoiceChatVfx()
@@ -73,7 +77,7 @@ public class PlayerVfx : MonoBehaviour
 				voiceChatVfx.SetPlaying(flag);
 				if (flag)
 				{
-					voiceChatVfx.SetIntensity((playerInfo.VoiceChat.voiceNetworker.SmoothedNormalizedVolume > 0.9f) ? 1f : 0f);
+					voiceChatVfx.SetIntensity((playerInfo.VoiceChat.voiceNetworker.SlowSmoothedNormalizedVolume > 0.9f) ? 1f : 0f);
 				}
 			}
 		}

@@ -6,8 +6,8 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
-[NativeHeader("Runtime/Graphics/LightmapData.h")]
 [UsedByNativeCode]
+[NativeHeader("Runtime/Graphics/LightmapData.h")]
 public sealed class LightmapData
 {
 	internal Texture2D m_Light;

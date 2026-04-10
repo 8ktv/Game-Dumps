@@ -33,15 +33,15 @@ internal static class MultipleDisplayUtilities
 	public static Vector3 RelativeMouseAtScaled(Vector2 position, int displayIndex)
 	{
 		Display main = Display.main;
+		if (!Screen.fullScreen)
+		{
+			return new Vector3(position.x, position.y, displayIndex);
+		}
 		if (displayIndex >= Display.displays.Length)
 		{
 			displayIndex = 0;
 		}
 		main = Display.displays[displayIndex];
-		if (!Screen.fullScreen)
-		{
-			return new Vector3(position.x, position.y, displayIndex);
-		}
 		if (main.renderingWidth != main.systemWidth || main.renderingHeight != main.systemHeight)
 		{
 			float num = (float)main.systemWidth / (float)main.systemHeight;

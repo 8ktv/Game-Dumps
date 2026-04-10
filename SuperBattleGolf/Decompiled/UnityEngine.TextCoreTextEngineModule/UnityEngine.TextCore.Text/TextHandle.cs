@@ -1,3 +1,4 @@
+#define UNITY_ASSERTIONS
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,10 +7,17 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine.TextCore.Text;
 
+[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule", "UnityEngine.UIElementsModule", "UnityEditor.QuickSearchModule" })]
 [DebuggerDisplay("{settings.text}")]
-[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule", "UnityEngine.UIElementsModule" })]
 internal class TextHandle
 {
+	[Flags]
+	private protected enum TextHandleFlags
+	{
+		IsCachedPermanentTextCore = 2,
+		IsCachedPermanentATG = 4
+	}
+
 	internal readonly record struct GlyphMetricsForOverlay
 	{
 		public readonly bool isVisible;
@@ -85,8 +93,11 @@ internal class TextHandle
 
 	protected bool m_IsElided;
 
-	[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule", "UnityEngine.UIElementsModule" })]
-	internal IntPtr textGenerationInfo = IntPtr.Zero;
+	private int m_CreateGenerationIteration;
+
+	private IntPtr m_TextGenerationInfo;
+
+	private protected TextHandleFlags m_TextHandleFlags;
 
 	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
 	internal int m_PreviousGenerationSettingsHash;
@@ -151,10 +162,86 @@ internal class TextHandle
 		}
 	}
 
-	internal LinkedListNode<TextInfo> TextInfoNode { get; set; }
+	[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule", "UnityEngine.UIElementsModule" })]
+	internal IntPtr textGenerationInfo
+	{
+		get
+		{
+			if (IsCachedPermanentATG)
+			{
+				Debug.Assert(m_TextGenerationInfo != IntPtr.Zero, "Internal Text Error: element is marked in permanent cache but the cache doesn't exist");
+			}
+			if (!IsCachedPermanentATG && m_CreateGenerationIteration != TextGenerationInfo.CurrentGenerationIteration)
+			{
+				m_TextGenerationInfo = IntPtr.Zero;
+			}
+			return m_TextGenerationInfo;
+		}
+		set
+		{
+			Debug.Assert(value == IntPtr.Zero || m_TextGenerationInfo == IntPtr.Zero, "Internal Text Error: Transitioning from one cache structure to another directly. This might cause a memory leak");
+			m_TextGenerationInfo = value;
+			bool flag = m_TextHandleFlags.HasFlag(TextHandleFlags.IsCachedPermanentATG);
+			m_CreateGenerationIteration = TextGenerationInfo.CurrentGenerationIteration;
+		}
+	}
 
-	internal bool IsCachedPermanent { get; set; }
+	internal LinkedListNode<TextCacheEntry> TextInfoNode { get; set; }
 
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+	protected internal bool IsCachedPermanent => (m_TextHandleFlags & (TextHandleFlags.IsCachedPermanentTextCore | TextHandleFlags.IsCachedPermanentATG)) != 0;
+
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+	internal bool IsCachedPermanentATG
+	{
+		get
+		{
+			bool flag = m_TextHandleFlags.HasFlag(TextHandleFlags.IsCachedPermanentATG);
+			if (flag)
+			{
+				Debug.Assert(m_TextGenerationInfo != IntPtr.Zero, "Internal Text Error : The element is marked as being in the permanent cache without having the cache assigned");
+			}
+			return flag;
+		}
+		set
+		{
+			if (value)
+			{
+				m_TextHandleFlags |= TextHandleFlags.IsCachedPermanentATG;
+			}
+			else
+			{
+				m_TextHandleFlags ^= TextHandleFlags.IsCachedPermanentATG;
+			}
+		}
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+	internal bool IsCachedPermanentTextCore
+	{
+		get
+		{
+			bool flag = m_TextHandleFlags.HasFlag(TextHandleFlags.IsCachedPermanentTextCore);
+			if (!IsCachedTemporary)
+			{
+				Debug.AssertFormat(flag == (TextInfoNode != null), "TextHandle : TextCore Permananent cache mismatch. isCache {0} but {1}", flag, (TextInfoNode == null) ? " has no node" : "has a node");
+			}
+			return flag;
+		}
+		set
+		{
+			if (value)
+			{
+				m_TextHandleFlags |= TextHandleFlags.IsCachedPermanentTextCore;
+			}
+			else
+			{
+				m_TextHandleFlags ^= TextHandleFlags.IsCachedPermanentTextCore;
+			}
+		}
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
 	internal bool IsCachedTemporary { get; set; }
 
 	internal bool useAdvancedText
@@ -171,7 +258,7 @@ internal class TextHandle
 		[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule", "UnityEngine.UIElementsModule" })]
 		get
 		{
-			return useAdvancedText ? nativeSettings.text.Length : textInfo.characterCount;
+			return useAdvancedText ? TextLib.GetCharacterCount(textGenerationInfo) : textInfo.characterCount;
 		}
 	}
 
@@ -180,11 +267,15 @@ internal class TextHandle
 		[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule", "UnityEngine.UIElementsModule" })]
 		get
 		{
+			if (useAdvancedText)
+			{
+				Debug.LogError("TextHandle.textInfo should not be used with Advanced Text, use textGenerationInfo instead.");
+			}
 			if (TextInfoNode == null)
 			{
 				return textInfoCommon;
 			}
-			return TextInfoNode.Value;
+			return TextInfoNode.Value.textInfo;
 		}
 	}
 
@@ -192,8 +283,8 @@ internal class TextHandle
 
 	~TextHandle()
 	{
-		RemoveTextInfoFromTemporaryCache();
-		RemoveTextInfoFromPermanentCache();
+		RemoveFromTemporaryCache();
+		RemoveFromPermanentCache();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule", "UnityEngine.UIElementsModule" })]
@@ -250,7 +341,7 @@ internal class TextHandle
 		{
 			throw new InvalidOperationException("Method is virtual and should be overriden in ATGTextHanle, the only valid handle for ATG");
 		}
-		s_PermanentCache.AddTextInfoToCache(this);
+		s_PermanentCache.AddToCache(this);
 	}
 
 	public void AddTextInfoToTemporaryCache(int hashCode)
@@ -261,21 +352,29 @@ internal class TextHandle
 		}
 	}
 
-	public void RemoveTextInfoFromTemporaryCache()
+	public void RemoveFromTemporaryCache()
 	{
-		s_TemporaryCache.RemoveTextInfoFromCache(this);
+		s_TemporaryCache.RemoveFromCache(this);
 	}
 
-	public void RemoveTextInfoFromPermanentCache()
+	public void RemoveFromPermanentCache()
 	{
-		if (textGenerationInfo != IntPtr.Zero)
+		RemoveFromPermanentCacheATG();
+		RemoveFromPermanentCacheTextCore();
+	}
+
+	public void RemoveFromPermanentCacheTextCore()
+	{
+		s_PermanentCache.RemoveFromCache(this);
+	}
+
+	public virtual void RemoveFromPermanentCacheATG()
+	{
+		if (IsCachedPermanentATG)
 		{
 			TextGenerationInfo.Destroy(textGenerationInfo);
 			textGenerationInfo = IntPtr.Zero;
-		}
-		else
-		{
-			s_PermanentCache.RemoveTextInfoFromCache(this);
+			IsCachedPermanentATG = false;
 		}
 	}
 
@@ -596,7 +695,7 @@ internal class TextHandle
 		{
 			return GetLineInfoFromCharacterIndex(currentIndex).lastCharacterIndex;
 		}
-		return TextSelectionService.GetLastCharacterIndexOnLine(textGenerationInfo, currentIndex);
+		return TextSelectionService.GetLastCharacterIndexOnLine(textGenerationInfo, currentIndex) + 1;
 	}
 
 	public int IndexOf(char value, int startIndex)

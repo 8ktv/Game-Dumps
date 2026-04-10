@@ -6,9 +6,9 @@ using UnityEngine.Scripting;
 namespace UnityEngine.Android;
 
 [StructLayout(LayoutKind.Sequential)]
-[NativeAsStruct]
 [NativeType(Header = "Modules/AndroidJNI/Public/AndroidConfiguration.bindings.h")]
 [RequiredByNativeCode]
+[NativeAsStruct]
 public sealed class AndroidConfiguration
 {
 	private const int UiModeNightMask = 48;

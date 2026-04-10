@@ -62,7 +62,10 @@ internal class ColumnLayout
 				m_ColumnsWidth = 0f;
 				foreach (Column visible in m_Columns.visibleList)
 				{
-					m_ColumnsWidth += visible.desiredWidth;
+					if (!float.IsNaN(visible.desiredWidth))
+					{
+						m_ColumnsWidth += visible.desiredWidth;
+					}
 				}
 				m_ColumnsWidthDirty = false;
 			}
@@ -134,9 +137,67 @@ internal class ColumnLayout
 
 	private void OnColumnChanged(Column column, ColumnDataType type)
 	{
-		if (!m_DragResizing && RequiresLayoutUpdate(type))
+		if (m_DragResizing || !RequiresLayoutUpdate(type))
 		{
-			Dirty();
+			return;
+		}
+		Dirty();
+		if (m_Columns.stretchMode != Columns.StretchMode.Grow || type != ColumnDataType.Visibility || !column.visible || column.width.unit == LengthUnit.Percent || float.IsNaN(m_LayoutWidth))
+		{
+			return;
+		}
+		float num = columnsWidth - ((!float.IsNaN(column.desiredWidth)) ? column.desiredWidth : 0f);
+		if (num > layoutWidth)
+		{
+			return;
+		}
+		bool flag = false;
+		for (int i = 0; i < m_Columns.Count; i++)
+		{
+			Column column2 = m_Columns[i];
+			if (column2.visible && column2.stretchable && column2 != column)
+			{
+				flag = true;
+				break;
+			}
+		}
+		if (flag)
+		{
+			MakeRoomForColumn(column);
+		}
+	}
+
+	private void MakeRoomForColumn(Column column)
+	{
+		UpdateCache();
+		float minWidth = column.GetMinWidth(m_LayoutWidth);
+		float maxWidth = column.GetMaxWidth(m_LayoutWidth);
+		float num = column.desiredWidth;
+		if (float.IsNaN(num))
+		{
+			num = column.GetWidth(m_LayoutWidth);
+		}
+		num = Mathf.Clamp(num, minWidth, maxWidth);
+		float num2 = columnsWidth - ((!float.IsNaN(column.desiredWidth)) ? column.desiredWidth : 0f);
+		float num3 = m_LayoutWidth - num2;
+		float delta = num - num3;
+		if (delta < 0f)
+		{
+			return;
+		}
+		List<Column> value;
+		using (CollectionPool<List<Column>, Column>.Get(out value))
+		{
+			List<Column> value2;
+			using (CollectionPool<List<Column>, Column>.Get(out value2))
+			{
+				value.AddRange(m_StretchableColumns);
+				if (column.stretchable)
+				{
+					value.Remove(column);
+				}
+				StretchResizeColumns(value, value2, value2, ref delta, resizeToFit: false, dragResize: false);
+			}
 		}
 	}
 
@@ -164,6 +225,7 @@ internal class ColumnLayout
 		float num = 0f;
 		float num2 = 0f;
 		float num3 = 0f;
+		float num4 = 0f;
 		List<Column> list = new List<Column>();
 		List<Column> list2 = new List<Column>();
 		foreach (Column column in m_Columns)
@@ -189,7 +251,7 @@ internal class ColumnLayout
 				if (m_Columns.stretchMode == Columns.StretchMode.GrowAndFill && column.stretchable)
 				{
 					list2.Add(column);
-					num3 += GetDesiredWidth(column);
+					num4 += GetDesiredWidth(column);
 				}
 				if (!IsClamped(column.desiredWidth, minWidth, maxWidth))
 				{
@@ -197,7 +259,9 @@ internal class ColumnLayout
 				}
 				if (columns.stretchMode == Columns.StretchMode.Grow && column.width.unit == LengthUnit.Percent)
 				{
+					float desiredWidth = column.desiredWidth;
 					column.desiredWidth = Mathf.Clamp(width2, minWidth, maxWidth);
+					num3 += column.desiredWidth - desiredWidth;
 				}
 			}
 			if (!column.stretchable)
@@ -208,26 +272,26 @@ internal class ColumnLayout
 		}
 		if (list.Count > 0)
 		{
-			float num4 = Math.Max(0f, width - num2);
-			int num5 = m_StretchableColumns.Count;
+			float num5 = Math.Max(0f, width - num2);
+			int num6 = m_StretchableColumns.Count;
 			list.Sort((Column c1, Column c2) => c1.GetMaxWidth(m_LayoutWidth).CompareTo(c2.GetMaxWidth(m_LayoutWidth)));
 			foreach (Column item in list)
 			{
-				float value = num4 / (float)num5;
+				float value = num5 / (float)num6;
 				item.desiredWidth = Mathf.Clamp(value, item.GetMinWidth(m_LayoutWidth), item.GetMaxWidth(m_LayoutWidth));
-				num4 = Math.Max(0f, num4 - item.desiredWidth);
-				num5--;
+				num5 = Math.Max(0f, num5 - item.desiredWidth);
+				num6--;
 			}
 			list2.Sort((Column c1, Column c2) => c1.GetMaxWidth(m_LayoutWidth).CompareTo(c2.GetMaxWidth(m_LayoutWidth)));
 			foreach (Column item2 in list2)
 			{
-				float desiredWidth = GetDesiredWidth(item2);
-				float num6 = desiredWidth / num3;
-				float value2 = num4 * num6;
+				float desiredWidth2 = GetDesiredWidth(item2);
+				float num7 = desiredWidth2 / num4;
+				float value2 = num5 * num7;
 				item2.desiredWidth = Mathf.Clamp(value2, item2.GetMinWidth(m_LayoutWidth), item2.GetMaxWidth(m_LayoutWidth));
-				num4 = Math.Max(0f, num4 - item2.desiredWidth);
-				num3 -= desiredWidth;
-				num5--;
+				num5 = Math.Max(0f, num5 - item2.desiredWidth);
+				num4 -= desiredWidth2;
+				num6--;
 			}
 		}
 		if (hasStretchableColumns || (hasRelativeWidthColumns && m_Columns.stretchMode == Columns.StretchMode.GrowAndFill))
@@ -237,7 +301,7 @@ internal class ColumnLayout
 			{
 				if (!float.IsNaN(m_PreviousWidth))
 				{
-					delta = m_PreviousWidth - width;
+					delta = ((m_PreviousWidth < width) ? ((!(width > columnsWidth)) ? 0f : (Math.Max(m_PreviousWidth, columnsWidth) - width + num3)) : ((width < columnsWidth - 0.5f && m_PreviousWidth < columnsWidth - 0.5f) ? 0f : ((!(width < columnsWidth - 0.5f) || !(m_PreviousWidth > columnsWidth + 0.5f)) ? (m_PreviousWidth - width + num3) : (columnsWidth - width + num3))));
 				}
 			}
 			else
@@ -686,7 +750,7 @@ internal class ColumnLayout
 		ClearCache();
 		foreach (Column visible in m_Columns.visibleList)
 		{
-			if (visible.stretchable && columns.stretchMode == Columns.StretchMode.GrowAndFill)
+			if (visible.stretchable)
 			{
 				m_StretchableColumns.Add(visible);
 			}

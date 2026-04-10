@@ -50,7 +50,7 @@ public static class Lightmapping
 				value.Init(ref disc, ref cookie);
 				break;
 			default:
-				value.InitNoBake(light.GetInstanceID());
+				value.InitNoBake(light.GetEntityId());
 				break;
 			}
 			lightsOutput[i] = value;

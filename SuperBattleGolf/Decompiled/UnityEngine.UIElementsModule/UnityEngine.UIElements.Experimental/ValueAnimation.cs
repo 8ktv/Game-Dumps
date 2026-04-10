@@ -81,7 +81,7 @@ public sealed class ValueAnimation<T> : IValueAnimationUpdate, IValueAnimation
 		CheckNotRecycled();
 		if (owner != null)
 		{
-			m_StartTimeMs = Panel.TimeSinceStartupMs();
+			m_StartTimeMs = owner.TimeSinceStartupMs();
 			Register();
 			isRunning = true;
 		}

@@ -103,8 +103,8 @@ public class Motion : Object
 		}
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("isAnimatorMotion is not supported anymore, please use !legacy instead.", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public bool isAnimatorMotion { get; }
 
 	protected Motion()

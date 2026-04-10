@@ -2,10 +2,13 @@ using System;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleFont : IStyleValue<Font>, IEquatable<StyleFont>
 {
+	[SerializeField]
 	private Font m_Value;
 
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
 	public Font value

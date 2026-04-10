@@ -38,11 +38,11 @@ public class ExtendedPointerEventData : PointerEventData
 		stringBuilder.AppendLine("device: " + device);
 		stringBuilder.AppendLine("pointerType: " + pointerType);
 		stringBuilder.AppendLine("touchId: " + touchId);
-		stringBuilder.AppendLine("pressPosition: " + base.pressPosition.ToString());
-		stringBuilder.AppendLine("trackedDevicePosition: " + trackedDevicePosition.ToString());
-		stringBuilder.AppendLine("trackedDeviceOrientation: " + trackedDeviceOrientation.ToString());
+		stringBuilder.AppendLine("pressPosition: " + base.pressPosition);
+		stringBuilder.AppendLine("trackedDevicePosition: " + trackedDevicePosition);
+		stringBuilder.AppendLine("trackedDeviceOrientation: " + trackedDeviceOrientation);
 		stringBuilder.AppendLine("pressure" + base.pressure);
-		stringBuilder.AppendLine("radius: " + base.radius.ToString());
+		stringBuilder.AppendLine("radius: " + base.radius);
 		stringBuilder.AppendLine("azimuthAngle: " + base.azimuthAngle);
 		stringBuilder.AppendLine("altitudeAngle: " + base.altitudeAngle);
 		stringBuilder.AppendLine("twist: " + base.twist);

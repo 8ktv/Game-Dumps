@@ -26,10 +26,16 @@ public class PhysicsManager : SingletonBehaviour<PhysicsManager>, IFixedBUpdateC
 		LocalPlayer,
 		Ball,
 		Terrain,
-		Predicted,
 		Foliage,
 		Hole,
-		TerrainEdgeDetail
+		TerrainAddition,
+		IceBlock
+	}
+
+	private enum RigidbodyType
+	{
+		Unregistered,
+		Predicted
 	}
 
 	[SerializeField]
@@ -43,7 +49,11 @@ public class PhysicsManager : SingletonBehaviour<PhysicsManager>, IFixedBUpdateC
 
 	private readonly HashSet<int> holeColliderIds = new HashSet<int>();
 
-	private readonly Dictionary<int, TerrainLayer> terrainEdgeDetailsLayerPerColliderId = new Dictionary<int, TerrainLayer>();
+	private readonly Dictionary<int, TerrainLayer> terrainAdditionLayerPerColliderId = new Dictionary<int, TerrainLayer>();
+
+	private readonly HashSet<int> iceBlockColliderIds = new HashSet<int>();
+
+	private readonly Dictionary<Collider, JumpPad> jumpPadsByCollider = new Dictionary<Collider, JumpPad>();
 
 	private int localPlayerRigidbodyId;
 
@@ -63,6 +73,30 @@ public class PhysicsManager : SingletonBehaviour<PhysicsManager>, IFixedBUpdateC
 		}
 	}
 
+	public static Dictionary<int, TerrainLayer> TerrainAdditionLayerPerColliderId
+	{
+		get
+		{
+			if (!SingletonBehaviour<PhysicsManager>.HasInstance)
+			{
+				return null;
+			}
+			return SingletonBehaviour<PhysicsManager>.Instance.terrainAdditionLayerPerColliderId;
+		}
+	}
+
+	public static Dictionary<Collider, JumpPad> JumpPadsByCollider
+	{
+		get
+		{
+			if (!SingletonBehaviour<PhysicsManager>.HasInstance)
+			{
+				return null;
+			}
+			return SingletonBehaviour<PhysicsManager>.Instance.jumpPadsByCollider;
+		}
+	}
+
 	protected override void Awake()
 	{
 		base.Awake();
@@ -77,7 +111,9 @@ public class PhysicsManager : SingletonBehaviour<PhysicsManager>, IFixedBUpdateC
 		Terrain[] terrains = TerrainManager.Terrains;
 		foreach (Terrain terrain in terrains)
 		{
-			int instanceID = terrain.GetComponent<TerrainCollider>().GetInstanceID();
+			TerrainCollider component = terrain.GetComponent<TerrainCollider>();
+			component.hasModifiableContacts = true;
+			int instanceID = component.GetInstanceID();
 			terrainsByColliderId.Add(instanceID, terrain);
 		}
 	}
@@ -187,19 +223,51 @@ public class PhysicsManager : SingletonBehaviour<PhysicsManager>, IFixedBUpdateC
 		}
 	}
 
-	public static void RegisterTerrainEdgeDetail(List<Collider> colliders, TerrainLayer terrainLayer)
+	public static void RegisterTerrainAddition(List<Collider> colliders, TerrainLayer terrainLayer)
 	{
 		if (SingletonBehaviour<PhysicsManager>.HasInstance)
 		{
-			SingletonBehaviour<PhysicsManager>.Instance.RegisterTerrainEdgeDetailInternal(colliders, terrainLayer);
+			SingletonBehaviour<PhysicsManager>.Instance.RegisterTerrainAdditionInternal(colliders, terrainLayer);
 		}
 	}
 
-	public static void DeregisterTerrainEdgeDetail(List<Collider> colliders)
+	public static void DeregisterTerrainAddition(List<Collider> colliders)
 	{
 		if (SingletonBehaviour<PhysicsManager>.HasInstance)
 		{
-			SingletonBehaviour<PhysicsManager>.Instance.DeregisterTerrainEdgeDetailInternal(colliders);
+			SingletonBehaviour<PhysicsManager>.Instance.DeregisterTerrainAdditionInternal(colliders);
+		}
+	}
+
+	public static void RegisterIceBlockCollider(Collider collider)
+	{
+		if (SingletonBehaviour<PhysicsManager>.HasInstance)
+		{
+			SingletonBehaviour<PhysicsManager>.Instance.RegisterIceBlockColliderInternal(collider);
+		}
+	}
+
+	public static void DeregisterIceBlockCollider(Collider collider)
+	{
+		if (SingletonBehaviour<PhysicsManager>.HasInstance)
+		{
+			SingletonBehaviour<PhysicsManager>.Instance.DeregisterIceBlockColliderInternal(collider);
+		}
+	}
+
+	public static void RegisterJumpPad(JumpPad jumpPad)
+	{
+		if (SingletonBehaviour<PhysicsManager>.HasInstance)
+		{
+			SingletonBehaviour<PhysicsManager>.Instance.RegisterJumpPadInternal(jumpPad);
+		}
+	}
+
+	public static void DeregisterJumpPad(JumpPad jumpPad)
+	{
+		if (SingletonBehaviour<PhysicsManager>.HasInstance)
+		{
+			SingletonBehaviour<PhysicsManager>.Instance.DeregisterJumpPadInternal(jumpPad);
 		}
 	}
 
@@ -268,20 +336,40 @@ public class PhysicsManager : SingletonBehaviour<PhysicsManager>, IFixedBUpdateC
 		holeColliderIds.Remove(collider.GetInstanceID());
 	}
 
-	private void RegisterTerrainEdgeDetailInternal(List<Collider> colliders, TerrainLayer terrainLayer)
+	private void RegisterTerrainAdditionInternal(List<Collider> colliders, TerrainLayer terrainLayer)
 	{
 		foreach (Collider collider in colliders)
 		{
-			terrainEdgeDetailsLayerPerColliderId.Add(collider.GetInstanceID(), terrainLayer);
+			terrainAdditionLayerPerColliderId.Add(collider.GetInstanceID(), terrainLayer);
 		}
 	}
 
-	private void DeregisterTerrainEdgeDetailInternal(List<Collider> colliders)
+	private void DeregisterTerrainAdditionInternal(List<Collider> colliders)
 	{
 		foreach (Collider collider in colliders)
 		{
-			terrainEdgeDetailsLayerPerColliderId.Remove(collider.GetInstanceID());
+			terrainAdditionLayerPerColliderId.Remove(collider.GetInstanceID());
 		}
+	}
+
+	private void RegisterIceBlockColliderInternal(Collider collider)
+	{
+		iceBlockColliderIds.Add(collider.GetInstanceID());
+	}
+
+	private void DeregisterIceBlockColliderInternal(Collider collider)
+	{
+		iceBlockColliderIds.Remove(collider.GetInstanceID());
+	}
+
+	private void RegisterJumpPadInternal(JumpPad jumpPad)
+	{
+		jumpPadsByCollider.Add(jumpPad.Collider.Collider, jumpPad);
+	}
+
+	private void DeregisterJumpPadInternal(JumpPad jumpPad)
+	{
+		jumpPadsByCollider.Remove(jumpPad.Collider.Collider);
 	}
 
 	private void ModifyRegularContacts(PhysicsScene scene, NativeArray<ModifiableContactPair> contactPairs)
@@ -303,72 +391,75 @@ public class PhysicsManager : SingletonBehaviour<PhysicsManager>, IFixedBUpdateC
 			{
 				continue;
 			}
-			ColliderType firstColliderType = GetColliderType(contactPair.colliderInstanceID, contactPair.bodyInstanceID);
+			RigidbodyType rigidbodyType;
+			ColliderType firstColliderType = GetFirstColliderType(contactPair, out rigidbodyType);
+			if (rigidbodyType == RigidbodyType.Predicted && GetSecondColliderType(contactPair, out var rigidbodyType2) == ColliderType.LocalPlayer)
+			{
+				ResolveLocalPlayerPredictedContactPair(contactPair, otherIsPredicted: false);
+				continue;
+			}
+			if (firstColliderType == ColliderType.IceBlock)
+			{
+				ResolveContactPairWithIceBlock(contactPair);
+				continue;
+			}
+			if (firstColliderType == ColliderType.Terrain)
+			{
+				ResolveContactPairWithTerrain(contactPair, GetSecondColliderType(contactPair, out rigidbodyType2));
+				continue;
+			}
+			if (firstColliderType == ColliderType.TerrainAddition)
+			{
+				ResolveContactPairWithTerrainAddition(contactPair, contactPair.colliderInstanceID, GetSecondColliderType(contactPair, out rigidbodyType2));
+				continue;
+			}
 			if (firstColliderType == ColliderType.Foliage)
 			{
 				rigidbodiesInFoliage.Add(contactPair.otherBodyInstanceID);
 				IgnoreContactPair(contactPair);
 				continue;
 			}
-			ColliderType colliderType = GetColliderType(contactPair.otherColliderInstanceID, contactPair.otherBodyInstanceID);
-			if (colliderType == ColliderType.Foliage)
+			RigidbodyType rigidbodyType3;
+			ColliderType colliderType = GetSecondColliderType(contactPair, out rigidbodyType3);
+			if (rigidbodyType3 == RigidbodyType.Predicted && GetFirstColliderType(contactPair, out rigidbodyType2) == ColliderType.LocalPlayer)
 			{
+				ResolveLocalPlayerPredictedContactPair(contactPair, otherIsPredicted: true);
+				continue;
+			}
+			switch (colliderType)
+			{
+			case ColliderType.IceBlock:
+				ResolveContactPairWithIceBlock(contactPair);
+				continue;
+			case ColliderType.Terrain:
+				ResolveContactPairWithTerrain(contactPair, firstColliderType);
+				continue;
+			case ColliderType.TerrainAddition:
+				ResolveContactPairWithTerrainAddition(contactPair, contactPair.otherColliderInstanceID, firstColliderType);
+				continue;
+			case ColliderType.Foliage:
 				rigidbodiesInFoliage.Add(contactPair.bodyInstanceID);
 				IgnoreContactPair(contactPair);
+				continue;
 			}
-			else
+			if (firstColliderType == ColliderType.Unregistered || colliderType == ColliderType.Unregistered)
 			{
-				if (firstColliderType == ColliderType.Unregistered || colliderType == ColliderType.Unregistered)
+				continue;
+			}
+			switch (firstColliderType)
+			{
+			case ColliderType.Ball:
+				if (colliderType == ColliderType.Hole)
 				{
-					continue;
+					ResolveBallHoleContactPair(contactPair);
 				}
-				switch (firstColliderType)
+				break;
+			case ColliderType.Hole:
+				if (colliderType == ColliderType.Ball)
 				{
-				case ColliderType.Ball:
-					switch (colliderType)
-					{
-					case ColliderType.Terrain:
-						ResolveBallTerrainContactPair(contactPair);
-						break;
-					case ColliderType.Hole:
-						ResolveBallHoleContactPair(contactPair);
-						break;
-					case ColliderType.TerrainEdgeDetail:
-						ResolveBallTerrainEdgeDetailContactPair(contactPair, contactPair.otherColliderInstanceID);
-						break;
-					}
-					break;
-				case ColliderType.Terrain:
-					if (colliderType == ColliderType.Ball)
-					{
-						ResolveBallTerrainContactPair(contactPair);
-					}
-					break;
-				case ColliderType.TerrainEdgeDetail:
-					if (colliderType == ColliderType.Ball)
-					{
-						ResolveBallTerrainEdgeDetailContactPair(contactPair, contactPair.colliderInstanceID);
-					}
-					break;
-				case ColliderType.LocalPlayer:
-					if (colliderType == ColliderType.Predicted)
-					{
-						ResolveLocalPlayerPredictedContactPair(contactPair, otherIsPredicted: true);
-					}
-					break;
-				case ColliderType.Hole:
-					if (colliderType == ColliderType.Ball)
-					{
-						ResolveBallHoleContactPair(contactPair);
-					}
-					break;
-				case ColliderType.Predicted:
-					if (colliderType == ColliderType.LocalPlayer)
-					{
-						ResolveLocalPlayerPredictedContactPair(contactPair, otherIsPredicted: false);
-					}
-					break;
+					ResolveBallHoleContactPair(contactPair);
 				}
+				break;
 			}
 			void ResolveBallHoleContactPair(ModifiableContactPair contactPair2)
 			{
@@ -381,24 +472,41 @@ public class PhysicsManager : SingletonBehaviour<PhysicsManager>, IFixedBUpdateC
 				}
 			}
 		}
-		static void ApplyCollisionSettings(ModifiableContactPair modifiableContactPair, TerrainLayerSettings settings)
+		static void ApplyCollisionSettings(ModifiableContactPair modifiableContactPair, TerrainLayerSettings settings, ColliderType otherColliderType)
 		{
+			float staticFriction;
+			float dynamicFriction;
+			if (otherColliderType == ColliderType.LocalPlayer && settings.DoesOverridePlayerDiveDamping && GameManager.LocalPlayerMovement != null && GameManager.LocalPlayerMovement.DivingState != DivingState.None)
+			{
+				staticFriction = settings.PlayerOverrideDiveStaticFriction;
+				dynamicFriction = settings.PlayerOverrideDiveDynamicFriction;
+			}
+			else
+			{
+				staticFriction = settings.StaticFriction;
+				dynamicFriction = settings.DynamicFriction;
+			}
+			bool flag = otherColliderType == ColliderType.Ball;
 			for (int j = 0; j < modifiableContactPair.contactCount; j++)
 			{
-				modifiableContactPair.SetBounciness(j, settings.Bounciness);
-				modifiableContactPair.SetStaticFriction(j, settings.StaticFriction);
-				modifiableContactPair.SetDynamicFriction(j, settings.DynamicFriction);
+				if (flag)
+				{
+					modifiableContactPair.SetBounciness(j, settings.Bounciness);
+				}
+				modifiableContactPair.SetStaticFriction(j, staticFriction);
+				modifiableContactPair.SetDynamicFriction(j, dynamicFriction);
 			}
 		}
-		ColliderType GetColliderType(int colliderId, int bodyId)
+		ColliderType GetColliderType(int colliderId, int bodyId, out RigidbodyType reference)
 		{
+			reference = (predictedEntitiesPerRigidbodyId.ContainsKey(bodyId) ? RigidbodyType.Predicted : RigidbodyType.Unregistered);
+			if (iceBlockColliderIds.Contains(colliderId))
+			{
+				return ColliderType.IceBlock;
+			}
 			if (bodyId == localPlayerRigidbodyId)
 			{
 				return ColliderType.LocalPlayer;
-			}
-			if (predictedEntitiesPerRigidbodyId.ContainsKey(bodyId))
-			{
-				return ColliderType.Predicted;
 			}
 			if (ballColliderIds.Contains(colliderId))
 			{
@@ -416,11 +524,19 @@ public class PhysicsManager : SingletonBehaviour<PhysicsManager>, IFixedBUpdateC
 			{
 				return ColliderType.Hole;
 			}
-			if (terrainEdgeDetailsLayerPerColliderId.ContainsKey(colliderId))
+			if (terrainAdditionLayerPerColliderId.ContainsKey(colliderId))
 			{
-				return ColliderType.TerrainEdgeDetail;
+				return ColliderType.TerrainAddition;
 			}
 			return ColliderType.Unregistered;
+		}
+		ColliderType GetFirstColliderType(ModifiableContactPair modifiableContactPair, out RigidbodyType rigidbodyType4)
+		{
+			return GetColliderType(modifiableContactPair.colliderInstanceID, modifiableContactPair.bodyInstanceID, out rigidbodyType4);
+		}
+		ColliderType GetSecondColliderType(ModifiableContactPair modifiableContactPair, out RigidbodyType rigidbodyType4)
+		{
+			return GetColliderType(modifiableContactPair.otherColliderInstanceID, modifiableContactPair.otherBodyInstanceID, out rigidbodyType4);
 		}
 		static void IgnoreContactPair(ModifiableContactPair modifiableContactPair)
 		{
@@ -429,25 +545,34 @@ public class PhysicsManager : SingletonBehaviour<PhysicsManager>, IFixedBUpdateC
 				modifiableContactPair.IgnoreContact(j);
 			}
 		}
-		static void ResolveBallTerrainContactPair(ModifiableContactPair contactPair2)
+		void ResolveContactPairWithIceBlock(ModifiableContactPair modifiableContactPair)
+		{
+			for (int j = 0; j < modifiableContactPair.contactCount; j++)
+			{
+				modifiableContactPair.SetStaticFriction(j, settings.FreezeBombIceBlockStaticFriction);
+				modifiableContactPair.SetDynamicFriction(j, settings.FreezeBombIceBlockDynamicFriction);
+				modifiableContactPair.SetBounciness(j, settings.FreezeBombIceBlockBounciness);
+			}
+		}
+		static void ResolveContactPairWithTerrain(ModifiableContactPair contactPair2, ColliderType otherColliderType)
 		{
 			int dominantLevelLayerIndexAtPoint = TerrainManager.GetDominantLevelLayerIndexAtPoint(contactPair2.GetPoint(0));
-			ApplyCollisionSettings(contactPair2, TerrainManager.GetLevelLayerSettings(dominantLevelLayerIndexAtPoint));
+			ApplyCollisionSettings(contactPair2, TerrainManager.GetLevelLayerSettings(dominantLevelLayerIndexAtPoint), otherColliderType);
 		}
-		void ResolveBallTerrainEdgeDetailContactPair(ModifiableContactPair contactPair2, int terrainEdgeDetailColliderId)
+		void ResolveContactPairWithTerrainAddition(ModifiableContactPair contactPair2, int terrainAdditionColliderId, ColliderType otherColliderType)
 		{
 			TerrainLayerSettings value2;
-			if (!terrainEdgeDetailsLayerPerColliderId.TryGetValue(terrainEdgeDetailColliderId, out var value))
+			if (!terrainAdditionLayerPerColliderId.TryGetValue(terrainAdditionColliderId, out var value))
 			{
-				Debug.LogError($"Could not find terrain layer for terrain edge detail collider ID {terrainEdgeDetailColliderId}");
+				Debug.LogError($"Could not find terrain layer for terrain addition collider ID {terrainAdditionColliderId}");
 			}
 			else if (!TerrainManager.Settings.LayerSettings.TryGetValue(value, out value2))
 			{
-				Debug.LogError($"Could not find terrain layer settings for terrain edge detail collider ID {terrainEdgeDetailColliderId} with assigned layer {value}");
+				Debug.LogError($"Could not find terrain layer settings for terrain addition collider ID {terrainAdditionColliderId} with assigned layer {value}");
 			}
 			else
 			{
-				ApplyCollisionSettings(contactPair2, value2);
+				ApplyCollisionSettings(contactPair2, value2, otherColliderType);
 			}
 		}
 		static void ResolveLocalPlayerPredictedContactPair(ModifiableContactPair modifiableContactPair, bool otherIsPredicted)

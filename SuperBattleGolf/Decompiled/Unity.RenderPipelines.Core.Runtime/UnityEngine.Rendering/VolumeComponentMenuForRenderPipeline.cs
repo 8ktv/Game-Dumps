@@ -2,7 +2,7 @@ using System;
 
 namespace UnityEngine.Rendering;
 
-[Obsolete("VolumeComponentMenuForRenderPipelineAttribute is deprecated. Use VolumeComponentMenu with SupportedOnRenderPipeline instead. #from(2023.1)", false)]
+[Obsolete("VolumeComponentMenuForRenderPipelineAttribute is deprecated. Use VolumeComponentMenu with SupportedOnRenderPipeline instead. #from(2023.1)")]
 public class VolumeComponentMenuForRenderPipeline : VolumeComponentMenu
 {
 	public Type[] pipelineTypes { get; }

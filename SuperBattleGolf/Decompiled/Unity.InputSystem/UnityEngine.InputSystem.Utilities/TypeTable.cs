@@ -8,13 +8,16 @@ internal struct TypeTable
 {
 	public Dictionary<InternedString, Type> table;
 
+	private InputManager m_Manager;
+
 	public IEnumerable<string> names => table.Keys.Select((InternedString x) => x.ToString());
 
 	public IEnumerable<InternedString> internedNames => table.Keys;
 
-	public void Initialize()
+	public void Initialize(InputManager manager)
 	{
 		table = new Dictionary<InternedString, Type>();
+		m_Manager = manager;
 	}
 
 	public InternedString FindNameForType(Type type)
@@ -57,11 +60,15 @@ internal struct TypeTable
 		{
 			throw new InvalidOperationException("Input System not yet initialized");
 		}
-		InternedString key = new InternedString(name);
-		if (table.TryGetValue(key, out var value))
+		return TryLookupTypeRegistration(new InternedString(name));
+	}
+
+	private Type TryLookupTypeRegistration(InternedString internedName)
+	{
+		if (!table.TryGetValue(internedName, out var value) && m_Manager != null && m_Manager.RegisterCustomTypes())
 		{
-			return value;
+			table.TryGetValue(internedName, out value);
 		}
-		return null;
+		return value;
 	}
 }

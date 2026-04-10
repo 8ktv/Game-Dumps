@@ -93,7 +93,7 @@ public class Collision
 		}
 		float num = (m_Flipped ? (-1f) : 1f);
 		ContactPairPoint* contactPoint_Internal = m_Pair.GetContactPoint_Internal(index);
-		return new ContactPoint(contactPoint_Internal->m_Position, contactPoint_Internal->m_Normal * num, contactPoint_Internal->m_Impulse, contactPoint_Internal->m_Separation, m_Flipped ? m_Pair.otherColliderInstanceID : m_Pair.colliderInstanceID, m_Flipped ? m_Pair.colliderInstanceID : m_Pair.otherColliderInstanceID);
+		return new ContactPoint(contactPoint_Internal->m_Position, contactPoint_Internal->m_Normal * num, contactPoint_Internal->m_Impulse, contactPoint_Internal->m_Separation, m_Flipped ? m_Pair.otherColliderEntityId : m_Pair.colliderEntityId, m_Flipped ? m_Pair.colliderEntityId : m_Pair.otherColliderEntityId);
 	}
 
 	public int GetContacts(ContactPoint[] contacts)

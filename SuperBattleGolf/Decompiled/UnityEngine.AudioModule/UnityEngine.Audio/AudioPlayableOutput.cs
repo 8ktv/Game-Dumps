@@ -6,11 +6,11 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Audio;
 
+[RequiredByNativeCode]
 [NativeHeader("Modules/Audio/Public/ScriptBindings/AudioPlayableOutput.bindings.h")]
-[NativeHeader("Modules/Audio/Public/Director/AudioPlayableOutput.h")]
 [NativeHeader("Modules/Audio/Public/AudioSource.h")]
 [StaticAccessor("AudioPlayableOutputBindings", StaticAccessorType.DoubleColon)]
-[RequiredByNativeCode]
+[NativeHeader("Modules/Audio/Public/Director/AudioPlayableOutput.h")]
 public struct AudioPlayableOutput : IPlayableOutput
 {
 	private PlayableOutputHandle m_Handle;

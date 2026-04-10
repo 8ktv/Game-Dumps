@@ -200,6 +200,7 @@ internal static class StyleSelectorHelper
 				StyleSheet styleSheetAt = context.GetStyleSheetAt(num);
 				if (hashSet.Add(styleSheetAt))
 				{
+					styleSheetAt.RebuildIfNecessary();
 					if (num > parentSheetIndex)
 					{
 						currentElement.pseudoStates |= PseudoStates.Root;

@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using UnityEngine.Bindings;
 using UnityEngine.Scripting;
 
 namespace UnityEngine;
@@ -115,5 +116,39 @@ public struct EntityId : IEquatable<EntityId>, IComparable<EntityId>
 	public string ToString(string format)
 	{
 		return m_Data.ToString(format);
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule", "UnityEngine.AnimationModule", "UnityEngine.TextCoreTextEngineModule" })]
+	internal static EntityId From(int input)
+	{
+		return new EntityId
+		{
+			m_Data = input
+		};
+	}
+
+	internal static EntityId From(ulong input)
+	{
+		return new EntityId
+		{
+			m_Data = (int)input
+		};
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+	internal static EntityId Parse(string input)
+	{
+		EntityId result = None;
+		if (int.TryParse(input, out var result2))
+		{
+			result = From(result2);
+		}
+		return result;
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+	internal int GetRawData()
+	{
+		return m_Data;
 	}
 }

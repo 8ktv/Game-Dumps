@@ -39,6 +39,8 @@ public static class InputManager
 
 	public static readonly string KeyboardGroup = "Keyboard Mouse";
 
+	private static HashSet<InputAction> inputActionsOverride = new HashSet<InputAction>();
+
 	public static GameControls Controls => controls;
 
 	public static DeviceType CurrentDeviceType { get; private set; }
@@ -46,6 +48,8 @@ public static class InputManager
 	public static InputMode CurrentMode { get; private set; }
 
 	public static InputMode CurrentModeMask { get; private set; }
+
+	public static InputOverride CurrentModeOverrideMask { get; private set; }
 
 	public static Gamepad CurrentGamepad { get; private set; }
 
@@ -136,6 +140,22 @@ public static class InputManager
 		}
 	}
 
+	public static void EnableOverrideMode(InputOverride inputOverride)
+	{
+		if (EnableInputOverrideInternal(inputOverride))
+		{
+			UpdateInputOverride();
+		}
+	}
+
+	public static void DisableOverrideMode(InputOverride inputOverride)
+	{
+		if (DisableInputOverrideInternal(inputOverride))
+		{
+			UpdateInputOverride();
+		}
+	}
+
 	public static void SetIsRadialMenuInputEnabled(bool enabled)
 	{
 		if (enabled)
@@ -193,6 +213,10 @@ public static class InputManager
 		{
 			CurrentMode = InputMode.SteamOverlay;
 		}
+		else if (CurrentModeMask.HasMode(InputMode.FullScreenMessage))
+		{
+			CurrentMode = InputMode.FullScreenMessage;
+		}
 		else if (CurrentModeMask.HasMode(InputMode.MainMenu))
 		{
 			CurrentMode = InputMode.MainMenu;
@@ -228,6 +252,62 @@ public static class InputManager
 		else
 		{
 			CurrentMode = InputMode.None;
+		}
+	}
+
+	private static bool EnableInputOverrideInternal(InputOverride modeOverride)
+	{
+		if (CurrentModeOverrideMask.HasOverride(modeOverride))
+		{
+			return false;
+		}
+		InputOverride currentModeOverrideMask = CurrentModeOverrideMask;
+		CurrentModeOverrideMask |= modeOverride;
+		return currentModeOverrideMask != CurrentModeOverrideMask;
+	}
+
+	private static bool DisableInputOverrideInternal(InputOverride modeOverride)
+	{
+		if (!CurrentModeOverrideMask.HasOverride(modeOverride))
+		{
+			return false;
+		}
+		InputOverride currentModeOverrideMask = CurrentModeOverrideMask;
+		CurrentModeOverrideMask &= ~modeOverride;
+		return currentModeOverrideMask != CurrentModeOverrideMask;
+	}
+
+	private static void UpdateInputOverride()
+	{
+		foreach (InputAction item in inputActionsOverride)
+		{
+			if (item.actionMap.enabled)
+			{
+				item.Enable();
+			}
+		}
+		inputActionsOverride.Clear();
+		SetOverrideAction(controls.Vote, CurrentModeOverrideMask.HasFlag(InputOverride.Vote));
+		static void SetOverrideAction(InputActionMap actionMap, bool enabled)
+		{
+			if (!enabled)
+			{
+				actionMap.Disable();
+				return;
+			}
+			actionMap.Enable();
+			foreach (InputAction action2 in actionMap.actions)
+			{
+				foreach (InputBinding binding in action2.bindings)
+				{
+					controls.FindBinding(new InputBinding(binding.effectivePath), out var action);
+					if (action != null && action != action2 && !inputActionsOverride.Contains(action))
+					{
+						action.Disable();
+						inputActionsOverride.Add(action);
+					}
+				}
+			}
 		}
 	}
 
@@ -328,6 +408,7 @@ public static class InputManager
 			break;
 		case InputMode.Paused:
 		case InputMode.MatchSetup:
+		case InputMode.FullScreenMessage:
 			controls.Gameplay.Disable();
 			controls.GolfCartDriver.Disable();
 			controls.GolfCartShared.Disable();
@@ -379,6 +460,7 @@ public static class InputManager
 		{
 			component.enabled = !CurrentMode.DisablesUiInputModule();
 		}
+		UpdateInputOverride();
 	}
 
 	private static void UpdateCursorLock()

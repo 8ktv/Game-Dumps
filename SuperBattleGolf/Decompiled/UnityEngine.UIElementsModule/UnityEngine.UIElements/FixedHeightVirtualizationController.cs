@@ -63,11 +63,17 @@ internal class FixedHeightVirtualizationController<T> : VerticalVirtualizationCo
 		{
 			ScheduleDeferredScrollToItem();
 		}
+		else
+		{
+			StopDeferredScrollToItem();
+		}
 		float num = resolvedItemHeight;
+		float height = m_ScrollView.contentViewport.layout.height;
+		Vector2 scrollOffset = m_ScrollView.scrollOffset;
 		m_ForcedScroll = true;
 		if (index == -1)
 		{
-			int num2 = (int)(base.lastHeight / num);
+			int num2 = (int)(height / num);
 			if (base.itemsCount < num2)
 			{
 				m_ScrollView.scrollOffset = new Vector2(0f, 0f);
@@ -76,20 +82,26 @@ internal class FixedHeightVirtualizationController<T> : VerticalVirtualizationCo
 			{
 				m_ScrollView.scrollOffset = new Vector2(0f, (float)(base.itemsCount + 1) * num);
 			}
-			return;
 		}
-		if (firstVisibleIndex >= index)
+		else if (firstVisibleIndex >= index)
 		{
 			m_ScrollView.scrollOffset = Vector2.up * (num * (float)index);
-			return;
 		}
-		int num3 = (int)(base.lastHeight / num);
-		if (index >= firstVisibleIndex + num3)
+		else
 		{
+			int num3 = (int)(height / num);
+			if (index < firstVisibleIndex + num3)
+			{
+				return;
+			}
 			int num4 = index - num3 + 1;
-			float num5 = num - (base.lastHeight - (float)num3 * num);
+			float num5 = num - (height - (float)num3 * num);
 			float y = num * (float)num4 + num5;
 			m_ScrollView.scrollOffset = new Vector2(m_ScrollView.scrollOffset.x, y);
+		}
+		if (scrollOffset == m_ScrollView.scrollOffset)
+		{
+			OnScrollUpdate();
 		}
 	}
 

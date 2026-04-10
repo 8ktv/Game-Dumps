@@ -3,13 +3,14 @@ using System.Collections.Generic;
 
 namespace UnityEngine.UIElements;
 
-internal class TimerEventScheduler : IScheduler
+internal class TimerEventScheduler
 {
 	private class TimerEventSchedulerItem : ScheduledItem
 	{
 		private readonly Action<TimerState> m_TimerUpdateEvent;
 
-		public TimerEventSchedulerItem(Action<TimerState> updateEvent)
+		public TimerEventSchedulerItem(long startMs, Action<TimerState> updateEvent)
+			: base(startMs)
 		{
 			m_TimerUpdateEvent = updateEvent;
 		}
@@ -37,6 +38,8 @@ internal class TimerEventScheduler : IScheduler
 
 	private int m_LastUpdatedIndex = -1;
 
+	private BaseVisualElementPanel panel;
+
 	private long frameCount;
 
 	public long FrameCount
@@ -49,6 +52,11 @@ internal class TimerEventScheduler : IScheduler
 		{
 			frameCount = value;
 		}
+	}
+
+	public TimerEventScheduler(BaseVisualElementPanel p)
+	{
+		panel = p;
 	}
 
 	public void Schedule(ScheduledItem item)
@@ -84,7 +92,7 @@ internal class TimerEventScheduler : IScheduler
 
 	public ScheduledItem ScheduleOnce(Action<TimerState> timerUpdateEvent, long delayMs)
 	{
-		TimerEventSchedulerItem timerEventSchedulerItem = new TimerEventSchedulerItem(timerUpdateEvent)
+		TimerEventSchedulerItem timerEventSchedulerItem = new TimerEventSchedulerItem(panel.TimeSinceStartupMs(), timerUpdateEvent)
 		{
 			delayMs = delayMs
 		};
@@ -94,7 +102,7 @@ internal class TimerEventScheduler : IScheduler
 
 	public ScheduledItem ScheduleUntil(Action<TimerState> timerUpdateEvent, long delayMs, long intervalMs, Func<bool> stopCondition)
 	{
-		TimerEventSchedulerItem timerEventSchedulerItem = new TimerEventSchedulerItem(timerUpdateEvent)
+		TimerEventSchedulerItem timerEventSchedulerItem = new TimerEventSchedulerItem(panel.TimeSinceStartupMs(), timerUpdateEvent)
 		{
 			delayMs = delayMs,
 			intervalMs = intervalMs,
@@ -106,7 +114,7 @@ internal class TimerEventScheduler : IScheduler
 
 	public ScheduledItem ScheduleForDuration(Action<TimerState> timerUpdateEvent, long delayMs, long intervalMs, long durationMs)
 	{
-		TimerEventSchedulerItem timerEventSchedulerItem = new TimerEventSchedulerItem(timerUpdateEvent)
+		TimerEventSchedulerItem timerEventSchedulerItem = new TimerEventSchedulerItem(panel.TimeSinceStartupMs(), timerUpdateEvent)
 		{
 			delayMs = delayMs,
 			intervalMs = intervalMs,
@@ -159,6 +167,19 @@ internal class TimerEventScheduler : IScheduler
 		item.OnItemUnscheduled();
 	}
 
+	public void AdjustCurrentTime(double previousCurrentTime, double newCurrentTime)
+	{
+		if (m_ScheduleTransactions.Count > 0 || m_UnscheduleTransactions.Count > 0)
+		{
+			throw new InvalidOperationException("Adjusting time cannot be done while the scheduler is being updated");
+		}
+		long deltaMs = (long)((newCurrentTime - previousCurrentTime) * 1000.0);
+		for (int i = 0; i < m_ScheduledItems.Count; i++)
+		{
+			m_ScheduledItems[i].OffsetBy(deltaMs);
+		}
+	}
+
 	private bool PrivateUnSchedule(ScheduledItem sItem)
 	{
 		return m_ScheduleTransactions.Remove(sItem) || RemovedScheduledItemAt(m_ScheduledItems.IndexOf(sItem));
@@ -170,7 +191,7 @@ internal class TimerEventScheduler : IScheduler
 		try
 		{
 			m_TransactionMode = true;
-			long num = Panel.TimeSinceStartupMs();
+			long num = panel.TimeSinceStartupMs();
 			int count = m_ScheduledItems.Count;
 			int num2 = m_LastUpdatedIndex + 1;
 			if (num2 >= count)

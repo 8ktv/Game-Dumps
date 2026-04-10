@@ -33,4 +33,6 @@ public interface IBaseRenderGraphBuilder : IDisposable
 	void AllowGlobalStateModification(bool value);
 
 	void EnableFoveatedRasterization(bool value);
+
+	void GenerateDebugData(bool value);
 }

@@ -19,8 +19,16 @@ internal static class StyleSheetUtility
 	private static readonly Dictionary<string, string> SpecialStringToEnumCases = new Dictionary<string, string>
 	{
 		{ "nowrap", "NoWrap" },
-		{ "sdf", "SDF" }
+		{ "sdf", "SDF" },
+		{ "uv", "UV" }
 	};
+
+	public static StyleSheet CreateInstanceWithHideFlags()
+	{
+		StyleSheet styleSheet = ScriptableObject.CreateInstance<StyleSheet>();
+		styleSheet.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontUnloadUnusedAsset;
+		return styleSheet;
+	}
 
 	public static Dimension ToDimension(this Length length)
 	{
@@ -159,8 +167,7 @@ internal static class StyleSheetUtility
 				int valueIndex = num;
 				value.Add(new StyleValueHandle(valueIndex, valueType));
 			}
-			toStyleProperty.isCustomProperty |= toStyleProperty.isCustomProperty;
-			toStyleProperty.requireVariableResolve |= toStyleProperty.requireVariableResolve;
+			toStyleProperty.requireVariableResolve |= fromStyleProperty.requireVariableResolve;
 			toStyleProperty.values = value.ToArray();
 		}
 	}
@@ -180,6 +187,16 @@ internal static class StyleSheetUtility
 	public static string ConvertDashToHungarian(string dash)
 	{
 		return ConvertDashToUpperNoSpace(dash, firstCase: true, addSpace: false);
+	}
+
+	public static string ConvertDashToCamel(string dash)
+	{
+		return ConvertDashToUpperNoSpace(dash, firstCase: false, addSpace: false);
+	}
+
+	public static string ConvertDashToHuman(string dash)
+	{
+		return ConvertDashToUpperNoSpace(dash, firstCase: true, addSpace: true);
 	}
 
 	public static string ConvertDashToUpperNoSpace(string dash, bool firstCase, bool addSpace)
@@ -217,6 +234,105 @@ internal static class StyleSheetUtility
 		finally
 		{
 			GenericPool<StringBuilder>.Release(stringBuilder.Clear());
+		}
+	}
+
+	public static string GetDimensionUnitExportString(Dimension.Unit unit)
+	{
+		if (1 == 0)
+		{
+		}
+		string result = unit switch
+		{
+			Dimension.Unit.Pixel => "px", 
+			Dimension.Unit.Percent => "%", 
+			Dimension.Unit.Second => "s", 
+			Dimension.Unit.Millisecond => "ms", 
+			Dimension.Unit.Degree => "deg", 
+			Dimension.Unit.Gradian => "grad", 
+			Dimension.Unit.Radian => "rad", 
+			Dimension.Unit.Turn => "turn", 
+			Dimension.Unit.Unitless => string.Empty, 
+			_ => throw new ArgumentOutOfRangeException("unit", unit, null), 
+		};
+		if (1 == 0)
+		{
+		}
+		return result;
+	}
+
+	public static void GetValueOffsets(StyleSheet styleSheet, Span<StyleValueHandle> handles, List<int> offsets)
+	{
+		offsets.Clear();
+		if (handles.Length == 0)
+		{
+			return;
+		}
+		offsets.Add(0);
+		int num = 0;
+		while (true)
+		{
+			num = GetNextValueOffset(styleSheet, handles, num);
+			if (num >= 0 && num < handles.Length)
+			{
+				offsets.Add(num);
+				continue;
+			}
+			break;
+		}
+	}
+
+	internal static int GetNextValueOffset(StyleSheet styleSheet, Span<StyleValueHandle> handles, int index)
+	{
+		if (index < 0 || index >= handles.Length)
+		{
+			return -1;
+		}
+		int num = index;
+		StyleValueHandle styleValueHandle = handles[index];
+		switch (styleValueHandle.valueType)
+		{
+		case StyleValueType.Keyword:
+		case StyleValueType.Float:
+		case StyleValueType.Dimension:
+		case StyleValueType.Color:
+		case StyleValueType.ResourcePath:
+		case StyleValueType.AssetReference:
+		case StyleValueType.Enum:
+		case StyleValueType.Variable:
+		case StyleValueType.String:
+		case StyleValueType.ScalableImage:
+		case StyleValueType.MissingAssetReference:
+			return num + 1 + OffsetByComma(handles, num + 1);
+		case StyleValueType.Function:
+		{
+			StyleValueHandle handle = handles[++index];
+			float num2 = styleSheet.ReadFloat(handle);
+			int num3 = ++index;
+			for (int i = num3; (float)i < (float)num3 + num2; i++)
+			{
+				if (handles[i].valueType == StyleValueType.Function)
+				{
+					int nextValueOffset = GetNextValueOffset(styleSheet, handles, i);
+					if (nextValueOffset <= 0)
+					{
+						return -1;
+					}
+					index = nextValueOffset;
+				}
+				else
+				{
+					index++;
+				}
+			}
+			return index + OffsetByComma(handles, index);
+		}
+		default:
+			throw new ArgumentOutOfRangeException();
+		}
+		static int OffsetByComma(Span<StyleValueHandle> span, int next)
+		{
+			return (next < span.Length && span[next].valueType == StyleValueType.CommaSeparator) ? 1 : 0;
 		}
 	}
 }

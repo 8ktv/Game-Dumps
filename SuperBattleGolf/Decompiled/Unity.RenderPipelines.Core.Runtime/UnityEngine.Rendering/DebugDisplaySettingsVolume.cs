@@ -99,7 +99,7 @@ public class DebugDisplaySettingsVolume : IDebugDisplaySettingsData, IDebugDispl
 			};
 		}
 
-		public static DebugUI.ObjectPopupField CreateCameraSelector(SettingsPanel panel, Action<DebugUI.Field<Object>, Object> refresh)
+		public static DebugUI.CameraSelector CreateCameraSelector(SettingsPanel panel, Action<DebugUI.Field<Object>, Object> refresh)
 		{
 			return new DebugUI.CameraSelector
 			{
@@ -373,10 +373,16 @@ public class DebugDisplaySettingsVolume : IDebugDisplaySettingsData, IDebugDispl
 			: base(data)
 		{
 			SettingsPanel settingsPanel = this;
-			AddWidget(WidgetFactory.CreateCameraSelector(this, delegate
+			DebugUI.CameraSelector cameraSelector = WidgetFactory.CreateCameraSelector(this, delegate
 			{
 				settingsPanel.Refresh();
-			}));
+			});
+			List<Camera> list = cameraSelector.getObjects() as List<Camera>;
+			if (data.selectedCamera == null && list != null && list.Count > 0)
+			{
+				data.selectedCamera = list[0];
+			}
+			AddWidget(cameraSelector);
 			AddWidget(WidgetFactory.CreateComponentSelector(this, delegate
 			{
 				settingsPanel.Refresh();
@@ -440,7 +446,7 @@ public class DebugDisplaySettingsVolume : IDebugDisplaySettingsData, IDebugDispl
 
 	private const string k_PanelTitle = "Volume";
 
-	[Obsolete("This property has been obsoleted and will be removed in a future version. #from(6000.2)", false)]
+	[Obsolete("This property has been obsoleted and will be removed in a future version. #from(6000.2)")]
 	public IVolumeDebugSettings volumeDebugSettings { get; }
 
 	public int selectedComponent
@@ -489,7 +495,7 @@ public class DebugDisplaySettingsVolume : IDebugDisplaySettingsData, IDebugDispl
 		}
 		set
 		{
-			if (value != null && value != m_SelectedCamera)
+			if (value != m_SelectedCamera)
 			{
 				m_SelectedCamera = value;
 				OnSelectionChanged();
@@ -612,7 +618,7 @@ public class DebugDisplaySettingsVolume : IDebugDisplaySettingsData, IDebugDispl
 		DestroyVolumeInterpolatedResults();
 	}
 
-	[Obsolete("This constructor has been obsoleted and will be removed in a future version. #from(6000.2)", false)]
+	[Obsolete("This constructor has been obsoleted and will be removed in a future version. #from(6000.2)")]
 	public DebugDisplaySettingsVolume(IVolumeDebugSettings volumeDebugSettings)
 		: this()
 	{

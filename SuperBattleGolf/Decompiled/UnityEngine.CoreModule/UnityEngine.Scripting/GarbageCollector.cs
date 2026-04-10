@@ -58,7 +58,7 @@ public static class GarbageCollector
 	private static extern Mode GetMode();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[NativeMethod("CollectIncrementalWrapper")]
 	[NativeThrows]
+	[NativeMethod("CollectIncrementalWrapper")]
 	public static extern bool CollectIncremental(ulong nanoseconds = 0uL);
 }

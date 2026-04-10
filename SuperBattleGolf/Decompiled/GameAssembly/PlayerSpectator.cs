@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Runtime.InteropServices;
 using Mirror;
+using Mirror.RemoteCalls;
 using UnityEngine;
 
 public class PlayerSpectator : NetworkBehaviour
@@ -15,7 +16,7 @@ public class PlayerSpectator : NetworkBehaviour
 
 	private Coroutine automaticCycleDelayRoutine;
 
-	private LocalSpectatorCameraFollower spectatorCameraInstance;
+	private LocalSpectatorCameraFollower spectatorCamera;
 
 	public Action<bool, bool> _Mirror_SyncVarHookDelegate_isSpectating;
 
@@ -124,6 +125,14 @@ public class PlayerSpectator : NetworkBehaviour
 		{
 			return false;
 		}
+		if (RadialMenu.IsVisible)
+		{
+			return false;
+		}
+		if (RadialMenu.LastSelectionFrame == Time.frameCount)
+		{
+			return false;
+		}
 		if (!TryGetCycleTarget(1, out var ballTarget, out var playerTarget, out var holeTarget))
 		{
 			return false;
@@ -205,6 +214,59 @@ public class PlayerSpectator : NetworkBehaviour
 			yield return new WaitForSeconds(seconds);
 			StartSpectating();
 			isInSpectateStartDelay = false;
+		}
+	}
+
+	public void SetSpectatorCamera(LocalSpectatorCameraFollower camera)
+	{
+		if (!base.isServer)
+		{
+			spectatorCamera = camera;
+		}
+	}
+
+	public void ClearSpectatorCamera()
+	{
+		if (!base.isServer)
+		{
+			spectatorCamera = null;
+		}
+	}
+
+	public void PlayEmote(SpectatorEmote emote)
+	{
+		PlayEmoteInternal(emote);
+		CmdPlayEmoteForAllClients(emote);
+	}
+
+	[Command]
+	private void CmdPlayEmoteForAllClients(SpectatorEmote emote, NetworkConnectionToClient sender = null)
+	{
+		if (base.isServer && base.isClient)
+		{
+			UserCode_CmdPlayEmoteForAllClients__SpectatorEmote__NetworkConnectionToClient(emote, sender);
+			return;
+		}
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		GeneratedNetworkCode._Write_SpectatorEmote(writer, emote);
+		SendCommandInternal("System.Void PlayerSpectator::CmdPlayEmoteForAllClients(SpectatorEmote,Mirror.NetworkConnectionToClient)", -1420198443, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	private void RpcPlayEmote(NetworkConnectionToClient connection, SpectatorEmote emote)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		GeneratedNetworkCode._Write_SpectatorEmote(writer, emote);
+		SendTargetRPCInternal(connection, "System.Void PlayerSpectator::RpcPlayEmote(Mirror.NetworkConnectionToClient,SpectatorEmote)", -464936208, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	private void PlayEmoteInternal(SpectatorEmote emote)
+	{
+		if (spectatorCamera != null)
+		{
+			spectatorCamera.PlayEmote(emote);
 		}
 	}
 
@@ -546,9 +608,9 @@ public class PlayerSpectator : NetworkBehaviour
 		{
 			PlayerSpectator.LocalPlayerIsSpectatingChanged?.Invoke();
 		}
-		if (base.isServer && isSpectating && !BNetworkManager.IsChangingSceneOrShuttingDown && this != null && spectatorCameraInstance == null)
+		if (base.isServer && isSpectating && !BNetworkManager.IsChangingSceneOrShuttingDown && this != null && spectatorCamera == null)
 		{
-			spectatorCameraInstance = GameManager.ServerInstantiateSpectatorCamera(base.gameObject);
+			spectatorCamera = GameManager.ServerInstantiateSpectatorCamera(base.gameObject);
 		}
 	}
 
@@ -560,6 +622,56 @@ public class PlayerSpectator : NetworkBehaviour
 	public override bool Weaved()
 	{
 		return true;
+	}
+
+	protected void UserCode_CmdPlayEmoteForAllClients__SpectatorEmote__NetworkConnectionToClient(SpectatorEmote emote, NetworkConnectionToClient sender)
+	{
+		if (sender != null && sender != NetworkServer.localConnection)
+		{
+			PlayEmoteInternal(emote);
+		}
+		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
+		{
+			if (value != NetworkServer.localConnection && value != sender)
+			{
+				RpcPlayEmote(value, emote);
+			}
+		}
+	}
+
+	protected static void InvokeUserCode_CmdPlayEmoteForAllClients__SpectatorEmote__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogError("Command CmdPlayEmoteForAllClients called on client.");
+		}
+		else
+		{
+			((PlayerSpectator)obj).UserCode_CmdPlayEmoteForAllClients__SpectatorEmote__NetworkConnectionToClient(GeneratedNetworkCode._Read_SpectatorEmote(reader), senderConnection);
+		}
+	}
+
+	protected void UserCode_RpcPlayEmote__NetworkConnectionToClient__SpectatorEmote(NetworkConnectionToClient connection, SpectatorEmote emote)
+	{
+		PlayEmoteInternal(emote);
+	}
+
+	protected static void InvokeUserCode_RpcPlayEmote__NetworkConnectionToClient__SpectatorEmote(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcPlayEmote called on server.");
+		}
+		else
+		{
+			((PlayerSpectator)obj).UserCode_RpcPlayEmote__NetworkConnectionToClient__SpectatorEmote(null, GeneratedNetworkCode._Read_SpectatorEmote(reader));
+		}
+	}
+
+	static PlayerSpectator()
+	{
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerSpectator), "System.Void PlayerSpectator::CmdPlayEmoteForAllClients(SpectatorEmote,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayEmoteForAllClients__SpectatorEmote__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerSpectator), "System.Void PlayerSpectator::RpcPlayEmote(Mirror.NetworkConnectionToClient,SpectatorEmote)", InvokeUserCode_RpcPlayEmote__NetworkConnectionToClient__SpectatorEmote);
 	}
 
 	public override void SerializeSyncVars(NetworkWriter writer, bool forceAll)

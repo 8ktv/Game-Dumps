@@ -6,13 +6,17 @@ public class GameVersionLabel : MonoBehaviour
 	[SerializeField]
 	private TextMeshProUGUI label;
 
-	public static string GetVersion()
+	[SerializeField]
+	private bool shorten;
+
+	public static string GetVersion(bool shorten = false)
 	{
-		return Resources.Load<TextAsset>("buildstring").text;
+		string text = Resources.Load<TextAsset>("buildstring").text;
+		return (shorten ? "SBG" : "Super Battle Golf") + " " + text;
 	}
 
 	private void Awake()
 	{
-		label.text = GetVersion();
+		label.text = GetVersion(shorten);
 	}
 }

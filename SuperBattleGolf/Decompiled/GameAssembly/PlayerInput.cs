@@ -25,6 +25,8 @@ public class PlayerInput : NetworkBehaviour
 
 	private readonly List<IInputBuffer> bufferedInputs = new List<IInputBuffer>();
 
+	private static bool wasPushToToggleVoiceChatEnabledOnSceneChange;
+
 	private int lastExitFrame = int.MinValue;
 
 	public static GameControls Controls => InputManager.Controls;
@@ -147,7 +149,12 @@ public class PlayerInput : NetworkBehaviour
 		Controls.UI.Cancel.started += ExitUi;
 		Controls.UI.Exit.started += ExitUi;
 		EnablePlayerInputModeInternal(InputMode.Regular);
-		IsPushingToTalk = Controls.VoiceChat.PushToTalk.IsPressed();
+		IsPushingToTalk = GameSettings.All.Audio.MicInputMode switch
+		{
+			GameSettings.AudioSettings.InputMode.PushToTalk => Controls.VoiceChat.PushToTalk.IsPressed(), 
+			GameSettings.AudioSettings.InputMode.PushToToggle => wasPushToToggleVoiceChatEnabledOnSceneChange, 
+			_ => false, 
+		};
 		InputManager.SwitchedToGamepad += OnSwitchedToGamepad;
 		InputManager.SwitchedToKeyboard += OnSwitchedToKeyboard;
 		InputManager.SwitchedInputDeviceType += OnSwitchedInput;
@@ -167,6 +174,14 @@ public class PlayerInput : NetworkBehaviour
 
 	public override void OnStopLocalPlayer()
 	{
+		if (BNetworkManager.IsShuttingDown)
+		{
+			wasPushToToggleVoiceChatEnabledOnSceneChange = false;
+		}
+		else if (BNetworkManager.IsChangingScene)
+		{
+			wasPushToToggleVoiceChatEnabledOnSceneChange = GameSettings.All.Audio.MicInputMode == GameSettings.AudioSettings.InputMode.PushToToggle && IsPushingToTalk;
+		}
 		Controls.Gameplay.Swing.started -= StartChargingSwing;
 		Controls.Gameplay.Swing.canceled -= FinishChargingSwing;
 		Controls.Gameplay.Cancel.performed -= Cancel;
@@ -267,7 +282,8 @@ public class PlayerInput : NetworkBehaviour
 			{
 				return false;
 			}
-			if (playerInfo.Inventory.GetEffectivelyEquippedItem() != ItemType.None)
+			ItemType effectivelyEquippedItem = playerInfo.Inventory.GetEffectivelyEquippedItem();
+			if (effectivelyEquippedItem != ItemType.None && effectivelyEquippedItem != ItemType.RocketDriver)
 			{
 				return false;
 			}
@@ -479,7 +495,7 @@ public class PlayerInput : NetworkBehaviour
 
 	private void Cancel(InputAction.CallbackContext context)
 	{
-		if (playerInfo.AsGolfer.TryCancelSwingCharge())
+		if (playerInfo.AsGolfer.TryCancelSwingCharge(fromInput: true))
 		{
 			TutorialManager.CompletePrompt(TutorialPrompt.CancelSwing);
 		}
@@ -520,17 +536,51 @@ public class PlayerInput : NetworkBehaviour
 
 	private void ToggleEmoteMenu(InputAction.CallbackContext context)
 	{
-		if (RadialMenu.CurrentMode == RadialMenuMode.Emote)
+		RadialMenuMode radialMenuMode = ((!playerInfo.AsSpectator.IsSpectating) ? RadialMenuMode.Emote : RadialMenuMode.SpectatorEmote);
+		if (RadialMenu.CurrentMode == radialMenuMode)
 		{
 			RadialMenu.Hide();
 		}
-		else if (CanOpenEmoteMenu() && RadialMenu.TryShow(RadialMenuMode.Emote, OnEmoteSelected))
+		else
 		{
-			RadialMenu.ClearOptions();
-			for (int i = 0; i < GameManager.EmoteSettings.EmoteSettings.Length; i++)
+			if (!CanOpenEmoteMenu())
 			{
-				EmoteSettings emoteSettings = GameManager.EmoteSettings.EmoteSettings[i];
-				RadialMenu.AddOption((emoteSettings.emote == Emote.VictoryDance) ? CosmeticsUnlocksManager.AllDances.GetDance(playerInfo.Cosmetics.victoryDance).icon : emoteSettings.icon, (int)emoteSettings.emote);
+				return;
+			}
+			Action<int> action = default(Action<int>);
+			switch (radialMenuMode)
+			{
+			case RadialMenuMode.Emote:
+				action = OnEmoteSelected;
+				break;
+			case RadialMenuMode.SpectatorEmote:
+				action = OnSpectatorEmoteSelected;
+				break;
+			default:
+				global::_003CPrivateImplementationDetails_003E.ThrowSwitchExpressionException(radialMenuMode);
+				break;
+			}
+			Action<int> onSelected = action;
+			if (!RadialMenu.TryShow(radialMenuMode, onSelected))
+			{
+				return;
+			}
+			RadialMenu.ClearOptions();
+			if (RadialMenu.CurrentMode == RadialMenuMode.Emote)
+			{
+				for (int i = 0; i < GameManager.EmoteSettings.EmoteSettings.Length; i++)
+				{
+					EmoteSettings emoteSettings = GameManager.EmoteSettings.EmoteSettings[i];
+					RadialMenu.AddOption((emoteSettings.emote == Emote.VictoryDance) ? CosmeticsUnlocksManager.AllDances.GetDance(playerInfo.Cosmetics.victoryDance).icon : emoteSettings.icon, (int)emoteSettings.emote);
+				}
+			}
+			else
+			{
+				for (int j = 0; j < GameManager.SpectatorEmoteSettings.EmoteSettings.Length; j++)
+				{
+					SpectatorEmoteSettings spectatorEmoteSettings = GameManager.SpectatorEmoteSettings.EmoteSettings[j];
+					RadialMenu.AddOption(spectatorEmoteSettings.icon, (int)spectatorEmoteSettings.emote);
+				}
 			}
 			RadialMenu.DistributeOptions();
 		}
@@ -544,15 +594,7 @@ public class PlayerInput : NetworkBehaviour
 			{
 				return false;
 			}
-			if (!SingletonBehaviour<DrivingRangeManager>.HasInstance && CourseManager.MatchState < MatchState.TeeOff)
-			{
-				return false;
-			}
-			if (playerInfo.AsGolfer.IsMatchResolved)
-			{
-				return false;
-			}
-			if (playerInfo.AsSpectator.IsSpectating)
+			if (!SingletonBehaviour<DrivingRangeManager>.HasInstance && (CourseManager.MatchState < MatchState.TeeOff || CourseManager.MatchState >= MatchState.Ended))
 			{
 				return false;
 			}
@@ -568,12 +610,24 @@ public class PlayerInput : NetworkBehaviour
 			{
 				return false;
 			}
+			if (playerInfo.AsHittable.IsFrozen)
+			{
+				return false;
+			}
 			return true;
 		}
 		void OnEmoteSelected(int emoteIndex)
 		{
 			playerInfo.SetEmoteToPlay((Emote)emoteIndex);
 			if (RadialMenu.CurrentMode == RadialMenuMode.Emote)
+			{
+				RadialMenu.Hide();
+			}
+		}
+		void OnSpectatorEmoteSelected(int emoteIndex)
+		{
+			playerInfo.AsSpectator.PlayEmote((SpectatorEmote)emoteIndex);
+			if (RadialMenu.CurrentMode == RadialMenuMode.SpectatorEmote)
 			{
 				RadialMenu.Hide();
 			}
@@ -591,17 +645,26 @@ public class PlayerInput : NetworkBehaviour
 
 	private void GolfCartHonk(InputAction.CallbackContext context)
 	{
-		playerInfo.HonkGolfCart();
+		if (!playerInfo.ActiveGolfCartSeat.IsValid() || !playerInfo.ActiveGolfCartSeat.golfCart.AsEntity.AsHittable.IsFrozen)
+		{
+			playerInfo.HonkGolfCart();
+		}
 	}
 
 	private void ExitGolfCart(InputAction.CallbackContext context)
 	{
-		playerInfo.ExitGolfCart(GolfCartExitType.Default);
+		if (!playerInfo.ActiveGolfCartSeat.IsValid() || !playerInfo.ActiveGolfCartSeat.golfCart.AsEntity.AsHittable.IsFrozen)
+		{
+			playerInfo.ExitGolfCart(GolfCartExitType.Default);
+		}
 	}
 
 	private void DiveOutOfGolfCart(InputAction.CallbackContext context)
 	{
-		playerInfo.ExitGolfCart(GolfCartExitType.Dive);
+		if (!playerInfo.ActiveGolfCartSeat.IsValid() || !playerInfo.ActiveGolfCartSeat.golfCart.AsEntity.AsHittable.IsFrozen)
+		{
+			playerInfo.ExitGolfCart(GolfCartExitType.Dive);
+		}
 	}
 
 	private void SelectHotkey1(InputAction.CallbackContext context)
@@ -709,7 +772,7 @@ public class PlayerInput : NetworkBehaviour
 
 	private void SpectatorCyclePreviousPlayer(InputAction.CallbackContext context)
 	{
-		if (SingletonBehaviour<DrivingRangeManager>.HasInstance || CourseManager.MatchState >= MatchState.TeeOff)
+		if (CanCycleSpectatorTarget())
 		{
 			playerInfo.AsSpectator.CyclePreviousTarget(canBeginNewSpectate: false);
 		}
@@ -717,10 +780,27 @@ public class PlayerInput : NetworkBehaviour
 
 	private void SpectatorCycleNextPlayer(InputAction.CallbackContext context)
 	{
-		if (SingletonBehaviour<DrivingRangeManager>.HasInstance || CourseManager.MatchState >= MatchState.TeeOff)
+		if (CanCycleSpectatorTarget())
 		{
 			playerInfo.AsSpectator.CycleNextTarget(canBeginNewSpectate: false);
 		}
+	}
+
+	private bool CanCycleSpectatorTarget()
+	{
+		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance && CourseManager.MatchState < MatchState.TeeOff)
+		{
+			return false;
+		}
+		if (RadialMenu.IsVisible)
+		{
+			return false;
+		}
+		if (RadialMenu.LastSelectionFrame == Time.frameCount)
+		{
+			return false;
+		}
+		return true;
 	}
 
 	private void ShowScoreboard(InputAction.CallbackContext context)

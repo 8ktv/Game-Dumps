@@ -13,10 +13,10 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
+[NativeHeader("Runtime/Mono/AsyncOperationAwaitable.h")]
+[NativeHeader("Runtime/Mono/Awaitable.h")]
 [AsyncMethodBuilder(typeof(AwaitableAsyncMethodBuilder))]
 [NativeHeader("Runtime/Mono/DelayedCallAwaitable.h")]
-[NativeHeader("Runtime/Mono/Awaitable.h")]
-[NativeHeader("Runtime/Mono/AsyncOperationAwaitable.h")]
 public class Awaitable : IEnumerator
 {
 	internal enum AwaiterCompletionThreadAffinity

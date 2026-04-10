@@ -28,12 +28,12 @@ internal class ProbeVolumeBakingSetWeakReference
 
 	public ProbeVolumeBakingSet Get()
 	{
-		return Resources.InstanceIDToObject(m_InstanceID) as ProbeVolumeBakingSet;
+		return Resources.EntityIdToObject(m_InstanceID) as ProbeVolumeBakingSet;
 	}
 
 	public bool IsLoaded()
 	{
-		return Resources.InstanceIDIsValid(m_InstanceID);
+		return Resources.EntityIdIsValid(m_InstanceID);
 	}
 
 	public void Unload()

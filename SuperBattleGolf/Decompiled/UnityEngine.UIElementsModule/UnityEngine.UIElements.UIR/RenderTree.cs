@@ -31,6 +31,10 @@ internal class RenderTree
 
 	public RectInt quadRect;
 
+	public Rect quadUVRect;
+
+	public GCHandlePool m_GCHandlePool = new GCHandlePool();
+
 	internal RenderTree parent;
 
 	internal RenderTree firstChild;
@@ -101,7 +105,8 @@ internal class RenderTree
 
 	private void DepthFirstResetTextures(RenderData renderData)
 	{
-		m_RenderTreeManager.ResetTextures(renderData);
+		m_GCHandlePool.ReturnAll();
+		m_RenderTreeManager.ResetGraphicEntries(renderData);
 		for (RenderData renderData2 = renderData.firstChild; renderData2 != null; renderData2 = renderData2.nextSibling)
 		{
 			DepthFirstResetTextures(renderData2);

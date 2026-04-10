@@ -67,8 +67,6 @@ public class PlayerVoiceChat : MonoBehaviour
 
 	private bool wasTalking;
 
-	private bool isPushingToTalk;
-
 	private NetworkIdentity netId;
 
 	private PlayerCosmeticsSwitcher cosmeticsSwitcher;
@@ -240,6 +238,10 @@ public class PlayerVoiceChat : MonoBehaviour
 			return;
 		}
 		bool flag = ShouldRecord();
+		if (GameSettings.All.Audio.MicInputMode == GameSettings.AudioSettings.InputMode.PushToTalk || GameSettings.All.Audio.MicInputMode == GameSettings.AudioSettings.InputMode.PushToToggle)
+		{
+			voiceNetworker.threshold = (playerInfo.Input.IsPushingToTalk ? GameSettings.All.Audio.MicInputThreshold : 1f);
+		}
 		if (flag != voiceNetworker.IsRecording)
 		{
 			if (flag)
@@ -253,16 +255,13 @@ public class PlayerVoiceChat : MonoBehaviour
 		}
 		bool ShouldRecord()
 		{
-			if (isMuted)
-			{
-				return false;
-			}
-			if (GameSettings.All.Audio.MicInputMode == GameSettings.AudioSettings.InputMode.VoiceActivated)
-			{
-				return true;
-			}
-			return playerInfo.Input.IsPushingToTalk;
+			return !isMuted;
 		}
+	}
+
+	public void InformPlayerFrozen(bool isFrozen)
+	{
+		voiceNetworker.SetFrozen(isFrozen);
 	}
 
 	private void LateUpdate()
@@ -270,8 +269,8 @@ public class PlayerVoiceChat : MonoBehaviour
 		if (voiceNetworker.IsTalking)
 		{
 			wasTalking = true;
-			float smoothedNormalizedVolume = voiceNetworker.SmoothedNormalizedVolume;
-			cosmeticsSwitcher.SetTalkingMagnitude(smoothedNormalizedVolume);
+			float slowSmoothedNormalizedVolume = voiceNetworker.SlowSmoothedNormalizedVolume;
+			cosmeticsSwitcher.SetTalkingMagnitude(slowSmoothedNormalizedVolume);
 		}
 		else if (wasTalking)
 		{
@@ -298,6 +297,7 @@ public class PlayerVoiceChat : MonoBehaviour
 		initialized = true;
 		UpdateInputDevice(GameSettings.All.Audio.InputDeviceId);
 		UpdateSpatialSetting();
+		UpdateVoiceEffects();
 		UpdatePersistentPlayerStatus();
 	}
 
@@ -312,6 +312,11 @@ public class PlayerVoiceChat : MonoBehaviour
 	public void UpdateSpatialSetting()
 	{
 		voiceNetworker.Set2DFade(GameSettings.All.Audio.VoiceChatSpatialAudio ? 0.25f : 1f);
+	}
+
+	private void UpdateVoiceEffects()
+	{
+		voiceNetworker.SetFrozen(apply: false);
 	}
 
 	private void OnPlayerGuidChanged()

@@ -71,6 +71,7 @@ public class MenuOpenInteraction : MonoBehaviour, IInteractable
 			break;
 		case Menu.MatchSetup:
 			SingletonNetworkBehaviour<MatchSetupMenu>.Instance.SetEnabled(enabled: true);
+			MatchSetupStation.PlayMenuOpenedEffectsLocalOnly();
 			break;
 		}
 	}

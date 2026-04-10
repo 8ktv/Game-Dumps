@@ -9,9 +9,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[RequiredByNativeCode(Optional = true)]
-[NativeHeader("Modules/Physics2D/Public/Collider2D.h")]
 [RequireComponent(typeof(Transform))]
+[NativeHeader("Modules/Physics2D/Public/Collider2D.h")]
+[RequiredByNativeCode(Optional = true)]
 public class Collider2D : Behaviour
 {
 	public enum CompositeOperation
@@ -502,9 +502,9 @@ public class Collider2D : Behaviour
 		}
 	}
 
-	[ExcludeFromDocs]
-	[Obsolete("usedByComposite has been deprecated. Please use compositeOperation.", false)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("usedByComposite has been deprecated. Please use compositeOperation.", false)]
+	[ExcludeFromDocs]
 	public bool usedByComposite
 	{
 		get
@@ -758,7 +758,7 @@ public class Collider2D : Behaviour
 		ContactFilter2D contactFilter = default(ContactFilter2D);
 		contactFilter.useTriggers = Physics2D.queriesHitTriggers;
 		contactFilter.SetLayerMask(contactMask);
-		return CastArray_Internal(direction, float.PositiveInfinity, contactFilter, ignoreSiblingColliders: true, results);
+		return CastArray_Internal(direction, float.PositiveInfinity, contactFilter, ignoreSiblingColliders: true, checkIgnoreColliders: false, results);
 	}
 
 	[ExcludeFromDocs]
@@ -767,7 +767,7 @@ public class Collider2D : Behaviour
 		ContactFilter2D contactFilter = default(ContactFilter2D);
 		contactFilter.useTriggers = Physics2D.queriesHitTriggers;
 		contactFilter.SetLayerMask(contactMask);
-		return CastArray_Internal(direction, distance, contactFilter, ignoreSiblingColliders: true, results);
+		return CastArray_Internal(direction, distance, contactFilter, ignoreSiblingColliders: true, checkIgnoreColliders: false, results);
 	}
 
 	public int Cast(Vector2 direction, RaycastHit2D[] results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance, [UnityEngine.Internal.DefaultValue("true")] bool ignoreSiblingColliders)
@@ -775,41 +775,41 @@ public class Collider2D : Behaviour
 		ContactFilter2D contactFilter = default(ContactFilter2D);
 		contactFilter.useTriggers = Physics2D.queriesHitTriggers;
 		contactFilter.SetLayerMask(contactMask);
-		return CastArray_Internal(direction, distance, contactFilter, ignoreSiblingColliders, results);
+		return CastArray_Internal(direction, distance, contactFilter, ignoreSiblingColliders, checkIgnoreColliders: false, results);
 	}
 
 	[ExcludeFromDocs]
 	public int Cast(Vector2 direction, ContactFilter2D contactFilter, RaycastHit2D[] results)
 	{
-		return CastArray_Internal(direction, float.PositiveInfinity, contactFilter, ignoreSiblingColliders: true, results);
+		return CastArray_Internal(direction, float.PositiveInfinity, contactFilter, ignoreSiblingColliders: true, checkIgnoreColliders: false, results);
 	}
 
 	[ExcludeFromDocs]
 	public int Cast(Vector2 direction, ContactFilter2D contactFilter, RaycastHit2D[] results, float distance)
 	{
-		return CastArray_Internal(direction, distance, contactFilter, ignoreSiblingColliders: true, results);
+		return CastArray_Internal(direction, distance, contactFilter, ignoreSiblingColliders: true, checkIgnoreColliders: false, results);
 	}
 
 	public int Cast(Vector2 direction, ContactFilter2D contactFilter, RaycastHit2D[] results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance, [UnityEngine.Internal.DefaultValue("true")] bool ignoreSiblingColliders)
 	{
-		return CastArray_Internal(direction, distance, contactFilter, ignoreSiblingColliders, results);
+		return CastArray_Internal(direction, distance, contactFilter, ignoreSiblingColliders, checkIgnoreColliders: false, results);
 	}
 
 	public int Cast(Vector2 direction, List<RaycastHit2D> results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance = float.PositiveInfinity, [UnityEngine.Internal.DefaultValue("true")] bool ignoreSiblingColliders = true)
 	{
-		return CastList_Internal(direction, distance, ignoreSiblingColliders, results);
+		return CastList_Internal(direction, distance, ignoreSiblingColliders, checkIgnoreColliders: false, results);
 	}
 
 	public int Cast(Vector2 direction, ContactFilter2D contactFilter, List<RaycastHit2D> results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance = float.PositiveInfinity, [UnityEngine.Internal.DefaultValue("true")] bool ignoreSiblingColliders = true)
 	{
-		return CastListFiltered_Internal(direction, distance, contactFilter, ignoreSiblingColliders, results);
+		return CastListFiltered_Internal(direction, distance, contactFilter, ignoreSiblingColliders, checkIgnoreColliders: false, results);
 	}
 
 	public int Cast(Vector2 position, float angle, Vector2 direction, List<RaycastHit2D> results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance = float.PositiveInfinity, [UnityEngine.Internal.DefaultValue("true")] bool ignoreSiblingColliders = true)
 	{
 		if ((bool)attachedRigidbody)
 		{
-			return CastFrom_Internal(position, angle, direction, distance, ignoreSiblingColliders, results);
+			return CastFrom_Internal(position, angle, direction, distance, ignoreSiblingColliders, checkIgnoreColliders: false, results);
 		}
 		throw new InvalidOperationException("Cannot perform a Collider Cast from a specific position and angle if the Collider is not attached to a Rigidbody2D.");
 	}
@@ -818,13 +818,13 @@ public class Collider2D : Behaviour
 	{
 		if ((bool)attachedRigidbody)
 		{
-			return CastFromFiltered_Internal(position, angle, direction, distance, contactFilter, ignoreSiblingColliders, results);
+			return CastFromFiltered_Internal(position, angle, direction, distance, contactFilter, ignoreSiblingColliders, checkIgnoreColliders: false, results);
 		}
 		throw new InvalidOperationException("Cannot perform a Collider Cast from a specific position and angle if the Collider is not attached to a Rigidbody2D.");
 	}
 
 	[NativeMethod("CastArray_Binding")]
-	private unsafe int CastArray_Internal(Vector2 direction, float distance, ContactFilter2D contactFilter, bool ignoreSiblingColliders, [NotNull] RaycastHit2D[] results)
+	private unsafe int CastArray_Internal(Vector2 direction, float distance, ContactFilter2D contactFilter, bool ignoreSiblingColliders, bool checkIgnoreColliders, [NotNull] RaycastHit2D[] results)
 	{
 		if (results == null)
 		{
@@ -840,13 +840,13 @@ public class Collider2D : Behaviour
 		fixed (RaycastHit2D* begin = span)
 		{
 			ManagedSpanWrapper results2 = new ManagedSpanWrapper(begin, span.Length);
-			result = CastArray_Internal_Injected(intPtr, ref direction, distance, ref contactFilter, ignoreSiblingColliders, ref results2);
+			result = CastArray_Internal_Injected(intPtr, ref direction, distance, ref contactFilter, ignoreSiblingColliders, checkIgnoreColliders, ref results2);
 		}
 		return result;
 	}
 
 	[NativeMethod("CastList_Binding")]
-	private unsafe int CastList_Internal(Vector2 direction, float distance, bool ignoreSiblingColliders, [NotNull] List<RaycastHit2D> results)
+	private unsafe int CastList_Internal(Vector2 direction, float distance, bool ignoreSiblingColliders, bool checkIgnoreColliders, [NotNull] List<RaycastHit2D> results)
 	{
 		if (results == null)
 		{
@@ -870,7 +870,7 @@ public class Collider2D : Behaviour
 					arrayWrapper = new BlittableArrayWrapper(Unsafe.AsPointer(ref array[0]), array.Length);
 				}
 				results2 = new BlittableListWrapper(arrayWrapper, list.Count);
-				return CastList_Internal_Injected(intPtr, ref direction, distance, ignoreSiblingColliders, ref results2);
+				return CastList_Internal_Injected(intPtr, ref direction, distance, ignoreSiblingColliders, checkIgnoreColliders, ref results2);
 			}
 		}
 		finally
@@ -880,7 +880,7 @@ public class Collider2D : Behaviour
 	}
 
 	[NativeMethod("CastListFiltered_Binding")]
-	private unsafe int CastListFiltered_Internal(Vector2 direction, float distance, ContactFilter2D contactFilter, bool ignoreSiblingColliders, [NotNull] List<RaycastHit2D> results)
+	private unsafe int CastListFiltered_Internal(Vector2 direction, float distance, ContactFilter2D contactFilter, bool ignoreSiblingColliders, bool checkIgnoreColliders, [NotNull] List<RaycastHit2D> results)
 	{
 		if (results == null)
 		{
@@ -904,7 +904,7 @@ public class Collider2D : Behaviour
 					arrayWrapper = new BlittableArrayWrapper(Unsafe.AsPointer(ref array[0]), array.Length);
 				}
 				results2 = new BlittableListWrapper(arrayWrapper, list.Count);
-				return CastListFiltered_Internal_Injected(intPtr, ref direction, distance, ref contactFilter, ignoreSiblingColliders, ref results2);
+				return CastListFiltered_Internal_Injected(intPtr, ref direction, distance, ref contactFilter, ignoreSiblingColliders, checkIgnoreColliders, ref results2);
 			}
 		}
 		finally
@@ -914,7 +914,7 @@ public class Collider2D : Behaviour
 	}
 
 	[NativeMethod("CastFrom_Binding")]
-	private unsafe int CastFrom_Internal(Vector2 position, float angle, Vector2 direction, float distance, bool ignoreSiblingColliders, [NotNull] List<RaycastHit2D> results)
+	private unsafe int CastFrom_Internal(Vector2 position, float angle, Vector2 direction, float distance, bool ignoreSiblingColliders, bool checkIgnoreColliders, [NotNull] List<RaycastHit2D> results)
 	{
 		if (results == null)
 		{
@@ -938,7 +938,7 @@ public class Collider2D : Behaviour
 					arrayWrapper = new BlittableArrayWrapper(Unsafe.AsPointer(ref array[0]), array.Length);
 				}
 				results2 = new BlittableListWrapper(arrayWrapper, list.Count);
-				return CastFrom_Internal_Injected(intPtr, ref position, angle, ref direction, distance, ignoreSiblingColliders, ref results2);
+				return CastFrom_Internal_Injected(intPtr, ref position, angle, ref direction, distance, ignoreSiblingColliders, checkIgnoreColliders, ref results2);
 			}
 		}
 		finally
@@ -948,7 +948,7 @@ public class Collider2D : Behaviour
 	}
 
 	[NativeMethod("CastFromFiltered_Binding")]
-	private unsafe int CastFromFiltered_Internal(Vector2 position, float angle, Vector2 direction, float distance, ContactFilter2D contactFilter, bool ignoreSiblingColliders, [NotNull] List<RaycastHit2D> results)
+	private unsafe int CastFromFiltered_Internal(Vector2 position, float angle, Vector2 direction, float distance, ContactFilter2D contactFilter, bool ignoreSiblingColliders, bool checkIgnoreColliders, [NotNull] List<RaycastHit2D> results)
 	{
 		if (results == null)
 		{
@@ -972,7 +972,7 @@ public class Collider2D : Behaviour
 					arrayWrapper = new BlittableArrayWrapper(Unsafe.AsPointer(ref array[0]), array.Length);
 				}
 				results2 = new BlittableListWrapper(arrayWrapper, list.Count);
-				return CastFromFiltered_Internal_Injected(intPtr, ref position, angle, ref direction, distance, ref contactFilter, ignoreSiblingColliders, ref results2);
+				return CastFromFiltered_Internal_Injected(intPtr, ref position, angle, ref direction, distance, ref contactFilter, ignoreSiblingColliders, checkIgnoreColliders, ref results2);
 			}
 		}
 		finally
@@ -1142,17 +1142,17 @@ public class Collider2D : Behaviour
 		return Physics2D.GetContacts(this, contactFilter, colliders);
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	[Obsolete("OverlapCollider has been deprecated. Please use Overlap. (UnityUpgradable) -> Overlap(*)", false)]
 	[ExcludeFromDocs]
+	[Obsolete("OverlapCollider has been deprecated. Please use Overlap. (UnityUpgradable) -> Overlap(*)", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public int OverlapCollider(ContactFilter2D contactFilter, Collider2D[] results)
 	{
 		return Overlap(contactFilter, results);
 	}
 
+	[Obsolete("OverlapCollider has been deprecated. Please use Overlap. (UnityUpgradable) -> Overlap(*)", false)]
 	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
-	[Obsolete("OverlapCollider has been deprecated. Please use Overlap. (UnityUpgradable) -> Overlap(*)", false)]
 	public int OverlapCollider(ContactFilter2D contactFilter, List<Collider2D> results)
 	{
 		return Overlap(contactFilter, results);
@@ -1309,19 +1309,19 @@ public class Collider2D : Behaviour
 	private static extern bool OverlapPoint_Injected(IntPtr _unity_self, [In] ref Vector2 point);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern int CastArray_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, [In] ref ContactFilter2D contactFilter, bool ignoreSiblingColliders, ref ManagedSpanWrapper results);
+	private static extern int CastArray_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, [In] ref ContactFilter2D contactFilter, bool ignoreSiblingColliders, bool checkIgnoreColliders, ref ManagedSpanWrapper results);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern int CastList_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, bool ignoreSiblingColliders, ref BlittableListWrapper results);
+	private static extern int CastList_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, bool ignoreSiblingColliders, bool checkIgnoreColliders, ref BlittableListWrapper results);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern int CastListFiltered_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, [In] ref ContactFilter2D contactFilter, bool ignoreSiblingColliders, ref BlittableListWrapper results);
+	private static extern int CastListFiltered_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, [In] ref ContactFilter2D contactFilter, bool ignoreSiblingColliders, bool checkIgnoreColliders, ref BlittableListWrapper results);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern int CastFrom_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 position, float angle, [In] ref Vector2 direction, float distance, bool ignoreSiblingColliders, ref BlittableListWrapper results);
+	private static extern int CastFrom_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 position, float angle, [In] ref Vector2 direction, float distance, bool ignoreSiblingColliders, bool checkIgnoreColliders, ref BlittableListWrapper results);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern int CastFromFiltered_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 position, float angle, [In] ref Vector2 direction, float distance, [In] ref ContactFilter2D contactFilter, bool ignoreSiblingColliders, ref BlittableListWrapper results);
+	private static extern int CastFromFiltered_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 position, float angle, [In] ref Vector2 direction, float distance, [In] ref ContactFilter2D contactFilter, bool ignoreSiblingColliders, bool checkIgnoreColliders, ref BlittableListWrapper results);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern int RaycastArray_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, [In] ref ContactFilter2D contactFilter, ref ManagedSpanWrapper results);

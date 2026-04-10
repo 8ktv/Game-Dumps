@@ -4,7 +4,7 @@ namespace UnityEngine.Rendering;
 
 internal struct GPUDrivenRendererGroupData
 {
-	public NativeArray<int> rendererGroupID;
+	public NativeArray<EntityId> rendererGroupID;
 
 	public NativeArray<Bounds> localBounds;
 
@@ -14,7 +14,9 @@ internal struct GPUDrivenRendererGroupData
 
 	public NativeArray<uint> renderingLayerMask;
 
-	public NativeArray<int> lodGroupID;
+	public NativeArray<uint> rendererUserValues;
+
+	public NativeArray<EntityId> lodGroupID;
 
 	public NativeArray<int> lightmapIndex;
 
@@ -38,7 +40,7 @@ internal struct GPUDrivenRendererGroupData
 
 	public NativeArray<GPUDrivenRendererMeshLodData> meshLodData;
 
-	public NativeArray<int> invalidRendererGroupID;
+	public NativeArray<EntityId> invalidRendererGroupID;
 
 	public NativeArray<Matrix4x4> localToWorldMatrix;
 
@@ -46,7 +48,7 @@ internal struct GPUDrivenRendererGroupData
 
 	public NativeArray<int> rendererGroupIndex;
 
-	public NativeArray<int> meshID;
+	public NativeArray<EntityId> meshID;
 
 	public NativeArray<GPUDrivenMeshLodInfo> meshLodInfo;
 
@@ -58,7 +60,7 @@ internal struct GPUDrivenRendererGroupData
 
 	public NativeArray<int> materialIndex;
 
-	public NativeArray<int> materialID;
+	public NativeArray<EntityId> materialID;
 
 	public NativeArray<GPUDrivenPackedMaterialData> packedMaterialData;
 

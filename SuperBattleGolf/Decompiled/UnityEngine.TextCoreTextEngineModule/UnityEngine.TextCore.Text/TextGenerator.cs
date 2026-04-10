@@ -3415,6 +3415,13 @@ internal class TextGenerator
 			vector4.x = vector3.x;
 			vector4.y = vector2.y;
 			vector4.z = 0f;
+			if (charCode == 8203)
+			{
+				vector = Vector3.zero;
+				vector2 = Vector3.zero;
+				vector3 = Vector3.zero;
+				vector4 = Vector3.zero;
+			}
 			if (m_TextElementType == TextElementType.Character && !isUsingAlternateTypeface && (m_FontStyleInternal & FontStyles.Italic) == FontStyles.Italic)
 			{
 				float num33 = (float)m_ItalicAngle * 0.01f;
@@ -5132,7 +5139,14 @@ internal class TextGenerator
 			}
 			if (character != null)
 			{
-				fontAsset.AddCharacterToLookupCache(unicode, character, fontStyle, fontWeight);
+				if (isUsingAlternativeTypeface)
+				{
+					fontAsset.AddCharacterToLookupCache(unicode, character, fontStyle, fontWeight);
+				}
+				else
+				{
+					fontAsset.AddCharacterToLookupCache(unicode, character, FontStyles.Normal, TextFontWeight.Regular);
+				}
 				return character;
 			}
 		}
@@ -5143,7 +5157,14 @@ internal class TextGenerator
 		character = FontAssetUtilities.GetCharacterFromFontAssetsInternal(unicode, fontAsset, textSettings.GetFallbackFontAssets(fontAsset.IsRaster(), m_ShouldRenderBitmap ? generationSettings.fontSize : (-1)), textSettings.fallbackOSFontAssets, includeFallbacks: true, fontStyle, fontWeight, out isUsingAlternativeTypeface, populateLigatures);
 		if (character != null)
 		{
-			fontAsset.AddCharacterToLookupCache(unicode, character, fontStyle, fontWeight);
+			if (isUsingAlternativeTypeface)
+			{
+				fontAsset.AddCharacterToLookupCache(unicode, character, fontStyle, fontWeight);
+			}
+			else
+			{
+				fontAsset.AddCharacterToLookupCache(unicode, character, FontStyles.Normal, TextFontWeight.Regular);
+			}
 			return character;
 		}
 		if (textSettings.defaultFontAsset != null)
@@ -5152,7 +5173,14 @@ internal class TextGenerator
 		}
 		if (character != null)
 		{
-			fontAsset.AddCharacterToLookupCache(unicode, character, fontStyle, fontWeight);
+			if (isUsingAlternativeTypeface)
+			{
+				fontAsset.AddCharacterToLookupCache(unicode, character, fontStyle, fontWeight);
+			}
+			else
+			{
+				fontAsset.AddCharacterToLookupCache(unicode, character, FontStyles.Normal, TextFontWeight.Regular);
+			}
 			return character;
 		}
 		if (textSettings.defaultSpriteAsset != null)
@@ -5887,20 +5915,47 @@ internal class TextGenerator
 	protected bool GetUnderlineSpecialCharacter(TextGenerationSettings generationSettings)
 	{
 		bool flag = !IsExecutingJob;
-		FontAsset sourceFontAsset = m_CurrentFontAsset ?? generationSettings.fontAsset;
+		FontAsset fontAsset = m_CurrentFontAsset ?? generationSettings.fontAsset;
+		TextSettings textSettings = generationSettings.textSettings;
 		bool populateLigatures = TextGenerationSettings.fontFeatures.Contains(OTL_FeatureTag.liga);
 		bool isAlternativeTypeface;
-		Character characterFromFontAsset = FontAssetUtilities.GetCharacterFromFontAsset(95u, sourceFontAsset, includeFallbacks: false, m_FontStyleInternal, m_FontWeightInternal, out isAlternativeTypeface, populateLigatures);
-		if (characterFromFontAsset == null)
+		Character character = FontAssetUtilities.GetCharacterFromFontAsset(95u, fontAsset, includeFallbacks: false, m_FontStyleInternal, m_FontWeightInternal, out isAlternativeTypeface, populateLigatures);
+		if (character == null && fontAsset.m_FallbackFontAssetTable != null && fontAsset.m_FallbackFontAssetTable.Count > 0)
 		{
-			return false;
+			character = FontAssetUtilities.GetCharacterFromFontAssetsInternal(95u, fontAsset, fontAsset.m_FallbackFontAssetTable, null, includeFallbacks: true, m_FontStyleInternal, m_FontWeightInternal, out isAlternativeTypeface, populateLigatures);
 		}
-		m_Underline = new SpecialCharacter(characterFromFontAsset, m_CurrentMaterialIndex);
-		if (m_Underline.fontAsset.GetHashCode() != m_CurrentFontAsset.GetHashCode())
+		if (character == null)
 		{
-			m_Underline.material = ((generationSettings.textSettings.matchMaterialPreset && m_CurrentMaterial.GetHashCode() != m_Underline.fontAsset.material.GetHashCode()) ? MaterialManager.GetFallbackMaterial(m_CurrentMaterial, m_Underline.fontAsset.material) : m_Underline.fontAsset.material);
-			m_Underline.materialIndex = MaterialReference.AddMaterialReference(m_Underline.material, m_Underline.fontAsset, ref m_MaterialReferences, m_MaterialReferenceIndexLookup);
-			m_MaterialReferences[m_Underline.materialIndex].referenceCount = 0;
+			if (textSettings.GetStaticFallbackOSFontAsset() == null && !flag)
+			{
+				return false;
+			}
+			character = FontAssetUtilities.GetCharacterFromFontAssetsInternal(95u, fontAsset, textSettings.GetFallbackFontAssets(fontAsset.IsRaster(), m_ShouldRenderBitmap ? generationSettings.fontSize : (-1)), textSettings.fallbackOSFontAssets, includeFallbacks: true, m_FontStyleInternal, m_FontWeightInternal, out isAlternativeTypeface, populateLigatures);
+		}
+		if (character == null && textSettings.defaultFontAsset != null)
+		{
+			character = FontAssetUtilities.GetCharacterFromFontAsset(95u, textSettings.defaultFontAsset, includeFallbacks: true, m_FontStyleInternal, m_FontWeightInternal, out isAlternativeTypeface, populateLigatures);
+		}
+		if (character != null)
+		{
+			m_Underline = new SpecialCharacter(character, m_CurrentMaterialIndex);
+			if (m_Underline.fontAsset.GetHashCode() != m_CurrentFontAsset.GetHashCode())
+			{
+				if (generationSettings.textSettings.matchMaterialPreset && m_CurrentMaterial != null && m_CurrentMaterial.GetHashCode() != m_Underline.fontAsset.material.GetHashCode())
+				{
+					m_Underline.material = MaterialManager.GetFallbackMaterial(m_CurrentMaterial, m_Underline.fontAsset.material);
+					if (m_Underline.material == null)
+					{
+						return false;
+					}
+				}
+				else
+				{
+					m_Underline.material = m_Underline.fontAsset.material;
+				}
+				m_Underline.materialIndex = MaterialReference.AddMaterialReference(m_Underline.material, m_Underline.fontAsset, ref m_MaterialReferences, m_MaterialReferenceIndexLookup);
+				m_MaterialReferences[m_Underline.materialIndex].referenceCount = 0;
+			}
 		}
 		return true;
 	}

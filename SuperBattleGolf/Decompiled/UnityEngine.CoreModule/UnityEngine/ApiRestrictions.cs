@@ -5,8 +5,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[UsedByNativeCode]
 [NativeHeader("Runtime/Scripting/ApiRestrictions.h")]
+[UsedByNativeCode]
 [ExtensionOfNativeClass]
 [StaticAccessor("GetApiRestrictions()", StaticAccessorType.Arrow)]
 internal class ApiRestrictions

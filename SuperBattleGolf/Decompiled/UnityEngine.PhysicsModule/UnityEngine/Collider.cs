@@ -229,19 +229,7 @@ public class Collider : Component
 		}
 	}
 
-	public GeometryHolder GeometryHolder
-	{
-		get
-		{
-			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
-			if (intPtr == (IntPtr)0)
-			{
-				ThrowHelper.ThrowNullReferenceException(this);
-			}
-			get_GeometryHolder_Injected(intPtr, out var ret);
-			return ret;
-		}
-	}
+	public GeometryHolder GeometryHolder => this.GetGeometryHolder();
 
 	[NativeMethod("Material")]
 	public PhysicsMaterial sharedMaterial
@@ -303,7 +291,7 @@ public class Collider : Component
 
 	public T GetGeometry<T>() where T : struct, IGeometry
 	{
-		return GeometryHolder.As<T>();
+		return this.GetGeometryHolder().As<T>();
 	}
 
 	private RaycastHit Raycast(Ray ray, float maxDistance, ref bool hasHit)
@@ -402,9 +390,6 @@ public class Collider : Component
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void set_includeLayers_Injected(IntPtr _unity_self, [In] ref LayerMask value);
-
-	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void get_GeometryHolder_Injected(IntPtr _unity_self, out GeometryHolder ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern IntPtr get_sharedMaterial_Injected(IntPtr _unity_self);

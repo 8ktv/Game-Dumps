@@ -15,6 +15,10 @@ internal class Expression
 
 	public Expression[] subExpressions;
 
+	public float min;
+
+	public float max;
+
 	public string keyword;
 
 	public Expression(ExpressionType type)

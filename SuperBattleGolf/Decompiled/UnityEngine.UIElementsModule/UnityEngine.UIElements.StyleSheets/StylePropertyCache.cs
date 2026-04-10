@@ -12,6 +12,7 @@ internal static class StylePropertyCache
 		{ "align-items", "flex-start | flex-end | center | stretch | auto" },
 		{ "align-self", "flex-start | flex-end | center | stretch | auto" },
 		{ "all", "initial" },
+		{ "aspect-ratio", "auto | <ratio>" },
 		{ "background-color", "<color>" },
 		{ "background-image", "<resource> | <url> | none" },
 		{ "background-position", "[ [ left | center | right | top | bottom | <length-percentage> ] | [ left | center | right | <length-percentage> ] [ top | center | bottom | <length-percentage> ] | [ center | [ left | right ] <length-percentage>? ] && [ center | [ top | bottom ] <length-percentage>? ] ]" },
@@ -38,6 +39,7 @@ internal static class StylePropertyCache
 		{ "color", "<color>" },
 		{ "cursor", "[ [ <resource> | <url> ] [ <integer> <integer> ]? ] | [ arrow | text | resize-vertical | resize-horizontal | link | slide-arrow | resize-up-right | resize-up-left | move-arrow | rotate-arrow | scale-arrow | arrow-plus | arrow-minus | pan | orbit | zoom | fps | split-resize-up-down | split-resize-left-right | not-allowed ]" },
 		{ "display", "flex | none" },
+		{ "filter", "none | <filter-function>+" },
 		{ "flex", "none | [ <'flex-grow'> <'flex-shrink'>? || <'flex-basis'> ]" },
 		{ "flex-basis", "<'width'>" },
 		{ "flex-direction", "column | row | column-reverse | row-reverse" },
@@ -85,6 +87,7 @@ internal static class StylePropertyCache
 		{ "-unity-font", "<resource> | <url>" },
 		{ "-unity-font-definition", "<resource> | <url>" },
 		{ "-unity-font-style", "normal | italic | bold | bold-and-italic" },
+		{ "-unity-material", "<resource> <prop>* | <url> <prop>* | none" },
 		{ "-unity-overflow-clip-box", "padding-box | content-box" },
 		{ "-unity-paragraph-spacing", "<length>" },
 		{ "-unity-slice-bottom", "<integer>" },
@@ -94,7 +97,7 @@ internal static class StylePropertyCache
 		{ "-unity-slice-top", "<integer>" },
 		{ "-unity-slice-type", "sliced | tiled" },
 		{ "-unity-text-align", "upper-left | middle-left | lower-left | upper-center | middle-center | lower-center | upper-right | middle-right | lower-right" },
-		{ "-unity-text-auto-size", "none | [bestFit && <length-percentage>{2}]" },
+		{ "-unity-text-auto-size", "none | [best-fit && <length-percentage>{2}]" },
 		{ "-unity-text-generator", "standard | advanced" },
 		{ "-unity-text-outline", "<length> || <color>" },
 		{ "-unity-text-outline-color", "<color>" },
@@ -112,7 +115,8 @@ internal static class StylePropertyCache
 		{ "length-percentage", "<length> | <percentage>" },
 		{ "single-transition", "[ none | <single-transition-property> ] || <time> || <easing-function> || <time>" },
 		{ "single-transition-property", "all | <custom-ident>" },
-		{ "timing-function", "ease | ease-in | ease-out | ease-in-out | ease-in-sine | ease-out-sine | ease-in-out-sine | ease-in-cubic | ease-out-cubic | ease-in-out-cubic | ease-in-circ | ease-out-circ | ease-in-out-circ | ease-in-elastic | ease-out-elastic | ease-in-out-elastic | ease-in-back | ease-out-back | ease-in-out-back | ease-in-bounce | ease-out-bounce | ease-in-out-bounce" }
+		{ "timing-function", "ease | ease-in | ease-out | ease-in-out | ease-in-sine | ease-out-sine | ease-in-out-sine | ease-in-cubic | ease-out-cubic | ease-in-out-cubic | ease-in-circ | ease-out-circ | ease-in-out-circ | ease-in-elastic | ease-out-elastic | ease-in-out-elastic | ease-in-back | ease-out-back | ease-in-out-back | ease-in-bounce | ease-out-bounce | ease-in-out-bounce" },
+		{ "ratio", "<number [0,∞]>" }
 	};
 
 	public static bool TryGetSyntax(string name, out string syntax)

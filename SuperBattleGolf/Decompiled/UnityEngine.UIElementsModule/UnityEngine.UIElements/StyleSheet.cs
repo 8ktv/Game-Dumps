@@ -10,6 +10,14 @@ namespace UnityEngine.UIElements;
 [HelpURL("UIE-USS")]
 public class StyleSheet : ScriptableObject
 {
+	[Flags]
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal enum RebuildOptions
+	{
+		None = 0,
+		Synchronous = 1
+	}
+
 	[Serializable]
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal struct ImportStruct
@@ -28,6 +36,9 @@ public class StyleSheet : ScriptableObject
 		Length
 	}
 
+	[NonSerialized]
+	private bool m_RequiresRebuild = true;
+
 	[SerializeField]
 	private bool m_ImportedWithErrors;
 
@@ -38,30 +49,22 @@ public class StyleSheet : ScriptableObject
 	private StyleRule[] m_Rules = Array.Empty<StyleRule>();
 
 	[SerializeField]
-	private StyleComplexSelector[] m_ComplexSelectors = Array.Empty<StyleComplexSelector>();
-
-	[SerializeField]
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal float[] floats = Array.Empty<float>();
 
 	[SerializeField]
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal Dimension[] dimensions = Array.Empty<Dimension>();
 
 	[SerializeField]
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal Color[] colors = Array.Empty<Color>();
 
 	[SerializeField]
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal string[] strings = Array.Empty<string>();
 
 	[SerializeField]
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal Object[] assets = Array.Empty<Object>();
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	[SerializeField]
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal ImportStruct[] imports = Array.Empty<ImportStruct>();
 
 	[SerializeField]
@@ -74,7 +77,7 @@ public class StyleSheet : ScriptableObject
 	internal ScalableImage[] scalableImages = Array.Empty<ScalableImage>();
 
 	[NonSerialized]
-	internal Dictionary<string, StyleComplexSelector>[] tables;
+	internal Dictionary<string, StyleComplexSelector>[] m_Tables;
 
 	[NonSerialized]
 	internal int nonEmptyTablesMask;
@@ -87,8 +90,6 @@ public class StyleSheet : ScriptableObject
 
 	[NonSerialized]
 	private bool m_IsDefaultStyleSheet;
-
-	private static string kCustomPropertyMarker = "--";
 
 	public bool importedWithErrors
 	{
@@ -114,31 +115,12 @@ public class StyleSheet : ScriptableObject
 		}
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal StyleRule[] rules
 	{
+		[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 		get
 		{
 			return m_Rules;
-		}
-		set
-		{
-			m_Rules = value;
-			SetupReferences();
-		}
-	}
-
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
-	internal StyleComplexSelector[] complexSelectors
-	{
-		get
-		{
-			return m_ComplexSelectors;
-		}
-		set
-		{
-			m_ComplexSelectors = value;
-			SetupReferences();
 		}
 	}
 
@@ -160,6 +142,27 @@ public class StyleSheet : ScriptableObject
 		set
 		{
 			m_ContentHash = value;
+		}
+	}
+
+	internal Dictionary<string, StyleComplexSelector>[] tables
+	{
+		get
+		{
+			Dictionary<string, StyleComplexSelector>[] array = m_Tables;
+			if (array == null)
+			{
+				Dictionary<string, StyleComplexSelector>[] obj = new Dictionary<string, StyleComplexSelector>[3]
+				{
+					new Dictionary<string, StyleComplexSelector>(StringComparer.Ordinal),
+					new Dictionary<string, StyleComplexSelector>(StringComparer.Ordinal),
+					new Dictionary<string, StyleComplexSelector>(StringComparer.Ordinal)
+				};
+				Dictionary<string, StyleComplexSelector>[] array2 = obj;
+				m_Tables = obj;
+				array = array2;
+			}
+			return array;
 		}
 	}
 
@@ -242,22 +245,193 @@ public class StyleSheet : ScriptableObject
 		}
 	}
 
-	private void SetupReferences()
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal StyleRule AddRule()
 	{
-		if (complexSelectors == null || rules == null || (complexSelectors.Length == 0 && rules.Length == 0))
+		return AddRuleAtIndex(-1);
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal StyleRule AddRuleAtIndex(int index)
+	{
+		return AddRuleAtIndex(index, null);
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal StyleRule AddRule(string selector)
+	{
+		return AddRuleAtIndex(-1, selector);
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal StyleRule AddRuleAtIndex(int index, string selector)
+	{
+		if (index == -1)
 		{
+			index = rules.Length;
+		}
+		StyleRule styleRule = new StyleRule(this);
+		if (!string.IsNullOrEmpty(selector))
+		{
+			styleRule.AddSelector(selector);
+		}
+		InsertValueInArray(ref m_Rules, index, styleRule);
+		RequestRebuild();
+		return styleRule;
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal bool RemoveRule(StyleRule rule)
+	{
+		if (rule.styleSheet != this)
+		{
+			return false;
+		}
+		int num = Array.IndexOf(m_Rules, rule);
+		if (num < 0)
+		{
+			return false;
+		}
+		RemoveRule(num);
+		return false;
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal void RemoveRule(int ruleIndex)
+	{
+		if (ruleIndex < 0 || ruleIndex >= m_Rules.Length)
+		{
+			throw new ArgumentOutOfRangeException("ruleIndex");
+		}
+		StyleRule styleRule = rules[ruleIndex];
+		Unity.Collections.CollectionExtensions.RemoveFromArray(ref m_Rules, ruleIndex);
+		styleRule.styleSheet = null;
+		RequestRebuild();
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal void SetRules(StyleRule[] newRules)
+	{
+		m_Rules = newRules;
+		SetupReferences();
+	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal void RequestRebuild(RebuildOptions options = RebuildOptions.None)
+	{
+		m_RequiresRebuild = true;
+		MarkAsChanged();
+		if ((options & RebuildOptions.Synchronous) == RebuildOptions.Synchronous)
+		{
+			RebuildIfNecessary();
+		}
+	}
+
+	internal void RebuildIfNecessary()
+	{
+		if (m_RequiresRebuild)
+		{
+			SetupReferences();
+		}
+	}
+
+	internal void SetupReferences()
+	{
+		if (tables != null)
+		{
+			tables[0].Clear();
+			tables[1].Clear();
+			tables[2].Clear();
+		}
+		nonEmptyTablesMask = 0;
+		firstRootSelector = null;
+		firstWildCardSelector = null;
+		if (rules == null || rules.Length == 0)
+		{
+			m_RequiresRebuild = false;
 			return;
 		}
-		StyleRule[] array = rules;
-		foreach (StyleRule styleRule in array)
+		int num = 0;
+		for (int i = 0; i < rules.Length; i++)
 		{
+			StyleRule styleRule = rules[i];
+			styleRule.styleSheet = this;
+			if (styleRule.complexSelectors == null)
+			{
+				continue;
+			}
+			StyleComplexSelector[] complexSelectors = styleRule.complexSelectors;
+			foreach (StyleComplexSelector styleComplexSelector in complexSelectors)
+			{
+				styleComplexSelector.rule = styleRule;
+				styleComplexSelector.ruleIndex = i;
+				styleComplexSelector.nextInTable = null;
+				styleComplexSelector.CachePseudoStateMasks(this);
+				styleComplexSelector.CalculateHashes();
+				styleComplexSelector.orderInStyleSheet = num++;
+				StyleSelector styleSelector = styleComplexSelector.selectors[^1];
+				StyleSelectorPart styleSelectorPart = styleSelector.parts[0];
+				string value = styleSelectorPart.value;
+				OrderedSelectorType orderedSelectorType = OrderedSelectorType.None;
+				switch (styleSelectorPart.type)
+				{
+				case StyleSelectorType.Class:
+					orderedSelectorType = OrderedSelectorType.Class;
+					break;
+				case StyleSelectorType.ID:
+					orderedSelectorType = OrderedSelectorType.Name;
+					break;
+				case StyleSelectorType.Type:
+					value = styleSelectorPart.value;
+					orderedSelectorType = OrderedSelectorType.Type;
+					break;
+				case StyleSelectorType.Wildcard:
+					if (firstWildCardSelector != null)
+					{
+						styleComplexSelector.nextInTable = firstWildCardSelector;
+					}
+					firstWildCardSelector = styleComplexSelector;
+					break;
+				case StyleSelectorType.PseudoClass:
+					if ((styleSelector.pseudoStateMask & 0x80) != 0)
+					{
+						if (firstRootSelector != null)
+						{
+							styleComplexSelector.nextInTable = firstRootSelector;
+						}
+						firstRootSelector = styleComplexSelector;
+					}
+					else
+					{
+						if (firstWildCardSelector != null)
+						{
+							styleComplexSelector.nextInTable = firstWildCardSelector;
+						}
+						firstWildCardSelector = styleComplexSelector;
+					}
+					break;
+				default:
+					Debug.LogError($"Invalid first part type {styleSelectorPart.type}", this);
+					break;
+				}
+				if (orderedSelectorType != OrderedSelectorType.None)
+				{
+					Dictionary<string, StyleComplexSelector> dictionary = tables[(int)orderedSelectorType];
+					if (dictionary.TryGetValue(value, out var value2))
+					{
+						styleComplexSelector.nextInTable = value2;
+					}
+					nonEmptyTablesMask |= 1 << (int)orderedSelectorType;
+					dictionary[value] = styleComplexSelector;
+				}
+			}
+			styleRule.customPropertiesCount = 0;
 			StyleProperty[] properties = styleRule.properties;
 			foreach (StyleProperty styleProperty in properties)
 			{
-				if (CustomStartsWith(styleProperty.name, kCustomPropertyMarker))
+				if (styleProperty.isCustomProperty)
 				{
 					styleRule.customPropertiesCount++;
-					styleProperty.isCustomProperty = true;
 				}
 				StyleValueHandle[] values = styleProperty.values;
 				foreach (StyleValueHandle styleValueHandle in values)
@@ -270,143 +444,65 @@ public class StyleSheet : ScriptableObject
 				}
 			}
 		}
-		int l = 0;
-		for (int num = complexSelectors.Length; l < num; l++)
-		{
-			complexSelectors[l].CachePseudoStateMasks(this);
-		}
-		tables = new Dictionary<string, StyleComplexSelector>[3];
-		tables[0] = new Dictionary<string, StyleComplexSelector>(StringComparer.Ordinal);
-		tables[1] = new Dictionary<string, StyleComplexSelector>(StringComparer.Ordinal);
-		tables[2] = new Dictionary<string, StyleComplexSelector>(StringComparer.Ordinal);
-		nonEmptyTablesMask = 0;
-		firstRootSelector = null;
-		firstWildCardSelector = null;
-		for (int m = 0; m < complexSelectors.Length; m++)
-		{
-			StyleComplexSelector styleComplexSelector = complexSelectors[m];
-			if (styleComplexSelector.ruleIndex < rules.Length)
-			{
-				styleComplexSelector.rule = rules[styleComplexSelector.ruleIndex];
-			}
-			styleComplexSelector.CalculateHashes();
-			styleComplexSelector.orderInStyleSheet = m;
-			StyleSelector styleSelector = styleComplexSelector.selectors[styleComplexSelector.selectors.Length - 1];
-			StyleSelectorPart styleSelectorPart = styleSelector.parts[0];
-			string value = styleSelectorPart.value;
-			OrderedSelectorType orderedSelectorType = OrderedSelectorType.None;
-			switch (styleSelectorPart.type)
-			{
-			case StyleSelectorType.Class:
-				orderedSelectorType = OrderedSelectorType.Class;
-				break;
-			case StyleSelectorType.ID:
-				orderedSelectorType = OrderedSelectorType.Name;
-				break;
-			case StyleSelectorType.Type:
-				value = styleSelectorPart.value;
-				orderedSelectorType = OrderedSelectorType.Type;
-				break;
-			case StyleSelectorType.Wildcard:
-				if (firstWildCardSelector != null)
-				{
-					styleComplexSelector.nextInTable = firstWildCardSelector;
-				}
-				firstWildCardSelector = styleComplexSelector;
-				break;
-			case StyleSelectorType.PseudoClass:
-				if ((styleSelector.pseudoStateMask & 0x80) != 0)
-				{
-					if (firstRootSelector != null)
-					{
-						styleComplexSelector.nextInTable = firstRootSelector;
-					}
-					firstRootSelector = styleComplexSelector;
-				}
-				else
-				{
-					if (firstWildCardSelector != null)
-					{
-						styleComplexSelector.nextInTable = firstWildCardSelector;
-					}
-					firstWildCardSelector = styleComplexSelector;
-				}
-				break;
-			default:
-				Debug.LogError($"Invalid first part type {styleSelectorPart.type}", this);
-				break;
-			}
-			if (orderedSelectorType != OrderedSelectorType.None)
-			{
-				Dictionary<string, StyleComplexSelector> dictionary = tables[(int)orderedSelectorType];
-				if (dictionary.TryGetValue(value, out var value2))
-				{
-					styleComplexSelector.nextInTable = value2;
-				}
-				nonEmptyTablesMask |= 1 << (int)orderedSelectorType;
-				dictionary[value] = styleComplexSelector;
-			}
-		}
+		m_RequiresRebuild = false;
 	}
 
 	private int AddValueToArray<T>(ref T[] array, T value)
 	{
 		Unity.Collections.CollectionExtensions.AddToArray(ref array, value);
-		SetTemporaryContentHash();
+		MarkAsChanged();
 		return array.Length - 1;
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	private int InsertValueInArray<T>(ref T[] array, int index, T value)
+	{
+		Unity.Collections.CollectionExtensions.InsertIntoArray(ref array, index, value);
+		MarkAsChanged();
+		return index;
+	}
+
 	internal int AddValue(StyleValueKeyword keyword)
 	{
-		SetTemporaryContentHash();
+		MarkAsChanged();
 		return (int)keyword;
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal int AddValue(StyleValueFunction function)
 	{
-		SetTemporaryContentHash();
+		MarkAsChanged();
 		return (int)function;
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal int AddValue(float value)
 	{
 		return AddValueToArray(ref floats, value);
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal int AddValue(Dimension value)
 	{
 		return AddValueToArray(ref dimensions, value);
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal int AddValue(Color value)
 	{
 		return AddValueToArray(ref colors, value);
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal int AddValue(ScalableImage value)
 	{
 		return AddValueToArray(ref scalableImages, value);
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal int AddValue(string value)
 	{
 		return AddValueToArray(ref strings, value);
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal int AddValue(Object value)
 	{
 		return AddValueToArray(ref assets, value);
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal int AddValue(Enum value)
 	{
 		string enumExportString = StyleSheetUtility.GetEnumExportString(value);
@@ -459,6 +555,7 @@ public class StyleSheet : ScriptableObject
 		return CheckAccess(dimensions, StyleValueType.Dimension, handle);
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal bool TryReadDimension(StyleValueHandle handle, out Dimension value)
 	{
 		if (TryCheckAccess(dimensions, StyleValueType.Dimension, handle, out value))
@@ -725,6 +822,7 @@ public class StyleSheet : ScriptableObject
 		return false;
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal TimeValue ReadTimeValue(StyleValueHandle handle)
 	{
 		Dimension dimension = ReadDimension(handle);
@@ -742,26 +840,12 @@ public class StyleSheet : ScriptableObject
 		return false;
 	}
 
-	private static bool CustomStartsWith(string originalString, string pattern)
-	{
-		int length = originalString.Length;
-		int length2 = pattern.Length;
-		int num = 0;
-		int num2 = 0;
-		while (num < length && num2 < length2 && originalString[num] == pattern[num2])
-		{
-			num++;
-			num2++;
-		}
-		return (num2 == length2 && length >= length2) || (num == length && length2 >= length);
-	}
-
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal void WriteKeyword(ref StyleValueHandle handle, StyleValueKeyword value)
 	{
 		handle.valueType = StyleValueType.Keyword;
 		handle.valueIndex = (int)value;
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
@@ -777,7 +861,7 @@ public class StyleSheet : ScriptableObject
 			handle.valueType = StyleValueType.Float;
 			handle.valueIndex = valueIndex;
 		}
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
@@ -793,7 +877,7 @@ public class StyleSheet : ScriptableObject
 			handle.valueType = StyleValueType.Dimension;
 			handle.valueIndex = valueIndex;
 		}
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
@@ -809,7 +893,7 @@ public class StyleSheet : ScriptableObject
 			handle.valueType = StyleValueType.Color;
 			handle.valueIndex = valueIndex;
 		}
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
@@ -825,7 +909,7 @@ public class StyleSheet : ScriptableObject
 			handle.valueType = StyleValueType.String;
 			handle.valueIndex = valueIndex;
 		}
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
@@ -848,7 +932,7 @@ public class StyleSheet : ScriptableObject
 			handle.valueType = StyleValueType.Enum;
 			handle.valueIndex = valueIndex;
 		}
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
@@ -864,7 +948,7 @@ public class StyleSheet : ScriptableObject
 			handle.valueType = StyleValueType.Variable;
 			handle.valueIndex = valueIndex;
 		}
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
@@ -880,7 +964,7 @@ public class StyleSheet : ScriptableObject
 			handle.valueType = StyleValueType.ResourcePath;
 			handle.valueIndex = valueIndex;
 		}
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
@@ -896,7 +980,7 @@ public class StyleSheet : ScriptableObject
 			handle.valueType = StyleValueType.AssetReference;
 			handle.valueIndex = valueIndex;
 		}
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
@@ -912,7 +996,7 @@ public class StyleSheet : ScriptableObject
 			handle.valueType = StyleValueType.MissingAssetReference;
 			handle.valueIndex = valueIndex;
 		}
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
@@ -920,7 +1004,7 @@ public class StyleSheet : ScriptableObject
 	{
 		handle.valueType = StyleValueType.Function;
 		handle.valueIndex = (int)function;
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
@@ -936,23 +1020,24 @@ public class StyleSheet : ScriptableObject
 			handle.valueType = StyleValueType.ScalableImage;
 			handle.valueIndex = valueIndex;
 		}
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal void WriteStylePropertyName(ref StyleValueHandle handle, StylePropertyName propertyName)
 	{
+		string text = ((propertyName.id != StylePropertyId.Unknown) ? propertyName.ToString() : "ignored");
 		if (handle.valueType == StyleValueType.Enum)
 		{
-			strings[handle.valueIndex] = propertyName.ToString();
+			strings[handle.valueIndex] = text;
 		}
 		else
 		{
-			int valueIndex = AddValue(propertyName.ToString());
+			int valueIndex = AddValue(text);
 			handle.valueType = StyleValueType.Enum;
 			handle.valueIndex = valueIndex;
 		}
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
@@ -960,7 +1045,7 @@ public class StyleSheet : ScriptableObject
 	{
 		handle.valueIndex = 0;
 		handle.valueType = StyleValueType.CommaSeparator;
-		SetTemporaryContentHash();
+		MarkAsChanged();
 	}
 
 	internal void WriteLength(ref StyleValueHandle handle, Length value)
@@ -996,8 +1081,7 @@ public class StyleSheet : ScriptableObject
 		WriteDimension(ref handle, value.ToDimension());
 	}
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
-	internal void SetTemporaryContentHash()
+	private void MarkAsChanged()
 	{
 		if (rules == null || rules.Length == 0)
 		{
@@ -1007,5 +1091,6 @@ public class StyleSheet : ScriptableObject
 		{
 			contentHash = Random.Range(1, int.MaxValue);
 		}
+		UIElementsUtility.MarkStyleSheetAsChanged(this);
 	}
 }

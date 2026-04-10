@@ -7,10 +7,10 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Animations;
 
-[NativeHeader("Modules/Animation/Constraints/Constraint.bindings.h")]
 [UsedByNativeCode]
-[RequireComponent(typeof(Transform))]
 [NativeHeader("Modules/Animation/Constraints/AimConstraint.h")]
+[RequireComponent(typeof(Transform))]
+[NativeHeader("Modules/Animation/Constraints/Constraint.bindings.h")]
 public sealed class AimConstraint : Behaviour, IConstraint, IConstraintInternal
 {
 	public enum WorldUpType

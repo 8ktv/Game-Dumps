@@ -8,6 +8,8 @@ internal class TextureResource : RenderGraphResource<TextureDesc, RTHandle>
 {
 	private static int m_TextureCreationIndex;
 
+	internal TextureUVOriginSelection textureUVOrigin;
+
 	public override string GetName()
 	{
 		if (imported && !shared)

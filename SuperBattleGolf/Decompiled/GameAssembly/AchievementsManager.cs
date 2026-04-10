@@ -1,5 +1,9 @@
+using System;
+
 public abstract class AchievementsManager
 {
+	public event Action<AchievementId> AchievementUnlocked;
+
 	public abstract void Initialize();
 
 	public abstract void Unlock(AchievementId id);
@@ -21,5 +25,10 @@ public abstract class AchievementsManager
 	protected virtual bool IsAchievementProgressAllowed()
 	{
 		return !MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.ConsoleCommands);
+	}
+
+	protected void OnAchievementUnlocked(AchievementId id)
+	{
+		this.AchievementUnlocked?.Invoke(id);
 	}
 }

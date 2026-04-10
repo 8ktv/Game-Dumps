@@ -6,7 +6,7 @@ public interface IPostProcessComponent
 {
 	bool IsActive();
 
-	[Obsolete("Unused #from(2023.1)", false)]
+	[Obsolete("Unused #from(2023.1)")]
 	bool IsTileCompatible()
 	{
 		return false;

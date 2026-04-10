@@ -2,9 +2,9 @@ using System;
 
 namespace UnityEngine.UIElements;
 
-[DisallowMultipleComponent]
-[ExecuteAlways]
 [AddComponentMenu("UI Toolkit/Panel Input Configuration", 1)]
+[ExecuteAlways]
+[DisallowMultipleComponent]
 [HelpURL("UIE-get-started-with-runtime-ui")]
 public sealed class PanelInputConfiguration : MonoBehaviour
 {
@@ -36,20 +36,20 @@ public sealed class PanelInputConfiguration : MonoBehaviour
 		[SerializeField]
 		internal bool m_ProcessWorldSpaceInput;
 
-		[SerializeField]
 		[Tooltip("Determines which layers can block input events on world space panels.")]
+		[SerializeField]
 		internal LayerMask m_InteractionLayers;
 
-		[SerializeField]
 		[Tooltip("Sets how far away interactions with world-space UI are possible. Defaults to unlimited (infinity), but you can customize it for XR or performance needs. The distance uses GameObject units, consistent with transform positions and Camera clipping planes.")]
+		[SerializeField]
 		internal float m_MaxInteractionDistance;
 
 		[SerializeField]
 		[Tooltip("Defines whether the Main Camera is used as the Event Camera for world space panels. Disable to specify alternative Event Camera(s) for raycasting input.")]
 		internal bool m_DefaultEventCameraIsMainCamera;
 
-		[SerializeField]
 		[Tooltip("Defines the Event Camera(s) used for world space raycasting input.")]
+		[SerializeField]
 		internal Camera[] m_EventCameras;
 
 		[Tooltip("Determines which input event system is used for UI interactions when combining UI Toolkit and UGUI.")]

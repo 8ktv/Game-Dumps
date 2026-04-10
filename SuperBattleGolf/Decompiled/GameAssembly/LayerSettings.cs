@@ -44,6 +44,14 @@ public class LayerSettings : ScriptableObject
 	[field: Layer]
 	public int ItemsLayer { get; private set; }
 
+	[field: SerializeField]
+	[field: Layer]
+	public int TerrainLayer { get; private set; }
+
+	[field: SerializeField]
+	[field: Layer]
+	public int TerrainAdditionLayer { get; private set; }
+
 	[field: Header("Masks")]
 	[field: SerializeField]
 	public LayerMask TerrainMask { get; private set; }
@@ -61,6 +69,12 @@ public class LayerSettings : ScriptableObject
 	public LayerMask BallMask { get; private set; }
 
 	[field: SerializeField]
+	public LayerMask DynamicBallMask { get; private set; }
+
+	[field: SerializeField]
+	public LayerMask HittablesMask { get; private set; }
+
+	[field: SerializeField]
 	public LayerMask CameraCollidablesMask { get; private set; }
 
 	[field: SerializeField]
@@ -68,6 +82,9 @@ public class LayerSettings : ScriptableObject
 
 	[field: SerializeField]
 	public LayerMask HoleBallTriggerMask { get; private set; }
+
+	[field: SerializeField]
+	public LayerMask HoleGolfCartTriggerMask { get; private set; }
 
 	[field: SerializeField]
 	public LayerMask HoleGeneralTriggerMask { get; private set; }
@@ -94,10 +111,19 @@ public class LayerSettings : ScriptableObject
 	public LayerMask LandmineHittablesMask { get; private set; }
 
 	[field: SerializeField]
+	public LayerMask LandmineDynamicPlantablesMask { get; private set; }
+
+	[field: SerializeField]
 	public LayerMask OrbitalLaserHeightSnappingMask { get; private set; }
 
 	[field: SerializeField]
 	public LayerMask OrbitalLaserHittablesMask { get; private set; }
+
+	[field: SerializeField]
+	public LayerMask FreezeBombHittablesMask { get; private set; }
+
+	[field: SerializeField]
+	public LayerMask JumpPadHittablesMask { get; private set; }
 
 	[field: SerializeField]
 	public LayerMask ShoveHittableMask { get; private set; }
@@ -116,6 +142,9 @@ public class LayerSettings : ScriptableObject
 
 	[field: SerializeField]
 	public LayerMask BallTrajectoryDeflectorMask { get; private set; }
+
+	[field: SerializeField]
+	public LayerMask BallTemporarilyIgnorableMask { get; private set; }
 
 	[field: SerializeField]
 	public LayerMask GolfCartGroundMask { get; private set; }

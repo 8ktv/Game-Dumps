@@ -418,14 +418,14 @@ public class PredictedRigidbody : NetworkBehaviour
 	{
 	}
 
-	private void ApplyState(double timestamp, Vector3 position, Quaternion rotation, Vector3 velocity, Vector3 angularVelocity)
+	private void ApplyState(double timestamp, Vector3 position, Quaternion rotation, Vector3 velocity, Vector3 angularVelocity, bool forceSnapAndClearHistory = false)
 	{
 		if (suppressCorrections)
 		{
 			stateHistory.Clear();
 			return;
 		}
-		if (predictedRigidbody.linearVelocity.magnitude <= snapThreshold && predictedRigidbody.angularVelocity.magnitude <= snapThreshold)
+		if (forceSnapAndClearHistory || (predictedRigidbody.linearVelocity.magnitude <= snapThreshold && predictedRigidbody.angularVelocity.magnitude <= snapThreshold))
 		{
 			predictedRigidbody.position = position;
 			predictedRigidbody.rotation = rotation;
@@ -435,7 +435,10 @@ public class PredictedRigidbody : NetworkBehaviour
 				predictedRigidbody.angularVelocity = angularVelocity;
 			}
 			stateHistory.Clear();
-			stateHistory.Add(timestamp, new RigidbodyState(timestamp, Vector3.zero, position, Quaternion.identity, rotation, Vector3.zero, velocity, Vector3.zero, angularVelocity));
+			if (!forceSnapAndClearHistory)
+			{
+				stateHistory.Add(timestamp, new RigidbodyState(timestamp, Vector3.zero, position, Quaternion.identity, rotation, Vector3.zero, velocity, Vector3.zero, angularVelocity));
+			}
 			OnSnappedIntoPlace();
 			return;
 		}
@@ -488,7 +491,7 @@ public class PredictedRigidbody : NetworkBehaviour
 			{
 				Debug.LogWarning($"Hard correcting client object {base.name} because the client is too far behind the server. History of size={stateHistory.Count} @ t={timestamp:F3} oldest={rigidbodyState.timestamp:F3} newest={rigidbodyState2.timestamp:F3}. This would cause the client to be out of sync as long as it's behind.");
 			}
-			ApplyState(state.timestamp, state.position, state.rotation, state.velocity, state.angularVelocity);
+			ApplyState(state.timestamp, state.position, state.rotation, state.velocity, state.angularVelocity, forceSnapAndClearHistory: true);
 		}
 		else if (rigidbodyState2.timestamp < state.timestamp)
 		{

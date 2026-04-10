@@ -5,7 +5,7 @@ namespace UnityEngine.Rendering;
 [UsedByNativeCode]
 internal struct GPUDrivenLODGroupDataNative
 {
-	public unsafe int* lodGroupID;
+	public unsafe EntityId* lodGroupID;
 
 	public unsafe int* lodOffset;
 
@@ -25,7 +25,7 @@ internal struct GPUDrivenLODGroupDataNative
 
 	public int lodGroupCount;
 
-	public unsafe int* invalidLODGroupID;
+	public unsafe EntityId* invalidLODGroupID;
 
 	public int invalidLODGroupCount;
 

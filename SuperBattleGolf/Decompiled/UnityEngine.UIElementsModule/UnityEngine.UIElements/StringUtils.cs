@@ -43,4 +43,18 @@ internal static class StringUtils
 		}
 		return ptr[num2 * length + length2];
 	}
+
+	public static bool StartsWith(string originalString, string pattern)
+	{
+		int length = originalString.Length;
+		int length2 = pattern.Length;
+		int num = 0;
+		int num2 = 0;
+		while (num < length && num2 < length2 && originalString[num] == pattern[num2])
+		{
+			num++;
+			num2++;
+		}
+		return (num2 == length2 && length >= length2) || (num == length && length2 >= length);
+	}
 }

@@ -7,8 +7,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeClass("Vector2f")]
 [RequiredByNativeCode(Optional = true, GenerateProxy = true)]
+[NativeClass("Vector2f")]
 [Il2CppEagerStaticClassConstruction]
 public struct Vector2 : IEquatable<Vector2>, IFormattable
 {
@@ -39,7 +39,7 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 	public float this[int index]
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return index switch
 			{
@@ -65,18 +65,16 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 		}
 	}
 
-	public Vector2 normalized
+	public readonly Vector2 normalized
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
 		{
-			Vector2 result = new Vector2(x, y);
-			result.Normalize();
-			return result;
+			return Normalize(in this);
 		}
 	}
 
-	public float magnitude
+	public readonly float magnitude
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
@@ -85,7 +83,7 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 		}
 	}
 
-	public float sqrMagnitude
+	public readonly float sqrMagnitude
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
@@ -184,13 +182,40 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 	public static Vector2 Lerp(Vector2 a, Vector2 b, float t)
 	{
 		t = Mathf.Clamp01(t);
-		return new Vector2(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+		Vector2 result = default(Vector2);
+		result.x = a.x + (b.x - a.x) * t;
+		result.y = a.y + (b.y - a.y) * t;
+		return result;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2 Lerp(in Vector2 a, in Vector2 b, float t)
+	{
+		t = Mathf.Clamp01(t);
+		Vector2 result = default(Vector2);
+		result.x = a.x + (b.x - a.x) * t;
+		result.y = a.y + (b.y - a.y) * t;
+		return result;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 LerpUnclamped(Vector2 a, Vector2 b, float t)
 	{
-		return new Vector2(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+		return new Vector2
+		{
+			x = a.x + (b.x - a.x) * t,
+			y = a.y + (b.y - a.y) * t
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2 LerpUnclamped(in Vector2 a, in Vector2 b, float t)
+	{
+		return new Vector2
+		{
+			x = a.x + (b.x - a.x) * t,
+			y = a.y + (b.y - a.y) * t
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -204,13 +229,47 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 			return target;
 		}
 		float num4 = (float)Math.Sqrt(num3);
-		return new Vector2(current.x + num / num4 * maxDistanceDelta, current.y + num2 / num4 * maxDistanceDelta);
+		Vector2 result = default(Vector2);
+		result.x = current.x + num / num4 * maxDistanceDelta;
+		result.y = current.y + num2 / num4 * maxDistanceDelta;
+		return result;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2 MoveTowards(in Vector2 current, in Vector2 target, float maxDistanceDelta)
+	{
+		float num = target.x - current.x;
+		float num2 = target.y - current.y;
+		float num3 = num * num + num2 * num2;
+		if (num3 == 0f || (maxDistanceDelta >= 0f && num3 <= maxDistanceDelta * maxDistanceDelta))
+		{
+			return target;
+		}
+		float num4 = (float)Math.Sqrt(num3);
+		Vector2 result = default(Vector2);
+		result.x = current.x + num / num4 * maxDistanceDelta;
+		result.y = current.y + num2 / num4 * maxDistanceDelta;
+		return result;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 Scale(Vector2 a, Vector2 b)
 	{
-		return new Vector2(a.x * b.x, a.y * b.y);
+		return new Vector2
+		{
+			x = a.x * b.x,
+			y = a.y * b.y
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2 Scale(in Vector2 a, in Vector2 b)
+	{
+		return new Vector2
+		{
+			x = a.x * b.x,
+			y = a.y * b.y
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -221,33 +280,62 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public void Scale(in Vector2 scale)
+	{
+		x *= scale.x;
+		y *= scale.y;
+	}
+
+	public static Vector2 Normalize(Vector2 value)
+	{
+		float num = value.magnitude;
+		return (num > 1E-05f) ? new Vector2
+		{
+			x = value.x / num,
+			y = value.y / num
+		} : zeroVector;
+	}
+
+	public static Vector2 Normalize(in Vector2 value)
+	{
+		float num = value.magnitude;
+		return (num > 1E-05f) ? new Vector2
+		{
+			x = value.x / num,
+			y = value.y / num
+		} : zeroVector;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void Normalize()
 	{
 		float num = magnitude;
 		if (num > 1E-05f)
 		{
-			this /= num;
+			x /= num;
+			y /= num;
 		}
 		else
 		{
-			this = zero;
+			x = 0f;
+			y = 0f;
 		}
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override string ToString()
+	public override readonly string ToString()
 	{
 		return ToString(null, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format)
+	public readonly string ToString(string format)
 	{
 		return ToString(format, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format, IFormatProvider formatProvider)
+	public readonly string ToString(string format, IFormatProvider formatProvider)
 	{
 		if (string.IsNullOrEmpty(format))
 		{
@@ -261,23 +349,29 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override int GetHashCode()
+	public override readonly int GetHashCode()
 	{
 		return x.GetHashCode() ^ (y.GetHashCode() << 2);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override bool Equals(object other)
+	public override readonly bool Equals(object other)
 	{
 		if (other is Vector2 other2)
 		{
-			return Equals(other2);
+			return Equals(in other2);
 		}
 		return false;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public bool Equals(Vector2 other)
+	public readonly bool Equals(Vector2 other)
+	{
+		return x == other.x && y == other.y;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public readonly bool Equals(in Vector2 other)
 	{
 		return x == other.x && y == other.y;
 	}
@@ -285,14 +379,41 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 Reflect(Vector2 inDirection, Vector2 inNormal)
 	{
-		float num = -2f * Dot(inNormal, inDirection);
-		return new Vector2(num * inNormal.x + inDirection.x, num * inNormal.y + inDirection.y);
+		float num = -2f * Dot(in inNormal, in inDirection);
+		Vector2 result = default(Vector2);
+		result.x = num * inNormal.x + inDirection.x;
+		result.y = num * inNormal.y + inDirection.y;
+		return result;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2 Reflect(in Vector2 inDirection, in Vector2 inNormal)
+	{
+		float num = -2f * Dot(in inNormal, in inDirection);
+		Vector2 result = default(Vector2);
+		result.x = num * inNormal.x + inDirection.x;
+		result.y = num * inNormal.y + inDirection.y;
+		return result;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 Perpendicular(Vector2 inDirection)
 	{
-		return new Vector2(0f - inDirection.y, inDirection.x);
+		return new Vector2
+		{
+			x = 0f - inDirection.y,
+			y = inDirection.x
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2 Perpendicular(in Vector2 inDirection)
+	{
+		return new Vector2
+		{
+			x = 0f - inDirection.y,
+			y = inDirection.x
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -302,27 +423,63 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float Dot(in Vector2 lhs, in Vector2 rhs)
+	{
+		return lhs.x * rhs.x + lhs.y * rhs.y;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static float Angle(Vector2 from, Vector2 to)
 	{
-		float num = (float)Math.Sqrt(from.sqrMagnitude * to.sqrMagnitude);
-		if (num < 1E-15f)
+		float num = from.sqrMagnitude * to.sqrMagnitude;
+		if (num < 1E-30f)
 		{
 			return 0f;
 		}
-		float num2 = Mathf.Clamp(Dot(from, to) / num, -1f, 1f);
+		num = (float)Math.Sqrt(num);
+		float num2 = Mathf.Clamp(Dot(in from, in to) / num, -1f, 1f);
+		return (float)Math.Acos(num2) * 57.29578f;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float Angle(in Vector2 from, in Vector2 to)
+	{
+		float num = from.sqrMagnitude * to.sqrMagnitude;
+		if (num < 1E-30f)
+		{
+			return 0f;
+		}
+		num = (float)Math.Sqrt(num);
+		float num2 = Mathf.Clamp(Dot(in from, in to) / num, -1f, 1f);
 		return (float)Math.Acos(num2) * 57.29578f;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static float SignedAngle(Vector2 from, Vector2 to)
 	{
-		float num = Angle(from, to);
+		float num = Angle(in from, in to);
+		float num2 = Mathf.Sign(from.x * to.y - from.y * to.x);
+		return num * num2;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float SignedAngle(in Vector2 from, in Vector2 to)
+	{
+		float num = Angle(in from, in to);
 		float num2 = Mathf.Sign(from.x * to.y - from.y * to.x);
 		return num * num2;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static float Distance(Vector2 a, Vector2 b)
+	{
+		float num = a.x - b.x;
+		float num2 = a.y - b.y;
+		return (float)Math.Sqrt(num * num + num2 * num2);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float Distance(in Vector2 a, in Vector2 b)
 	{
 		float num = a.x - b.x;
 		float num2 = a.y - b.y;
@@ -338,7 +495,27 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 			float num2 = (float)Math.Sqrt(num);
 			float num3 = vector.x / num2;
 			float num4 = vector.y / num2;
-			return new Vector2(num3 * maxLength, num4 * maxLength);
+			Vector2 result = default(Vector2);
+			result.x = num3 * maxLength;
+			result.y = num4 * maxLength;
+			return result;
+		}
+		return vector;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2 ClampMagnitude(in Vector2 vector, float maxLength)
+	{
+		float num = vector.sqrMagnitude;
+		if (num > maxLength * maxLength)
+		{
+			float num2 = (float)Math.Sqrt(num);
+			float num3 = vector.x / num2;
+			float num4 = vector.y / num2;
+			Vector2 result = default(Vector2);
+			result.x = num3 * maxLength;
+			result.y = num4 * maxLength;
+			return result;
 		}
 		return vector;
 	}
@@ -346,42 +523,87 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static float SqrMagnitude(Vector2 a)
 	{
-		return a.x * a.x + a.y * a.y;
+		return a.sqrMagnitude;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public float SqrMagnitude()
+	public static float SqrMagnitude(in Vector2 a)
 	{
-		return x * x + y * y;
+		return a.sqrMagnitude;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public readonly float SqrMagnitude()
+	{
+		return sqrMagnitude;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 Min(Vector2 lhs, Vector2 rhs)
 	{
-		return new Vector2(Mathf.Min(lhs.x, rhs.x), Mathf.Min(lhs.y, rhs.y));
+		return new Vector2
+		{
+			x = Mathf.Min(lhs.x, rhs.x),
+			y = Mathf.Min(lhs.y, rhs.y)
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2 Min(in Vector2 lhs, in Vector2 rhs)
+	{
+		return new Vector2
+		{
+			x = Mathf.Min(lhs.x, rhs.x),
+			y = Mathf.Min(lhs.y, rhs.y)
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 Max(Vector2 lhs, Vector2 rhs)
 	{
-		return new Vector2(Mathf.Max(lhs.x, rhs.x), Mathf.Max(lhs.y, rhs.y));
+		return new Vector2
+		{
+			x = Mathf.Max(lhs.x, rhs.x),
+			y = Mathf.Max(lhs.y, rhs.y)
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector2 Max(in Vector2 lhs, in Vector2 rhs)
+	{
+		return new Vector2
+		{
+			x = Mathf.Max(lhs.x, rhs.x),
+			y = Mathf.Max(lhs.y, rhs.y)
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[ExcludeFromDocs]
 	public static Vector2 SmoothDamp(Vector2 current, Vector2 target, ref Vector2 currentVelocity, float smoothTime, float maxSpeed)
 	{
-		float deltaTime = Time.deltaTime;
-		return SmoothDamp(current, target, ref currentVelocity, smoothTime, maxSpeed, deltaTime);
+		return SmoothDamp(in current, in target, ref currentVelocity, smoothTime, maxSpeed, Time.deltaTime);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[ExcludeFromDocs]
+	public static Vector2 SmoothDamp(in Vector2 current, in Vector2 target, ref Vector2 currentVelocity, float smoothTime, float maxSpeed)
+	{
+		return SmoothDamp(in current, in target, ref currentVelocity, smoothTime, maxSpeed, Time.deltaTime);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	[ExcludeFromDocs]
 	public static Vector2 SmoothDamp(Vector2 current, Vector2 target, ref Vector2 currentVelocity, float smoothTime)
 	{
-		float deltaTime = Time.deltaTime;
-		float maxSpeed = float.PositiveInfinity;
-		return SmoothDamp(current, target, ref currentVelocity, smoothTime, maxSpeed, deltaTime);
+		return SmoothDamp(in current, in target, ref currentVelocity, smoothTime, float.PositiveInfinity, Time.deltaTime);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[ExcludeFromDocs]
+	public static Vector2 SmoothDamp(in Vector2 current, in Vector2 target, ref Vector2 currentVelocity, float smoothTime)
+	{
+		return SmoothDamp(in current, in target, ref currentVelocity, smoothTime, float.PositiveInfinity, Time.deltaTime);
 	}
 
 	public static Vector2 SmoothDamp(Vector2 current, Vector2 target, ref Vector2 currentVelocity, float smoothTime, [DefaultValue("Mathf.Infinity")] float maxSpeed, [DefaultValue("Time.deltaTime")] float deltaTime)
@@ -392,7 +614,6 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 		float num3 = 1f / (1f + num2 + 0.48f * num2 * num2 + 0.235f * num2 * num2 * num2);
 		float num4 = current.x - target.x;
 		float num5 = current.y - target.y;
-		Vector2 vector = target;
 		float num6 = maxSpeed * smoothTime;
 		float num7 = num6 * num6;
 		float num8 = num4 * num4 + num5 * num5;
@@ -402,74 +623,151 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 			num4 = num4 / num9 * num6;
 			num5 = num5 / num9 * num6;
 		}
-		target.x = current.x - num4;
-		target.y = current.y - num5;
-		float num10 = (currentVelocity.x + num * num4) * deltaTime;
-		float num11 = (currentVelocity.y + num * num5) * deltaTime;
-		currentVelocity.x = (currentVelocity.x - num * num10) * num3;
-		currentVelocity.y = (currentVelocity.y - num * num11) * num3;
-		float num12 = target.x + (num4 + num10) * num3;
-		float num13 = target.y + (num5 + num11) * num3;
-		float num14 = vector.x - current.x;
-		float num15 = vector.y - current.y;
-		float num16 = num12 - vector.x;
-		float num17 = num13 - vector.y;
-		if (num14 * num16 + num15 * num17 > 0f)
+		float num10 = current.x - num4;
+		float num11 = current.y - num5;
+		float num12 = (currentVelocity.x + num * num4) * deltaTime;
+		float num13 = (currentVelocity.y + num * num5) * deltaTime;
+		currentVelocity.x = (currentVelocity.x - num * num12) * num3;
+		currentVelocity.y = (currentVelocity.y - num * num13) * num3;
+		float num14 = num10 + (num4 + num12) * num3;
+		float num15 = num11 + (num5 + num13) * num3;
+		float num16 = target.x - current.x;
+		float num17 = target.y - current.y;
+		float num18 = num14 - target.x;
+		float num19 = num15 - target.y;
+		if (num16 * num18 + num17 * num19 > 0f)
 		{
-			num12 = vector.x;
-			num13 = vector.y;
-			currentVelocity.x = (num12 - vector.x) / deltaTime;
-			currentVelocity.y = (num13 - vector.y) / deltaTime;
+			num14 = target.x;
+			num15 = target.y;
+			currentVelocity.x = (num14 - target.x) / deltaTime;
+			currentVelocity.y = (num15 - target.y) / deltaTime;
 		}
-		return new Vector2(num12, num13);
+		Vector2 result = default(Vector2);
+		result.x = num14;
+		result.y = num15;
+		return result;
+	}
+
+	public static Vector2 SmoothDamp(in Vector2 current, in Vector2 target, ref Vector2 currentVelocity, float smoothTime, [DefaultValue("Mathf.Infinity")] float maxSpeed, [DefaultValue("Time.deltaTime")] float deltaTime)
+	{
+		smoothTime = Mathf.Max(0.0001f, smoothTime);
+		float num = 2f / smoothTime;
+		float num2 = num * deltaTime;
+		float num3 = 1f / (1f + num2 + 0.48f * num2 * num2 + 0.235f * num2 * num2 * num2);
+		float num4 = current.x - target.x;
+		float num5 = current.y - target.y;
+		float num6 = maxSpeed * smoothTime;
+		float num7 = num6 * num6;
+		float num8 = num4 * num4 + num5 * num5;
+		if (num8 > num7)
+		{
+			float num9 = (float)Math.Sqrt(num8);
+			num4 = num4 / num9 * num6;
+			num5 = num5 / num9 * num6;
+		}
+		float num10 = current.x - num4;
+		float num11 = current.y - num5;
+		float num12 = (currentVelocity.x + num * num4) * deltaTime;
+		float num13 = (currentVelocity.y + num * num5) * deltaTime;
+		currentVelocity.x = (currentVelocity.x - num * num12) * num3;
+		currentVelocity.y = (currentVelocity.y - num * num13) * num3;
+		float num14 = num10 + (num4 + num12) * num3;
+		float num15 = num11 + (num5 + num13) * num3;
+		float num16 = target.x - current.x;
+		float num17 = target.y - current.y;
+		float num18 = num14 - target.x;
+		float num19 = num15 - target.y;
+		if (num16 * num18 + num17 * num19 > 0f)
+		{
+			num14 = target.x;
+			num15 = target.y;
+			currentVelocity.x = (num14 - target.x) / deltaTime;
+			currentVelocity.y = (num15 - target.y) / deltaTime;
+		}
+		Vector2 result = default(Vector2);
+		result.x = num14;
+		result.y = num15;
+		return result;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 operator +(Vector2 a, Vector2 b)
 	{
-		return new Vector2(a.x + b.x, a.y + b.y);
+		return new Vector2
+		{
+			x = a.x + b.x,
+			y = a.y + b.y
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 operator -(Vector2 a, Vector2 b)
 	{
-		return new Vector2(a.x - b.x, a.y - b.y);
+		return new Vector2
+		{
+			x = a.x - b.x,
+			y = a.y - b.y
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 operator *(Vector2 a, Vector2 b)
 	{
-		return new Vector2(a.x * b.x, a.y * b.y);
+		return new Vector2
+		{
+			x = a.x * b.x,
+			y = a.y * b.y
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 operator /(Vector2 a, Vector2 b)
 	{
-		return new Vector2(a.x / b.x, a.y / b.y);
+		return new Vector2
+		{
+			x = a.x / b.x,
+			y = a.y / b.y
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 operator -(Vector2 a)
 	{
-		return new Vector2(0f - a.x, 0f - a.y);
+		return new Vector2
+		{
+			x = 0f - a.x,
+			y = 0f - a.y
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 operator *(Vector2 a, float d)
 	{
-		return new Vector2(a.x * d, a.y * d);
+		return new Vector2
+		{
+			x = a.x * d,
+			y = a.y * d
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 operator *(float d, Vector2 a)
 	{
-		return new Vector2(a.x * d, a.y * d);
+		return new Vector2
+		{
+			x = a.x * d,
+			y = a.y * d
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector2 operator /(Vector2 a, float d)
 	{
-		return new Vector2(a.x / d, a.y / d);
+		return new Vector2
+		{
+			x = a.x / d,
+			y = a.y / d
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -489,12 +787,21 @@ public struct Vector2 : IEquatable<Vector2>, IFormattable
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static implicit operator Vector2(Vector3 v)
 	{
-		return new Vector2(v.x, v.y);
+		return new Vector2
+		{
+			x = v.x,
+			y = v.y
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static implicit operator Vector3(Vector2 v)
 	{
-		return new Vector3(v.x, v.y, 0f);
+		return new Vector3
+		{
+			x = v.x,
+			y = v.y,
+			z = 0f
+		};
 	}
 }

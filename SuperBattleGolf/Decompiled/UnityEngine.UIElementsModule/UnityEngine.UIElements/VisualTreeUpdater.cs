@@ -34,7 +34,7 @@ internal sealed class VisualTreeUpdater : IDisposable
 
 		public UpdaterArray()
 		{
-			m_VisualTreeUpdaters = new IVisualTreeUpdater[7];
+			m_VisualTreeUpdaters = new IVisualTreeUpdater[8];
 		}
 
 		public long[] GetUpdatersFrameCount()
@@ -66,7 +66,7 @@ internal sealed class VisualTreeUpdater : IDisposable
 
 	public void Dispose()
 	{
-		for (int i = 0; i < 7; i++)
+		for (int i = 0; i < 8; i++)
 		{
 			IVisualTreeUpdater visualTreeUpdater = m_UpdaterArray[i];
 			visualTreeUpdater.Dispose();
@@ -76,7 +76,7 @@ internal sealed class VisualTreeUpdater : IDisposable
 	[Obsolete("This will be removed. Please use the different update methods from Panel instead")]
 	public void UpdateVisualTree()
 	{
-		for (int i = 0; i < 7; i++)
+		for (int i = 0; i < 8; i++)
 		{
 			IVisualTreeUpdater visualTreeUpdater = m_UpdaterArray[i];
 			using (visualTreeUpdater.profilerMarker.Auto())
@@ -101,7 +101,7 @@ internal sealed class VisualTreeUpdater : IDisposable
 
 	public void OnVersionChanged(VisualElement ve, VersionChangeType versionChangeType)
 	{
-		for (int i = 0; i < 7; i++)
+		for (int i = 0; i < 8; i++)
 		{
 			IVisualTreeUpdater visualTreeUpdater = m_UpdaterArray[i];
 			visualTreeUpdater.OnVersionChanged(ve, versionChangeType);
@@ -136,8 +136,9 @@ internal sealed class VisualTreeUpdater : IDisposable
 		SetUpdater<VisualTreeDataBindingsUpdater>(VisualTreeUpdatePhase.DataBinding);
 		SetUpdater<VisualElementAnimationSystem>(VisualTreeUpdatePhase.Animation);
 		SetUpdater<VisualTreeStyleUpdater>(VisualTreeUpdatePhase.Styles);
-		SetUpdater<UIRLayoutUpdater>(VisualTreeUpdatePhase.Layout);
+		SetUpdater<VisualTreeLayoutUpdater>(VisualTreeUpdatePhase.Layout);
 		SetUpdater<VisualTreeHierarchyFlagsUpdater>(VisualTreeUpdatePhase.TransformClip);
 		SetUpdater<UIRRepaintUpdater>(VisualTreeUpdatePhase.Repaint);
+		SetUpdater<VisualTreeAuthoringUpdater>(VisualTreeUpdatePhase.Authoring);
 	}
 }

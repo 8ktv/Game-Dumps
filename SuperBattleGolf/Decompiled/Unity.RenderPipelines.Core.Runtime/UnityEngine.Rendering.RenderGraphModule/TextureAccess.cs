@@ -10,7 +10,7 @@ internal readonly struct TextureAccess
 
 	public readonly AccessFlags flags;
 
-	public TextureAccess(TextureHandle handle, AccessFlags flags, int mipLevel, int depthSlice)
+	public TextureAccess(in TextureHandle handle, AccessFlags flags, int mipLevel, int depthSlice)
 	{
 		textureHandle = handle;
 		this.flags = flags;
@@ -18,7 +18,7 @@ internal readonly struct TextureAccess
 		this.depthSlice = depthSlice;
 	}
 
-	public TextureAccess(TextureAccess access, TextureHandle handle)
+	public TextureAccess(in TextureAccess access, in TextureHandle handle)
 	{
 		textureHandle = handle;
 		flags = access.flags;

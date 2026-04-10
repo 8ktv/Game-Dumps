@@ -6,8 +6,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Rendering;
 
-[UsedByNativeCode]
 [NativeHeader("Runtime/Shaders/Keywords/KeywordSpaceScriptBindings.h")]
+[UsedByNativeCode]
 [NativeHeader("Runtime/Graphics/ShaderScriptBindings.h")]
 public readonly struct LocalKeyword : IEquatable<LocalKeyword>
 {
@@ -99,6 +99,36 @@ public readonly struct LocalKeyword : IEquatable<LocalKeyword>
 		}
 	}
 
+	[FreeFunction("ShaderScripting::GetKeywordCount")]
+	private static uint GetRayTracingShaderKeywordCount(RayTracingShader shader)
+	{
+		return GetRayTracingShaderKeywordCount_Injected(Object.MarshalledUnityObject.Marshal(shader));
+	}
+
+	[FreeFunction("ShaderScripting::GetKeywordIndex")]
+	private unsafe static uint GetRayTracingShaderKeywordIndex(RayTracingShader shader, string keyword)
+	{
+		//The blocks IL_002f are reachable both inside and outside the pinned region starting at IL_001e. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
+		try
+		{
+			IntPtr shader2 = Object.MarshalledUnityObject.Marshal(shader);
+			ManagedSpanWrapper managedSpanWrapper = default(ManagedSpanWrapper);
+			if (!StringMarshaller.TryMarshalEmptyOrNullString(keyword, ref managedSpanWrapper))
+			{
+				ReadOnlySpan<char> readOnlySpan = MemoryExtensions.AsSpan(keyword);
+				fixed (char* begin = readOnlySpan)
+				{
+					managedSpanWrapper = new ManagedSpanWrapper(begin, readOnlySpan.Length);
+					return GetRayTracingShaderKeywordIndex_Injected(shader2, ref managedSpanWrapper);
+				}
+			}
+			return GetRayTracingShaderKeywordIndex_Injected(shader2, ref managedSpanWrapper);
+		}
+		finally
+		{
+		}
+	}
+
 	[FreeFunction("keywords::GetKeywordType")]
 	private static ShaderKeywordType GetKeywordType(LocalKeywordSpace spaceInfo, uint keyword)
 	{
@@ -138,6 +168,21 @@ public readonly struct LocalKeyword : IEquatable<LocalKeyword>
 		if (m_Index >= GetComputeShaderKeywordCount(shader))
 		{
 			Debug.LogErrorFormat("Local keyword {0} doesn't exist in the compute shader.", name);
+		}
+	}
+
+	public LocalKeyword(RayTracingShader shader, string name)
+	{
+		if (shader == null)
+		{
+			Debug.LogError("Cannot initialize a LocalKeyword with a null RayTracingShader.");
+		}
+		m_SpaceInfo = shader.keywordSpace;
+		m_Name = name;
+		m_Index = GetRayTracingShaderKeywordIndex(shader, name);
+		if (m_Index >= GetRayTracingShaderKeywordCount(shader))
+		{
+			Debug.LogErrorFormat("Local keyword {0} doesn't exist in the ray tracing shader.", name);
 		}
 	}
 
@@ -188,6 +233,12 @@ public readonly struct LocalKeyword : IEquatable<LocalKeyword>
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern uint GetComputeShaderKeywordIndex_Injected(IntPtr shader, ref ManagedSpanWrapper keyword);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern uint GetRayTracingShaderKeywordCount_Injected(IntPtr shader);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern uint GetRayTracingShaderKeywordIndex_Injected(IntPtr shader, ref ManagedSpanWrapper keyword);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern ShaderKeywordType GetKeywordType_Injected([In] ref LocalKeywordSpace spaceInfo, uint keyword);

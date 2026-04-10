@@ -6,9 +6,9 @@ using UnityEngine.TextCore.Text;
 
 namespace UnityEngine.TextCore;
 
-[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule", "UnityEngine.UIElementsModule" })]
 [NativeHeader("Modules/TextCoreTextEngine/Native/TextGenerationSettings.h")]
 [UsedByNativeCode("TextGenerationSettings")]
+[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule", "UnityEngine.UIElementsModule" })]
 internal struct NativeTextGenerationSettings
 {
 	public IntPtr fontAsset;
@@ -21,7 +21,7 @@ internal struct NativeTextGenerationSettings
 
 	public int screenHeight;
 
-	public WhiteSpace wordWrap;
+	public bool wordWrapEnabled;
 
 	public TextOverflow overflow;
 
@@ -57,6 +57,8 @@ internal struct NativeTextGenerationSettings
 
 	public int paragraphSpacing;
 
+	public PreProcessFlags preProcessFlags;
+
 	public bool hasLink => textSpans != null && Array.Exists(textSpans, (TextSpan span) => span.linkID != -1);
 
 	public static NativeTextGenerationSettings Default => new NativeTextGenerationSettings
@@ -76,6 +78,27 @@ internal struct NativeTextGenerationSettings
 			fontStyle = fontStyle,
 			fontWeight = fontWeight,
 			alignment = horizontalAlignment,
+			highlightColor = RichTextTagParser.k_HighlightColor,
+			highlightPadding = Vector4.zero,
+			mspace = 0,
+			mspaceUnitType = RichTextTagParser.TagUnitType.Pixels,
+			cspace = 0,
+			cspaceUnitType = RichTextTagParser.TagUnitType.Pixels,
+			spriteColor = color,
+			spriteID = EntityId.None,
+			spriteScale = 0,
+			spriteTint = false,
+			margin = 0,
+			marginDirection = MarginDirection.Both,
+			marginUnitType = RichTextTagParser.TagUnitType.Pixels,
+			lineHeight = 0,
+			lineHeightUnitType = RichTextTagParser.TagUnitType.Pixels,
+			indent = 0,
+			indentUnitType = RichTextTagParser.TagUnitType.Pixels,
+			vOffset = 0,
+			vOffsetUnitType = RichTextTagParser.TagUnitType.Pixels,
+			subscriptNestingLevel = 0,
+			superscriptNestingLevel = 0,
 			linkID = -1
 		};
 	}
@@ -107,7 +130,7 @@ internal struct NativeTextGenerationSettings
 		minFontSize = tgs.minFontSize;
 		screenWidth = tgs.screenWidth;
 		screenHeight = tgs.screenHeight;
-		wordWrap = tgs.wordWrap;
+		wordWrapEnabled = tgs.wordWrapEnabled;
 		horizontalAlignment = tgs.horizontalAlignment;
 		verticalAlignment = tgs.verticalAlignment;
 		color = tgs.color;
@@ -122,6 +145,7 @@ internal struct NativeTextGenerationSettings
 		characterSpacing = tgs.characterSpacing;
 		wordSpacing = tgs.wordSpacing;
 		paragraphSpacing = tgs.paragraphSpacing;
+		preProcessFlags = tgs.preProcessFlags;
 	}
 
 	public override string ToString()
@@ -142,6 +166,6 @@ internal struct NativeTextGenerationSettings
 			stringBuilder.Append("]");
 			text = stringBuilder.ToString();
 		}
-		return string.Format("{0}: {1}\n", "fontAsset", fontAsset) + string.Format("{0}: {1}\n", "textSettings", textSettings) + "text: " + this.text + "\n" + string.Format("{0}: {1}\n", "screenWidth", screenWidth) + string.Format("{0}: {1}\n", "screenHeight", screenHeight) + string.Format("{0}: {1}\n", "fontSize", fontSize) + string.Format("{0}: {1}\n", "bestFit", bestFit) + string.Format("{0}: {1}\n", "maxFontSize", maxFontSize) + string.Format("{0}: {1}\n", "minFontSize", minFontSize) + string.Format("{0}: {1}\n", "wordWrap", wordWrap) + string.Format("{0}: {1}\n", "languageDirection", languageDirection) + string.Format("{0}: {1}\n", "horizontalAlignment", horizontalAlignment) + string.Format("{0}: {1}\n", "verticalAlignment", verticalAlignment) + string.Format("{0}: {1}\n", "color", color) + string.Format("{0}: {1}\n", "fontStyle", fontStyle) + string.Format("{0}: {1}\n", "fontWeight", fontWeight) + string.Format("{0}: {1}\n", "vertexPadding", vertexPadding) + string.Format("{0}: {1}\n", "overflow", overflow) + "textSpans: " + text + "\n" + string.Format("{0}: {1}\n", "characterSpacing", characterSpacing) + string.Format("{0}: {1}\n", "paragraphSpacing", paragraphSpacing) + string.Format("{0}: {1}\n", "wordSpacing", wordSpacing);
+		return string.Format("{0}: {1}\n", "fontAsset", fontAsset) + string.Format("{0}: {1}\n", "textSettings", textSettings) + "text: " + this.text + "\n" + string.Format("{0}: {1}\n", "screenWidth", screenWidth) + string.Format("{0}: {1}\n", "screenHeight", screenHeight) + string.Format("{0}: {1}\n", "fontSize", fontSize) + string.Format("{0}: {1}\n", "bestFit", bestFit) + string.Format("{0}: {1}\n", "maxFontSize", maxFontSize) + string.Format("{0}: {1}\n", "minFontSize", minFontSize) + string.Format("{0}: {1}\n", "wordWrapEnabled", wordWrapEnabled) + string.Format("{0}: {1}\n", "languageDirection", languageDirection) + string.Format("{0}: {1}\n", "horizontalAlignment", horizontalAlignment) + string.Format("{0}: {1}\n", "verticalAlignment", verticalAlignment) + string.Format("{0}: {1}\n", "color", color) + string.Format("{0}: {1}\n", "fontStyle", fontStyle) + string.Format("{0}: {1}\n", "fontWeight", fontWeight) + string.Format("{0}: {1}\n", "vertexPadding", vertexPadding) + string.Format("{0}: {1}\n", "overflow", overflow) + "textSpans: " + text + "\n" + string.Format("{0}: {1}\n", "characterSpacing", characterSpacing) + string.Format("{0}: {1}\n", "paragraphSpacing", paragraphSpacing) + string.Format("{0}: {1}\n", "wordSpacing", wordSpacing) + string.Format("{0}: {1}\n", "preProcessFlags", preProcessFlags);
 	}
 }

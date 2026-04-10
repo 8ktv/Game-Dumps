@@ -9,10 +9,10 @@ public enum VfxType
 	BasicBallLaunch,
 	[InspectorName("Basic/Ball/Hit")]
 	BasicBallHit,
-	[InspectorName("Basic/Ball/Win Start")]
-	BasicBallWinStart,
-	[InspectorName("Basic/Ball/Win End")]
-	BasicBallWinEnd,
+	[InspectorName("Hole/Win/Basic/Win Start")]
+	BasicHoleWinStart,
+	[InspectorName("Hole/Win/Basic/Win End")]
+	BasicHoleWinEnd,
 	[InspectorName("Item Box/Item Box Acquire")]
 	ItemBoxAcquire,
 	[InspectorName("Basic/Club/Hit")]
@@ -131,8 +131,8 @@ public enum VfxType
 	SpectatorCameraHeart,
 	[InspectorName("Spectator Camera/Shocked")]
 	SpectatorCameraShocked,
-	[InspectorName("Spectator Camera/Sad")]
-	SpectatorCameraSad,
+	[InspectorName("Spectator Camera/Worried")]
+	SpectatorCameraWorried,
 	[InspectorName("Spectator Camera/Confused")]
 	SpectatorCameraConfused,
 	[InspectorName("Golf Cart/Horn Short")]
@@ -172,5 +172,67 @@ public enum VfxType
 	[InspectorName("Boundary/Ball Out Of Bounds")]
 	BoundaryBallOutOfBounds,
 	[InspectorName("Ball/Respawn")]
-	BallRespawn
+	BallRespawn,
+	[InspectorName("Hole/Player Death")]
+	HolePlayerDeath,
+	[InspectorName("Character/Restart")]
+	PlayerRestart,
+	[InspectorName("Spectator Camera/Heart Local")]
+	SpectatorCameraHeartLocal,
+	[InspectorName("Spectator Camera/Shocked Local")]
+	SpectatorCameraShockedLocal,
+	[InspectorName("Spectator Camera/Worried Local")]
+	SpectatorCameraWorriedLocal,
+	[InspectorName("Spectator Camera/Confused Local")]
+	SpectatorCameraConfusedLocal,
+	[InspectorName("Hole/Win/Sparkle/Win End")]
+	SparkleHoleWinEnd,
+	[InspectorName("Hole/Win/Water/Win End")]
+	WaterHoleWinEnd,
+	[InspectorName("UI/Dominated")]
+	Dominated,
+	[InspectorName("Mobility Box/Mobility Box Acquire")]
+	MobilityBoxAcquire,
+	[InspectorName("Mobility Box/Mobility Box Spawn")]
+	MobilityBoxSpawn,
+	[InspectorName("Items/Rocket Driver/Swing Slash")]
+	RocketDriverSwingSlash,
+	[InspectorName("Items/Rocket Driver/Swing Spin")]
+	RocketDriverSwingSpin,
+	[InspectorName("Items/Rocket Driver/Swing Spin Hit")]
+	RocketDriverSwingSpinHit,
+	[InspectorName("Items/Rocket Driver/Regular Hit")]
+	RocketDriverRegularHit,
+	[InspectorName("Items/Rocket Driver/Golf Cart Hit")]
+	RocketDriverGolfCartHit,
+	[InspectorName("Items/Rocket Driver/Player Launch")]
+	RocketDriverPlayerLaunch,
+	[InspectorName("Items/Rocket Driver/Despawn")]
+	RocketDriverDespawn,
+	[InspectorName("Jump Pad/Activation")]
+	JumpPadActivation,
+	[InspectorName("Ice/Frozen Entity Break")]
+	IceFrozenEntityBreak,
+	[InspectorName("Items/Freeze Bomb/Muzzle")]
+	FreezeBombMuzzle,
+	[InspectorName("Items/Freeze Bomb/Flourish")]
+	FreezeBombFlourish,
+	[InspectorName("Ice/Explosion Decal")]
+	IceExplosionDecal,
+	[InspectorName("Items/Freeze Bomb/Impact")]
+	FreezeBombImpact,
+	[InspectorName("Items/Freeze Bomb/Trail")]
+	FreezeBombTrail,
+	[InspectorName("Items/Freeze Bomb/Platform Break")]
+	FreezeBombPlatformBreak,
+	[InspectorName("Ice/Breakable Floor Break")]
+	IceBreakableFloorBreak,
+	[InspectorName("Ice/Breakable Floor Crack")]
+	IceBreakableFloorCrack,
+	[InspectorName("Items/Rocket Driver/Trail")]
+	RocketDriverTrail,
+	[InspectorName("Spectator Camera/Cheer")]
+	SpectatorCameraCheer,
+	[InspectorName("Spectator Camera/Cheer Local")]
+	SpectatorCameraCheerLocal
 }

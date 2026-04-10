@@ -37,9 +37,9 @@ public abstract class BasePopupField<TValueType, TValueChoice> : BaseField<TValu
 
 	internal Func<TValueChoice, string> m_FormatListItemCallback;
 
-	internal Func<IGenericMenu> createMenuCallback;
+	internal Func<AbstractGenericMenu> createMenuCallback;
 
-	internal IGenericMenu m_GenericMenu;
+	internal AbstractGenericMenu m_GenericMenu;
 
 	internal bool m_AutoCloseMenu = true;
 
@@ -81,7 +81,7 @@ public abstract class BasePopupField<TValueType, TValueChoice> : BaseField<TValu
 
 	internal abstract string GetListItemToDisplay(TValueType item);
 
-	internal abstract void AddMenuItems(IGenericMenu menu);
+	internal abstract void AddMenuItems(AbstractGenericMenu menu);
 
 	public override void SetValueWithoutNotify(TValueType newValue)
 	{
@@ -170,7 +170,7 @@ public abstract class BasePopupField<TValueType, TValueChoice> : BaseField<TValu
 	{
 		m_GenericMenu = ((createMenuCallback != null) ? createMenuCallback() : base.elementPanel.CreateMenu());
 		AddMenuItems(m_GenericMenu);
-		m_GenericMenu.DropDown(base.visualInput.worldBound, this, anchored: true);
+		m_GenericMenu.DropDown(base.visualInput.worldBound, this, DropdownMenuSizeMode.Fixed);
 	}
 
 	protected override void UpdateMixedValueContent()

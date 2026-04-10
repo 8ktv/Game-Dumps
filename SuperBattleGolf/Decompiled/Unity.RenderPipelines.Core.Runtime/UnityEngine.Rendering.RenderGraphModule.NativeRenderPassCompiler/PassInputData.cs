@@ -7,7 +7,7 @@ internal readonly struct PassInputData
 {
 	public readonly ResourceHandle resource;
 
-	public PassInputData(ResourceHandle resource)
+	public PassInputData(in ResourceHandle resource)
 	{
 		this.resource = resource;
 	}

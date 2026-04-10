@@ -79,6 +79,11 @@ internal class EmptyStylePropertyAnimationSystem : IStylePropertyAnimationSystem
 		return false;
 	}
 
+	public bool StartTransition(VisualElement owner, StylePropertyId prop, Ratio startValue, Ratio endValue, int durationMs, int delayMs, [JetBrains.Annotations.NotNull] Func<float, float> easingCurve)
+	{
+		return false;
+	}
+
 	public bool StartTransition(VisualElement owner, StylePropertyId prop, BackgroundPosition startValue, BackgroundPosition endValue, int durationMs, int delayMs, [JetBrains.Annotations.NotNull] Func<float, float> easingCurve)
 	{
 		return false;
@@ -95,6 +100,11 @@ internal class EmptyStylePropertyAnimationSystem : IStylePropertyAnimationSystem
 	}
 
 	public bool StartTransition(VisualElement owner, StylePropertyId prop, List<FilterFunction> startValue, List<FilterFunction> endValue, int durationMs, int delayMs, [JetBrains.Annotations.NotNull] Func<float, float> easingCurve)
+	{
+		return false;
+	}
+
+	public bool StartTransition(VisualElement owner, StylePropertyId prop, MaterialDefinition startValue, MaterialDefinition endValue, int durationMs, int delayMs, [JetBrains.Annotations.NotNull] Func<float, float> easingCurve)
 	{
 		return false;
 	}
@@ -124,7 +134,7 @@ internal class EmptyStylePropertyAnimationSystem : IStylePropertyAnimationSystem
 	{
 	}
 
-	public void Update()
+	public void Update(double updateTimeInSeconds)
 	{
 	}
 }

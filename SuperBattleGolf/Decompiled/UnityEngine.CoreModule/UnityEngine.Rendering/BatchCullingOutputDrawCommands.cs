@@ -1,3 +1,5 @@
+using System;
+
 namespace UnityEngine.Rendering;
 
 public struct BatchCullingOutputDrawCommands
@@ -16,7 +18,7 @@ public struct BatchCullingOutputDrawCommands
 
 	public unsafe float* instanceSortingPositions;
 
-	public unsafe int* drawCommandPickingInstanceIDs;
+	public unsafe EntityId* drawCommandPickingEntityIds;
 
 	public int drawCommandCount;
 
@@ -31,4 +33,17 @@ public struct BatchCullingOutputDrawCommands
 	public int drawRangeCount;
 
 	public int instanceSortingPositionFloatCount;
+
+	[Obsolete("drawCommandPickingInstanceIDs is deprecated. Use drawCommandPickingEntityIds instead.")]
+	public unsafe int* drawCommandPickingInstanceIDs
+	{
+		get
+		{
+			return (int*)drawCommandPickingEntityIds;
+		}
+		set
+		{
+			drawCommandPickingEntityIds = (EntityId*)value;
+		}
+	}
 }

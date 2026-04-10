@@ -59,8 +59,8 @@ public class TouchScreenKeyboard
 		private static extern void TouchScreenKeyboard_SetAndroidKeyboardConsumesOutsideTouches(bool enable);
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		[NativeConditional("PLATFORM_ANDROID")]
 		[FreeFunction("TouchScreenKeyboard_GetAndroidKeyboardConsumesOutsideTouches")]
+		[NativeConditional("PLATFORM_ANDROID")]
 		private static extern bool TouchScreenKeyboard_GetAndroidKeyboardConsumesOutsideTouches();
 	}
 
@@ -94,6 +94,7 @@ public class TouchScreenKeyboard
 			case RuntimePlatform.GameCoreXboxOne:
 			case RuntimePlatform.PS5:
 			case RuntimePlatform.VisionOS:
+			case RuntimePlatform.Switch2:
 				return true;
 			default:
 				return false;

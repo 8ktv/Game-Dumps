@@ -6,6 +6,11 @@ public abstract class ContextualMenuManager
 
 	public abstract void DisplayMenuIfEventMatches(EventBase evt, IEventHandler eventHandler);
 
+	internal virtual bool CheckIfEventMatches(EventBase evt)
+	{
+		return false;
+	}
+
 	public void DisplayMenu(EventBase triggerEvent, IEventHandler target)
 	{
 		DropdownMenu menu = new DropdownMenu();
@@ -33,5 +38,15 @@ public abstract class ContextualMenuManager
 	internal static void ResetPointerDown(int pointerId)
 	{
 		PointerDeviceState.ReleaseAllButtons(pointerId);
+	}
+
+	internal void BeforePointerDown()
+	{
+		displayMenuHandledOSX = false;
+	}
+
+	internal void AfterPointerUp()
+	{
+		displayMenuHandledOSX = false;
 	}
 }

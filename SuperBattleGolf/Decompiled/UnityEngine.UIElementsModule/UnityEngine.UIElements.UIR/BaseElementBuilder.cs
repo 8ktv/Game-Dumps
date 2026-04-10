@@ -22,6 +22,7 @@ internal abstract class BaseElementBuilder
 		VisualElement visualElement = mgc.visualElement;
 		RenderTree renderTree = visualElement.nestedRenderData.renderTree;
 		RectInt quadRect = renderTree.quadRect;
+		Rect quadUVRect = renderTree.quadUVRect;
 		if (quadRect != RectInt.zero)
 		{
 			Color white = Color.white;
@@ -30,25 +31,25 @@ internal abstract class BaseElementBuilder
 			{
 				position = new Vector3(quadRect.xMin, quadRect.yMax, Vertex.nearZ),
 				tint = white,
-				uv = new Vector2(0f, 0f)
+				uv = new Vector2(quadUVRect.xMin, quadUVRect.yMin)
 			};
 			vertices[1] = new Vertex
 			{
 				position = new Vector3(quadRect.xMin, quadRect.yMin, Vertex.nearZ),
 				tint = white,
-				uv = new Vector2(0f, 1f)
+				uv = new Vector2(quadUVRect.xMin, quadUVRect.yMax)
 			};
 			vertices[2] = new Vertex
 			{
 				position = new Vector3(quadRect.xMax, quadRect.yMin, Vertex.nearZ),
 				tint = white,
-				uv = new Vector2(1f, 1f)
+				uv = new Vector2(quadUVRect.xMax, quadUVRect.yMax)
 			};
 			vertices[3] = new Vertex
 			{
 				position = new Vector3(quadRect.xMax, quadRect.yMax, Vertex.nearZ),
 				tint = white,
-				uv = new Vector2(1f, 0f)
+				uv = new Vector2(quadUVRect.xMax, quadUVRect.yMin)
 			};
 			indices[0] = 0;
 			indices[1] = 1;
@@ -75,19 +76,24 @@ internal abstract class BaseElementBuilder
 		{
 			mgc.entryRecorder.PushGroupMatrix(mgc.parentEntry);
 		}
-		bool flag = visualElement.defaultMaterial != null;
-		if (flag)
-		{
-			mgc.entryRecorder.PushDefaultMaterial(mgc.parentEntry, visualElement.defaultMaterial);
-		}
+		MaterialDefinition unityMaterial = visualElement.resolvedStyle.unityMaterial;
+		bool flag = unityMaterial.material != null;
 		bool flag2 = false;
 		if (visualElement.visible)
 		{
+			if (flag)
+			{
+				mgc.entryRecorder.PushDefaultMaterial(mgc.parentEntry, unityMaterial);
+			}
 			DrawVisualElementBackground(mgc);
 			DrawVisualElementBorder(mgc);
 			PushVisualElementClipping(mgc);
 			flag2 = true;
 			InvokeGenerateVisualContent(mgc);
+			if (flag)
+			{
+				mgc.entryRecorder.PopDefaultMaterial(mgc.parentEntry);
+			}
 		}
 		else
 		{
@@ -95,18 +101,30 @@ internal abstract class BaseElementBuilder
 			bool flag4 = renderData.clipMethod == ClipMethod.Scissor;
 			if (flag4 || flag3)
 			{
+				if (flag)
+				{
+					mgc.entryRecorder.PushDefaultMaterial(mgc.parentEntry, unityMaterial);
+				}
 				flag2 = true;
 				PushVisualElementClipping(mgc);
+				if (flag)
+				{
+					mgc.entryRecorder.PopDefaultMaterial(mgc.parentEntry);
+				}
 			}
 		}
 		mgc.entryRecorder.DrawChildren(mgc.parentEntry);
 		if (flag2)
 		{
+			if (flag)
+			{
+				mgc.entryRecorder.PushDefaultMaterial(mgc.parentEntry, unityMaterial);
+			}
 			PopVisualElementClipping(mgc);
-		}
-		if (flag)
-		{
-			mgc.entryRecorder.PopDefaultMaterial(mgc.parentEntry);
+			if (flag)
+			{
+				mgc.entryRecorder.PopDefaultMaterial(mgc.parentEntry);
+			}
 		}
 		if (isGroupTransform)
 		{

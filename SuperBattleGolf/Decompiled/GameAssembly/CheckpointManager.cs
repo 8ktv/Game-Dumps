@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
 
 public class CheckpointManager : SingletonNetworkBehaviour<CheckpointManager>
 {
 	private readonly SyncDictionary<ulong, Checkpoint> activeCheckpointPerPlayerGuid = new SyncDictionary<ulong, Checkpoint>();
+
+	private readonly HashSet<Checkpoint> allCheckpoints = new HashSet<Checkpoint>();
 
 	private Checkpoint visiblyActiveCheckpoint;
 
@@ -25,11 +28,43 @@ public class CheckpointManager : SingletonNetworkBehaviour<CheckpointManager>
 		PlayerSpectator.LocalPlayerSetSpectatingTarget -= OnClientLocalPlayerSetSpectatingTarget;
 	}
 
+	public static void RegisterCheckpoint(Checkpoint checkpoint)
+	{
+		if (SingletonNetworkBehaviour<CheckpointManager>.HasInstance)
+		{
+			SingletonNetworkBehaviour<CheckpointManager>.Instance.RegisterCheckpointInternal(checkpoint);
+		}
+	}
+
+	public static void DeregisterCheckpoint(Checkpoint checkpoint)
+	{
+		if (SingletonNetworkBehaviour<CheckpointManager>.HasInstance)
+		{
+			SingletonNetworkBehaviour<CheckpointManager>.Instance.DeregisterCheckpointInternal(checkpoint);
+		}
+	}
+
 	public static void TryActivate(Checkpoint checkpoint, PlayerInfo player)
 	{
 		if (SingletonNetworkBehaviour<CheckpointManager>.HasInstance)
 		{
-			SingletonNetworkBehaviour<CheckpointManager>.Instance.TryActivateInternal(checkpoint, player);
+			SingletonNetworkBehaviour<CheckpointManager>.Instance.TryActivateInternal(checkpoint, player, forced: false);
+		}
+	}
+
+	public static void DeactivateCheckpoint(PlayerInfo player)
+	{
+		if (SingletonNetworkBehaviour<CheckpointManager>.HasInstance)
+		{
+			SingletonNetworkBehaviour<CheckpointManager>.Instance.DeactivateCheckpointInternal(player);
+		}
+	}
+
+	public static void ResetCheckpointForPlayerRestart(PlayerInfo player, Vector3 restartPosition)
+	{
+		if (SingletonNetworkBehaviour<CheckpointManager>.HasInstance)
+		{
+			SingletonNetworkBehaviour<CheckpointManager>.Instance.ResetCheckpointForPlayerRestartInternal(player, restartPosition);
 		}
 	}
 
@@ -43,20 +78,20 @@ public class CheckpointManager : SingletonNetworkBehaviour<CheckpointManager>
 		return SingletonNetworkBehaviour<CheckpointManager>.Instance.TryGetLocalPlayerActiveCheckpointInternal(out checkpoint);
 	}
 
-	public static void ResetCheckpoint(PlayerInfo player)
+	private void RegisterCheckpointInternal(Checkpoint checkpoint)
 	{
-		if (SingletonNetworkBehaviour<CheckpointManager>.HasInstance)
+		allCheckpoints.Add(checkpoint);
+	}
+
+	private void DeregisterCheckpointInternal(Checkpoint checkpoint)
+	{
+		if (!BNetworkManager.IsChangingSceneOrShuttingDown)
 		{
-			SingletonNetworkBehaviour<CheckpointManager>.Instance.ResetCheckpointInternal(player);
+			allCheckpoints.Remove(checkpoint);
 		}
 	}
 
-	private void ResetCheckpointInternal(PlayerInfo player)
-	{
-		activeCheckpointPerPlayerGuid.Remove(player.PlayerId.Guid);
-	}
-
-	private void TryActivateInternal(Checkpoint checkpoint, PlayerInfo player)
+	private void TryActivateInternal(Checkpoint checkpoint, PlayerInfo player, bool forced)
 	{
 		Checkpoint value;
 		if (player == null)
@@ -67,7 +102,7 @@ public class CheckpointManager : SingletonNetworkBehaviour<CheckpointManager>
 		{
 			Debug.LogError("Attempted to activate a checkpoint for a player with an invalid GUID", player);
 		}
-		else if (!activeCheckpointPerPlayerGuid.TryGetValue(player.PlayerId.Guid, out value) || CanOvertakeCheckpoint(value))
+		else if (!activeCheckpointPerPlayerGuid.TryGetValue(player.PlayerId.Guid, out value) || forced || CanOvertakeCheckpoint(value))
 		{
 			activeCheckpointPerPlayerGuid[player.PlayerId.Guid] = checkpoint;
 		}
@@ -82,6 +117,65 @@ public class CheckpointManager : SingletonNetworkBehaviour<CheckpointManager>
 				return true;
 			}
 			return checkpoint.Order >= checkpointToOvertake.Order;
+		}
+	}
+
+	private void DeactivateCheckpointInternal(PlayerInfo player)
+	{
+		activeCheckpointPerPlayerGuid.Remove(player.PlayerId.Guid);
+	}
+
+	private void ResetCheckpointForPlayerRestartInternal(PlayerInfo player, Vector3 restartPosition)
+	{
+		if (player == null)
+		{
+			Debug.LogError("Attempted to reset a null player's checkpoint", base.gameObject);
+		}
+		else if (player.PlayerId.Guid == 0L)
+		{
+			Debug.LogError("Attempted to reset a player's checkpoint, but they have an invalid GUID", player);
+		}
+		else
+		{
+			if (!activeCheckpointPerPlayerGuid.TryGetValue(player.PlayerId.Guid, out var value))
+			{
+				return;
+			}
+			if (GolfHoleManager.MainHole == null)
+			{
+				Debug.LogError("Attempted to reset a player's checkpoint, but there is no main golf hole to reference", player);
+				return;
+			}
+			Vector3 position = GolfHoleManager.MainHole.transform.position;
+			float sqrMagnitude = (restartPosition - position).sqrMagnitude;
+			float sqrMagnitude2 = (value.transform.position - position).sqrMagnitude;
+			Checkpoint checkpoint = null;
+			float num = float.MaxValue;
+			foreach (Checkpoint allCheckpoint in allCheckpoints)
+			{
+				if (allCheckpoint == value)
+				{
+					continue;
+				}
+				float sqrMagnitude3 = (allCheckpoint.transform.position - position).sqrMagnitude;
+				if (!(sqrMagnitude3 < sqrMagnitude) && !(sqrMagnitude3 < sqrMagnitude2))
+				{
+					float sqrMagnitude4 = (allCheckpoint.transform.position - restartPosition).sqrMagnitude;
+					if (!(sqrMagnitude4 > num))
+					{
+						checkpoint = allCheckpoint;
+						num = sqrMagnitude4;
+					}
+				}
+			}
+			if (checkpoint == null)
+			{
+				DeactivateCheckpointInternal(player);
+			}
+			else
+			{
+				TryActivateInternal(checkpoint, player, forced: true);
+			}
 		}
 	}
 

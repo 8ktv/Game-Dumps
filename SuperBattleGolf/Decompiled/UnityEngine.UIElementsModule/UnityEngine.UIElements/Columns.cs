@@ -23,41 +23,41 @@ public class Columns : ICollection<Column>, IEnumerable<Column>, IEnumerable, IN
 		[SerializeField]
 		private string primaryColumnName;
 
-		[SerializeField]
 		[UxmlIgnore]
 		[HideInInspector]
+		[SerializeField]
 		private UxmlAttributeFlags primaryColumnName_UxmlAttributeFlags;
 
 		[SerializeField]
 		private StretchMode stretchMode;
 
-		[UxmlIgnore]
-		[HideInInspector]
 		[SerializeField]
+		[HideInInspector]
+		[UxmlIgnore]
 		private UxmlAttributeFlags stretchMode_UxmlAttributeFlags;
 
 		[SerializeField]
 		private bool reorderable;
 
-		[SerializeField]
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
+		[SerializeField]
 		private UxmlAttributeFlags reorderable_UxmlAttributeFlags;
 
 		[SerializeField]
 		private bool resizable;
 
+		[SerializeField]
 		[UxmlIgnore]
 		[HideInInspector]
-		[SerializeField]
 		private UxmlAttributeFlags resizable_UxmlAttributeFlags;
 
 		[SerializeField]
 		private bool resizePreview;
 
-		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags resizePreview_UxmlAttributeFlags;
 
 		[SerializeReference]
@@ -65,8 +65,8 @@ public class Columns : ICollection<Column>, IEnumerable<Column>, IEnumerable, IN
 		private List<Column.UxmlSerializedData> columns;
 
 		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
 		private UxmlAttributeFlags columns_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]

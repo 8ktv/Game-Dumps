@@ -19,8 +19,20 @@ public class PhysicsSettings : ScriptableObject
 	public float ItemLinearAirDragFactor { get; private set; }
 
 	[field: SerializeField]
+	public float ItemRocketDriverSwingLinearAirDragFactor { get; private set; }
+
+	[field: SerializeField]
 	public float ItemLinearFoliageDragFactor { get; private set; }
 
 	[field: SerializeField]
 	public float DefaultLinearFoliageDragFactor { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombIceBlockDynamicFriction { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombIceBlockStaticFriction { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombIceBlockBounciness { get; private set; }
 }

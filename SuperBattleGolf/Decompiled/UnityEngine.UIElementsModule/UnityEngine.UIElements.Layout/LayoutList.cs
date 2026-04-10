@@ -65,7 +65,7 @@ internal struct LayoutList<T> : IDisposable where T : unmanaged
 		}
 	}
 
-	private readonly Allocator m_Allocator;
+	private static readonly MemoryLabel s_Label = new MemoryLabel("UIElements", "Layout.LayoutList");
 
 	private unsafe Data* m_Data;
 
@@ -88,13 +88,11 @@ internal struct LayoutList<T> : IDisposable where T : unmanaged
 	public unsafe LayoutList()
 	{
 		m_Data = null;
-		m_Allocator = Allocator.Invalid;
 	}
 
-	public unsafe LayoutList(int initialCapacity, Allocator allocator)
+	public unsafe LayoutList(int initialCapacity)
 	{
-		m_Allocator = allocator;
-		m_Data = (Data*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<Data>(), 16, allocator);
+		m_Data = (Data*)UnsafeUtility.Malloc(UnsafeUtility.SizeOf<Data>(), 16, s_Label);
 		Assert.IsTrue(m_Data != null);
 		UnsafeUtility.MemClear(m_Data, UnsafeUtility.SizeOf<Data>());
 		ResizeCapacity(initialCapacity);
@@ -106,9 +104,9 @@ internal struct LayoutList<T> : IDisposable where T : unmanaged
 		{
 			if (m_Data->Values != null)
 			{
-				UnsafeUtility.Free(m_Data->Values, m_Allocator);
+				UnsafeUtility.Free(m_Data->Values, s_Label);
 			}
-			UnsafeUtility.Free(m_Data, m_Allocator);
+			UnsafeUtility.Free(m_Data, s_Label);
 			m_Data = null;
 		}
 	}
@@ -182,14 +180,14 @@ internal struct LayoutList<T> : IDisposable where T : unmanaged
 	private unsafe void ResizeCapacity(int capacity)
 	{
 		Assert.IsTrue(capacity > 0);
-		m_Data->Values = (T*)ResizeArray(m_Data->Values, m_Data->Capacity, capacity, UnsafeUtility.SizeOf<T>(), 16, m_Allocator);
+		m_Data->Values = (T*)ResizeArray(m_Data->Values, m_Data->Capacity, capacity, UnsafeUtility.SizeOf<T>(), 16);
 		m_Data->Capacity = capacity;
 	}
 
-	private unsafe static void* ResizeArray(void* fromPtr, long fromCount, long toCount, long size, int align, Allocator allocator)
+	private unsafe static void* ResizeArray(void* fromPtr, long fromCount, long toCount, long size, int align)
 	{
 		Assert.IsTrue(toCount > 0);
-		void* ptr = UnsafeUtility.Malloc(size * toCount, align, allocator);
+		void* ptr = UnsafeUtility.Malloc(size * toCount, align, s_Label);
 		Assert.IsTrue(ptr != null);
 		if (fromCount <= 0)
 		{
@@ -198,7 +196,7 @@ internal struct LayoutList<T> : IDisposable where T : unmanaged
 		long num = ((toCount < fromCount) ? toCount : fromCount);
 		long size2 = num * size;
 		UnsafeUtility.MemCpy(ptr, fromPtr, size2);
-		UnsafeUtility.Free(fromPtr, allocator);
+		UnsafeUtility.Free(fromPtr, s_Label);
 		return ptr;
 	}
 

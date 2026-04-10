@@ -25,8 +25,9 @@ public class RestartPrompt : SingletonBehaviour<RestartPrompt>
 		base.Awake();
 		visibilityController = GetComponent<UiVisibilityController>();
 		InputManager.SwitchedInputDeviceType += UpdatePrompt;
-		CourseManager.MatchStateChanged += OnMatchStateChanged;
 		LocalizationManager.LanguageChanged += UpdateLabel;
+		PlayerGolfer.LocalPlayerAheadOfBallChanged += UpdateLabelIfVisible;
+		GolfBall.LocalPlayerBallIsHiddenChanged += UpdateLabelIfVisible;
 		UpdatePrompt();
 		UpdateLabel();
 		visibilityController.SetDesiredAlpha(0f);
@@ -36,8 +37,9 @@ public class RestartPrompt : SingletonBehaviour<RestartPrompt>
 	{
 		base.OnDestroy();
 		InputManager.SwitchedInputDeviceType -= UpdatePrompt;
-		CourseManager.MatchStateChanged -= OnMatchStateChanged;
 		LocalizationManager.LanguageChanged -= UpdateLabel;
+		PlayerGolfer.LocalPlayerAheadOfBallChanged -= UpdateLabelIfVisible;
+		GolfBall.LocalPlayerBallIsHiddenChanged -= UpdateLabelIfVisible;
 	}
 
 	public static bool CanBePressed(PlayerInfo player)
@@ -87,7 +89,7 @@ public class RestartPrompt : SingletonBehaviour<RestartPrompt>
 		{
 			return true;
 		}
-		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance && standstillTimer > GameManager.UiSettings.RestartPromptStandStillShowDelay)
+		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance && (WouldReturnToBall() || standstillTimer > GameManager.UiSettings.RestartPromptStandStillShowDelay))
 		{
 			return true;
 		}
@@ -96,10 +98,23 @@ public class RestartPrompt : SingletonBehaviour<RestartPrompt>
 
 	private void UpdateLabel()
 	{
-		string text = ((CourseManager.MatchState < MatchState.CountingDownToEnd) ? Localization.UI.PROMPT_Restart : Localization.UI.PROMPT_GiveUp);
+		string text = ((!WouldReturnToBall()) ? Localization.UI.PROMPT_Restart : Localization.UI.PROMPT_ReturnToBall);
 		int num = text.IndexOf("{0}");
 		prefixLabel.text = ((num >= 0) ? text.Remove(num) : text);
 		suffixLabel.text = ((num >= 0) ? text.Substring(num + "{0}".Length) : text);
+	}
+
+	private static bool WouldReturnToBall()
+	{
+		if (GameManager.LocalPlayerAsGolfer == null || GameManager.LocalPlayerAsGolfer.OwnBall == null)
+		{
+			return false;
+		}
+		if (GameManager.LocalPlayerAsGolfer.IsAheadOfBall)
+		{
+			return GameManager.LocalPlayerAsGolfer.OwnBall.IsStationary;
+		}
+		return false;
 	}
 
 	private void UpdatePrompt()
@@ -123,6 +138,10 @@ public class RestartPrompt : SingletonBehaviour<RestartPrompt>
 				visibilityController.AnimatedDesiredAlpha(0f, GameManager.UiSettings.RestartPromptFadeOutTime, (float x) => x);
 			}
 			isVisible = flag;
+			if (isVisible)
+			{
+				UpdateLabel();
+			}
 		}
 		if (isVisible)
 		{
@@ -150,8 +169,11 @@ public class RestartPrompt : SingletonBehaviour<RestartPrompt>
 		return false;
 	}
 
-	private void OnMatchStateChanged(MatchState previousState, MatchState currentState)
+	private void UpdateLabelIfVisible()
 	{
-		UpdateLabel();
+		if (ShouldBeVisible())
+		{
+			UpdateLabel();
+		}
 	}
 }

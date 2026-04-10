@@ -1,4 +1,5 @@
 using System;
+using UnityEngine.Bindings;
 
 namespace UnityEngine.UIElements;
 
@@ -30,6 +31,10 @@ public interface ITextSelection
 
 	internal float cursorWidth { get; set; }
 
+	event Action OnCursorIndexChange;
+
+	event Action OnSelectIndexChange;
+
 	bool HasSelection();
 
 	void SelectAll();
@@ -38,5 +43,24 @@ public interface ITextSelection
 
 	void SelectRange(int cursorIndex, int selectionIndex);
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.QuickSearchModule" })]
 	internal void MoveTextEnd();
+
+	Vector2 GetCursorPositionFromStringIndex(int stringIndex);
+
+	void MoveForward();
+
+	void MoveBackward();
+
+	void MoveToParagraphEnd();
+
+	void MoveToParagraphStart();
+
+	void MoveToEndOfPreviousWord();
+
+	void MoveToStartOfNextWord();
+
+	void MoveWordBackward();
+
+	void MoveWordForward();
 }

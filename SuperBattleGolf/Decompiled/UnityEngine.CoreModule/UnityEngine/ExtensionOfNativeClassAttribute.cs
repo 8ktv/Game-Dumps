@@ -5,8 +5,8 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, Inherited = true)]
 [RequiredByNativeCode]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, Inherited = true)]
 internal sealed class ExtensionOfNativeClassAttribute : Attribute
 {
 }

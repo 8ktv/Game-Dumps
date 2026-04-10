@@ -75,6 +75,9 @@ public class GolfCartInfo : NetworkBehaviour, IInteractable
 
 	public Action<PlayerInfo, PlayerInfo> _Mirror_SyncVarHookDelegate_driverSeatReserver;
 
+	[field: SerializeField]
+	public Transform ExhaustPosition { get; private set; }
+
 	public Entity AsEntity { get; private set; }
 
 	public GolfCartMovement Movement { get; private set; }
@@ -148,6 +151,11 @@ public class GolfCartInfo : NetworkBehaviour, IInteractable
 		syncList.OnChange = (Action<SyncList<PlayerInfo>.Operation, int, PlayerInfo>)Delegate.Combine(syncList.OnChange, new Action<SyncList<PlayerInfo>.Operation, int, PlayerInfo>(OnPassengersChanged));
 	}
 
+	private void Start()
+	{
+		AsEntity.AsHittable.IsFrozenChanged += OnIsFrozenChanged;
+	}
+
 	public void OnWillBeDestroyed()
 	{
 		if (GameManager.LocalPlayerInfo != null && NetworkdriverSeatReserver == GameManager.LocalPlayerInfo)
@@ -172,6 +180,7 @@ public class GolfCartInfo : NetworkBehaviour, IInteractable
 		}
 		SyncList<PlayerInfo> syncList = passengers;
 		syncList.OnChange = (Action<SyncList<PlayerInfo>.Operation, int, PlayerInfo>)Delegate.Remove(syncList.OnChange, new Action<SyncList<PlayerInfo>.Operation, int, PlayerInfo>(OnPassengersChanged));
+		AsEntity.AsHittable.IsFrozenChanged -= OnIsFrozenChanged;
 		if (base.isServer && NetworkdriverSeatReserver != null)
 		{
 			NetworkdriverSeatReserver.AsEntity.WillBeDestroyed -= OnServerDriverSeatReserverWillBeDestroyed;
@@ -710,6 +719,10 @@ public class GolfCartInfo : NetworkBehaviour, IInteractable
 		IsInteractionEnabled = ShouldBeEnabled();
 		bool ShouldBeEnabled()
 		{
+			if (AsEntity.AsHittable.IsFrozen)
+			{
+				return false;
+			}
 			for (int i = 0; i < GameManager.GolfCartSettings.MaxPassengers; i++)
 			{
 				if (passengers[i] == null)
@@ -1117,6 +1130,12 @@ public class GolfCartInfo : NetworkBehaviour, IInteractable
 		}
 	}
 
+	private void OnIsFrozenChanged()
+	{
+		UpdateIsInteractionEnabled();
+		vfx.SetIsFrozen(AsEntity.AsHittable.IsFrozen);
+	}
+
 	private void OnServerBoundsStateChanged(BoundsState previousState, BoundsState currentState)
 	{
 		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance && currentState.IsInOutOfBoundsHazard())
@@ -1209,7 +1228,15 @@ public class GolfCartInfo : NetworkBehaviour, IInteractable
 		}
 		bool CanSenderEnter()
 		{
+			if (AsEntity.AsHittable.IsFrozen)
+			{
+				return false;
+			}
 			if (senderAsPlayer.Movement.IsKnockedOutOrRecovering)
+			{
+				return false;
+			}
+			if (senderAsPlayer.AsHittable.IsFrozen)
 			{
 				return false;
 			}

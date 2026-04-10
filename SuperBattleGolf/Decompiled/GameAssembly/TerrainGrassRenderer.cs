@@ -186,6 +186,15 @@ public class TerrainGrassRenderer : MonoBehaviour
 				_ = ins.terrain;
 				_ = ins.transform;
 				renderParams.matProps.SetFloatArray("_LodFade", ins.lodFadeArray);
+				if (ins.settings.materialFuzzy)
+				{
+					renderParams.matProps.SetVectorArray("_Fuzzy", ins.settings.fuzzySettings);
+				}
+				if (ins.settings.materialRimlight)
+				{
+					renderParams.matProps.SetVectorArray("_RimlightSettings", ins.settings.rimlightSettings);
+					renderParams.matProps.SetVectorArray("_RimlightColor", ins.settings.rimlightColors);
+				}
 				Graphics.RenderMeshInstanced(renderParams, mesh, 0, trs, count[0]);
 			}
 		}

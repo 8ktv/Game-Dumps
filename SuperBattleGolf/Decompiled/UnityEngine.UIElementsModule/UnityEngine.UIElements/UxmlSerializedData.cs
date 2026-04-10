@@ -19,9 +19,9 @@ public abstract class UxmlSerializedData
 
 	private const UxmlAttributeFlags k_DefaultFlags = UxmlAttributeFlags.OverriddenInUxml;
 
-	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
-	[SerializeField]
 	[UxmlIgnore]
+	[SerializeField]
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	[HideInInspector]
 	internal int uxmlAssetId;
 

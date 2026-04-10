@@ -53,18 +53,18 @@ public class Column : INotifyBindablePropertyChanged
 		private bool resizable;
 
 		[HideInInspector]
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags name_UxmlAttributeFlags;
 
-		[SerializeField]
-		[UxmlIgnore]
 		[HideInInspector]
+		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags title_UxmlAttributeFlags;
 
 		[HideInInspector]
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags visible_UxmlAttributeFlags;
 
 		[HideInInspector]
@@ -72,8 +72,8 @@ public class Column : INotifyBindablePropertyChanged
 		[SerializeField]
 		private UxmlAttributeFlags width_UxmlAttributeFlags;
 
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
 		[HideInInspector]
 		private UxmlAttributeFlags minWidth_UxmlAttributeFlags;
 
@@ -82,38 +82,38 @@ public class Column : INotifyBindablePropertyChanged
 		[HideInInspector]
 		private UxmlAttributeFlags maxWidth_UxmlAttributeFlags;
 
-		[UxmlIgnore]
-		[SerializeField]
 		[HideInInspector]
+		[SerializeField]
+		[UxmlIgnore]
 		private UxmlAttributeFlags stretchable_UxmlAttributeFlags;
 
 		[SerializeField]
-		[UxmlIgnore]
 		[HideInInspector]
+		[UxmlIgnore]
 		private UxmlAttributeFlags sortable_UxmlAttributeFlags;
 
-		[SerializeField]
-		[UxmlIgnore]
 		[HideInInspector]
+		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags optional_UxmlAttributeFlags;
 
-		[HideInInspector]
 		[UxmlIgnore]
 		[SerializeField]
+		[HideInInspector]
 		private UxmlAttributeFlags resizable_UxmlAttributeFlags;
 
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		[SerializeField]
 		private UxmlAttributeFlags headerTemplate_UxmlAttributeFlags;
 
 		[UxmlIgnore]
-		[SerializeField]
 		[HideInInspector]
+		[SerializeField]
 		private UxmlAttributeFlags cellTemplate_UxmlAttributeFlags;
 
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
 		[HideInInspector]
 		private UxmlAttributeFlags bindingPath_UxmlAttributeFlags;
 

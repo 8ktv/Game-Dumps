@@ -3,7 +3,7 @@ using System;
 namespace UnityEngine.UIElements;
 
 [Serializable]
-internal enum FilterParameterType
+public enum FilterParameterType
 {
 	Float,
 	Color

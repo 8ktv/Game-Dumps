@@ -4,7 +4,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Unity.Burst;
-using Unity.Profiling.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Bindings;
 
@@ -108,14 +107,14 @@ public static class UnsafeUtility
 	public static extern NativeLeakDetectionMode GetLeakDetectionMode();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[ThreadSafe(ThrowsException = false)]
 	[BurstAuthorizedExternalMethod]
+	[ThreadSafe(ThrowsException = false)]
 	public static extern void SetLeakDetectionMode(NativeLeakDetectionMode value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	[ThreadSafe(ThrowsException = false)]
 	[BurstAuthorizedExternalMethod]
 	[VisibleToOtherModules(new string[] { "UnityEngine.AIModule" })]
-	[ThreadSafe(ThrowsException = false)]
 	internal static extern int LeakRecord(IntPtr handle, LeakCategory category, int callstacksToSkip);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -124,32 +123,48 @@ public static class UnsafeUtility
 	[ThreadSafe(ThrowsException = false)]
 	internal static extern int LeakErase(IntPtr handle, LeakCategory category);
 
+	public unsafe static void* MallocTracked(long size, int alignment, Allocator allocator, int callstacksToSkip)
+	{
+		return MallocTracked(size, alignment, allocator, callstacksToSkip + 1, IntPtr.Zero);
+	}
+
+	public unsafe static void* MallocTracked(long size, int alignment, MemoryLabel label, int callstacksToSkip)
+	{
+		return MallocTracked(size, alignment, label.allocator, callstacksToSkip + 1, label.pointer);
+	}
+
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe(ThrowsException = true)]
-	public unsafe static extern void* MallocTracked(long size, int alignment, Allocator allocator, int callstacksToSkip);
+	internal unsafe static extern void* MallocTracked(long size, int alignment, Allocator allocator, int callstacksToSkip, IntPtr label);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe(ThrowsException = true)]
 	public unsafe static extern void FreeTracked(void* memory, Allocator allocator);
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
-	[ThreadSafe(ThrowsException = true)]
-	public unsafe static extern void* Malloc(long size, int alignment, Allocator allocator);
-
-	internal unsafe static void* Malloc(long size, int alignment, UnsafeAllocLabel label)
+	public unsafe static void FreeTracked(void* memory, MemoryLabel label)
 	{
-		return MallocWithCustomLabel(size, alignment, label.allocator, label.pointer);
+		FreeTracked(memory, label.allocator);
+	}
+
+	public unsafe static void* Malloc(long size, int alignment, Allocator allocator)
+	{
+		return Malloc(size, alignment, allocator, IntPtr.Zero);
+	}
+
+	public unsafe static void* Malloc(long size, int alignment, MemoryLabel label)
+	{
+		return Malloc(size, alignment, label.allocator, label.pointer);
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe(ThrowsException = true)]
-	private unsafe static extern void* MallocWithCustomLabel(long size, int alignment, Allocator allocator, IntPtr label);
+	private unsafe static extern void* Malloc(long size, int alignment, Allocator allocator, IntPtr label);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe(ThrowsException = true)]
 	public unsafe static extern void Free(void* memory, Allocator allocator);
 
-	internal unsafe static void Free(void* memory, UnsafeAllocLabel label)
+	public unsafe static void Free(void* memory, MemoryLabel label)
 	{
 		Free(memory, label.allocator);
 	}
@@ -471,6 +486,12 @@ public static class UnsafeUtility
 	internal unsafe static ref T Add<T>(ref T source, int elementOffset) where T : unmanaged
 	{
 		return ref System.Runtime.CompilerServices.Unsafe.AddByteOffset(ref source, sizeof(T) * elementOffset);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	internal unsafe static void* AsPointer<T>(ref T output)
+	{
+		return System.Runtime.CompilerServices.Unsafe.AsPointer(ref output);
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]

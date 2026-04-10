@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using UnityEngine.Pool;
 using UnityEngine.Serialization;
 
 namespace UnityEngine.EventSystems;
@@ -25,7 +27,7 @@ public class StandaloneInputModule : PointerInputModule
 
 	private GameObject m_CurrentFocusedGameObject;
 
-	private PointerEventData m_InputPointerEvent;
+	private readonly Dictionary<int, PointerEventData> m_InputPointerEvents = new Dictionary<int, PointerEventData>();
 
 	private const float doubleClickTime = 0.3f;
 
@@ -166,17 +168,31 @@ public class StandaloneInputModule : PointerInputModule
 	{
 		if (!base.eventSystem.isFocused && ShouldIgnoreEventsOnNoFocus())
 		{
-			if (m_InputPointerEvent != null && m_InputPointerEvent.pointerDrag != null && m_InputPointerEvent.dragging)
-			{
-				ReleaseMouse(m_InputPointerEvent, m_InputPointerEvent.pointerCurrentRaycast.gameObject);
-			}
-			m_InputPointerEvent = null;
+			ReleasePointerDrags();
+			return;
 		}
-		else
+		m_LastMousePosition = m_MousePosition;
+		m_MousePosition = base.input.mousePosition;
+	}
+
+	private void ReleasePointerDrags()
+	{
+		List<int> value;
+		using (CollectionPool<List<int>, int>.Get(out value))
 		{
-			m_LastMousePosition = m_MousePosition;
-			m_MousePosition = base.input.mousePosition;
+			foreach (int key in m_InputPointerEvents.Keys)
+			{
+				value.Add(key);
+			}
+			foreach (int item in value)
+			{
+				if (m_InputPointerEvents.TryGetValue(item, out var value2) && value2 != null && value2.pointerDrag != null && value2.dragging)
+				{
+					ReleaseMouse(value2, value2.pointerCurrentRaycast.gameObject);
+				}
+			}
 		}
+		m_InputPointerEvents.Clear();
 	}
 
 	private void ReleaseMouse(PointerEventData pointerEvent, GameObject currentOverGo)
@@ -206,7 +222,7 @@ public class StandaloneInputModule : PointerInputModule
 			HandlePointerExitAndEnter(pointerEvent, null);
 			HandlePointerExitAndEnter(pointerEvent, currentOverGo);
 		}
-		m_InputPointerEvent = pointerEvent;
+		m_InputPointerEvents[pointerEvent.pointerId] = pointerEvent;
 	}
 
 	public override bool ShouldActivateModule()
@@ -380,7 +396,7 @@ public class StandaloneInputModule : PointerInputModule
 			ExecuteEvents.ExecuteHierarchy(pointerEvent.pointerEnter, pointerEvent, ExecuteEvents.pointerExitHandler);
 			pointerEvent.pointerEnter = null;
 		}
-		m_InputPointerEvent = pointerEvent;
+		m_InputPointerEvents[pointerEvent.pointerId] = pointerEvent;
 	}
 
 	protected bool SendSubmitEventToSelectedObject()
@@ -561,7 +577,7 @@ public class StandaloneInputModule : PointerInputModule
 			{
 				ExecuteEvents.Execute(buttonData.pointerDrag, buttonData, ExecuteEvents.initializePotentialDrag);
 			}
-			m_InputPointerEvent = buttonData;
+			m_InputPointerEvents[buttonData.pointerId] = buttonData;
 		}
 		if (data.ReleasedThisFrame())
 		{

@@ -7,10 +7,10 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Animations;
 
-[UsedByNativeCode]
 [RequireComponent(typeof(Transform))]
-[NativeHeader("Modules/Animation/Constraints/ParentConstraint.h")]
 [NativeHeader("Modules/Animation/Constraints/Constraint.bindings.h")]
+[NativeHeader("Modules/Animation/Constraints/ParentConstraint.h")]
+[UsedByNativeCode]
 public sealed class ParentConstraint : Behaviour, IConstraint, IConstraintInternal
 {
 	public float weight

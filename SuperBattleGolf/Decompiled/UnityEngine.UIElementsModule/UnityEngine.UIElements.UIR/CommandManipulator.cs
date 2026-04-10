@@ -211,7 +211,7 @@ internal static class CommandManipulator
 		renderData.firstTailCommand = (renderData.lastTailCommand = null);
 	}
 
-	private static void InjectCommandInBetween(RenderTreeManager renderTreeManager, RenderChainCommand cmd, RenderChainCommand prev, RenderChainCommand next)
+	private static void InjectCommandInBetween(RenderChainCommand cmd, bool isHeadCommand, RenderChainCommand prev, RenderChainCommand next)
 	{
 		if (prev != null)
 		{
@@ -224,7 +224,7 @@ internal static class CommandManipulator
 			next.prev = cmd;
 		}
 		RenderData owner = cmd.owner;
-		if (!cmd.isTail)
+		if (isHeadCommand)
 		{
 			if (owner.firstHeadCommand == null || owner.firstHeadCommand == next)
 			{
@@ -266,7 +266,7 @@ internal static class CommandManipulator
 				if (renderData.firstHeadCommand == null)
 				{
 					FindHeadCommandInsertionPoint(renderData, out var prev, out var next);
-					InjectCommandInBetween(renderTreeManager, renderChainCommand, prev, next);
+					InjectCommandInBetween(renderChainCommand, isHeadCommand: true, prev, next);
 				}
 				else
 				{
@@ -275,7 +275,7 @@ internal static class CommandManipulator
 					RenderChainCommand lastHeadCommand = renderData.lastHeadCommand;
 					Debug.Assert(lastHeadCommand != null);
 					renderData.firstHeadCommand = null;
-					InjectCommandInBetween(renderTreeManager, renderChainCommand, prev2, firstHeadCommand);
+					InjectCommandInBetween(renderChainCommand, isHeadCommand: true, prev2, firstHeadCommand);
 					renderData.lastHeadCommand = lastHeadCommand;
 				}
 			}
@@ -283,18 +283,17 @@ internal static class CommandManipulator
 			{
 				RenderChainCommand renderChainCommand2 = renderTreeManager.AllocCommand();
 				renderChainCommand2.type = CommandType.EndDisable;
-				renderChainCommand2.isTail = true;
 				renderChainCommand2.owner = renderData;
 				if (renderData.lastTailCommand == null)
 				{
 					FindTailCommandInsertionPoint(renderData, out var prev3, out var next2);
-					InjectCommandInBetween(renderTreeManager, renderChainCommand2, prev3, next2);
+					InjectCommandInBetween(renderChainCommand2, isHeadCommand: false, prev3, next2);
 					return;
 				}
 				RenderChainCommand lastTailCommand = renderData.lastTailCommand;
 				RenderChainCommand next3 = renderData.lastTailCommand.next;
 				Debug.Assert(renderData.firstTailCommand != null);
-				InjectCommandInBetween(renderTreeManager, renderChainCommand2, lastTailCommand, next3);
+				InjectCommandInBetween(renderChainCommand2, isHeadCommand: false, lastTailCommand, next3);
 			}
 		}
 		else

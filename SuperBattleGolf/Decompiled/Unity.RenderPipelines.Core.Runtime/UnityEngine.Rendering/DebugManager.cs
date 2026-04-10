@@ -528,7 +528,13 @@ public sealed class DebugManager
 		return -1;
 	}
 
-	public string PanelDiplayName([DisallowNull] int panelIndex)
+	[Obsolete("Method is obsolete. Use PanelDisplayName instead. #from(6000.4) (UnityUpgradable) -> PanelDisplayName", true)]
+	public string PanelDiplayName(int panelIndex)
+	{
+		return PanelDisplayName(panelIndex);
+	}
+
+	public string PanelDisplayName(int panelIndex)
 	{
 		if (panelIndex < 0 || panelIndex > m_Panels.Count - 1)
 		{
@@ -673,7 +679,7 @@ public sealed class DebugManager
 		return null;
 	}
 
-	[Obsolete("Use DebugManager.instance.displayEditorUI property instead. #from(23.1)")]
+	[Obsolete("Use DebugManager.instance.displayEditorUI property instead. #from(2023.1)")]
 	public void ToggleEditorUI(bool open)
 	{
 		editorUIState.open = open;

@@ -2,10 +2,13 @@ using System;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleTransformOrigin : IStyleValue<TransformOrigin>, IEquatable<StyleTransformOrigin>
 {
+	[SerializeField]
 	private TransformOrigin m_Value;
 
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
 	public TransformOrigin value

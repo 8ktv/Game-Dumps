@@ -91,7 +91,7 @@ internal static class XRMirrorView
 								break;
 							}
 							float3x3 float3x = math.mul(a, b);
-							Matrix4x4 value3 = new Matrix4x4(new float4(float3x.c0, 0f), new float4(float3x.c1, 0f), new float4(float3x.c2, 0f), new Vector4(0f, 0f, 0f, 0f));
+							Matrix4x4 value3 = new Matrix4x4((Vector4)new float4(float3x.c0, 0f), (Vector4)new float4(float3x.c1, 0f), (Vector4)new float4(float3x.c2, 0f), new Vector4(0f, 0f, 0f, 0f));
 							s_MirrorViewMaterialProperty.SetMatrix(k_ColorTransform, value3);
 							s_MirrorViewMaterialProperty.SetFloat(k_MaxNits, main.active ? ((float)main.maxToneMapLuminance) : 160f);
 							s_MirrorViewMaterialProperty.SetFloat(k_SourceMaxNits, blitParameter.srcHdrEncoded ? ((float)blitParameter.srcHdrMaxLuminance) : 160f);

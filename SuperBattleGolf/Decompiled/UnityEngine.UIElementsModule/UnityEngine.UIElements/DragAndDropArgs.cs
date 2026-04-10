@@ -13,4 +13,6 @@ internal struct DragAndDropArgs : IListDragAndDropArgs
 	public DragAndDropPosition dragAndDropPosition { get; set; }
 
 	public DragAndDropData dragAndDropData { get; set; }
+
+	public EventModifiers modifiers { get; internal set; }
 }

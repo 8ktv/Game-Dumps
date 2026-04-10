@@ -11,9 +11,7 @@ internal static class UIRUtility
 {
 	private static readonly ProfilerMarker k_ComputeTransformMatrixMarker = new ProfilerMarker("UIR.ComputeTransformMatrix");
 
-	public static readonly string k_DefaultShaderName = Shaders.k_Runtime;
-
-	public static readonly string k_DefaultWorldSpaceShaderName = Shaders.k_RuntimeWorld;
+	public static readonly string k_DefaultShaderName = Shaders.k_Default;
 
 	public const float k_Epsilon = 1E-30f;
 

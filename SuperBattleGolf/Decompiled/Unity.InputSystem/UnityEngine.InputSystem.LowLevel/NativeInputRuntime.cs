@@ -18,8 +18,6 @@ internal class NativeInputRuntime : IInputRuntime
 
 	private Func<InputUpdateType, bool> m_OnShouldRunUpdate;
 
-	private float m_PollingFrequency = 60f;
-
 	private bool m_DidCallOnShutdown;
 
 	private Action<bool> m_FocusChangedMethod;
@@ -170,11 +168,10 @@ internal class NativeInputRuntime : IInputRuntime
 	{
 		get
 		{
-			return m_PollingFrequency;
+			return NativeInputSystem.GetPollingFrequency();
 		}
 		set
 		{
-			m_PollingFrequency = value;
 			NativeInputSystem.SetPollingFrequency(value);
 		}
 	}

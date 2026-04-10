@@ -171,6 +171,9 @@ public class ItemSettings : ScriptableObject
 
 	[field: Header("Land mine")]
 	[field: SerializeField]
+	public Vector3 LandmineLocalCenter { get; private set; }
+
+	[field: SerializeField]
 	public Vector3 LandmineLocalCenterOfMass { get; private set; }
 
 	[field: SerializeField]
@@ -216,6 +219,9 @@ public class ItemSettings : ScriptableObject
 	public float LandmineHitArmDelay { get; private set; }
 
 	[field: SerializeField]
+	public float LandmineCollisionRange { get; private set; }
+
+	[field: SerializeField]
 	public float LandmineDetectionRange { get; private set; }
 
 	[field: SerializeField]
@@ -226,6 +232,9 @@ public class ItemSettings : ScriptableObject
 
 	[field: SerializeField]
 	public float LandmineArmedBlinkPeriod { get; private set; }
+
+	[field: SerializeField]
+	public float LandminePlantingCollisionCheckRange { get; private set; }
 
 	[field: Header("Airhorn")]
 	[field: SerializeField]
@@ -403,6 +412,131 @@ public class ItemSettings : ScriptableObject
 	[field: SerializeField]
 	public Vector3 GolfCartThrowLidLocalAngularVelocity { get; private set; }
 
+	[field: Header("Rocket driver")]
+	[field: SerializeField]
+	public float RocketDriverBaseNormalizedSwingPower { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverFullNormalizedSwingPower { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverBaseSwingMissDiveSpeed { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverFullSwingMissDiveSpeed { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverSwingMissMinUpwardsSpeed { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverSwingPostHitSpinStartFrame { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverSwingPostHitSpinEndFrame { get; private set; }
+
+	[field: SerializeField]
+	public Vector3 RocketDriverSwingPostHitSpinLocalOrigin { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverSwingPostHitSpinRadius { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverMaxLockOnDistance { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverSwingHitThrowFrame { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverSwingHitThrowSpeed { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverSwingMissThrowSpeed { get; private set; }
+
+	[field: SerializeField]
+	public Vector3 RocketDriverSwingHitThrowDirectionLocalRotationEuler { get; private set; }
+
+	[field: SerializeField]
+	public Vector3 RocketDriverSwingMissThrowDirectionLocalRotationEuler { get; private set; }
+
+	[field: SerializeField]
+	public Vector3 RocketDriverSwingHitThrowLocalAngularVelocity { get; private set; }
+
+	[field: SerializeField]
+	public Vector3 RocketDriverSwingMissThrowLocalAngularVelocity { get; private set; }
+
+	[field: Header("Freeze bomb")]
+	[field: SerializeField]
+	public float FreezeBombAimPitchOffset { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombNoOffsetAimPitch { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombFullOffsetAimPitch { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombAimMaxPitch { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombAimMinPitch { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombShotFrames { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombMaxTravelDistance { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombExplosionRange { get; private set; }
+
+	[field: SerializeField]
+	public Vector3 FreezeBombLocalBombPosition { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombShotSpeed { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombShotAngularSpeed { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombShotRotationAxisMaxRotation { get; private set; }
+
+	[field: SerializeField]
+	public FreezeBomb FreezeBombBombPrefab { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombFreezeDuration { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombThrowFrame { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombThrowSpeed { get; private set; }
+
+	[field: SerializeField]
+	public Vector3 FreezeBombThrowDirectionLocalRotationEuler { get; private set; }
+
+	[field: SerializeField]
+	public Vector3 FreezeBombThrowLocalAngularVelocity { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombPlatformShakeStartTime { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombPlatformDuration { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombPlatformMaxHeightOffset { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombMaxExplosionHeightAboveWaterToCreatePlatform { get; private set; }
+
+	[field: SerializeField]
+	public FreezeBombPlatform FreezeBombPlatformPrefab { get; private set; }
+
+	[field: SerializeField]
+	public float FreezeBombFlourishVfxStartFrame { get; private set; }
+
 	public float CoffeeDrinkEffectStartTime { get; private set; }
 
 	public float CoffeePostTotalDuration { get; private set; }
@@ -438,6 +572,8 @@ public class ItemSettings : ScriptableObject
 	public float RocketLauncherThrowTime { get; private set; }
 
 	public Quaternion RocketLauncherThrowDirectionLocalRotation { get; private set; }
+
+	public float LandmineCollisionRangeSquared { get; private set; }
 
 	public float LandminePlantingStickIntoGroundTime { get; private set; }
 
@@ -499,6 +635,26 @@ public class ItemSettings : ScriptableObject
 
 	public Quaternion GolfCartThrowLidDirectionLocalRotation { get; private set; }
 
+	public float RocketDriverSwingPostHitSpinStartTime { get; private set; }
+
+	public float RocketDriverSwingPostHitSpinEndTime { get; private set; }
+
+	public float RocketDriverMaxLockOnDistanceSquared { get; private set; }
+
+	public float RocketDriverSwingHitThrowTime { get; private set; }
+
+	public Quaternion RocketDriverSwingHitThrowDirectionLocalRotation { get; private set; }
+
+	public Quaternion RocketDriverSwingMissThrowDirectionLocalRotation { get; private set; }
+
+	public float FreezeBombShotDuration { get; private set; }
+
+	public float FreezeBombThrowTime { get; private set; }
+
+	public Quaternion FreezeBombThrowDirectionLocalRotation { get; private set; }
+
+	public float FreezeBombFlourishVfxStartTime { get; private set; }
+
 	private void OnValidate()
 	{
 		Initialize();
@@ -531,6 +687,7 @@ public class ItemSettings : ScriptableObject
 		RocketLauncherBackBlastSize = new Vector3(RocketLauncherBackBlastWidth, RocketLauncherBackBlastWidth, RocketLauncherBackBlastDistance);
 		RocketLauncherThrowTime = RocketLauncherThrowFrame * num2;
 		RocketLauncherThrowDirectionLocalRotation = Quaternion.Euler(RocketLauncherThrowDirectionLocalRotationEuler);
+		LandmineCollisionRangeSquared = LandmineCollisionRange * LandmineCollisionRange;
 		LandminePlantingStickIntoGroundTime = LandminePlantingStickIntoGroundFrames * num2;
 		LandminePlantingTime = LandminePlantingFrames * num2;
 		LandminePostPlantingTime = LandminePlantingTotalFrames * num2 - LandminePlantingTime;
@@ -561,5 +718,15 @@ public class ItemSettings : ScriptableObject
 		GolfCartPlacementTotalDuration = GolfCartPlacementTotalFrames * num2;
 		GolfCartThrowBaseDirectionLocalRotation = Quaternion.Euler(GolfCartThrowBaseDirectionLocalRotationEuler);
 		GolfCartThrowLidDirectionLocalRotation = Quaternion.Euler(GolfCartThrowLidDirectionLocalRotationEuler);
+		RocketDriverSwingPostHitSpinStartTime = RocketDriverSwingPostHitSpinStartFrame * num2;
+		RocketDriverSwingPostHitSpinEndTime = RocketDriverSwingPostHitSpinEndFrame * num2;
+		RocketDriverMaxLockOnDistanceSquared = RocketDriverMaxLockOnDistance * RocketDriverMaxLockOnDistance;
+		RocketDriverSwingHitThrowTime = RocketDriverSwingHitThrowFrame * num2;
+		RocketDriverSwingMissThrowDirectionLocalRotation = Quaternion.Euler(RocketDriverSwingMissThrowDirectionLocalRotationEuler);
+		RocketDriverSwingHitThrowDirectionLocalRotation = Quaternion.Euler(RocketDriverSwingHitThrowDirectionLocalRotationEuler);
+		FreezeBombShotDuration = FreezeBombShotFrames * num2;
+		FreezeBombThrowTime = FreezeBombThrowFrame * num2;
+		FreezeBombThrowDirectionLocalRotation = Quaternion.Euler(FreezeBombThrowDirectionLocalRotationEuler);
+		FreezeBombFlourishVfxStartTime = FreezeBombFlourishVfxStartFrame * num2;
 	}
 }

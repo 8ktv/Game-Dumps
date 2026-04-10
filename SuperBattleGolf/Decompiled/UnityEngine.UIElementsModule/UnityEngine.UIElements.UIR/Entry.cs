@@ -23,6 +23,8 @@ internal class Entry
 
 	public Material material;
 
+	public MaterialPropertyBlock userProps;
+
 	public Action immediateCallback;
 
 	public TextureId textureId;
@@ -40,6 +42,7 @@ internal class Entry
 		lastChild = null;
 		texture = null;
 		material = null;
+		userProps = null;
 		gradientsOwner = null;
 		flags = (EntryFlags)0;
 		immediateCallback = null;

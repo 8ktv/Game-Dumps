@@ -3,8 +3,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[RequiredByNativeCode]
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+[RequiredByNativeCode]
 public sealed class RequireComponent : Attribute
 {
 	public Type m_Type0;

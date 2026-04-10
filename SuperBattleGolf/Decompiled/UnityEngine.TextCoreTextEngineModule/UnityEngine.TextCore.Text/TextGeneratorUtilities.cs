@@ -841,41 +841,44 @@ internal static class TextGeneratorUtilities
 		{
 			textInfo.meshInfo[materialReferenceIndex].ResizeMeshInfo(Mathf.NextPowerOfTwo((vertexCount + 4) / 4), generationSettings.isIMGUI);
 		}
-		TextElementInfo[] textElementInfo = textInfo.textElementInfo;
-		textInfo.textElementInfo[i].vertexIndex = vertexCount;
-		Vector3 vector = default(Vector3);
-		vector.x = 0f;
-		vector.y = generationSettings.screenRect.height;
-		if (needToRound)
+		if (textInfo.meshInfo[materialReferenceIndex].vertexData.Length >= vertexCount + 4)
 		{
-			vector.y = Mathf.Round(vector.y);
+			TextElementInfo[] textElementInfo = textInfo.textElementInfo;
+			textInfo.textElementInfo[i].vertexIndex = vertexCount;
+			Vector3 vector = default(Vector3);
+			vector.x = 0f;
+			vector.y = generationSettings.screenRect.height;
+			if (needToRound)
+			{
+				vector.y = Mathf.Round(vector.y);
+			}
+			vector.z = 0f;
+			Vector3 position = textElementInfo[i].vertexBottomLeft.position;
+			position.y *= -1f;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[vertexCount].position = position + vector;
+			position = textElementInfo[i].vertexTopLeft.position;
+			position.y *= -1f;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[1 + vertexCount].position = position + vector;
+			position = textElementInfo[i].vertexTopRight.position;
+			position.y *= -1f;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[2 + vertexCount].position = position + vector;
+			position = textElementInfo[i].vertexBottomRight.position;
+			position.y *= -1f;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[3 + vertexCount].position = position + vector;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[vertexCount].uv0 = textElementInfo[i].vertexBottomLeft.uv;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[1 + vertexCount].uv0 = textElementInfo[i].vertexTopLeft.uv;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[2 + vertexCount].uv0 = textElementInfo[i].vertexTopRight.uv;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[3 + vertexCount].uv0 = textElementInfo[i].vertexBottomRight.uv;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[vertexCount].uv2 = textElementInfo[i].vertexBottomLeft.uv2;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[1 + vertexCount].uv2 = textElementInfo[i].vertexTopLeft.uv2;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[2 + vertexCount].uv2 = textElementInfo[i].vertexTopRight.uv2;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[3 + vertexCount].uv2 = textElementInfo[i].vertexBottomRight.uv2;
+			textInfo.meshInfo[materialReferenceIndex].vertexData[vertexCount].color = (convertToLinearSpace ? GammaToLinear(textElementInfo[i].vertexBottomLeft.color) : textElementInfo[i].vertexBottomLeft.color);
+			textInfo.meshInfo[materialReferenceIndex].vertexData[1 + vertexCount].color = (convertToLinearSpace ? GammaToLinear(textElementInfo[i].vertexTopLeft.color) : textElementInfo[i].vertexTopLeft.color);
+			textInfo.meshInfo[materialReferenceIndex].vertexData[2 + vertexCount].color = (convertToLinearSpace ? GammaToLinear(textElementInfo[i].vertexTopRight.color) : textElementInfo[i].vertexTopRight.color);
+			textInfo.meshInfo[materialReferenceIndex].vertexData[3 + vertexCount].color = (convertToLinearSpace ? GammaToLinear(textElementInfo[i].vertexBottomRight.color) : textElementInfo[i].vertexBottomRight.color);
+			textInfo.meshInfo[materialReferenceIndex].vertexCount = vertexCount + 4;
 		}
-		vector.z = 0f;
-		Vector3 position = textElementInfo[i].vertexBottomLeft.position;
-		position.y *= -1f;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[vertexCount].position = position + vector;
-		position = textElementInfo[i].vertexTopLeft.position;
-		position.y *= -1f;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[1 + vertexCount].position = position + vector;
-		position = textElementInfo[i].vertexTopRight.position;
-		position.y *= -1f;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[2 + vertexCount].position = position + vector;
-		position = textElementInfo[i].vertexBottomRight.position;
-		position.y *= -1f;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[3 + vertexCount].position = position + vector;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[vertexCount].uv0 = textElementInfo[i].vertexBottomLeft.uv;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[1 + vertexCount].uv0 = textElementInfo[i].vertexTopLeft.uv;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[2 + vertexCount].uv0 = textElementInfo[i].vertexTopRight.uv;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[3 + vertexCount].uv0 = textElementInfo[i].vertexBottomRight.uv;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[vertexCount].uv2 = textElementInfo[i].vertexBottomLeft.uv2;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[1 + vertexCount].uv2 = textElementInfo[i].vertexTopLeft.uv2;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[2 + vertexCount].uv2 = textElementInfo[i].vertexTopRight.uv2;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[3 + vertexCount].uv2 = textElementInfo[i].vertexBottomRight.uv2;
-		textInfo.meshInfo[materialReferenceIndex].vertexData[vertexCount].color = (convertToLinearSpace ? GammaToLinear(textElementInfo[i].vertexBottomLeft.color) : textElementInfo[i].vertexBottomLeft.color);
-		textInfo.meshInfo[materialReferenceIndex].vertexData[1 + vertexCount].color = (convertToLinearSpace ? GammaToLinear(textElementInfo[i].vertexTopLeft.color) : textElementInfo[i].vertexTopLeft.color);
-		textInfo.meshInfo[materialReferenceIndex].vertexData[2 + vertexCount].color = (convertToLinearSpace ? GammaToLinear(textElementInfo[i].vertexTopRight.color) : textElementInfo[i].vertexTopRight.color);
-		textInfo.meshInfo[materialReferenceIndex].vertexData[3 + vertexCount].color = (convertToLinearSpace ? GammaToLinear(textElementInfo[i].vertexBottomRight.color) : textElementInfo[i].vertexBottomRight.color);
-		textInfo.meshInfo[materialReferenceIndex].vertexCount = vertexCount + 4;
 	}
 
 	public static void FillSpriteVertexBuffers(int i, bool convertToLinearSpace, TextGenerationSettings generationSettings, TextInfo textInfo)

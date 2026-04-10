@@ -27,6 +27,7 @@ public struct ProcessDistanceEstimationsJob : IJob
 		PlayerGolfer.TerrainLayerNormalizedSwingPower terrainLayerNormalizedSwingPower = new PlayerGolfer.TerrainLayerNormalizedSwingPower
 		{
 			layer = estimatedDistances[0].layer,
+			levelHazard = estimatedDistances[0].levelHazard,
 			outOfBoundsHazard = estimatedDistances[0].outOfBoundsHazard,
 			startNormalizedPower = normalizedInitialSpeeds[0]
 		};
@@ -34,13 +35,14 @@ public struct ProcessDistanceEstimationsJob : IJob
 		{
 			PlayerGolfer.SwingDistanceEstimation swingDistanceEstimation = estimatedDistances[i];
 			float distance = swingDistanceEstimation.distance;
-			if (swingDistanceEstimation.layer != terrainLayerNormalizedSwingPower.layer || swingDistanceEstimation.outOfBoundsHazard != terrainLayerNormalizedSwingPower.outOfBoundsHazard)
+			if (swingDistanceEstimation.layer != terrainLayerNormalizedSwingPower.layer || swingDistanceEstimation.outOfBoundsHazard != terrainLayerNormalizedSwingPower.outOfBoundsHazard || swingDistanceEstimation.levelHazard != terrainLayerNormalizedSwingPower.levelHazard)
 			{
 				float startNormalizedPower = (terrainLayerNormalizedSwingPower.endNormalizedPower = (normalizedInitialSpeeds[i - 1] + normalizedInitialSpeeds[i]) / 2f);
 				AddOrSetTerrainLayerNormalizedSwingPower(index++, terrainLayerNormalizedSwingPower);
 				terrainLayerNormalizedSwingPower = new PlayerGolfer.TerrainLayerNormalizedSwingPower
 				{
 					layer = swingDistanceEstimation.layer,
+					levelHazard = swingDistanceEstimation.levelHazard,
 					outOfBoundsHazard = swingDistanceEstimation.outOfBoundsHazard,
 					startNormalizedPower = startNormalizedPower
 				};

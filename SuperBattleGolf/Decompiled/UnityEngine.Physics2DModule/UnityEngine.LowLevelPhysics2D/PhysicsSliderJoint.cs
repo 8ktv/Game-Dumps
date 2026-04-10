@@ -1,0 +1,361 @@
+using System;
+using System.Runtime.CompilerServices;
+
+namespace UnityEngine.LowLevelPhysics2D;
+
+public readonly struct PhysicsSliderJoint : IPhysicsJoint, IEquatable<PhysicsSliderJoint>
+{
+	private readonly PhysicsJoint m_Id;
+
+	public bool isValid => m_Id.isValid;
+
+	public PhysicsWorld world => m_Id.world;
+
+	public PhysicsJoint.JointType jointType => m_Id.jointType;
+
+	public PhysicsBody bodyA => m_Id.bodyA;
+
+	public PhysicsBody bodyB => m_Id.bodyB;
+
+	public PhysicsTransform localAnchorA
+	{
+		get
+		{
+			return m_Id.localAnchorA;
+		}
+		set
+		{
+			m_Id.localAnchorA = value;
+		}
+	}
+
+	public PhysicsTransform localAnchorB
+	{
+		get
+		{
+			return m_Id.localAnchorB;
+		}
+		set
+		{
+			m_Id.localAnchorB = value;
+		}
+	}
+
+	public float forceThreshold
+	{
+		get
+		{
+			return m_Id.forceThreshold;
+		}
+		set
+		{
+			m_Id.forceThreshold = value;
+		}
+	}
+
+	public float torqueThreshold
+	{
+		get
+		{
+			return m_Id.torqueThreshold;
+		}
+		set
+		{
+			m_Id.torqueThreshold = value;
+		}
+	}
+
+	public bool collideConnected
+	{
+		get
+		{
+			return m_Id.collideConnected;
+		}
+		set
+		{
+			m_Id.collideConnected = value;
+		}
+	}
+
+	public float tuningFrequency
+	{
+		get
+		{
+			return m_Id.tuningFrequency;
+		}
+		set
+		{
+			m_Id.tuningFrequency = value;
+		}
+	}
+
+	public float tuningDamping
+	{
+		get
+		{
+			return m_Id.tuningDamping;
+		}
+		set
+		{
+			m_Id.tuningDamping = value;
+		}
+	}
+
+	public float drawScale
+	{
+		get
+		{
+			return m_Id.drawScale;
+		}
+		set
+		{
+			m_Id.drawScale = value;
+		}
+	}
+
+	public Vector2 currentConstraintForce => m_Id.currentConstraintForce;
+
+	public float currentConstraintTorque => m_Id.currentConstraintTorque;
+
+	public float currentLinearSeparationError => m_Id.currentLinearSeparationError;
+
+	public float currentAngularSeparationError => m_Id.currentAngularSeparationError;
+
+	public bool isOwned => m_Id.isOwned;
+
+	public object callbackTarget
+	{
+		get
+		{
+			return m_Id.callbackTarget;
+		}
+		set
+		{
+			m_Id.callbackTarget = value;
+		}
+	}
+
+	public PhysicsUserData userData
+	{
+		get
+		{
+			return m_Id.userData;
+		}
+		set
+		{
+			m_Id.userData = value;
+		}
+	}
+
+	public bool enableSpring
+	{
+		get
+		{
+			return PhysicsLowLevelScripting2D.SliderJoint_GetEnableSpring(this);
+		}
+		set
+		{
+			PhysicsLowLevelScripting2D.SliderJoint_SetEnableSpring(this, value);
+		}
+	}
+
+	public float springFrequency
+	{
+		get
+		{
+			return PhysicsLowLevelScripting2D.SliderJoint_GetSpringFrequency(this);
+		}
+		set
+		{
+			PhysicsLowLevelScripting2D.SliderJoint_SetSpringFrequency(this, value);
+		}
+	}
+
+	public float springDamping
+	{
+		get
+		{
+			return PhysicsLowLevelScripting2D.SliderJoint_GetSpringDamping(this);
+		}
+		set
+		{
+			PhysicsLowLevelScripting2D.SliderJoint_SetSpringDamping(this, value);
+		}
+	}
+
+	public float springTargetTranslation
+	{
+		get
+		{
+			return PhysicsLowLevelScripting2D.SliderJoint_GetSpringTargetTranslation(this);
+		}
+		set
+		{
+			PhysicsLowLevelScripting2D.SliderJoint_SetSpringTargetTranslation(this, value);
+		}
+	}
+
+	public bool enableMotor
+	{
+		get
+		{
+			return PhysicsLowLevelScripting2D.SliderJoint_GetEnableMotor(this);
+		}
+		set
+		{
+			PhysicsLowLevelScripting2D.SliderJoint_SetEnableMotor(this, value);
+		}
+	}
+
+	public float motorSpeed
+	{
+		get
+		{
+			return PhysicsLowLevelScripting2D.SliderJoint_GetMotorSpeed(this);
+		}
+		set
+		{
+			PhysicsLowLevelScripting2D.SliderJoint_SetMotorSpeed(this, value);
+		}
+	}
+
+	public float maxMotorForce
+	{
+		get
+		{
+			return PhysicsLowLevelScripting2D.SliderJoint_GetMaxMotorForce(this);
+		}
+		set
+		{
+			PhysicsLowLevelScripting2D.SliderJoint_SetMaxMotorForce(this, value);
+		}
+	}
+
+	public float currentMotorForce => PhysicsLowLevelScripting2D.SliderJoint_GetCurrentMotorForce(this);
+
+	public bool enableLimit
+	{
+		get
+		{
+			return PhysicsLowLevelScripting2D.SliderJoint_GetEnableLimit(this);
+		}
+		set
+		{
+			PhysicsLowLevelScripting2D.SliderJoint_SetEnableLimit(this, value);
+		}
+	}
+
+	public float lowerTranslationLimit
+	{
+		get
+		{
+			return PhysicsLowLevelScripting2D.SliderJoint_GetLowerTranslationLimit(this);
+		}
+		set
+		{
+			PhysicsLowLevelScripting2D.SliderJoint_SetLowerTranslationLimit(this, value);
+		}
+	}
+
+	public float upperTranslationLimit
+	{
+		get
+		{
+			return PhysicsLowLevelScripting2D.SliderJoint_GetUpperTranslationLimit(this);
+		}
+		set
+		{
+			PhysicsLowLevelScripting2D.SliderJoint_SetUpperTranslationLimit(this, value);
+		}
+	}
+
+	public float currentTranslation => PhysicsLowLevelScripting2D.SliderJoint_GetCurrentTranslation(this);
+
+	public float currentSpeed => PhysicsLowLevelScripting2D.SliderJoint_GetCurrentSpeed(this);
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static implicit operator PhysicsJoint(PhysicsSliderJoint joint)
+	{
+		return joint.m_Id;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static implicit operator PhysicsSliderJoint(PhysicsJoint joint)
+	{
+		return new PhysicsSliderJoint(joint);
+	}
+
+	public PhysicsSliderJoint(PhysicsJoint physicsJoint)
+	{
+		if (physicsJoint.jointType != PhysicsJoint.JointType.SliderJoint)
+		{
+			throw new InvalidCastException(string.Format("The joint must be of type {0} but is of type {1}.", "SliderJoint", physicsJoint.jointType));
+		}
+		m_Id = physicsJoint;
+	}
+
+	public override string ToString()
+	{
+		return m_Id.ToString();
+	}
+
+	public override bool Equals(object obj)
+	{
+		return m_Id.Equals(obj);
+	}
+
+	public bool Equals(PhysicsSliderJoint other)
+	{
+		return m_Id.Equals(other);
+	}
+
+	public static bool operator ==(PhysicsSliderJoint lhs, PhysicsSliderJoint rhs)
+	{
+		return lhs.Equals(rhs);
+	}
+
+	public static bool operator !=(PhysicsSliderJoint lhs, PhysicsSliderJoint rhs)
+	{
+		return !(lhs == rhs);
+	}
+
+	public override int GetHashCode()
+	{
+		return m_Id.GetHashCode();
+	}
+
+	public bool Destroy(int ownerKey = 0)
+	{
+		return m_Id.Destroy(ownerKey);
+	}
+
+	public void WakeBodies()
+	{
+		m_Id.WakeBodies();
+	}
+
+	public int SetOwner(Object owner)
+	{
+		return m_Id.SetOwner(owner);
+	}
+
+	public Object GetOwner()
+	{
+		return m_Id.GetOwner();
+	}
+
+	public void Draw()
+	{
+		m_Id.Draw();
+	}
+
+	public static PhysicsSliderJoint Create(PhysicsWorld world, PhysicsSliderJointDefinition definition)
+	{
+		return PhysicsLowLevelScripting2D.SliderJoint_Create(world, definition);
+	}
+
+	public static void DestroyBatch(ReadOnlySpan<PhysicsJoint> joints)
+	{
+		PhysicsJoint.DestroyBatch(joints);
+	}
+}

@@ -30,6 +30,20 @@ public class ItemPool : ScriptableObject
 		UpdateTotalWeight();
 	}
 
+	public float GetSpawnChanceWeight(ItemType itemType)
+	{
+		ItemSpawnChance[] array = spawnChances;
+		for (int i = 0; i < array.Length; i++)
+		{
+			ItemSpawnChance itemSpawnChance = array[i];
+			if (itemType == itemSpawnChance.item)
+			{
+				return itemSpawnChance.spawnChanceWeight;
+			}
+		}
+		return 0f;
+	}
+
 	public void UpdateTotalWeight()
 	{
 		totalSpawnChanceWeight = 0f;
@@ -62,5 +76,18 @@ public class ItemPool : ScriptableObject
 			}
 		}
 		return spawnChances[^1].item;
+	}
+
+	public bool ContainsItemType(ItemType itemType)
+	{
+		ItemSpawnChance[] array = spawnChances;
+		for (int i = 0; i < array.Length; i++)
+		{
+			if (array[i].item == itemType)
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 }

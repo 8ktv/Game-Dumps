@@ -124,6 +124,12 @@ internal class StyleSyntaxTokenizer
 			case '>':
 				m_Tokens.Add(new StyleSyntaxToken(StyleSyntaxTokenType.GreaterThan));
 				continue;
+			case '∞':
+				m_Tokens.Add(new StyleSyntaxToken(StyleSyntaxTokenType.Number, float.PositiveInfinity));
+				continue;
+			case '/':
+				m_Tokens.Add(new StyleSyntaxToken(StyleSyntaxTokenType.String, syntax.Substring(i, 1)));
+				continue;
 			}
 			if (char.IsNumber(c))
 			{
@@ -135,19 +141,19 @@ internal class StyleSyntaxTokenizer
 					num++;
 				}
 				string s = syntax.Substring(startIndex, num);
-				int number = int.Parse(s);
-				m_Tokens.Add(new StyleSyntaxToken(StyleSyntaxTokenType.Number, number));
+				int num2 = int.Parse(s);
+				m_Tokens.Add(new StyleSyntaxToken(StyleSyntaxTokenType.Number, num2));
 			}
 			else if (char.IsLetter(c))
 			{
 				int startIndex2 = i;
-				int num2 = 1;
+				int num3 = 1;
 				while (IsNextLetterOrDash(syntax, i))
 				{
 					i++;
-					num2++;
+					num3++;
 				}
-				string text2 = syntax.Substring(startIndex2, num2);
+				string text2 = syntax.Substring(startIndex2, num3);
 				m_Tokens.Add(new StyleSyntaxToken(StyleSyntaxTokenType.String, text2));
 			}
 			else

@@ -64,6 +64,25 @@ internal class InlineStyleAccessPropertyBag : PropertyBag<InlineStyleAccess>, IN
 		}
 	}
 
+	private class AspectRatioProperty : InlineStyleRatioProperty
+	{
+		public override string Name => "aspectRatio";
+
+		public override string ussName => "aspect-ratio";
+
+		public override bool IsReadOnly => false;
+
+		public override StyleRatio GetValue(ref InlineStyleAccess container)
+		{
+			return ((IStyle)container).aspectRatio;
+		}
+
+		public override void SetValue(ref InlineStyleAccess container, StyleRatio value)
+		{
+			((IStyle)container).aspectRatio = value;
+		}
+	}
+
 	private class BackgroundColorProperty : InlineStyleColorProperty
 	{
 		public override string Name => "backgroundColor";
@@ -479,6 +498,25 @@ internal class InlineStyleAccessPropertyBag : PropertyBag<InlineStyleAccess>, IN
 		public override void SetValue(ref InlineStyleAccess container, StyleEnum<DisplayStyle> value)
 		{
 			((IStyle)container).display = value;
+		}
+	}
+
+	private class FilterProperty : InlineStyleListProperty<FilterFunction>
+	{
+		public override string Name => "filter";
+
+		public override string ussName => "filter";
+
+		public override bool IsReadOnly => false;
+
+		public override StyleList<FilterFunction> GetValue(ref InlineStyleAccess container)
+		{
+			return ((IStyle)container).filter;
+		}
+
+		public override void SetValue(ref InlineStyleAccess container, StyleList<FilterFunction> value)
+		{
+			((IStyle)container).filter = value;
 		}
 	}
 
@@ -1280,6 +1318,25 @@ internal class InlineStyleAccessPropertyBag : PropertyBag<InlineStyleAccess>, IN
 		}
 	}
 
+	private class UnityMaterialProperty : InlineStyleMaterialDefinitionProperty
+	{
+		public override string Name => "unityMaterial";
+
+		public override string ussName => "-unity-material";
+
+		public override bool IsReadOnly => false;
+
+		public override StyleMaterialDefinition GetValue(ref InlineStyleAccess container)
+		{
+			return ((IStyle)container).unityMaterial;
+		}
+
+		public override void SetValue(ref InlineStyleAccess container, StyleMaterialDefinition value)
+		{
+			((IStyle)container).unityMaterial = value;
+		}
+	}
+
 	private class UnityOverflowClipBoxProperty : InlineStyleEnumProperty<OverflowClipBox>
 	{
 		public override string Name => "unityOverflowClipBox";
@@ -1672,6 +1729,21 @@ internal class InlineStyleAccessPropertyBag : PropertyBag<InlineStyleAccess>, IN
 		}
 	}
 
+	private abstract class InlineStyleRatioProperty : InlineStyleProperty<StyleRatio, Ratio>
+	{
+		protected InlineStyleRatioProperty()
+		{
+			ConverterGroups.RegisterGlobal(delegate(ref float v)
+			{
+				return new StyleRatio(v);
+			});
+			ConverterGroups.RegisterGlobal((TypeConverter<StyleRatio, float>)delegate(ref StyleRatio sv)
+			{
+				return sv.value;
+			});
+		}
+	}
+
 	private abstract class InlineStyleBackgroundProperty : InlineStyleProperty<StyleBackground, Background>
 	{
 		protected InlineStyleBackgroundProperty()
@@ -1687,6 +1759,10 @@ internal class InlineStyleAccessPropertyBag : PropertyBag<InlineStyleAccess>, IN
 			ConverterGroups.RegisterGlobal(delegate(ref VectorImage v)
 			{
 				return new StyleBackground(v);
+			});
+			ConverterGroups.RegisterGlobal(delegate(ref RenderTexture v)
+			{
+				return new StyleBackground(Background.FromRenderTexture(v));
 			});
 			ConverterGroups.RegisterGlobal(delegate(ref StyleBackground sv)
 			{
@@ -1820,17 +1896,33 @@ internal class InlineStyleAccessPropertyBag : PropertyBag<InlineStyleAccess>, IN
 	{
 	}
 
+	private abstract class InlineStyleMaterialDefinitionProperty : InlineStyleProperty<StyleMaterialDefinition, MaterialDefinition>
+	{
+		protected InlineStyleMaterialDefinitionProperty()
+		{
+			ConverterGroups.RegisterGlobal(delegate(ref MaterialDefinition v)
+			{
+				return new StyleMaterialDefinition(v);
+			});
+			ConverterGroups.RegisterGlobal(delegate(ref StyleMaterialDefinition sv)
+			{
+				return sv.value;
+			});
+		}
+	}
+
 	private readonly List<IProperty<InlineStyleAccess>> m_PropertiesList;
 
 	private readonly Dictionary<string, IProperty<InlineStyleAccess>> m_PropertiesHash;
 
 	public InlineStyleAccessPropertyBag()
 	{
-		m_PropertiesList = new List<IProperty<InlineStyleAccess>>(85);
-		m_PropertiesHash = new Dictionary<string, IProperty<InlineStyleAccess>>(255);
+		m_PropertiesList = new List<IProperty<InlineStyleAccess>>(88);
+		m_PropertiesHash = new Dictionary<string, IProperty<InlineStyleAccess>>(264);
 		AddProperty(new AlignContentProperty());
 		AddProperty(new AlignItemsProperty());
 		AddProperty(new AlignSelfProperty());
+		AddProperty(new AspectRatioProperty());
 		AddProperty(new BackgroundColorProperty());
 		AddProperty(new BackgroundImageProperty());
 		AddProperty(new BackgroundPositionXProperty());
@@ -1853,6 +1945,7 @@ internal class InlineStyleAccessPropertyBag : PropertyBag<InlineStyleAccess>, IN
 		AddProperty(new ColorProperty());
 		AddProperty(new CursorProperty());
 		AddProperty(new DisplayProperty());
+		AddProperty(new FilterProperty());
 		AddProperty(new FlexBasisProperty());
 		AddProperty(new FlexDirectionProperty());
 		AddProperty(new FlexGrowProperty());
@@ -1895,6 +1988,7 @@ internal class InlineStyleAccessPropertyBag : PropertyBag<InlineStyleAccess>, IN
 		AddProperty(new UnityFontProperty());
 		AddProperty(new UnityFontDefinitionProperty());
 		AddProperty(new UnityFontStyleAndWeightProperty());
+		AddProperty(new UnityMaterialProperty());
 		AddProperty(new UnityOverflowClipBoxProperty());
 		AddProperty(new UnityParagraphSpacingProperty());
 		AddProperty(new UnitySliceBottomProperty());

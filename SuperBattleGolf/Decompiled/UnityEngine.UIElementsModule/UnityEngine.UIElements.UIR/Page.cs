@@ -9,6 +9,10 @@ internal class Page : IDisposable
 {
 	public class DataSet<T> : IDisposable where T : struct
 	{
+		private static readonly MemoryLabel s_CpuMemoryLabel = new MemoryLabel("UIElements", "Renderer.RendererCpuData");
+
+		private static readonly MemoryLabel s_RangesMemoryLabel = new MemoryLabel("UIElements", "Renderer.GfxUpdateBufferRange");
+
 		public Utility.GPUBuffer<T> gpuData;
 
 		public NativeArray<T> cpuData;
@@ -36,12 +40,12 @@ internal class Page : IDisposable
 		public DataSet(Utility.GPUBufferType bufferType, uint totalCount, uint maxQueuedFrameCount, uint updateRangePoolSize)
 		{
 			gpuData = new Utility.GPUBuffer<T>((int)totalCount, bufferType);
-			cpuData = new NativeArray<T>((int)totalCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+			cpuData = new NativeArray<T>((int)totalCount, s_CpuMemoryLabel, NativeArrayOptions.UninitializedMemory);
 			allocator = new GPUBufferAllocator(totalCount);
 			m_ElemStride = (uint)gpuData.ElementStride;
 			m_UpdateRangePoolSize = updateRangePoolSize;
 			uint length = m_UpdateRangePoolSize * maxQueuedFrameCount;
-			updateRanges = new NativeArray<GfxUpdateBufferRange>((int)length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+			updateRanges = new NativeArray<GfxUpdateBufferRange>((int)length, s_RangesMemoryLabel, NativeArrayOptions.UninitializedMemory);
 			m_UpdateRangeMin = uint.MaxValue;
 			m_UpdateRangeMax = 0u;
 			m_UpdateRangesEnqueued = 0u;

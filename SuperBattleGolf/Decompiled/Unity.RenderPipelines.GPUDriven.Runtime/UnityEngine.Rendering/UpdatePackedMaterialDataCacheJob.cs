@@ -8,20 +8,20 @@ namespace UnityEngine.Rendering;
 internal struct UpdatePackedMaterialDataCacheJob : IJob
 {
 	[ReadOnly]
-	public NativeArray<int>.ReadOnly materialIDs;
+	public NativeArray<EntityId>.ReadOnly materialIDs;
 
 	[ReadOnly]
 	public NativeArray<GPUDrivenPackedMaterialData>.ReadOnly packedMaterialDatas;
 
-	public NativeParallelHashMap<int, GPUDrivenPackedMaterialData> packedMaterialHash;
+	public NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData> packedMaterialHash;
 
 	private void ProcessMaterial(int i)
 	{
-		int num = materialIDs[i];
+		EntityId entityId = materialIDs[i];
 		GPUDrivenPackedMaterialData value = packedMaterialDatas[i];
-		if (num != 0)
+		if (!(entityId == 0))
 		{
-			packedMaterialHash[num] = value;
+			packedMaterialHash[entityId] = value;
 		}
 	}
 

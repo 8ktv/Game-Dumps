@@ -24,8 +24,6 @@ internal struct RareData : IStyleDataGroup<RareData>, IEquatable<RareData>
 
 	public SliceType unitySliceType;
 
-	public TextAutoSize unityTextAutoSize;
-
 	public TextOverflowPosition unityTextOverflowPosition;
 
 	public RareData Copy()
@@ -40,7 +38,7 @@ internal struct RareData : IStyleDataGroup<RareData>, IEquatable<RareData>
 
 	public static bool operator ==(RareData lhs, RareData rhs)
 	{
-		return lhs.cursor == rhs.cursor && lhs.textOverflow == rhs.textOverflow && lhs.unityBackgroundImageTintColor == rhs.unityBackgroundImageTintColor && lhs.unityOverflowClipBox == rhs.unityOverflowClipBox && lhs.unitySliceBottom == rhs.unitySliceBottom && lhs.unitySliceLeft == rhs.unitySliceLeft && lhs.unitySliceRight == rhs.unitySliceRight && lhs.unitySliceScale == rhs.unitySliceScale && lhs.unitySliceTop == rhs.unitySliceTop && lhs.unitySliceType == rhs.unitySliceType && lhs.unityTextAutoSize == rhs.unityTextAutoSize && lhs.unityTextOverflowPosition == rhs.unityTextOverflowPosition;
+		return lhs.cursor == rhs.cursor && lhs.textOverflow == rhs.textOverflow && lhs.unityBackgroundImageTintColor == rhs.unityBackgroundImageTintColor && lhs.unityOverflowClipBox == rhs.unityOverflowClipBox && lhs.unitySliceBottom == rhs.unitySliceBottom && lhs.unitySliceLeft == rhs.unitySliceLeft && lhs.unitySliceRight == rhs.unitySliceRight && lhs.unitySliceScale == rhs.unitySliceScale && lhs.unitySliceTop == rhs.unitySliceTop && lhs.unitySliceType == rhs.unitySliceType && lhs.unityTextOverflowPosition == rhs.unityTextOverflowPosition;
 	}
 
 	public static bool operator !=(RareData lhs, RareData rhs)
@@ -74,7 +72,6 @@ internal struct RareData : IStyleDataGroup<RareData>, IEquatable<RareData>
 		hashCode = (hashCode * 397) ^ unitySliceScale.GetHashCode();
 		hashCode = (hashCode * 397) ^ unitySliceTop;
 		hashCode = (hashCode * 397) ^ (int)unitySliceType;
-		hashCode = (hashCode * 397) ^ unityTextAutoSize.GetHashCode();
 		return (hashCode * 397) ^ (int)unityTextOverflowPosition;
 	}
 }

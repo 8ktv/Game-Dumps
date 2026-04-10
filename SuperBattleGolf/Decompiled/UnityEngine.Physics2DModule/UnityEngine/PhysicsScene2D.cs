@@ -217,16 +217,16 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return RaycastList_Internal(this, origin, direction, distance, contactFilter, results);
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("Raycast_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private static RaycastHit2D Raycast_Internal(PhysicsScene2D physicsScene, Vector2 origin, Vector2 direction, float distance, ContactFilter2D contactFilter)
 	{
 		Raycast_Internal_Injected(ref physicsScene, ref origin, ref direction, distance, ref contactFilter, out var ret);
 		return ret;
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("RaycastArray_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private unsafe static int RaycastArray_Internal(PhysicsScene2D physicsScene, Vector2 origin, Vector2 direction, float distance, ContactFilter2D contactFilter, [NotNull] RaycastHit2D[] results)
 	{
 		if (results == null)
@@ -383,16 +383,16 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return BoxCastList_Internal(this, origin, size, angle, direction, distance, contactFilter, results);
 	}
 
-	[NativeMethod("BoxCast_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
+	[NativeMethod("BoxCast_Binding")]
 	private static RaycastHit2D BoxCast_Internal(PhysicsScene2D physicsScene, Vector2 origin, Vector2 size, float angle, Vector2 direction, float distance, ContactFilter2D contactFilter)
 	{
 		BoxCast_Internal_Injected(ref physicsScene, ref origin, ref size, angle, ref direction, distance, ref contactFilter, out var ret);
 		return ret;
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("BoxCastArray_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private unsafe static int BoxCastArray_Internal(PhysicsScene2D physicsScene, Vector2 origin, Vector2 size, float angle, Vector2 direction, float distance, ContactFilter2D contactFilter, [NotNull] RaycastHit2D[] results)
 	{
 		if (results == null)
@@ -466,16 +466,16 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return CapsuleCastList_Internal(this, origin, size, capsuleDirection, angle, direction, distance, contactFilter, results);
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("CapsuleCast_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private static RaycastHit2D CapsuleCast_Internal(PhysicsScene2D physicsScene, Vector2 origin, Vector2 size, CapsuleDirection2D capsuleDirection, float angle, Vector2 direction, float distance, ContactFilter2D contactFilter)
 	{
 		CapsuleCast_Internal_Injected(ref physicsScene, ref origin, ref size, capsuleDirection, angle, ref direction, distance, ref contactFilter, out var ret);
 		return ret;
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("CapsuleCastArray_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private unsafe static int CapsuleCastArray_Internal(PhysicsScene2D physicsScene, Vector2 origin, Vector2 size, CapsuleDirection2D capsuleDirection, float angle, Vector2 direction, float distance, ContactFilter2D contactFilter, [NotNull] RaycastHit2D[] results)
 	{
 		if (results == null)
@@ -492,8 +492,8 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return result;
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("CapsuleCastList_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private unsafe static int CapsuleCastList_Internal(PhysicsScene2D physicsScene, Vector2 origin, Vector2 size, CapsuleDirection2D capsuleDirection, float angle, Vector2 direction, float distance, ContactFilter2D contactFilter, [NotNull] List<RaycastHit2D> results)
 	{
 		if (results == null)
@@ -537,16 +537,16 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return GetRayIntersectionList_Internal(this, ray.origin, ray.direction, distance, layerMask, results);
 	}
 
-	[NativeMethod("GetRayIntersection_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
+	[NativeMethod("GetRayIntersection_Binding")]
 	private static RaycastHit2D GetRayIntersection_Internal(PhysicsScene2D physicsScene, Vector3 origin, Vector3 direction, float distance, int layerMask)
 	{
 		GetRayIntersection_Internal_Injected(ref physicsScene, ref origin, ref direction, distance, layerMask, out var ret);
 		return ret;
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("GetRayIntersectionArray_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private unsafe static int GetRayIntersectionArray_Internal(PhysicsScene2D physicsScene, Vector3 origin, Vector3 direction, float distance, int layerMask, [NotNull] RaycastHit2D[] results)
 	{
 		if (results == null)
@@ -563,8 +563,8 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return rayIntersectionArray_Internal_Injected;
 	}
 
-	[NativeMethod("GetRayIntersectionList_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
+	[NativeMethod("GetRayIntersectionList_Binding")]
 	private unsafe static int GetRayIntersectionList_Internal(PhysicsScene2D physicsScene, Vector3 origin, Vector3 direction, float distance, int layerMask, [NotNull] List<RaycastHit2D> results)
 	{
 		if (results == null)
@@ -627,9 +627,9 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return Unmarshal.UnmarshalUnityObject<Collider2D>(OverlapPoint_Internal_Injected(ref physicsScene, ref point, ref contactFilter));
 	}
 
-	[NativeMethod("OverlapPointArray_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
-	private static int OverlapPointArray_Internal(PhysicsScene2D physicsScene, Vector2 point, ContactFilter2D contactFilter, [Unmarshalled][NotNull] Collider2D[] results)
+	[NativeMethod("OverlapPointArray_Binding")]
+	private static int OverlapPointArray_Internal(PhysicsScene2D physicsScene, Vector2 point, ContactFilter2D contactFilter, [UnityMarshalAs(NativeType.ScriptingObjectPtr)][NotNull] Collider2D[] results)
 	{
 		if (results == null)
 		{
@@ -685,7 +685,7 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("OverlapCircleArray_Binding")]
-	private static int OverlapCircleArray_Internal(PhysicsScene2D physicsScene, Vector2 point, float radius, ContactFilter2D contactFilter, [Unmarshalled][NotNull] Collider2D[] results)
+	private static int OverlapCircleArray_Internal(PhysicsScene2D physicsScene, Vector2 point, float radius, ContactFilter2D contactFilter, [UnityMarshalAs(NativeType.ScriptingObjectPtr)][NotNull] Collider2D[] results)
 	{
 		if (results == null)
 		{
@@ -732,16 +732,16 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return OverlapBoxList_Internal(this, point, size, angle, contactFilter, results);
 	}
 
-	[NativeMethod("OverlapBox_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
+	[NativeMethod("OverlapBox_Binding")]
 	private static Collider2D OverlapBox_Internal(PhysicsScene2D physicsScene, Vector2 point, Vector2 size, float angle, ContactFilter2D contactFilter)
 	{
 		return Unmarshal.UnmarshalUnityObject<Collider2D>(OverlapBox_Internal_Injected(ref physicsScene, ref point, ref size, angle, ref contactFilter));
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("OverlapBoxArray_Binding")]
-	private static int OverlapBoxArray_Internal(PhysicsScene2D physicsScene, Vector2 point, Vector2 size, float angle, ContactFilter2D contactFilter, [NotNull][Unmarshalled] Collider2D[] results)
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
+	private static int OverlapBoxArray_Internal(PhysicsScene2D physicsScene, Vector2 point, Vector2 size, float angle, ContactFilter2D contactFilter, [NotNull][UnityMarshalAs(NativeType.ScriptingObjectPtr)] Collider2D[] results)
 	{
 		if (results == null)
 		{
@@ -750,8 +750,8 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return OverlapBoxArray_Internal_Injected(ref physicsScene, ref point, ref size, angle, ref contactFilter, results);
 	}
 
-	[NativeMethod("OverlapBoxList_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
+	[NativeMethod("OverlapBoxList_Binding")]
 	private static int OverlapBoxList_Internal(PhysicsScene2D physicsScene, Vector2 point, Vector2 size, float angle, ContactFilter2D contactFilter, [NotNull] List<Collider2D> results)
 	{
 		if (results == null)
@@ -836,8 +836,8 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return OverlapCapsuleList_Internal(this, point, size, direction, angle, contactFilter, results);
 	}
 
-	[NativeMethod("OverlapCapsule_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
+	[NativeMethod("OverlapCapsule_Binding")]
 	private static Collider2D OverlapCapsule_Internal(PhysicsScene2D physicsScene, Vector2 point, Vector2 size, CapsuleDirection2D direction, float angle, ContactFilter2D contactFilter)
 	{
 		return Unmarshal.UnmarshalUnityObject<Collider2D>(OverlapCapsule_Internal_Injected(ref physicsScene, ref point, ref size, direction, angle, ref contactFilter));
@@ -845,7 +845,7 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 
 	[NativeMethod("OverlapCapsuleArray_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
-	private static int OverlapCapsuleArray_Internal(PhysicsScene2D physicsScene, Vector2 point, Vector2 size, CapsuleDirection2D direction, float angle, ContactFilter2D contactFilter, [NotNull][Unmarshalled] Collider2D[] results)
+	private static int OverlapCapsuleArray_Internal(PhysicsScene2D physicsScene, Vector2 point, Vector2 size, CapsuleDirection2D direction, float angle, ContactFilter2D contactFilter, [NotNull][UnityMarshalAs(NativeType.ScriptingObjectPtr)] Collider2D[] results)
 	{
 		if (results == null)
 		{
@@ -906,7 +906,7 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 
 	[NativeMethod("OverlapColliderFilteredArray_Binding")]
 	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
-	private static int OverlapColliderFilteredArray_Internal([NotNull] Collider2D collider, ContactFilter2D contactFilter, [NotNull][Unmarshalled] Collider2D[] results)
+	private static int OverlapColliderFilteredArray_Internal([NotNull] Collider2D collider, ContactFilter2D contactFilter, [UnityMarshalAs(NativeType.ScriptingObjectPtr)][NotNull] Collider2D[] results)
 	{
 		if ((object)collider == null)
 		{
@@ -924,8 +924,8 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return OverlapColliderFilteredArray_Internal_Injected(intPtr, ref contactFilter, results);
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("OverlapColliderList_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private static int OverlapColliderList_Internal([NotNull] Collider2D collider, [NotNull] List<Collider2D> results)
 	{
 		if ((object)collider == null)
@@ -944,8 +944,8 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return OverlapColliderList_Internal_Injected(intPtr, results);
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("OverlapColliderFilteredList_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private static int OverlapColliderFilteredList_Internal([NotNull] Collider2D collider, ContactFilter2D contactFilter, [NotNull] List<Collider2D> results)
 	{
 		if ((object)collider == null)
@@ -984,8 +984,8 @@ public struct PhysicsScene2D : IEquatable<PhysicsScene2D>
 		return OverlapColliderFromList_Internal_Injected(ref position, angle, intPtr, results);
 	}
 
-	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	[NativeMethod("OverlapColliderFromFilteredList_Binding")]
+	[StaticAccessor("PhysicsQuery2D", StaticAccessorType.DoubleColon)]
 	private static int OverlapColliderFromFilteredList_Internal(Vector2 position, float angle, [NotNull] Collider2D collider, ContactFilter2D contactFilter, [NotNull] List<Collider2D> results)
 	{
 		if ((object)collider == null)

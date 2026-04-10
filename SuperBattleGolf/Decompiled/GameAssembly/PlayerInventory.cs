@@ -59,9 +59,13 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 
 	private bool shouldSplitGolfCartBriefcase;
 
+	private ButtonPrompt dropItemPrompt;
+
 	private PoolableParticleSystem airhornVfx;
 
 	private AntiCheatRateChecker serverAddItemCheatCommandRateLimiter;
+
+	private AntiCheatPerPlayerRateChecker serverItemFlourishVfxCommandRateLimiter;
 
 	private AntiCheatRateChecker serverSpringBootsActivationCommandRateLimiter;
 
@@ -80,6 +84,8 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 	private AntiCheatPerPlayerRateChecker serverInformInterruptedPlayerWithAirhornRateLimiter;
 
 	private AntiCheatRateChecker serverInformShotRocketCommandRateLimiter;
+
+	private AntiCheatRateChecker serverInformShotFreezeBombCommandRateLimiter;
 
 	private AntiCheatRateChecker serverActivateElectromagnetCommandRateLimiter;
 
@@ -116,6 +122,8 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 	public LockOnTarget LockOnTarget { get; private set; }
 
 	public int EquippedItemIndex { get; private set; } = -1;
+
+	public bool IsEquipmentForceHidden => isEquipmentForceHidden;
 
 	public bool IsUsingItemAtAll => CurrentItemUse != ItemUseType.None;
 
@@ -183,6 +191,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 
 	public void OnWillBeDestroyed()
 	{
+		ReturnButtonPrompts();
 		SetLockOnTarget(null);
 		foreach (PlayerInfo airhornTarget in airhornTargets)
 		{
@@ -191,6 +200,14 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		if (isUpdateLoopRunning)
 		{
 			BUpdate.DeregisterCallback(this);
+		}
+		void ReturnButtonPrompts()
+		{
+			if (dropItemPrompt != null)
+			{
+				ButtonPromptManager.ReturnButtonPrompt(dropItemPrompt);
+			}
+			dropItemPrompt = null;
 		}
 	}
 
@@ -208,6 +225,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			slots.Add(InventorySlot.Empty);
 		}
 		serverAddItemCheatCommandRateLimiter = new AntiCheatRateChecker("Add item cheat", base.connectionToClient.connectionId, 0.05f, 4, 8, 1f);
+		serverItemFlourishVfxCommandRateLimiter = new AntiCheatPerPlayerRateChecker("Item flourish effects", 0.1f, 5, 10, 1f);
 		serverSpringBootsActivationCommandRateLimiter = new AntiCheatRateChecker("Spring boots activation", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
 		serverDropItemCommandRateLimiter = new AntiCheatRateChecker("Drop item", base.connectionToClient.connectionId, 0.05f, 5, 10, 1f);
 		serverRemoveItemCommandRateLimiter = new AntiCheatRateChecker("Remove item", base.connectionToClient.connectionId, 0.05f, 5, 10, 1f);
@@ -217,6 +235,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		serverThrowUsedItemCommandRateLimiter = new AntiCheatRateChecker("Throw used item", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
 		serverInformInterruptedPlayerWithAirhornRateLimiter = new AntiCheatPerPlayerRateChecker(base.name + " interrupted player with airhorn", 0.5f, 5, 10, 2f);
 		serverInformShotRocketCommandRateLimiter = new AntiCheatRateChecker("Shot rocket", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
+		serverInformShotFreezeBombCommandRateLimiter = new AntiCheatRateChecker("Shot freeze bomb", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
 		serverActivateElectromagnetCommandRateLimiter = new AntiCheatRateChecker("Activate electromagnet", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
 		serverActivatedOrbitalLaserCommandRateLimiter = new AntiCheatRateChecker("Activated orbital laser", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
 		serverDecrementItemUseCommandRateLimiter = new AntiCheatRateChecker("Decrement item use", base.connectionToClient.connectionId, 0.1f, 5, 10, 1f);
@@ -250,10 +269,15 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			Hotkeys.UpdatePlayerInventoryIcon(i);
 		}
 		UpdateEquipmentSwitchers();
+		UpdateDropItemPrompt();
+		PlayerInfo.IsInGolfCartChanged += OnLocalPlayerIsInGolfCartChanged;
 		PlayerInfo.Movement.IsVisibleChanged += OnLocalPlayerIsVisibleChanged;
 		PlayerInfo.Movement.IsKnockedOutOrRecoveringChanged += OnLocalPlayerIsKnockedOutOrRecoveringChanged;
 		PlayerInfo.Movement.IsRespawningChanged += OnLocalPlayerIsRespawningChanged;
+		PlayerInfo.AsHittable.IsFrozenChanged += OnLocalPlayerIsFrozenChanged;
 		PlayerInfo.AsGolfer.MatchResolutionChanged += OnLocalPlayerMatchResolutionChanged;
+		PlayerInfo.AsGolfer.IsChargingSwingChanged += OnLocalPlayerIsChargingSwingChanged;
+		PlayerInfo.AsGolfer.IsSwingingChanged += OnLocalPlayerIsSwingingChanged;
 		PlayerInfo.AsSpectator.IsSpectatingChanged += OnLocalPlayerIsSpectatingChanged;
 	}
 
@@ -261,10 +285,14 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 	{
 		if (!BNetworkManager.IsChangingSceneOrShuttingDown)
 		{
+			PlayerInfo.IsInGolfCartChanged -= OnLocalPlayerIsInGolfCartChanged;
 			PlayerInfo.Movement.IsVisibleChanged -= OnLocalPlayerIsVisibleChanged;
 			PlayerInfo.Movement.IsKnockedOutOrRecoveringChanged -= OnLocalPlayerIsKnockedOutOrRecoveringChanged;
 			PlayerInfo.Movement.IsRespawningChanged -= OnLocalPlayerIsRespawningChanged;
+			PlayerInfo.AsHittable.IsFrozenChanged -= OnLocalPlayerIsFrozenChanged;
 			PlayerInfo.AsGolfer.MatchResolutionChanged -= OnLocalPlayerMatchResolutionChanged;
+			PlayerInfo.AsGolfer.IsChargingSwingChanged -= OnLocalPlayerIsChargingSwingChanged;
+			PlayerInfo.AsGolfer.IsSwingingChanged -= OnLocalPlayerIsSwingingChanged;
 			PlayerInfo.AsSpectator.IsSpectatingChanged -= OnLocalPlayerIsSpectatingChanged;
 		}
 	}
@@ -367,7 +395,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			{
 				SetLockOnTarget(null);
 			}
-			else if (PlayerInfo.AsGolfer.TryGetBestLockOnTarget(GameManager.ItemSettings.RocketLauncherLockOnMaxDistanceSquared, GameManager.ItemSettings.RocketLauncherLockOnMaxYawFromCenterScreen, GameManager.ItemSettings.RocketLauncherLockOnYawWeight, out bestLockOnTarget))
+			else if (PlayerInfo.AsGolfer.TryGetBestLockOnTarget(GameManager.ItemSettings.RocketLauncherLockOnMaxDistanceSquared, GameManager.ItemSettings.RocketLauncherLockOnMaxYawFromCenterScreen, GameManager.ItemSettings.RocketLauncherLockOnYawWeight, GetEffectivelyEquippedItem() == ItemType.OrbitalLaser, out bestLockOnTarget))
 			{
 				SetLockOnTarget(bestLockOnTarget);
 			}
@@ -474,11 +502,11 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		UpdateAimingReticle();
 		UpdateIsUpdateLoopRunning();
 		PlayerInfo.Cosmetics.UpdateSpringBootsEnabled();
+		UpdateDropItemPrompt();
 		PlayerInfo.SetEquippedItemIndex(EquippedItemIndex);
-		PlayerInfo.SetEquippedItem(itemType);
 		PlayerInfo.CancelEmote(canHideEmoteMenu: false);
 		CancelItemFlourish();
-		PlayerInfo.AnimatorIo.SetEquippedItem(itemType);
+		UpdateIsEquipmentForceHidden(forceUpdate: true);
 		PlayerInfo.AsGolfer.CancelAllActions();
 		if (itemType != effectivelyEquippedItem)
 		{
@@ -566,6 +594,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		UpdateAimingReticle();
 		UpdateIsUpdateLoopRunning();
 		PlayerInfo.Cosmetics.UpdateSpringBootsEnabled();
+		UpdateDropItemPrompt();
 		PlayerInfo.CancelEmote(canHideEmoteMenu: false);
 		CancelItemFlourish();
 		PlayerInfo.SetEquippedItemIndex(EquippedItemIndex);
@@ -619,6 +648,21 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			if (IsUsingItemAtAll)
 			{
 				return false;
+			}
+			if (droppedItemSlot.itemType == ItemType.RocketDriver)
+			{
+				if (PlayerInfo.AsGolfer.IsChargingSwing)
+				{
+					return false;
+				}
+				if (PlayerInfo.AsGolfer.IsSwinging)
+				{
+					return false;
+				}
+				if (PlayerInfo.AsGolfer.LastSwingChargeCancelFromInputFrame == Time.frameCount)
+				{
+					return false;
+				}
 			}
 			if (PlayerInfo.AsGolfer.IsMatchResolved)
 			{
@@ -680,7 +724,17 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			IsFlourishingItem = true;
 			PlayerInfo.CancelEmote(canHideEmoteMenu: true);
 			PlayerInfo.AnimatorIo.SetIsFlourishingItem(IsFlourishingItem);
-			yield return new WaitForSeconds(duration);
+			bool playedEffects = false;
+			bool shouldPlayEffects = ShouldPlayEffects();
+			float time;
+			for (time = 0f; time < duration; time += Time.deltaTime)
+			{
+				if (!playedEffects && shouldPlayEffects && TryPlayEffects())
+				{
+					playedEffects = true;
+				}
+				yield return null;
+			}
 			IsFlourishingItem = false;
 			PlayerInfo.AnimatorIo.SetIsFlourishingItem(IsFlourishingItem);
 		}
@@ -707,6 +761,8 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 				return ActivateElectromagnetRoutine();
 			case ItemType.OrbitalLaser:
 				return ActivateOrbitalLaserRoutine();
+			case ItemType.FreezeBomb:
+				return ShootFreezeBombRoutine();
 			default:
 			{
 				global::_003CPrivateImplementationDetails_003E.ThrowSwitchExpressionException(itemType);
@@ -714,6 +770,55 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 				return result;
 			}
 			}
+		}
+		void PlayItemFlourishVfxForAllClients(ItemType itemType)
+		{
+			PlayItemFlourishVfxInternal(itemType);
+			CmdPlayItemFlourishVfxForAllClients(itemType);
+		}
+		bool ShouldPlayEffects()
+		{
+			return equippedSlot.itemType == ItemType.FreezeBomb;
+		}
+		bool TryPlayEffects()
+		{
+			if (equippedSlot.itemType == ItemType.FreezeBomb && P_0.time >= GameManager.ItemSettings.FreezeBombFlourishVfxStartTime)
+			{
+				PlayItemFlourishVfxForAllClients(ItemType.FreezeBomb);
+				return true;
+			}
+			return false;
+		}
+	}
+
+	[Command]
+	private void CmdPlayItemFlourishVfxForAllClients(ItemType itemType, NetworkConnectionToClient sender = null)
+	{
+		if (base.isServer && base.isClient)
+		{
+			UserCode_CmdPlayItemFlourishVfxForAllClients__ItemType__NetworkConnectionToClient(itemType, sender);
+			return;
+		}
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		GeneratedNetworkCode._Write_ItemType(writer, itemType);
+		SendCommandInternal("System.Void PlayerInventory::CmdPlayItemFlourishVfxForAllClients(ItemType,Mirror.NetworkConnectionToClient)", -183631335, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	private void RpcPlayItemFlourishVfx(NetworkConnectionToClient connection, ItemType itemType)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		GeneratedNetworkCode._Write_ItemType(writer, itemType);
+		SendTargetRPCInternal(connection, "System.Void PlayerInventory::RpcPlayItemFlourishVfx(Mirror.NetworkConnectionToClient,ItemType)", -1496295180, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	private void PlayItemFlourishVfxInternal(ItemType itemType)
+	{
+		if (itemType == ItemType.FreezeBomb)
+		{
+			VfxManager.PlayPooledVfxLocalOnly(VfxType.FreezeBombFlourish, Vector3.zero, Quaternion.identity, PlayerInfo.RightHandEquipmentSwitcher.transform, default(Vector3), localSpace: true);
 		}
 	}
 
@@ -733,6 +838,10 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		}
 		equippedSlot = GetEffectiveSlot(EquippedItemIndex);
 		if (equippedSlot.itemType == ItemType.None)
+		{
+			return false;
+		}
+		if (equippedSlot.itemType == ItemType.RocketDriver)
 		{
 			return false;
 		}
@@ -768,17 +877,43 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		{
 			return false;
 		}
-		if (IsUsingItemAtAll && (isFlourish || equippedSlot.itemType != ItemType.ElephantGun || BMath.GetTimeSince(ItemUseTimestamp) < GameManager.ItemSettings.ElephantGunShotCooldown))
+		if (IsUsingItemAtAll)
 		{
-			return false;
+			if (isFlourish)
+			{
+				return false;
+			}
+			if (equippedSlot.itemType != ItemType.ElephantGun)
+			{
+				return false;
+			}
+			if (BMath.GetTimeSince(ItemUseTimestamp) < GameManager.ItemSettings.ElephantGunShotCooldown)
+			{
+				return false;
+			}
 		}
 		if (PlayerInfo.Movement.IsKnockedOutOrRecovering)
 		{
 			return false;
 		}
-		if (PlayerInfo.Movement.DivingState != DivingState.None && (isFlourish || equippedSlot.itemType != ItemType.ElephantGun))
+		if (PlayerInfo.AsHittable.IsFrozen)
 		{
 			return false;
+		}
+		if (PlayerInfo.Movement.DivingState != DivingState.None)
+		{
+			if (isFlourish)
+			{
+				return false;
+			}
+			if (equippedSlot.itemType != ItemType.ElephantGun)
+			{
+				return false;
+			}
+			if (!PlayerInfo.Movement.DiveType.IsElephantGunDive())
+			{
+				return false;
+			}
 		}
 		if (equippedSlot.itemType == ItemType.Landmine && !IsAimingItem && !PlayerInfo.Movement.IsGrounded)
 		{
@@ -846,6 +981,11 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			RemoveIfOutOfUses(springBootsInUseSlotIndex);
 			PlayerInfo.Cosmetics.UpdateSpringBootsEnabled();
 		}
+	}
+
+	public void InformNoLongerInSpringBootsJump(bool dueToLanding)
+	{
+		CancelSpringBootsUse(dueToLanding);
 	}
 
 	[Command]
@@ -956,6 +1096,13 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 
 	public void InformLocalPlayerDivingStateChanged()
 	{
+		if (PlayerInfo.Movement.DivingState != DivingState.None && !PlayerInfo.Movement.DiveType.IsElephantGunDive())
+		{
+			CancelItemUse();
+			CancelSpringBootsUse();
+			CancelEnterPlacedGolfCartRoutine();
+		}
+		UpdateIsAimingItem();
 		UpdateIsEquipmentForceHidden();
 		UpdateIsUpdateLoopRunning();
 	}
@@ -967,8 +1114,31 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 
 	public void InformOfSpringBootsLanding(Vector3 worldPosition)
 	{
-		ThrowUsedItemInternal(ThrownUsedItemType.SpringBootLeft, forcePlayerPosition: true, worldPosition);
-		ThrowUsedItemInternal(ThrownUsedItemType.SpringBootRight, forcePlayerPosition: true, worldPosition);
+		ThrowUsedItemInternal(ThrownUsedItemType.SpringBootLeft, forcePlayerPosition: true, worldPosition, altThrow: false);
+		ThrowUsedItemInternal(ThrownUsedItemType.SpringBootRight, forcePlayerPosition: true, worldPosition, altThrow: false);
+	}
+
+	public void DecrementRocketDriverUse()
+	{
+		if (GetEffectivelyEquippedItem() == ItemType.RocketDriver)
+		{
+			DecrementUseFromSlotAt(EquippedItemIndex);
+		}
+	}
+
+	public void InformFinishedSwing()
+	{
+		if (GetEffectivelyEquippedItem() == ItemType.RocketDriver)
+		{
+			RemoveIfOutOfUses(EquippedItemIndex);
+		}
+	}
+
+	public void ThrowUsedRocketDriver(bool fromMiss)
+	{
+		bool altThrow = fromMiss;
+		ThrowUsedItemForAllClients(ThrownUsedItemType.RocketDriver, forcePlayerPosition: false, default(Vector3), altThrow);
+		MarkThrownItem(ThrownItemHand.Right);
 	}
 
 	public bool TryReactToBlownAirhorn()
@@ -1056,6 +1226,11 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 	public Quaternion GetRocketLauncherRocketRotation()
 	{
 		return PlayerInfo.RightHandEquipmentSwitcher.transform.rotation * GameManager.ItemSettings.RocketLauncherLocalRocketRotation;
+	}
+
+	public Vector3 GetFreezeBombBombPosition()
+	{
+		return PlayerInfo.RightHandEquipmentSwitcher.transform.TransformPoint(GameManager.ItemSettings.FreezeBombLocalBombPosition);
 	}
 
 	[Command]
@@ -1188,6 +1363,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			if (lockOnTarget.AsEntity.IsPlayer)
 			{
 				lockOnTarget.AsEntity.PlayerInfo.Movement.IsVisibleChanged -= OnLockOnTargetPlayerIsVisibleChanged;
+				lockOnTarget.AsEntity.PlayerInfo.Movement.HasKnockoutImmunityChanged -= OnLockOnTargetPlayerHasKnockoutImmunityChanged;
 				lockOnTarget.AsEntity.PlayerInfo.AsGolfer.MatchResolutionChanged -= OnLockOnTargetPlayerMatchResolutionChanged;
 			}
 		}
@@ -1198,12 +1374,13 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			if (LockOnTarget.AsEntity.IsPlayer)
 			{
 				LockOnTarget.AsEntity.PlayerInfo.Movement.IsVisibleChanged += OnLockOnTargetPlayerIsVisibleChanged;
+				LockOnTarget.AsEntity.PlayerInfo.Movement.HasKnockoutImmunityChanged += OnLockOnTargetPlayerHasKnockoutImmunityChanged;
 				LockOnTarget.AsEntity.PlayerInfo.AsGolfer.MatchResolutionChanged += OnLockOnTargetPlayerMatchResolutionChanged;
 			}
 		}
 	}
 
-	private void CancelSpringBootsUse()
+	private void CancelSpringBootsUse(bool suppressUsedItemThrow = false)
 	{
 		if (IsUsingSpringBoots)
 		{
@@ -1214,8 +1391,11 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			{
 				StopCoroutine(springBootsUseRoutine);
 			}
-			ThrowUsedItemForAllClients(ThrownUsedItemType.SpringBootLeft);
-			ThrowUsedItemForAllClients(ThrownUsedItemType.SpringBootRight);
+			if (!suppressUsedItemThrow)
+			{
+				ThrowUsedItemForAllClients(ThrownUsedItemType.SpringBootLeft);
+				ThrowUsedItemForAllClients(ThrownUsedItemType.SpringBootRight);
+			}
 		}
 	}
 
@@ -1332,6 +1512,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			if (BMath.Abs(localYaw) > 45f)
 			{
 				PlayerInfo.Movement.AlignWithCameraImmediately();
+				duelingPistolBarrelEndPosition = GetDuelingPistolBarrelEndPosition();
 				firearmAimPoint = GetFirearmAimPoint(GameManager.ItemSettings.DuelingPistolMaxAimingDistance, GameManager.LayerSettings.GunHittablesMask, out var _);
 			}
 			Vector3 direction = (firearmAimPoint - duelingPistolBarrelEndPosition).RandomlyRotatedDeg(GameManager.ItemSettings.DuelingPistolMaxInaccuracyAngle);
@@ -1445,10 +1626,10 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			Vector3 elephantGunBarrelEndPosition = GetElephantGunBarrelEndPosition();
 			float localYaw;
 			Vector3 firearmAimPoint = GetFirearmAimPoint(GameManager.ItemSettings.ElephantGunMaxAimingDistance, GameManager.LayerSettings.GunHittablesMask, out localYaw);
-			BMath.Abs(localYaw);
 			if (BMath.Abs(localYaw) > 45f)
 			{
 				PlayerInfo.Movement.AlignWithCameraImmediately();
+				elephantGunBarrelEndPosition = GetElephantGunBarrelEndPosition();
 				firearmAimPoint = GetFirearmAimPoint(GameManager.ItemSettings.DuelingPistolMaxAimingDistance, GameManager.LayerSettings.GunHittablesMask, out var _);
 			}
 			Vector3 vector = (firearmAimPoint - elephantGunBarrelEndPosition).RandomlyRotatedDeg(GameManager.ItemSettings.ElephantGunMaxInaccuracyAngle);
@@ -1767,11 +1948,14 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 	private IEnumerator TossLandmineRoutine()
 	{
 		SetCurrentItemUse(ItemUseType.Alt);
-		if (BMath.Abs((GameManager.Camera.transform.forward.GetYawDeg() - PlayerInfo.Movement.Yaw).WrapAngleDeg()) > 45f)
+		PlayerInfo.Movement.AlignWithCameraImmediately();
+		float time = 0f;
+		while (time < GameManager.ItemSettings.LandmineTossingTime)
 		{
+			yield return null;
+			time += Time.deltaTime;
 			PlayerInfo.Movement.AlignWithCameraImmediately();
 		}
-		yield return new WaitForSeconds(GameManager.ItemSettings.LandmineTossingTime);
 		PlayerInfo.RightHandEquipmentSwitcher.transform.GetPositionAndRotation(out var position, out var rotation);
 		Vector3 vector = base.transform.TransformDirection(GameManager.ItemSettings.LandmineTossingDirectionLocalRotation * Vector3.forward);
 		Vector3 vector2 = base.transform.TransformDirection(GameManager.ItemSettings.LandmineTossingDirectionLocalRotation * GameManager.ItemSettings.LandmineTossingLocalAngularVelocity);
@@ -1871,40 +2055,92 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		NetworkWriterPool.Return(writer);
 	}
 
-	private void ThrowUsedItemForAllClients(ThrownUsedItemType thrownItemType, bool forcePlayerPosition = false, Vector3 forcedPlayerPosition = default(Vector3))
+	private IEnumerator ShootFreezeBombRoutine()
 	{
-		ThrowUsedItemInternal(thrownItemType, forcePlayerPosition, forcedPlayerPosition);
-		CmdThrowUsedItemForAllClients(thrownItemType, forcePlayerPosition, forcedPlayerPosition);
+		SetCurrentItemUse(ItemUseType.Regular);
+		Shoot();
+		DecrementUseFromSlotAt(EquippedItemIndex);
+		CameraModuleController.Shake(GameManager.CameraGameplaySettings.FreezeBombShotScreenshakeSettings);
+		PlayerInfo.PlayerAudio.PlayFreezeBombShotForAllClients();
+		bool didThrow = false;
+		for (float timeSince = BMath.GetTimeSince(ItemUseTimestamp); timeSince < GameManager.ItemSettings.FreezeBombShotDuration; timeSince = BMath.GetTimeSince(ItemUseTimestamp))
+		{
+			if (!didThrow && timeSince >= GameManager.ItemSettings.FreezeBombThrowTime)
+			{
+				ThrowUsedItemForAllClients(ThrownUsedItemType.FreezeBomb);
+				MarkThrownItem(ThrownItemHand.Right);
+				didThrow = true;
+			}
+			yield return null;
+		}
+		SetCurrentItemUse(ItemUseType.None);
+		RemoveIfOutOfUses(EquippedItemIndex);
+		void Shoot()
+		{
+			PlayerInfo.Movement.AlignWithCameraImmediately();
+			float pitch;
+			Vector3 freezeBombAimDirection = GetFreezeBombAimDirection(out pitch);
+			Vector3 freezeBombBombPosition = GetFreezeBombBombPosition();
+			Quaternion bombRotation = Quaternion.LookRotation(freezeBombAimDirection, base.transform.up);
+			Vector3 velocity = GameManager.ItemSettings.FreezeBombShotSpeed * freezeBombAimDirection;
+			Vector3 vector = Vector3.Cross(freezeBombAimDirection, Vector3.up).RandomlyRotatedDeg(GameManager.ItemSettings.FreezeBombShotRotationAxisMaxRotation);
+			Vector3 angularVelocity = GameManager.ItemSettings.FreezeBombShotAngularSpeed * vector;
+			OnShotFreezeBomb();
+			CmdInformShotFreezeBomb(freezeBombBombPosition, bombRotation, velocity, angularVelocity, IncrementAndGetCurrentItemUseId(ItemType.RocketLauncher));
+		}
+	}
+
+	public Vector3 GetFreezeBombAimDirection(out float pitch)
+	{
+		Vector3 forward = GameManager.Camera.transform.forward;
+		float pitchDeg = forward.GetPitchDeg();
+		float num = BMath.RemapClamped(0f - GameManager.ItemSettings.FreezeBombNoOffsetAimPitch, 0f - GameManager.ItemSettings.FreezeBombFullOffsetAimPitch, 0f, 0f - GameManager.ItemSettings.FreezeBombAimPitchOffset, pitchDeg);
+		pitch = pitchDeg + num;
+		pitch = BMath.Clamp(pitch, 0f - GameManager.ItemSettings.FreezeBombAimMaxPitch, 0f - GameManager.ItemSettings.FreezeBombAimMinPitch);
+		float num2 = pitch - pitchDeg;
+		if (num2.Approximately(0f, 0.001f))
+		{
+			return forward;
+		}
+		return Quaternion.AngleAxis(num2, GameManager.Camera.transform.right) * forward;
+	}
+
+	private void ThrowUsedItemForAllClients(ThrownUsedItemType thrownItemType, bool forcePlayerPosition = false, Vector3 forcedPlayerPosition = default(Vector3), bool altThrow = false)
+	{
+		ThrowUsedItemInternal(thrownItemType, forcePlayerPosition, forcedPlayerPosition, altThrow);
+		CmdThrowUsedItemForAllClients(thrownItemType, forcePlayerPosition, forcedPlayerPosition, altThrow);
 	}
 
 	[Command]
-	private void CmdThrowUsedItemForAllClients(ThrownUsedItemType thrownItemType, bool forcePlayerPosition, Vector3 forcedPlayerPosition, NetworkConnectionToClient sender = null)
+	private void CmdThrowUsedItemForAllClients(ThrownUsedItemType thrownItemType, bool forcePlayerPosition, Vector3 forcedPlayerPosition, bool altThrow, NetworkConnectionToClient sender = null)
 	{
 		if (base.isServer && base.isClient)
 		{
-			UserCode_CmdThrowUsedItemForAllClients__ThrownUsedItemType__Boolean__Vector3__NetworkConnectionToClient(thrownItemType, forcePlayerPosition, forcedPlayerPosition, sender);
+			UserCode_CmdThrowUsedItemForAllClients__ThrownUsedItemType__Boolean__Vector3__Boolean__NetworkConnectionToClient(thrownItemType, forcePlayerPosition, forcedPlayerPosition, altThrow, sender);
 			return;
 		}
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		GeneratedNetworkCode._Write_ThrownUsedItemType(writer, thrownItemType);
 		writer.WriteBool(forcePlayerPosition);
 		writer.WriteVector3(forcedPlayerPosition);
-		SendCommandInternal("System.Void PlayerInventory::CmdThrowUsedItemForAllClients(ThrownUsedItemType,System.Boolean,UnityEngine.Vector3,Mirror.NetworkConnectionToClient)", 130731927, writer, 0);
+		writer.WriteBool(altThrow);
+		SendCommandInternal("System.Void PlayerInventory::CmdThrowUsedItemForAllClients(ThrownUsedItemType,System.Boolean,UnityEngine.Vector3,System.Boolean,Mirror.NetworkConnectionToClient)", -53889814, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
 	[TargetRpc]
-	private void RpcThrowUsedItem(NetworkConnectionToClient connection, ThrownUsedItemType thrownItemType, bool forcePlayerPosition, Vector3 forcedPlayerPosition)
+	private void RpcThrowUsedItem(NetworkConnectionToClient connection, ThrownUsedItemType thrownItemType, bool forcePlayerPosition, Vector3 forcedPlayerPosition, bool altThrow)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		GeneratedNetworkCode._Write_ThrownUsedItemType(writer, thrownItemType);
 		writer.WriteBool(forcePlayerPosition);
 		writer.WriteVector3(forcedPlayerPosition);
-		SendTargetRPCInternal(connection, "System.Void PlayerInventory::RpcThrowUsedItem(Mirror.NetworkConnectionToClient,ThrownUsedItemType,System.Boolean,UnityEngine.Vector3)", -1308103398, writer, 0);
+		writer.WriteBool(altThrow);
+		SendTargetRPCInternal(connection, "System.Void PlayerInventory::RpcThrowUsedItem(Mirror.NetworkConnectionToClient,ThrownUsedItemType,System.Boolean,UnityEngine.Vector3,System.Boolean)", -1247183039, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
-	private void ThrowUsedItemInternal(ThrownUsedItemType thrownItemType, bool forcePlayerPosition, Vector3 forcedPlayerPosition)
+	private void ThrowUsedItemInternal(ThrownUsedItemType thrownItemType, bool forcePlayerPosition, Vector3 forcedPlayerPosition, bool altThrow)
 	{
 		(Transform, Quaternion, Vector3, float) tuple = default((Transform, Quaternion, Vector3, float));
 		switch (thrownItemType)
@@ -1945,6 +2181,12 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		case ThrownUsedItemType.SpringBootRight:
 			tuple = (PlayerInfo.RightFootCenter.transform, GameManager.ItemSettings.SpringBootRightPopOffDirectionLocalRotation, GameManager.ItemSettings.SpringBootRightPopOffLocalAngularVelocity, GameManager.ItemSettings.SpringBootRightPopOffSpeed);
 			break;
+		case ThrownUsedItemType.RocketDriver:
+			tuple = (altThrow ? (PlayerInfo.RightHandEquipmentSwitcher.transform, GameManager.ItemSettings.RocketDriverSwingMissThrowDirectionLocalRotation, GameManager.ItemSettings.RocketDriverSwingMissThrowLocalAngularVelocity, GameManager.ItemSettings.RocketDriverSwingMissThrowSpeed) : (PlayerInfo.RightHandEquipmentSwitcher.transform, GameManager.ItemSettings.RocketDriverSwingHitThrowDirectionLocalRotation, GameManager.ItemSettings.RocketDriverSwingHitThrowLocalAngularVelocity, GameManager.ItemSettings.RocketDriverSwingHitThrowSpeed));
+			break;
+		case ThrownUsedItemType.FreezeBomb:
+			tuple = (PlayerInfo.RightHandEquipmentSwitcher.transform, GameManager.ItemSettings.FreezeBombThrowDirectionLocalRotation, GameManager.ItemSettings.FreezeBombThrowLocalAngularVelocity, GameManager.ItemSettings.FreezeBombThrowSpeed);
+			break;
 		default:
 			global::_003CPrivateImplementationDetails_003E.ThrowSwitchExpressionException(thrownItemType);
 			break;
@@ -1978,7 +2220,11 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		Vector3 angularVelocity = PlayerInfo.Rigidbody.angularVelocity + vector4;
 		ThrownUsedItem unusedThrownItem = ThrownUsedItemManager.GetUnusedThrownItem(thrownItemType);
 		unusedThrownItem.Initialize(position, rotation, velocity, angularVelocity);
-		PlayerInfo.AsEntity.TemporarilyIgnoreCollisionsWith(unusedThrownItem.Rigidbody, 0.5f);
+		PlayerInfo.AsEntity.TemporarilyIgnoreCollisionsWith(unusedThrownItem.AsEntity, 0.5f);
+		if (thrownItemType == ThrownUsedItemType.RocketDriver && unusedThrownItem.TryGetComponent<ThrownUsedRocketDriver>(out var component))
+		{
+			component.SetIsRocketActive(altThrow);
+		}
 	}
 
 	[Command(requiresAuthority = false)]
@@ -2028,6 +2274,41 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		if (!(PlayerInfo.RightHandEquipmentSwitcher.CurrentEquipment == null) && PlayerInfo.RightHandEquipmentSwitcher.CurrentEquipment.TryGetComponent<RocketLauncherEquipment>(out var component))
 		{
 			component.SetRocketMeshEnabled(enabled: false);
+		}
+	}
+
+	[Command]
+	private void CmdInformShotFreezeBomb(Vector3 bombPosition, Quaternion bombRotation, Vector3 velocity, Vector3 angularVelocity, ItemUseId itemUseId, NetworkConnectionToClient sender = null)
+	{
+		if (base.isServer && base.isClient)
+		{
+			UserCode_CmdInformShotFreezeBomb__Vector3__Quaternion__Vector3__Vector3__ItemUseId__NetworkConnectionToClient(bombPosition, bombRotation, velocity, angularVelocity, itemUseId, sender);
+			return;
+		}
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		writer.WriteVector3(bombPosition);
+		writer.WriteQuaternion(bombRotation);
+		writer.WriteVector3(velocity);
+		writer.WriteVector3(angularVelocity);
+		GeneratedNetworkCode._Write_ItemUseId(writer, itemUseId);
+		SendCommandInternal("System.Void PlayerInventory::CmdInformShotFreezeBomb(UnityEngine.Vector3,UnityEngine.Quaternion,UnityEngine.Vector3,UnityEngine.Vector3,ItemUseId,Mirror.NetworkConnectionToClient)", 1285331034, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	private void RpcInformShotFreezeBomb(NetworkConnectionToClient connection)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendTargetRPCInternal(connection, "System.Void PlayerInventory::RpcInformShotFreezeBomb(Mirror.NetworkConnectionToClient)", -796295928, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	private void OnShotFreezeBomb()
+	{
+		VfxManager.PlayPooledVfxLocalOnly(VfxType.FreezeBombMuzzle, Vector3.zero, Quaternion.identity, PlayerInfo.RightHandEquipmentSwitcher.transform, default(Vector3), localSpace: true);
+		if (!(PlayerInfo.RightHandEquipmentSwitcher.CurrentEquipment == null) && PlayerInfo.RightHandEquipmentSwitcher.CurrentEquipment.TryGetComponent<FreezeBombEquipment>(out var component))
+		{
+			component.SetBombMeshEnabled(enabled: false);
 		}
 	}
 
@@ -2091,6 +2372,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 
 	private bool TryParseFirearmRaycastResults(RaycastHit[] raycastResults, int raycastHitCount, PlayerInfo deflectedShotShieldOwner, out RaycastHit raycastHit, out Hittable hitHittable)
 	{
+		bool result = false;
 		RaycastHit raycastHit2 = new RaycastHit
 		{
 			distance = float.MaxValue
@@ -2101,40 +2383,43 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		for (int i = 0; i < raycastHitCount; i++)
 		{
 			RaycastHit raycastHit3 = raycastResults[i];
-			if (!TryGetParentHittable(raycastHit3, out var parentHittable) || (deflectedShotShieldOwner != null && parentHittable == deflectedShotShieldOwner.AsHittable))
+			Hittable parentHittable;
+			bool flag3 = TryGetParentHittable(raycastHit3, out parentHittable);
+			if (parentHittable == PlayerInfo.AsHittable || (deflectedShotShieldOwner != null && flag3 && parentHittable == deflectedShotShieldOwner.AsHittable))
 			{
 				continue;
 			}
-			bool flag3;
 			bool flag4;
-			if (parentHittable.AsEntity.IsGolfCart)
+			bool flag5;
+			if (flag3 && parentHittable.AsEntity.IsGolfCart)
 			{
-				flag3 = raycastHit3.collider.gameObject.layer == GameManager.LayerSettings.HittablesLayer;
-				flag4 = !flag3 && raycastHit3.collider.gameObject.layer == GameManager.LayerSettings.GolfCartPassengersLayer;
+				flag4 = raycastHit3.collider.gameObject.layer == GameManager.LayerSettings.HittablesLayer;
+				flag5 = !flag4 && raycastHit3.collider.gameObject.layer == GameManager.LayerSettings.GolfCartPassengersLayer;
 			}
 			else
 			{
-				flag3 = false;
 				flag4 = false;
+				flag5 = false;
 			}
-			bool flag5 = false;
+			bool flag6 = false;
 			if (flag2)
 			{
-				if (flag3 && hittable == parentHittable)
+				if (flag4 && hittable == parentHittable)
 				{
 					continue;
 				}
 			}
 			else if (flag)
 			{
-				flag5 = flag4 && hittable == parentHittable;
+				flag6 = flag5 && hittable == parentHittable;
 			}
-			if (flag5 || !(raycastHit3.distance > raycastHit2.distance))
+			if (flag6 || !(raycastHit3.distance > raycastHit2.distance))
 			{
+				result = true;
 				raycastHit2 = raycastHit3;
 				hittable = parentHittable;
-				flag = flag3;
-				flag2 = flag4;
+				flag = flag4;
+				flag2 = flag5;
 			}
 		}
 		raycastHit = raycastHit2;
@@ -2146,7 +2431,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		{
 			hitHittable = hittable;
 		}
-		return hittable != null;
+		return result;
 		static bool TryGetParentHittable(RaycastHit raycastHit4, out Hittable foundComponent)
 		{
 			if (raycastHit4.rigidbody != null)
@@ -2272,31 +2557,26 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		}
 		bool ShouldRun()
 		{
-			switch (GetEffectivelyEquippedItem(ignoreEquipmentHiding: true))
+			if (PlayerInfo.ActiveGolfCartSeat.IsValid())
 			{
-			case ItemType.Airhorn:
-				return !IsUsingItemAtAll;
-			case ItemType.ElephantGun:
-				if (PlayerInfo.Movement.DiveType == DiveType.ElephantGunFinalShot)
-				{
-					return PlayerInfo.Movement.DivingState == DivingState.GettingUp;
-				}
-				return false;
-			case ItemType.RocketLauncher:
-				return IsAimingItem;
-			case ItemType.OrbitalLaser:
-				return !IsUsingItemAtAll;
-			default:
 				return false;
 			}
+			return GetEffectivelyEquippedItem(ignoreEquipmentHiding: true) switch
+			{
+				ItemType.Airhorn => !IsUsingItemAtAll, 
+				ItemType.ElephantGun => PlayerInfo.Movement.DiveType == DiveType.ElephantGunFinalShot && PlayerInfo.Movement.DivingState == DivingState.GettingUp, 
+				ItemType.RocketLauncher => IsAimingItem, 
+				ItemType.OrbitalLaser => !IsUsingItemAtAll, 
+				_ => false, 
+			};
 		}
 	}
 
-	private void UpdateIsEquipmentForceHidden()
+	private void UpdateIsEquipmentForceHidden(bool forceUpdate = false)
 	{
 		bool flag = isEquipmentForceHidden;
 		NetworkisEquipmentForceHidden = ShouldBeHidden();
-		if (isEquipmentForceHidden != flag)
+		if (forceUpdate || isEquipmentForceHidden != flag)
 		{
 			if (isEquipmentForceHidden)
 			{
@@ -2309,8 +2589,10 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 				PlayerInfo.SetEquippedItem(effectivelyEquippedItem);
 				PlayerInfo.AnimatorIo.SetEquippedItem(effectivelyEquippedItem);
 			}
+			UpdateAimingReticle();
 			UpdateEquipmentSwitchers();
 			PlayerInfo.Cosmetics.UpdateSpringBootsEnabled();
+			UpdateDropItemPrompt();
 			this.EquippedItemChanged?.Invoke();
 		}
 		bool ShouldBeHidden()
@@ -2328,6 +2610,10 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 				return true;
 			}
 			if (PlayerInfo.Movement.IsKnockedOutOrRecovering)
+			{
+				return true;
+			}
+			if (PlayerInfo.AsHittable.IsFrozen)
 			{
 				return true;
 			}
@@ -2353,19 +2639,15 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		{
 			return;
 		}
+		GameplayCameraManager.UpdateAimCamera();
 		if (IsAimingItem)
 		{
-			GameplayCameraManager.EnterSwingAimCamera();
-			if (equippedItem == ItemType.DuelingPistol || equippedItem == ItemType.ElephantGun || equippedItem == ItemType.RocketLauncher)
+			if (!isEquipmentForceHidden && (equippedItem == ItemType.DuelingPistol || equippedItem == ItemType.ElephantGun || equippedItem == ItemType.RocketLauncher || equippedItem == ItemType.FreezeBomb))
 			{
-				PlayerInfo.PlayerAudio.PlayGunAimForAllClients(equippedItem);
+				PlayerInfo.PlayerAudio.PlayItemAimForAllClients(equippedItem);
 			}
 			PlayerInfo.CancelEmote(canHideEmoteMenu: false);
 			CancelItemFlourish();
-		}
-		else
-		{
-			GameplayCameraManager.ExitSwingAimCamera();
 		}
 		UpdateAimingReticle();
 		UpdateIsUpdateLoopRunning();
@@ -2375,7 +2657,11 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		PlayerInventory.LocalPlayerIsAimingItemChanged?.Invoke();
 		bool ShouldAim()
 		{
-			if (equippedItem == ItemType.None)
+			if (!isEquipmentForceHidden && equippedItem == ItemType.None)
+			{
+				return false;
+			}
+			if (equippedItem == ItemType.RocketDriver)
 			{
 				return false;
 			}
@@ -2400,6 +2686,14 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 				return false;
 			}
 			if (PlayerInfo.Movement.IsKnockedOutOrRecovering)
+			{
+				return false;
+			}
+			if (PlayerInfo.AsHittable.IsFrozen)
+			{
+				return false;
+			}
+			if (PlayerInfo.Movement.DivingState != DivingState.None && !PlayerInfo.Movement.DiveType.IsElephantGunDive())
 			{
 				return false;
 			}
@@ -2437,6 +2731,8 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			ItemType.Landmine => (EquipmentType.Landmine, EquipmentType.None), 
 			ItemType.Electromagnet => (EquipmentType.Electromagnet, EquipmentType.None), 
 			ItemType.OrbitalLaser => (EquipmentType.OrbitalLaser, EquipmentType.None), 
+			ItemType.RocketDriver => (EquipmentType.RocketDriver, EquipmentType.None), 
+			ItemType.FreezeBomb => (EquipmentType.FreezeBomb, EquipmentType.None), 
 			_ => (EquipmentType.None, EquipmentType.None), 
 		};
 		PlayerInfo.RightHandEquipmentSwitcher.SetEquipment((!thrownItem.HasFlag(ThrownItemHand.Right)) ? equipmentType : EquipmentType.None);
@@ -2489,6 +2785,9 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			break;
 		case ItemType.RocketLauncher:
 			ReticleManager.SetRocketLauncher();
+			break;
+		case ItemType.FreezeBomb:
+			ReticleManager.SetFreezeBomb();
 			break;
 		default:
 			ReticleManager.Clear();
@@ -2582,6 +2881,49 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		}
 	}
 
+	private void UpdateDropItemPrompt()
+	{
+		if (!base.isLocalPlayer)
+		{
+			return;
+		}
+		bool flag = dropItemPrompt != null;
+		bool flag2 = ShouldBeActive();
+		if (flag2 != flag)
+		{
+			if (flag2)
+			{
+				dropItemPrompt = ButtonPromptManager.GetButtonPrompt(PlayerInput.Controls.Gameplay.DropItem, Localization.UI.PROMPT_Drop_Ref);
+				return;
+			}
+			ButtonPromptManager.ReturnButtonPrompt(dropItemPrompt);
+			dropItemPrompt = null;
+		}
+		bool ShouldBeActive()
+		{
+			switch (GetEffectivelyEquippedItem())
+			{
+			case ItemType.None:
+				return false;
+			case ItemType.RocketDriver:
+				if (PlayerInfo.AsGolfer.IsChargingSwing)
+				{
+					return false;
+				}
+				if (PlayerInfo.AsGolfer.IsSwinging)
+				{
+					return false;
+				}
+				if (PlayerInfo.AsGolfer.LastSwingChargeCancelFromInputFrame == Time.frameCount)
+				{
+					return false;
+				}
+				break;
+			}
+			return true;
+		}
+	}
+
 	private void OnItemSlotsChanged(SyncList<InventorySlot>.Operation operation, int index, InventorySlot slot)
 	{
 		if (!base.isLocalPlayer)
@@ -2645,6 +2987,11 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		UpdateEquipmentSwitchers();
 	}
 
+	private void OnLocalPlayerIsInGolfCartChanged()
+	{
+		UpdateIsUpdateLoopRunning();
+	}
+
 	private void OnLocalPlayerIsKnockedOutOrRecoveringChanged()
 	{
 		UpdateIsEquipmentForceHidden();
@@ -2669,6 +3016,18 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		}
 	}
 
+	private void OnLocalPlayerIsFrozenChanged()
+	{
+		UpdateIsEquipmentForceHidden();
+		UpdateIsAimingItem();
+		if (PlayerInfo.AsHittable.IsFrozen)
+		{
+			CancelItemUse();
+			CancelSpringBootsUse();
+			CancelEnterPlacedGolfCartRoutine();
+		}
+	}
+
 	private void OnLocalPlayerMatchResolutionChanged(PlayerMatchResolution previousResolution, PlayerMatchResolution currentResolution)
 	{
 		if (currentResolution == PlayerMatchResolution.Eliminated)
@@ -2677,6 +3036,20 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		}
 		UpdateEquipmentSwitchers();
 		UpdateIsAimingItem();
+	}
+
+	private void OnLocalPlayerIsChargingSwingChanged()
+	{
+		UpdateDropItemPrompt();
+	}
+
+	private void OnLocalPlayerIsSwingingChanged()
+	{
+		if (GetEffectivelyEquippedItem() == ItemType.RocketDriver)
+		{
+			SetCurrentItemUse(PlayerInfo.AsGolfer.IsSwinging ? ItemUseType.Regular : ItemUseType.None);
+		}
+		UpdateDropItemPrompt();
 	}
 
 	private void OnLocalPlayerIsSpectatingChanged()
@@ -2691,7 +3064,15 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 
 	private void OnLockOnTargetPlayerIsVisibleChanged()
 	{
-		if (!LockOnTarget.IsValid())
+		if (!LockOnTarget.IsValidForLocalPlayer(GetEffectivelyEquippedItem() == ItemType.OrbitalLaser))
+		{
+			SetLockOnTarget(null);
+		}
+	}
+
+	private void OnLockOnTargetPlayerHasKnockoutImmunityChanged()
+	{
+		if (!LockOnTarget.IsValidForLocalPlayer(GetEffectivelyEquippedItem() == ItemType.OrbitalLaser))
 		{
 			SetLockOnTarget(null);
 		}
@@ -2699,7 +3080,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 
 	private void OnLockOnTargetPlayerMatchResolutionChanged(PlayerMatchResolution previousResolution, PlayerMatchResolution currentResolution)
 	{
-		if (!LockOnTarget.IsValid())
+		if (!LockOnTarget.IsValidForLocalPlayer(GetEffectivelyEquippedItem() == ItemType.OrbitalLaser))
 		{
 			SetLockOnTarget(null);
 		}
@@ -2716,24 +3097,28 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		playersToRemoveBuffer = new HashSet<PlayerInfo>();
 		processedHittableBuffer = new HashSet<Hittable>();
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdAddItem(ItemType)", InvokeUserCode_CmdAddItem__ItemType, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdPlayItemFlourishVfxForAllClients(ItemType,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayItemFlourishVfxForAllClients__ItemType__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdPlaySpringBootsActivationForAllClients(UnityEngine.Vector3,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlaySpringBootsActivationForAllClients__Vector3__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdDropItemAt(System.Int32,UnityEngine.Vector3,UnityEngine.Vector3,ItemUseId)", InvokeUserCode_CmdDropItemAt__Int32__Vector3__Vector3__ItemUseId, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdRemoveItemAt(System.Int32)", InvokeUserCode_CmdRemoveItemAt__Int32, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdPlayGolfCartBriefcaseEffectsForAllClients(System.Boolean,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayGolfCartBriefcaseEffectsForAllClients__Boolean__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdSpawnLandmine(UnityEngine.Vector3,UnityEngine.Quaternion,UnityEngine.Vector3,UnityEngine.Vector3,LandmineArmType,ItemUseId,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdSpawnLandmine__Vector3__Quaternion__Vector3__Vector3__LandmineArmType__ItemUseId__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdActivateOrbitalLaser(Hittable,UnityEngine.Vector3,ItemUseId)", InvokeUserCode_CmdActivateOrbitalLaser__Hittable__Vector3__ItemUseId, requiresAuthority: true);
-		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdThrowUsedItemForAllClients(ThrownUsedItemType,System.Boolean,UnityEngine.Vector3,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdThrowUsedItemForAllClients__ThrownUsedItemType__Boolean__Vector3__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdThrowUsedItemForAllClients(ThrownUsedItemType,System.Boolean,UnityEngine.Vector3,System.Boolean,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdThrowUsedItemForAllClients__ThrownUsedItemType__Boolean__Vector3__Boolean__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdInformInterruptedPlayerWithAirhorn(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdInformInterruptedPlayerWithAirhorn__NetworkConnectionToClient, requiresAuthority: false);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdInformShotRocket(UnityEngine.Vector3,UnityEngine.Quaternion,Hittable,ItemUseId,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdInformShotRocket__Vector3__Quaternion__Hittable__ItemUseId__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdInformShotFreezeBomb(UnityEngine.Vector3,UnityEngine.Quaternion,UnityEngine.Vector3,UnityEngine.Vector3,ItemUseId,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdInformShotFreezeBomb__Vector3__Quaternion__Vector3__Vector3__ItemUseId__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdActivatedElectromagnet(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdActivatedElectromagnet__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdActivatedOrbitalLaser(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdActivatedOrbitalLaser__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdDecrementUseFromSlotAt(System.Int32)", InvokeUserCode_CmdDecrementUseFromSlotAt__Int32, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdPlayAirhornVfxForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayAirhornVfxForAllClients__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInventory), "System.Void PlayerInventory::CmdCancelAirhornVfxForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdCancelAirhornVfxForAllClients__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInventory), "System.Void PlayerInventory::RpcPlayItemFlourishVfx(Mirror.NetworkConnectionToClient,ItemType)", InvokeUserCode_RpcPlayItemFlourishVfx__NetworkConnectionToClient__ItemType);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInventory), "System.Void PlayerInventory::RpcPlaySpringBootsActivation(Mirror.NetworkConnectionToClient,UnityEngine.Vector3)", InvokeUserCode_RpcPlaySpringBootsActivation__NetworkConnectionToClient__Vector3);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInventory), "System.Void PlayerInventory::RpcPlayGolfCartBriefcaseEffects(Mirror.NetworkConnectionToClient,System.Boolean)", InvokeUserCode_RpcPlayGolfCartBriefcaseEffects__NetworkConnectionToClient__Boolean);
-		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInventory), "System.Void PlayerInventory::RpcThrowUsedItem(Mirror.NetworkConnectionToClient,ThrownUsedItemType,System.Boolean,UnityEngine.Vector3)", InvokeUserCode_RpcThrowUsedItem__NetworkConnectionToClient__ThrownUsedItemType__Boolean__Vector3);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInventory), "System.Void PlayerInventory::RpcThrowUsedItem(Mirror.NetworkConnectionToClient,ThrownUsedItemType,System.Boolean,UnityEngine.Vector3,System.Boolean)", InvokeUserCode_RpcThrowUsedItem__NetworkConnectionToClient__ThrownUsedItemType__Boolean__Vector3__Boolean);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInventory), "System.Void PlayerInventory::RpcInformShotRocket(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcInformShotRocket__NetworkConnectionToClient);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInventory), "System.Void PlayerInventory::RpcInformShotFreezeBomb(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcInformShotFreezeBomb__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInventory), "System.Void PlayerInventory::RpcInformActivatedElectromagnet(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcInformActivatedElectromagnet__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInventory), "System.Void PlayerInventory::RpcInformActivatedOrbitalLaser(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcInformActivatedOrbitalLaser__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInventory), "System.Void PlayerInventory::RpcPlayAirhornVfx(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayAirhornVfx__NetworkConnectionToClient);
@@ -2747,7 +3132,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 
 	protected void UserCode_CmdAddItem__ItemType(ItemType item)
 	{
-		if (serverAddItemCheatCommandRateLimiter.RegisterHit())
+		if (serverAddItemCheatCommandRateLimiter.RegisterHit() && MatchSetupRules.IsCheatsEnabled())
 		{
 			if (!GameManager.AllItems.TryGetItemData(item, out var itemData))
 			{
@@ -2769,6 +3154,54 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		else
 		{
 			((PlayerInventory)obj).UserCode_CmdAddItem__ItemType(GeneratedNetworkCode._Read_ItemType(reader));
+		}
+	}
+
+	protected void UserCode_CmdPlayItemFlourishVfxForAllClients__ItemType__NetworkConnectionToClient(ItemType itemType, NetworkConnectionToClient sender)
+	{
+		if (!serverItemFlourishVfxCommandRateLimiter.RegisterHit(sender))
+		{
+			return;
+		}
+		if (sender != null && sender != NetworkServer.localConnection)
+		{
+			PlayItemFlourishVfxInternal(itemType);
+		}
+		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
+		{
+			if (value != NetworkServer.localConnection && value != sender)
+			{
+				RpcPlayItemFlourishVfx(value, itemType);
+			}
+		}
+	}
+
+	protected static void InvokeUserCode_CmdPlayItemFlourishVfxForAllClients__ItemType__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogError("Command CmdPlayItemFlourishVfxForAllClients called on client.");
+		}
+		else
+		{
+			((PlayerInventory)obj).UserCode_CmdPlayItemFlourishVfxForAllClients__ItemType__NetworkConnectionToClient(GeneratedNetworkCode._Read_ItemType(reader), senderConnection);
+		}
+	}
+
+	protected void UserCode_RpcPlayItemFlourishVfx__NetworkConnectionToClient__ItemType(NetworkConnectionToClient connection, ItemType itemType)
+	{
+		PlayItemFlourishVfxInternal(itemType);
+	}
+
+	protected static void InvokeUserCode_RpcPlayItemFlourishVfx__NetworkConnectionToClient__ItemType(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcPlayItemFlourishVfx called on server.");
+		}
+		else
+		{
+			((PlayerInventory)obj).UserCode_RpcPlayItemFlourishVfx__NetworkConnectionToClient__ItemType(null, GeneratedNetworkCode._Read_ItemType(reader));
 		}
 	}
 
@@ -2974,7 +3407,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		}
 	}
 
-	protected void UserCode_CmdThrowUsedItemForAllClients__ThrownUsedItemType__Boolean__Vector3__NetworkConnectionToClient(ThrownUsedItemType thrownItemType, bool forcePlayerPosition, Vector3 forcedPlayerPosition, NetworkConnectionToClient sender)
+	protected void UserCode_CmdThrowUsedItemForAllClients__ThrownUsedItemType__Boolean__Vector3__Boolean__NetworkConnectionToClient(ThrownUsedItemType thrownItemType, bool forcePlayerPosition, Vector3 forcedPlayerPosition, bool altThrow, NetworkConnectionToClient sender)
 	{
 		if (!serverThrowUsedItemCommandRateLimiter.RegisterHit())
 		{
@@ -2982,18 +3415,18 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		}
 		if (sender != null && sender != NetworkServer.localConnection)
 		{
-			ThrowUsedItemInternal(thrownItemType, forcePlayerPosition, forcedPlayerPosition);
+			ThrowUsedItemInternal(thrownItemType, forcePlayerPosition, forcedPlayerPosition, altThrow);
 		}
 		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
 		{
 			if (value != NetworkServer.localConnection && value != sender)
 			{
-				RpcThrowUsedItem(value, thrownItemType, forcePlayerPosition, forcedPlayerPosition);
+				RpcThrowUsedItem(value, thrownItemType, forcePlayerPosition, forcedPlayerPosition, altThrow);
 			}
 		}
 	}
 
-	protected static void InvokeUserCode_CmdThrowUsedItemForAllClients__ThrownUsedItemType__Boolean__Vector3__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_CmdThrowUsedItemForAllClients__ThrownUsedItemType__Boolean__Vector3__Boolean__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkServer.active)
 		{
@@ -3001,16 +3434,16 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		}
 		else
 		{
-			((PlayerInventory)obj).UserCode_CmdThrowUsedItemForAllClients__ThrownUsedItemType__Boolean__Vector3__NetworkConnectionToClient(GeneratedNetworkCode._Read_ThrownUsedItemType(reader), reader.ReadBool(), reader.ReadVector3(), senderConnection);
+			((PlayerInventory)obj).UserCode_CmdThrowUsedItemForAllClients__ThrownUsedItemType__Boolean__Vector3__Boolean__NetworkConnectionToClient(GeneratedNetworkCode._Read_ThrownUsedItemType(reader), reader.ReadBool(), reader.ReadVector3(), reader.ReadBool(), senderConnection);
 		}
 	}
 
-	protected void UserCode_RpcThrowUsedItem__NetworkConnectionToClient__ThrownUsedItemType__Boolean__Vector3(NetworkConnectionToClient connection, ThrownUsedItemType thrownItemType, bool forcePlayerPosition, Vector3 forcedPlayerPosition)
+	protected void UserCode_RpcThrowUsedItem__NetworkConnectionToClient__ThrownUsedItemType__Boolean__Vector3__Boolean(NetworkConnectionToClient connection, ThrownUsedItemType thrownItemType, bool forcePlayerPosition, Vector3 forcedPlayerPosition, bool altThrow)
 	{
-		ThrowUsedItemInternal(thrownItemType, forcePlayerPosition, forcedPlayerPosition);
+		ThrowUsedItemInternal(thrownItemType, forcePlayerPosition, forcedPlayerPosition, altThrow);
 	}
 
-	protected static void InvokeUserCode_RpcThrowUsedItem__NetworkConnectionToClient__ThrownUsedItemType__Boolean__Vector3(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcThrowUsedItem__NetworkConnectionToClient__ThrownUsedItemType__Boolean__Vector3__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -3018,7 +3451,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		}
 		else
 		{
-			((PlayerInventory)obj).UserCode_RpcThrowUsedItem__NetworkConnectionToClient__ThrownUsedItemType__Boolean__Vector3(null, GeneratedNetworkCode._Read_ThrownUsedItemType(reader), reader.ReadBool(), reader.ReadVector3());
+			((PlayerInventory)obj).UserCode_RpcThrowUsedItem__NetworkConnectionToClient__ThrownUsedItemType__Boolean__Vector3__Boolean(null, GeneratedNetworkCode._Read_ThrownUsedItemType(reader), reader.ReadBool(), reader.ReadVector3(), reader.ReadBool());
 		}
 	}
 
@@ -3101,6 +3534,68 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 		else
 		{
 			((PlayerInventory)obj).UserCode_RpcInformShotRocket__NetworkConnectionToClient(null);
+		}
+	}
+
+	protected void UserCode_CmdInformShotFreezeBomb__Vector3__Quaternion__Vector3__Vector3__ItemUseId__NetworkConnectionToClient(Vector3 bombPosition, Quaternion bombRotation, Vector3 velocity, Vector3 angularVelocity, ItemUseId itemUseId, NetworkConnectionToClient sender)
+	{
+		if (!serverInformShotFreezeBombCommandRateLimiter.RegisterHit())
+		{
+			return;
+		}
+		SpawnFreezeBomb();
+		if (sender != null && sender != NetworkServer.localConnection)
+		{
+			OnShotFreezeBomb();
+		}
+		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
+		{
+			if (value != NetworkServer.localConnection && value != sender)
+			{
+				RpcInformShotFreezeBomb(value);
+			}
+		}
+		void SpawnFreezeBomb()
+		{
+			FreezeBomb freezeBomb = UnityEngine.Object.Instantiate(GameManager.ItemSettings.FreezeBombBombPrefab, bombPosition, bombRotation);
+			if (freezeBomb == null)
+			{
+				Debug.LogError("Freeze bomb did not instantiate properly", base.gameObject);
+			}
+			else
+			{
+				freezeBomb.ServerInitialize(PlayerInfo, velocity, angularVelocity, itemUseId);
+				NetworkServer.Spawn(freezeBomb.gameObject);
+			}
+		}
+	}
+
+	protected static void InvokeUserCode_CmdInformShotFreezeBomb__Vector3__Quaternion__Vector3__Vector3__ItemUseId__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogError("Command CmdInformShotFreezeBomb called on client.");
+		}
+		else
+		{
+			((PlayerInventory)obj).UserCode_CmdInformShotFreezeBomb__Vector3__Quaternion__Vector3__Vector3__ItemUseId__NetworkConnectionToClient(reader.ReadVector3(), reader.ReadQuaternion(), reader.ReadVector3(), reader.ReadVector3(), GeneratedNetworkCode._Read_ItemUseId(reader), senderConnection);
+		}
+	}
+
+	protected void UserCode_RpcInformShotFreezeBomb__NetworkConnectionToClient(NetworkConnectionToClient connection)
+	{
+		OnShotFreezeBomb();
+	}
+
+	protected static void InvokeUserCode_RpcInformShotFreezeBomb__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcInformShotFreezeBomb called on server.");
+		}
+		else
+		{
+			((PlayerInventory)obj).UserCode_RpcInformShotFreezeBomb__NetworkConnectionToClient(null);
 		}
 	}
 

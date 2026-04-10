@@ -39,14 +39,14 @@ public abstract class BaseListView : BaseVerticalCollectionView
 		[SerializeField]
 		private bool showBoundCollectionSize;
 
+		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
-		[HideInInspector]
 		private UxmlAttributeFlags showFoldoutHeader_UxmlAttributeFlags;
 
-		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags headerTitle_UxmlAttributeFlags;
 
 		[HideInInspector]
@@ -54,14 +54,14 @@ public abstract class BaseListView : BaseVerticalCollectionView
 		[SerializeField]
 		private UxmlAttributeFlags showAddRemoveFooter_UxmlAttributeFlags;
 
-		[UxmlIgnore]
 		[SerializeField]
 		[HideInInspector]
+		[UxmlIgnore]
 		private UxmlAttributeFlags allowAdd_UxmlAttributeFlags;
 
+		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
-		[HideInInspector]
 		private UxmlAttributeFlags allowRemove_UxmlAttributeFlags;
 
 		[HideInInspector]
@@ -74,9 +74,9 @@ public abstract class BaseListView : BaseVerticalCollectionView
 		[SerializeField]
 		private UxmlAttributeFlags showBoundCollectionSize_UxmlAttributeFlags;
 
-		[SerializeField]
 		[UxmlIgnore]
 		[HideInInspector]
+		[SerializeField]
 		private UxmlAttributeFlags bindingSourceSelectionMode_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -738,7 +738,7 @@ public abstract class BaseListView : BaseVerticalCollectionView
 			if (value != m_AllowRemove)
 			{
 				m_AllowRemove = value;
-				m_RemoveButton?.SetEnabled(allowRemove);
+				UpdateRemoveButton();
 				NotifyPropertyChanged(in allowRemoveProperty);
 			}
 		}
@@ -853,8 +853,8 @@ public abstract class BaseListView : BaseVerticalCollectionView
 					name = footerRemoveButtonName,
 					text = "-"
 				};
-				m_RemoveButton.SetEnabled(allowRemove);
 				m_Footer.Add(m_RemoveButton);
+				UpdateRemoveButton();
 			}
 			if (m_Foldout != null)
 			{
@@ -917,6 +917,25 @@ public abstract class BaseListView : BaseVerticalCollectionView
 				m_IsOverMultiEditLimit = false;
 			}
 			UpdateListViewLabel();
+		}
+	}
+
+	private void UpdateRemoveButton()
+	{
+		Button removeButton = m_RemoveButton;
+		if (removeButton != null)
+		{
+			int enabled;
+			if (allowRemove)
+			{
+				BaseListViewController baseListViewController = viewController;
+				enabled = ((baseListViewController != null && baseListViewController.GetItemsCount() > 0) ? 1 : 0);
+			}
+			else
+			{
+				enabled = 0;
+			}
+			removeButton.SetEnabled((byte)enabled != 0);
 		}
 	}
 
@@ -1142,6 +1161,7 @@ public abstract class BaseListView : BaseVerticalCollectionView
 	private protected override void PostRefresh()
 	{
 		UpdateArraySizeField();
+		UpdateRemoveButton();
 		UpdateListViewLabel();
 		base.PostRefresh();
 	}

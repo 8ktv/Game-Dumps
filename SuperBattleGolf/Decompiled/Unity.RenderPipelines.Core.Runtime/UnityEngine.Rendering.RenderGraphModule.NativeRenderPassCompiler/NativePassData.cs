@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Unity.Collections;
 
@@ -42,6 +43,8 @@ internal struct NativePassData
 
 	public bool hasShadingRateStates;
 
+	public ExtendedFeatureFlags extendedFeatureFlags;
+
 	public ShadingRateFragmentSize shadingRateFragmentSize;
 
 	public ShadingRateCombiner primitiveShadingRateCombiner;
@@ -65,6 +68,7 @@ internal struct NativePassData
 		samples = pass.fragmentInfoSamples;
 		hasDepth = pass.fragmentInfoHasDepth;
 		hasFoveatedRasterization = pass.hasFoveatedRasterization;
+		extendedFeatureFlags = pass.extendedFeatureFlags;
 		loadAudit = default(FixedAttachmentArray<LoadAudit>);
 		storeAudit = default(FixedAttachmentArray<StoreAudit>);
 		breakAudit = new PassBreakAudit(PassBreakReason.NotOptimized, -1);
@@ -100,7 +104,7 @@ internal struct NativePassData
 	{
 		if (!hasDepth)
 		{
-			throw new Exception("SubPassFlag for merging can not be determined if native pass doesn't have a depth attachment");
+			throw new Exception("SubPassFlag for merging cannot be determined if native pass doesn't have a depth attachment. Make sure your pass has a depth attachment.");
 		}
 		return SubPassFlags.ReadOnlyDepth;
 	}
@@ -122,13 +126,14 @@ internal struct NativePassData
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public readonly ReadOnlySpan<PassData> GraphPasses(CompilerContextData ctx)
+	public readonly ReadOnlySpan<PassData> GraphPasses(CompilerContextData ctx, out NativeArray<PassData> actualPasses)
 	{
 		if (lastGraphPass - firstGraphPass + 1 == numGraphPasses)
 		{
+			actualPasses = default(NativeArray<PassData>);
 			return NativeListExtensions.MakeReadOnlySpan(ref ctx.passData, firstGraphPass, numGraphPasses);
 		}
-		NativeArray<PassData> source = new NativeArray<PassData>(numGraphPasses, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+		actualPasses = new NativeArray<PassData>(numGraphPasses, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
 		int i = firstGraphPass;
 		int num = 0;
 		for (; i < lastGraphPass + 1; i++)
@@ -136,20 +141,43 @@ internal struct NativePassData
 			PassData value = ctx.passData[i];
 			if (!value.culled)
 			{
-				source[num++] = value;
+				actualPasses[num++] = value;
 			}
 		}
-		return source;
+		return actualPasses;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public readonly void GetGraphPassNames(CompilerContextData ctx, DynamicArray<Name> dest)
 	{
-		ReadOnlySpan<PassData> readOnlySpan = GraphPasses(ctx);
+		NativeArray<PassData> actualPasses;
+		ReadOnlySpan<PassData> readOnlySpan = GraphPasses(ctx, out actualPasses);
 		for (int i = 0; i < readOnlySpan.Length; i++)
 		{
 			dest.Add(readOnlySpan[i].GetName(ctx));
 		}
+		if (actualPasses.IsCreated)
+		{
+			actualPasses.Dispose();
+		}
+	}
+
+	private static bool CanMergeMSAASamples(ref NativePassData nativePass, ref PassData passToMerge)
+	{
+		if (nativePass.samples != passToMerge.fragmentInfoSamples)
+		{
+			if (passToMerge.fragmentInfoSamples == 1)
+			{
+				return passToMerge.extendedFeatureFlags.HasFlag(ExtendedFeatureFlags.MultisampledShaderResolve);
+			}
+			return false;
+		}
+		return true;
+	}
+
+	private static bool AreExtendedFeatureFlagsCompatible(ExtendedFeatureFlags flags0, ExtendedFeatureFlags flags1)
+	{
+		return true;
 	}
 
 	public static PassBreakAudit CanMerge(CompilerContextData contextData, int activeNativePassId, int passIdToMerge)
@@ -162,7 +190,7 @@ internal struct NativePassData
 		ref NativePassData reference2 = ref contextData.nativePassData.ElementAt(activeNativePassId);
 		if (reference.numFragments > 0 || reference.numFragmentInputs > 0)
 		{
-			if (reference2.width != reference.fragmentInfoWidth || reference2.height != reference.fragmentInfoHeight || reference2.volumeDepth != reference.fragmentInfoVolumeDepth || reference2.samples != reference.fragmentInfoSamples)
+			if (reference2.width != reference.fragmentInfoWidth || reference2.height != reference.fragmentInfoHeight || reference2.volumeDepth != reference.fragmentInfoVolumeDepth || !CanMergeMSAASamples(ref reference2, ref reference))
 			{
 				return new PassBreakAudit(PassBreakReason.TargetSizeMismatch, passIdToMerge);
 			}
@@ -177,6 +205,10 @@ internal struct NativePassData
 			if (reference2.hasFoveatedRasterization != reference.hasFoveatedRasterization)
 			{
 				return new PassBreakAudit(PassBreakReason.FRStateMismatch, passIdToMerge);
+			}
+			if (!AreExtendedFeatureFlagsCompatible(reference2.extendedFeatureFlags, reference.extendedFeatureFlags))
+			{
+				return new PassBreakAudit(PassBreakReason.ExtendedFeatureFlagsIncompatible, passIdToMerge);
 			}
 			if (reference2.hasShadingRateImage != reference.fragmentInfoHasShadingRateImage)
 			{
@@ -199,50 +231,84 @@ internal struct NativePassData
 			{
 				return new PassBreakAudit(PassBreakReason.DifferentShadingRateStates, passIdToMerge);
 			}
+			if (reference2.extendedFeatureFlags.HasFlag(ExtendedFeatureFlags.MultisampledShaderResolve))
+			{
+				return new PassBreakAudit(PassBreakReason.MultisampledShaderResolveMustBeLastPass, passIdToMerge);
+			}
 		}
-		ReadOnlySpan<PassInputData> readOnlySpan = reference.Inputs(contextData);
+		ReadOnlySpan<ResourceHandle> readOnlySpan = reference.SampledTexturesIfRaster(contextData);
 		for (int i = 0; i < readOnlySpan.Length; i++)
 		{
-			ResourceHandle resource = readOnlySpan[i].resource;
-			int writePassId = contextData.resources[resource].writePassId;
-			if (writePassId >= reference2.firstGraphPass && writePassId < reference2.lastGraphPass + 1 && !reference.IsUsedAsFragment(resource, contextData))
+			ref ResourceVersionedData reference4 = ref contextData.VersionedResourceData(in readOnlySpan[i]);
+			if (!contextData.passData[reference4.writePassId].culled && reference4.written && reference4.writePassId >= reference2.firstGraphPass && reference4.writePassId < reference2.lastGraphPass + 1)
 			{
 				return new PassBreakAudit(PassBreakReason.NextPassReadsTexture, passIdToMerge);
 			}
 		}
-		FixedAttachmentArray<PassFragmentData> fixedAttachmentArray = default(FixedAttachmentArray<PassFragmentData>);
+		FixedAttachmentArray<PassFragmentData> attachmentsToTryAdding = default(FixedAttachmentArray<PassFragmentData>);
 		int num = 8 - reference2.fragments.size;
-		ReadOnlySpan<PassFragmentData> readOnlySpan2 = reference.Fragments(contextData);
-		for (int i = 0; i < readOnlySpan2.Length; i++)
+		ReadOnlySpan<PassFragmentData> readOnlySpan3;
+		if (reference.numFragments > 0)
 		{
-			ref readonly PassFragmentData reference4 = ref readOnlySpan2[i];
-			bool flag = false;
-			for (int j = 0; j < reference2.fragments.size; j++)
+			HashSet<int> value;
+			using (HashSetPool<int>.Get(out value))
 			{
-				if (PassFragmentData.SameSubResource(in reference2.fragments[j], in reference4))
+				NativeArray<PassData> actualPasses;
+				ReadOnlySpan<PassData> readOnlySpan2 = reference2.GraphPasses(contextData, out actualPasses);
+				for (int i = 0; i < readOnlySpan2.Length; i++)
 				{
-					flag = true;
-					break;
+					ref readonly PassData reference5 = ref readOnlySpan2[i];
+					if (reference5.numSampledOnlyRaster > 0)
+					{
+						readOnlySpan = reference5.SampledTexturesIfRaster(contextData);
+						for (int j = 0; j < readOnlySpan.Length; j++)
+						{
+							ref readonly ResourceHandle reference6 = ref readOnlySpan[j];
+							value.Add(reference6.index);
+						}
+					}
 				}
-			}
-			if (!flag)
-			{
-				if (num == 0)
+				if (actualPasses.IsCreated)
 				{
-					return new PassBreakAudit(PassBreakReason.AttachmentLimitReached, passIdToMerge);
+					actualPasses.Dispose();
 				}
-				fixedAttachmentArray.Add(in reference4);
-				num--;
+				readOnlySpan3 = reference.Fragments(contextData);
+				for (int i = 0; i < readOnlySpan3.Length; i++)
+				{
+					ref readonly PassFragmentData reference7 = ref readOnlySpan3[i];
+					bool flag = false;
+					for (int k = 0; k < reference2.fragments.size; k++)
+					{
+						if (PassFragmentData.SameSubResource(in reference2.fragments[k], in reference7))
+						{
+							flag = true;
+							break;
+						}
+					}
+					if (!flag)
+					{
+						if (num == 0)
+						{
+							return new PassBreakAudit(PassBreakReason.AttachmentLimitReached, passIdToMerge);
+						}
+						attachmentsToTryAdding.Add(in reference7);
+						num--;
+					}
+					if (value.Contains(reference7.resource.index))
+					{
+						return new PassBreakAudit(PassBreakReason.NextPassTargetsTexture, passIdToMerge);
+					}
+				}
 			}
 		}
-		readOnlySpan2 = reference.FragmentInputs(contextData);
-		for (int i = 0; i < readOnlySpan2.Length; i++)
+		readOnlySpan3 = reference.FragmentInputs(contextData);
+		for (int i = 0; i < readOnlySpan3.Length; i++)
 		{
-			ref readonly PassFragmentData reference5 = ref readOnlySpan2[i];
+			ref readonly PassFragmentData reference8 = ref readOnlySpan3[i];
 			bool flag2 = false;
-			for (int k = 0; k < reference2.fragments.size; k++)
+			for (int l = 0; l < reference2.fragments.size; l++)
 			{
-				if (PassFragmentData.SameSubResource(in reference2.fragments[k], in reference5))
+				if (PassFragmentData.SameSubResource(in reference2.fragments[l], in reference8))
 				{
 					flag2 = true;
 					break;
@@ -254,15 +320,39 @@ internal struct NativePassData
 				{
 					return new PassBreakAudit(PassBreakReason.AttachmentLimitReached, passIdToMerge);
 				}
-				fixedAttachmentArray.Add(in reference5);
+				attachmentsToTryAdding.Add(in reference8);
 				num--;
 			}
+		}
+		if (TotalAttachmentsSizeExceedPixelStorageLimit(contextData, ref reference2, ref attachmentsToTryAdding))
+		{
+			return new PassBreakAudit(PassBreakReason.AttachmentLimitReached, passIdToMerge);
 		}
 		if (reference2.numGraphPasses >= 8 && !CanMergeNativeSubPass(contextData, ref reference2, ref reference))
 		{
 			return new PassBreakAudit(PassBreakReason.SubPassLimitReached, passIdToMerge);
 		}
 		return new PassBreakAudit(PassBreakReason.Merged, passIdToMerge);
+	}
+
+	private static bool TotalAttachmentsSizeExceedPixelStorageLimit(CompilerContextData contextData, ref NativePassData nativePass, ref FixedAttachmentArray<PassFragmentData> attachmentsToTryAdding)
+	{
+		if (Application.platform == RuntimePlatform.IPhonePlayer && SystemInfo.maxTiledPixelStorageSize <= 32)
+		{
+			int num = 0;
+			for (int i = 0; i < nativePass.fragments.size; i++)
+			{
+				ref ResourceUnversionedData reference = ref contextData.UnversionedResourceData(in nativePass.fragments[i].resource);
+				num += SystemInfo.GetTiledRenderTargetStorageSize(reference.graphicsFormat, reference.msaaSamples);
+			}
+			for (int j = 0; j < attachmentsToTryAdding.size; j++)
+			{
+				ref ResourceUnversionedData reference2 = ref contextData.UnversionedResourceData(in attachmentsToTryAdding[j].resource);
+				num += SystemInfo.GetTiledRenderTargetStorageSize(reference2.graphicsFormat, reference2.msaaSamples);
+			}
+			return num > SystemInfo.maxTiledPixelStorageSize;
+		}
+		return false;
 	}
 
 	private static bool CanMergeNativeSubPass(CompilerContextData contextData, ref NativePassData nativePass, ref PassData passToMerge)
@@ -459,7 +549,7 @@ internal struct NativePassData
 		for (int i = firstNativeSubPass; i < firstNativeSubPass + numNativeSubPasses; i++)
 		{
 			ref SubPassDescriptor reference3 = ref contextData.nativeSubPassData.ElementAt(i);
-			reference3.flags = subPassFlagForMerging;
+			reference3.flags |= subPassFlagForMerging;
 			for (int j = 0; j < reference3.colorOutputs.Length; j++)
 			{
 				if (reference3.colorOutputs[j] == 0)
@@ -498,6 +588,10 @@ internal struct NativePassData
 		reference.nativePassIndex = activeNativePassId;
 		reference2.numGraphPasses++;
 		reference2.lastGraphPass = passIdToMerge;
+		if (reference.extendedFeatureFlags.HasFlag(ExtendedFeatureFlags.MultisampledShaderResolve))
+		{
+			reference2.extendedFeatureFlags |= ExtendedFeatureFlags.MultisampledShaderResolve;
+		}
 		if (!reference2.hasDepth && reference.fragmentInfoHasDepth)
 		{
 			reference2.AddDepthAttachmentFirstDuringMerge(contextData, contextData.fragmentData[reference.firstFragment]);

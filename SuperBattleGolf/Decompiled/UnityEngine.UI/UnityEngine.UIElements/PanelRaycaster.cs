@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngineInternal;
 
 namespace UnityEngine.UIElements;
 
@@ -69,7 +70,7 @@ public class PanelRaycaster : BaseRaycaster, IRuntimePanelComponent
 		Vector3 vector = relativeMousePositionForRaycast;
 		Vector2 delta = eventData.delta;
 		float num = Screen.height;
-		if (targetDisplay > 0 && targetDisplay < Display.displays.Length)
+		if (DisplayInternal.IsASecondaryDisplayIndex(targetDisplay))
 		{
 			num = Display.displays[targetDisplay].systemHeight;
 		}

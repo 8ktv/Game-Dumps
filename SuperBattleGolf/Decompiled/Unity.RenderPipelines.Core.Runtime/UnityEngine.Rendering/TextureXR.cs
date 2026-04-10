@@ -65,6 +65,7 @@ public static class TextureXR
 			switch (SystemInfo.graphicsDeviceType)
 			{
 			case GraphicsDeviceType.Direct3D11:
+			case GraphicsDeviceType.OpenGLES3:
 			case GraphicsDeviceType.PlayStation4:
 			case GraphicsDeviceType.Metal:
 			case GraphicsDeviceType.Direct3D12:

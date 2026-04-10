@@ -268,8 +268,9 @@ public class LevelBoundsTracker : MonoBehaviour
 		ReturnToBoundsInternal(explicitPosition, explicitRotation);
 	}
 
-	public bool IsInWaterLocalOnly(float verticalOffsetFactor = 1f)
+	public bool IsInWaterLocalOnly(out float heightAboveWater, float verticalOffsetFactor = 1f)
 	{
+		heightAboveWater = float.MaxValue;
 		if (CurrentSecondaryHazardLocalOnly == null)
 		{
 			if (MainOutOfBoundsHazard.Type != OutOfBoundsHazard.Water)
@@ -281,7 +282,9 @@ public class LevelBoundsTracker : MonoBehaviour
 		{
 			return false;
 		}
-		return base.transform.TransformPoint(settings.OutOfBoundsHazardSubmersionLocalPoint).y + settings.OutOfBoundsHazardSubmersionWorldVerticalOffset * verticalOffsetFactor < CurrentOutOfBoundsHazardWorldHeightLocalOnly;
+		float num = base.transform.TransformPoint(settings.OutOfBoundsHazardSubmersionLocalPoint).y + settings.OutOfBoundsHazardSubmersionWorldVerticalOffset * verticalOffsetFactor;
+		heightAboveWater = num - CurrentOutOfBoundsHazardWorldHeightLocalOnly;
+		return heightAboveWater < 0f;
 	}
 
 	public void ReturnToBoundsInternal(Vector3 position, Quaternion rotation)

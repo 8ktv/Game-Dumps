@@ -4,8 +4,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[UsedByNativeCode]
 [NativeHeader(Header = "Modules/Physics2D/Public/PhysicsScripting2D.h")]
+[UsedByNativeCode]
 public struct PhysicsShape2D
 {
 	private PhysicsShapeType2D m_ShapeType;

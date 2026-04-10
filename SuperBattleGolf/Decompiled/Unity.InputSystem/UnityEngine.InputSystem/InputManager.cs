@@ -194,9 +194,11 @@ internal class InputManager
 
 	private static readonly ProfilerMarker k_InputOnActionsChangeMarker = new ProfilerMarker("InpustSystem.onActionsChange");
 
+	private bool m_CustomTypesRegistered;
+
 	internal int m_LayoutRegistrationVersion;
 
-	private float m_PollingFrequency;
+	private InputEventHandledPolicy m_InputEventHandledPolicy;
 
 	internal InputControlLayout.Collection m_Layouts;
 
@@ -253,6 +255,10 @@ internal class InputManager
 	private bool m_HaveDevicesWithStateCallbackReceivers;
 
 	private bool m_HasFocus;
+
+	private bool m_DiscardOutOfFocusEvents;
+
+	private double m_FocusRegainedTime;
 
 	private InputEventStream m_InputEventStream;
 
@@ -392,7 +398,7 @@ internal class InputManager
 	{
 		get
 		{
-			return m_PollingFrequency;
+			return m_Runtime.pollingFrequency;
 		}
 		set
 		{
@@ -400,11 +406,24 @@ internal class InputManager
 			{
 				throw new ArgumentException("Polling frequency must be greater than zero", "value");
 			}
-			m_PollingFrequency = value;
-			if (m_Runtime != null)
+			m_Runtime.pollingFrequency = value;
+		}
+	}
+
+	internal InputEventHandledPolicy inputEventHandledPolicy
+	{
+		get
+		{
+			return m_InputEventHandledPolicy;
+		}
+		set
+		{
+			if ((uint)value <= 1u)
 			{
-				m_Runtime.pollingFrequency = value;
+				m_InputEventHandledPolicy = value;
+				return;
 			}
+			throw new ArgumentOutOfRangeException($"Unsupported input event handling policy: {value}");
 		}
 	}
 
@@ -1187,6 +1206,15 @@ internal class InputManager
 		device.MakeCurrent();
 	}
 
+	internal bool HasDevice(InputDevice device)
+	{
+		if (device.m_DeviceIndex < m_DevicesCount)
+		{
+			return m_Devices[device.m_DeviceIndex] == device;
+		}
+		return false;
+	}
+
 	public InputDevice AddDevice(Type type, string name = null)
 	{
 		if (type == null)
@@ -1733,14 +1761,14 @@ internal class InputManager
 	internal void InitializeData()
 	{
 		m_Layouts.Allocate();
-		m_Processors.Initialize();
-		m_Interactions.Initialize();
-		m_Composites.Initialize();
+		m_Processors.Initialize(this);
+		m_Interactions.Initialize(this);
+		m_Composites.Initialize(this);
 		m_DevicesById = new Dictionary<int, InputDevice>();
 		m_UpdateMask = InputUpdateType.Dynamic | InputUpdateType.Fixed;
 		m_HasFocus = Application.isFocused;
 		m_ScrollDeltaBehavior = InputSettings.ScrollDeltaBehavior.UniformAcrossAllPlatforms;
-		m_PollingFrequency = 60f;
+		m_InputEventHandledPolicy = InputEventHandledPolicy.SuppressStateUpdates;
 		RegisterControlLayout("Axis", typeof(AxisControl));
 		RegisterControlLayout("Button", typeof(ButtonControl));
 		RegisterControlLayout("DiscreteButton", typeof(DiscreteButtonControl));
@@ -1811,10 +1839,9 @@ internal class InputManager
 		composites.AddTypeRegistration("ButtonWithTwoModifiers", typeof(ButtonWithTwoModifiers));
 		composites.AddTypeRegistration("OneModifier", typeof(OneModifierComposite));
 		composites.AddTypeRegistration("TwoModifiers", typeof(TwoModifiersComposite));
-		RegisterCustomTypes();
 	}
 
-	private void RegisterCustomTypes(Type[] types)
+	private static void RegisterCustomTypes(Type[] types)
 	{
 		foreach (Type type in types)
 		{
@@ -1836,8 +1863,13 @@ internal class InputManager
 		}
 	}
 
-	private void RegisterCustomTypes()
+	internal bool RegisterCustomTypes()
 	{
+		if (m_CustomTypesRegistered)
+		{
+			return false;
+		}
+		m_CustomTypesRegistered = true;
 		Assembly assembly = typeof(InputProcessor).Assembly;
 		string name = assembly.GetName().Name;
 		Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -1863,6 +1895,7 @@ internal class InputManager
 			{
 			}
 		}
+		return true;
 	}
 
 	internal void InstallRuntime(IInputRuntime runtime)
@@ -1924,6 +1957,7 @@ internal class InputManager
 		}
 		InputControlLayout.s_CacheInstance = default(InputControlLayout.Cache);
 		InputControlLayout.s_CacheInstanceRef = 0;
+		m_CustomTypesRegistered = false;
 		if (m_Runtime != null)
 		{
 			m_Runtime.onUpdate = null;
@@ -2342,6 +2376,8 @@ internal class InputManager
 		}
 		else
 		{
+			m_DiscardOutOfFocusEvents = true;
+			m_FocusRegainedTime = m_Runtime.currentTime;
 			for (int j = 0; j < m_DevicesCount; j++)
 			{
 				InputDevice inputDevice2 = m_Devices[j];
@@ -2390,8 +2426,8 @@ internal class InputManager
 		bool flag = updateType.IsPlayerUpdate() && gameIsPlaying;
 		double num = ((updateType == InputUpdateType.Fixed) ? m_Runtime.currentTimeForFixedUpdate : m_Runtime.currentTime);
 		bool flag2 = (updateType == InputUpdateType.Fixed || updateType == InputUpdateType.BeforeRender) && InputSystem.settings.updateMode == InputSettings.UpdateMode.ProcessEventsInFixedUpdate;
-		bool flag3 = !gameHasFocus && !m_Runtime.runInBackground;
-		if (eventBuffer.eventCount == 0 || flag3)
+		bool flag3 = ShouldFlushEventBuffer();
+		if (eventBuffer.eventCount == 0 || flag3 || ShouldExitEarlyFromEventProcessing(updateType))
 		{
 			if (flag)
 			{
@@ -2474,7 +2510,7 @@ internal class InputManager
 				if (m_EventListeners.length > 0)
 				{
 					DelegateHelpers.InvokeCallbacksSafe(ref m_EventListeners, new InputEventPtr(ptr2), inputDevice, k_InputOnEventMarker, "InputSystem.onEvent");
-					if (ptr2->handled)
+					if (m_InputEventHandledPolicy == InputEventHandledPolicy.SuppressStateUpdates && ptr2->handled)
 					{
 						m_InputEventStream.Advance(leaveEventInBuffer: false);
 						continue;
@@ -2586,12 +2622,27 @@ internal class InputManager
 			m_InputEventStream.CleanUpAfterException();
 			throw;
 		}
+		m_DiscardOutOfFocusEvents = false;
 		if (flag)
 		{
 			ProcessStateChangeMonitorTimeouts();
 		}
 		InvokeAfterUpdateCallback(updateType);
 		m_CurrentUpdate = InputUpdateType.None;
+	}
+
+	private bool ShouldFlushEventBuffer()
+	{
+		if (!gameHasFocus && !m_Runtime.runInBackground)
+		{
+			return true;
+		}
+		return false;
+	}
+
+	private bool ShouldExitEarlyFromEventProcessing(InputUpdateType updateType)
+	{
+		return false;
 	}
 
 	private bool AreMaximumEventBytesPerUpdateExceeded(uint totalEventBytesProcessed)
@@ -2974,7 +3025,7 @@ internal class InputManager
 		{
 			eventPtr = (InputEvent*)UnsafeUtility.AddressOf(ref output);
 		}
-		eventPtr->handled = false;
+		bool handled = eventPtr->handled;
 		for (int i = 0; i < signalled.length; i++)
 		{
 			if (!signalled.TestBit(i))
@@ -2991,7 +3042,7 @@ internal class InputManager
 				Debug.LogError($"Exception '{ex.GetType().Name}' thrown from state change monitor '{stateChangeMonitorListener.monitor.GetType().Name}' on '{stateChangeMonitorListener.control}'");
 				Debug.LogException(ex);
 			}
-			if (eventPtr->handled)
+			if (!handled && eventPtr->handled)
 			{
 				uint groupIndex = listeners[i].groupIndex;
 				for (int j = i + 1; j < signalled.length; j++)
@@ -3001,7 +3052,10 @@ internal class InputManager
 						signalled.ClearBit(j);
 					}
 				}
-				eventPtr->handled = false;
+			}
+			if (eventPtr->handled)
+			{
+				eventPtr->handled = handled;
 			}
 			signalled.ClearBit(i);
 		}

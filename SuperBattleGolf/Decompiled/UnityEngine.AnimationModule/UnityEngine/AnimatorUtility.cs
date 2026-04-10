@@ -4,10 +4,10 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[NativeHeader("Modules/Animation/OptimizeTransformHierarchy.h")]
+[NativeHeader("Modules/Animation/ScriptBindings/AnimatorUtility.bindings.h")]
 public class AnimatorUtility
 {
-	[FreeFunction]
+	[FreeFunction("AnimatorUtilityBindings::OptimizeTransformHierarchy")]
 	public static void OptimizeTransformHierarchy([NotNull] GameObject go, string[] exposedTransforms)
 	{
 		if ((object)go == null)
@@ -22,7 +22,7 @@ public class AnimatorUtility
 		OptimizeTransformHierarchy_Injected(intPtr, exposedTransforms);
 	}
 
-	[FreeFunction]
+	[FreeFunction("AnimatorUtilityBindings::DeoptimizeTransformHierarchy")]
 	public static void DeoptimizeTransformHierarchy([NotNull] GameObject go)
 	{
 		if ((object)go == null)

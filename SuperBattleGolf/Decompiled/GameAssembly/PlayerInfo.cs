@@ -25,6 +25,9 @@ public class PlayerInfo : NetworkBehaviour
 	[SyncVar(hook = "OnNetworkedEquippedItemChanged")]
 	private ItemType networkedEquippedItem;
 
+	[SyncVar(hook = "OnNetworkedRocketDriverThrustPowerChanged")]
+	private float networkedRocketDriverNormalizedCharge;
+
 	[SyncVar(hook = "OnIsElectromagnetShieldActiveChanged")]
 	private bool isElectromagnetShieldActive;
 
@@ -42,9 +45,13 @@ public class PlayerInfo : NetworkBehaviour
 
 	private bool isRival;
 
+	private bool isDominated;
+
 	private FirstPlaceCrownVfx firstPlaceVfx;
 
 	private RivalryVfx rivalVfx;
+
+	private DominatedVfx dominatingVfx;
 
 	private AirhornPlayerTriggeredVfx airhornReactionVfx;
 
@@ -72,6 +79,8 @@ public class PlayerInfo : NetworkBehaviour
 
 	private AntiCheatPerPlayerRateChecker serverElectromagnetShieldHitCommandRateLimiter;
 
+	private AntiCheatRateChecker serverCancelEmoteCommandRateLimiter;
+
 	public static readonly Dictionary<ulong, PlayerInfo> playerInfoPerPlayerGuid;
 
 	private ButtonPrompt exitButtonPrompt;
@@ -81,6 +90,8 @@ public class PlayerInfo : NetworkBehaviour
 	public Action<int, int> _Mirror_SyncVarHookDelegate_networkedEquippedItemIndex;
 
 	public Action<ItemType, ItemType> _Mirror_SyncVarHookDelegate_networkedEquippedItem;
+
+	public Action<float, float> _Mirror_SyncVarHookDelegate_networkedRocketDriverNormalizedCharge;
 
 	public Action<bool, bool> _Mirror_SyncVarHookDelegate_isElectromagnetShieldActive;
 
@@ -257,6 +268,19 @@ public class PlayerInfo : NetworkBehaviour
 		}
 	}
 
+	public float NetworknetworkedRocketDriverNormalizedCharge
+	{
+		get
+		{
+			return networkedRocketDriverNormalizedCharge;
+		}
+		[param: In]
+		set
+		{
+			GeneratedSyncVarSetter(value, ref networkedRocketDriverNormalizedCharge, 32uL, _Mirror_SyncVarHookDelegate_networkedRocketDriverNormalizedCharge);
+		}
+	}
+
 	public bool NetworkisElectromagnetShieldActive
 	{
 		get
@@ -266,7 +290,7 @@ public class PlayerInfo : NetworkBehaviour
 		[param: In]
 		set
 		{
-			GeneratedSyncVarSetter(value, ref isElectromagnetShieldActive, 32uL, _Mirror_SyncVarHookDelegate_isElectromagnetShieldActive);
+			GeneratedSyncVarSetter(value, ref isElectromagnetShieldActive, 64uL, _Mirror_SyncVarHookDelegate_isElectromagnetShieldActive);
 		}
 	}
 
@@ -279,7 +303,7 @@ public class PlayerInfo : NetworkBehaviour
 		[param: In]
 		set
 		{
-			GeneratedSyncVarSetter(value, ref electromagnetShieldItemUseId, 64uL, null);
+			GeneratedSyncVarSetter(value, ref electromagnetShieldItemUseId, 128uL, null);
 		}
 	}
 
@@ -292,7 +316,7 @@ public class PlayerInfo : NetworkBehaviour
 		[param: In]
 		set
 		{
-			GeneratedSyncVarSetter(value, ref activeGolfCartSeat, 128uL, _Mirror_SyncVarHookDelegate_activeGolfCartSeat);
+			GeneratedSyncVarSetter(value, ref activeGolfCartSeat, 256uL, _Mirror_SyncVarHookDelegate_activeGolfCartSeat);
 		}
 	}
 
@@ -363,14 +387,15 @@ public class PlayerInfo : NetworkBehaviour
 		syncDirection = SyncDirection.ClientToServer;
 		OnIsElectromagnetShieldActiveChanged(wasActive: false, isElectromagnetShieldActive);
 		LoadingScreen.Hide();
-		PlayerId.AnyPlayerGuidChanged += OnAnyPlayerGuidChanged;
 		Movement.IsVisibleChanged += OnIsVisibleChanged;
+		AsHittable.IsFrozenChanged += OnIsFrozenChanged;
+		PlayerId.AnyPlayerGuidChanged += OnAnyPlayerGuidChanged;
 		CourseManager.PlayerDominationsChanged += OnPlayerDominationsChanged;
 	}
 
 	private void Start()
 	{
-		UpdateIsRival();
+		UpdateDominationState();
 	}
 
 	public void OnWillBeDestroyed()
@@ -394,16 +419,22 @@ public class PlayerInfo : NetworkBehaviour
 		LeftHandEquipmentSwitcher.OnWillBeDestroyed();
 		Vfx.OnWillBeDestroyed();
 		ReturnButtonPrompts();
-		if (!BNetworkManager.IsChangingSceneOrShuttingDown)
+		if (BNetworkManager.IsChangingSceneOrShuttingDown)
 		{
-			if (isElectromagnetShieldActive)
-			{
-				ElectromagnetShieldManager.DeregisterActiveShield(this);
-			}
-			PlayerId.AnyPlayerGuidChanged -= OnAnyPlayerGuidChanged;
-			Movement.IsVisibleChanged -= OnIsVisibleChanged;
-			CourseManager.PlayerDominationsChanged -= OnPlayerDominationsChanged;
-			if (base.isLocalPlayer && activeGolfCartSeat.IsValid())
+			return;
+		}
+		if (isElectromagnetShieldActive)
+		{
+			ElectromagnetShieldManager.DeregisterActiveShield(this);
+		}
+		Movement.IsVisibleChanged -= OnIsVisibleChanged;
+		AsHittable.IsFrozenChanged -= OnIsFrozenChanged;
+		PlayerId.AnyPlayerGuidChanged -= OnAnyPlayerGuidChanged;
+		CourseManager.PlayerDominationsChanged -= OnPlayerDominationsChanged;
+		if (activeGolfCartSeat.IsValid())
+		{
+			activeGolfCartSeat.golfCart.AsEntity.AsHittable.IsFrozenChanged -= OnCurrentGolfCartIsFrozenChanged;
+			if (base.isLocalPlayer)
 			{
 				activeGolfCartSeat.golfCart.DriverSeatReserverChanged -= OnLocalPlayerGolfCartDriverSeatReserverChanged;
 				activeGolfCartSeat.golfCart.PassengersChanged -= OnLocalPlayerGolfCartPassengersChanged;
@@ -417,6 +448,7 @@ public class PlayerInfo : NetworkBehaviour
 		serverInformPlayerOfBlownAirhornCommandRateLimiter = new AntiCheatPerPlayerRateChecker("Inform of blown airhorn", 0.5f, 2, 10, 2f);
 		serverAirhornReactionVfxCommandRateLimiter = new AntiCheatRateChecker("Airhorn reaction VFX", base.connectionToClient.connectionId, 0.1f, 10, 20, 1f, 5);
 		serverElectromagnetShieldHitCommandRateLimiter = new AntiCheatPerPlayerRateChecker("Electromagnet shield hit", 0.1f, 10, 20, 1f, 5);
+		serverCancelEmoteCommandRateLimiter = new AntiCheatRateChecker("Cancel emote", base.connectionToClient.connectionId, 0.1f, 5, 20, 2f);
 	}
 
 	public override void OnStartClient()
@@ -511,6 +543,11 @@ public class PlayerInfo : NetworkBehaviour
 	public void SetEquippedItem(ItemType item)
 	{
 		NetworknetworkedEquippedItem = item;
+	}
+
+	public void SetRocketDriverThrustPower(float power)
+	{
+		NetworknetworkedRocketDriverNormalizedCharge = power;
 	}
 
 	public void SetEmoteToPlay(Emote emote)
@@ -660,7 +697,7 @@ public class PlayerInfo : NetworkBehaviour
 
 	public void CancelEmote(bool canHideEmoteMenu)
 	{
-		if (canHideEmoteMenu && RadialMenu.CurrentMode == RadialMenuMode.Emote)
+		if (canHideEmoteMenu && (RadialMenu.CurrentMode == RadialMenuMode.Emote || RadialMenu.CurrentMode == RadialMenuMode.SpectatorEmote))
 		{
 			RadialMenu.Hide();
 		}
@@ -677,7 +714,29 @@ public class PlayerInfo : NetworkBehaviour
 			emoteToPlay = Emote.None;
 			SetEmoteBeingPlayed(Emote.None);
 			AnimatorIo.SetEmote(Emote.None);
+			CmdInformCancelledEmote();
 		}
+	}
+
+	[Command]
+	private void CmdInformCancelledEmote()
+	{
+		if (base.isServer && base.isClient)
+		{
+			UserCode_CmdInformCancelledEmote();
+			return;
+		}
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendCommandInternal("System.Void PlayerInfo::CmdInformCancelledEmote()", 657875652, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[ClientRpc]
+	private void RpcInformCancelledEmote()
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendRPCInternal("System.Void PlayerInfo::RpcInformCancelledEmote()", -1888783173, writer, 0, includeOwner: true);
+		NetworkWriterPool.Return(writer);
 	}
 
 	private void SetEmoteBeingPlayed(Emote emote)
@@ -776,6 +835,14 @@ public class PlayerInfo : NetworkBehaviour
 			return false;
 		}
 		if (Movement.IsKnockedOutOrRecovering)
+		{
+			return false;
+		}
+		if (Movement.IsRespawning)
+		{
+			return false;
+		}
+		if (AsHittable.IsFrozen)
 		{
 			return false;
 		}
@@ -928,6 +995,33 @@ public class PlayerInfo : NetworkBehaviour
 		AsGolfer.InformCourseStateChanged(previousState, currentState);
 	}
 
+	[TargetRpc]
+	public void RpcInformFrozeGolfCart(int otherPassengerCount)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		writer.WriteVarInt(otherPassengerCount);
+		SendTargetRPCInternal(null, "System.Void PlayerInfo::RpcInformFrozeGolfCart(System.Int32)", 1644328919, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	public void RpcInformPlayerFrozen(bool isFrozen)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		writer.WriteBool(isFrozen);
+		SendTargetRPCInternal(null, "System.Void PlayerInfo::RpcInformPlayerFrozen(System.Boolean)", 1461172404, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[ClientRpc]
+	public void RpcInformAllClientsPlayerFrozen(bool isFrozen)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		writer.WriteBool(isFrozen);
+		SendRPCInternal("System.Void PlayerInfo::RpcInformAllClientsPlayerFrozen(System.Boolean)", -1985668283, writer, 0, includeOwner: true);
+		NetworkWriterPool.Return(writer);
+	}
+
 	[ClientRpc]
 	public void RpcPopUpPlacementScore(int placement, int score)
 	{
@@ -1004,15 +1098,33 @@ public class PlayerInfo : NetworkBehaviour
 		return $"+{penalty} {text}";
 	}
 
-	public void UpdateIsRival()
+	public void UpdateDominationState()
 	{
 		bool flag = isRival;
 		isRival = IsRival();
-		if (isRival != flag)
+		bool flag2 = isDominated;
+		isDominated = IsDominated();
+		if (isRival != flag || isDominated != flag2)
 		{
 			UpdateOverheadMarkVfx();
 		}
+		bool IsDominated()
+		{
+			if (!LocalPlayerValid())
+			{
+				return false;
+			}
+			return CourseManager.PlayerDominations.Contains(new CourseManager.PlayerPair(GameManager.LocalPlayerId.Guid, PlayerId.Guid));
+		}
 		bool IsRival()
+		{
+			if (!LocalPlayerValid())
+			{
+				return false;
+			}
+			return CourseManager.PlayerDominations.Contains(new CourseManager.PlayerPair(PlayerId.Guid, GameManager.LocalPlayerId.Guid));
+		}
+		bool LocalPlayerValid()
 		{
 			if (base.isLocalPlayer)
 			{
@@ -1026,7 +1138,7 @@ public class PlayerInfo : NetworkBehaviour
 			{
 				return false;
 			}
-			return CourseManager.PlayerDominations.Contains(new CourseManager.PlayerPair(PlayerId.Guid, GameManager.LocalPlayerId.Guid));
+			return true;
 		}
 	}
 
@@ -1035,6 +1147,10 @@ public class PlayerInfo : NetworkBehaviour
 		if (!CanDisplayAnyMark())
 		{
 			ClearMark();
+		}
+		else if (isDominated)
+		{
+			ApplyDominatingMark();
 		}
 		else if (isRival)
 		{
@@ -1048,9 +1164,23 @@ public class PlayerInfo : NetworkBehaviour
 		{
 			ClearMark();
 		}
+		void ApplyDominatingMark()
+		{
+			RemoveFirstMark();
+			RemoveRivalMark();
+			if (!(dominatingVfx != null) && VfxPersistentData.TryGetPooledVfx(VfxType.Dominated, out var particleSystem))
+			{
+				dominatingVfx = particleSystem.GetComponent<DominatedVfx>();
+				if (!(dominatingVfx == null))
+				{
+					dominatingVfx.Spawn(HeadBone);
+				}
+			}
+		}
 		void ApplyFirstPlaceMark()
 		{
 			RemoveRivalMark();
+			RemoveDominatingMark();
 			if (!(firstPlaceVfx != null) && VfxPersistentData.TryGetPooledVfx(VfxType.FirstPlaceCrown, out var particleSystem))
 			{
 				firstPlaceVfx = particleSystem.GetComponent<FirstPlaceCrownVfx>();
@@ -1063,6 +1193,7 @@ public class PlayerInfo : NetworkBehaviour
 		void ApplyRivalMark()
 		{
 			RemoveFirstMark();
+			RemoveDominatingMark();
 			if (!(rivalVfx != null) && VfxPersistentData.TryGetPooledVfx(VfxType.Rivalry, out var particleSystem))
 			{
 				rivalVfx = particleSystem.GetComponent<RivalryVfx>();
@@ -1088,6 +1219,15 @@ public class PlayerInfo : NetworkBehaviour
 		{
 			RemoveRivalMark();
 			RemoveFirstMark();
+			RemoveDominatingMark();
+		}
+		void RemoveDominatingMark()
+		{
+			if (!(dominatingVfx == null))
+			{
+				dominatingVfx.Despawn();
+				dominatingVfx = null;
+			}
 		}
 		void RemoveFirstMark()
 		{
@@ -1187,6 +1327,14 @@ public class PlayerInfo : NetworkBehaviour
 	}
 
 	[TargetRpc]
+	public void RpcInformBallEnteredHoleAfterTrajectoryDeflectionByTreeOrFoliage()
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendTargetRPCInternal(null, "System.Void PlayerInfo::RpcInformBallEnteredHoleAfterTrajectoryDeflectionByTreeOrFoliage()", 2102009009, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
 	public void RpcInformSpectatedEntireHole()
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
@@ -1212,10 +1360,20 @@ public class PlayerInfo : NetworkBehaviour
 	}
 
 	[TargetRpc]
-	public void RpcInformEliminatedOtherPlayerInWater()
+	public void RpcInformEliminatedOtherPlayer(EliminationReason reason, EliminationReason immediateEliminationReason)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
-		SendTargetRPCInternal(null, "System.Void PlayerInfo::RpcInformEliminatedOtherPlayerInWater()", 723785861, writer, 0);
+		GeneratedNetworkCode._Write_EliminationReason(writer, reason);
+		GeneratedNetworkCode._Write_EliminationReason(writer, immediateEliminationReason);
+		SendTargetRPCInternal(null, "System.Void PlayerInfo::RpcInformEliminatedOtherPlayer(EliminationReason,EliminationReason)", 1963146611, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	public void RpcInformOtherPlayerEliminatedWhileFrozenBySelf()
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendTargetRPCInternal(null, "System.Void PlayerInfo::RpcInformOtherPlayerEliminatedWhileFrozenBySelf()", 491020215, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
@@ -1224,6 +1382,30 @@ public class PlayerInfo : NetworkBehaviour
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		SendTargetRPCInternal(null, "System.Void PlayerInfo::InformKnockedOutSelfAndOtherPlayerWithExplosive()", -8204037, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	public void RpcInformQualifiedForThereCanBeOnlyOneAchievement()
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendTargetRPCInternal(null, "System.Void PlayerInfo::RpcInformQualifiedForThereCanBeOnlyOneAchievement()", -1435222921, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	public void RpcInformQualifiedTargetRichEnvironmentAchievement()
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendTargetRPCInternal(null, "System.Void PlayerInfo::RpcInformQualifiedTargetRichEnvironmentAchievement()", -2117895927, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	public void RpcInformQualifiedForOneTrueKingAchievement()
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendTargetRPCInternal(null, "System.Void PlayerInfo::RpcInformQualifiedForOneTrueKingAchievement()", -1005800463, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
@@ -1424,11 +1606,28 @@ public class PlayerInfo : NetworkBehaviour
 		PlayerAudio.PlayElectromagnetShieldHitLocalOnly(worldPosition);
 	}
 
+	private void UpdateAnimationSpeedLocalOnly()
+	{
+		AnimatorIo.SetAnimationSpeedLocalOnly(ShouldAnimationBeFrozen() ? 0f : 1f);
+		bool ShouldAnimationBeFrozen()
+		{
+			if (!activeGolfCartSeat.IsValid())
+			{
+				return false;
+			}
+			if (!activeGolfCartSeat.golfCart.AsEntity.AsHittable.IsFrozen)
+			{
+				return false;
+			}
+			return true;
+		}
+	}
+
 	private void OnAnyPlayerGuidChanged(PlayerId playerId)
 	{
 		if (ShouldUpdateIsRival())
 		{
-			UpdateIsRival();
+			UpdateDominationState();
 		}
 		bool ShouldUpdateIsRival()
 		{
@@ -1459,9 +1658,22 @@ public class PlayerInfo : NetworkBehaviour
 		}
 	}
 
+	private void OnIsFrozenChanged()
+	{
+		if (base.isLocalPlayer && !AsHittable.IsFrozen && AsGolfer.IsMatchResolved)
+		{
+			ExitGolfCart(GolfCartExitType.Default);
+		}
+	}
+
 	private void OnPlayerDominationsChanged(SyncSet<CourseManager.PlayerPair>.Operation operation, CourseManager.PlayerPair value)
 	{
-		UpdateIsRival();
+		UpdateDominationState();
+	}
+
+	private void OnCurrentGolfCartIsFrozenChanged()
+	{
+		UpdateAnimationSpeedLocalOnly();
 	}
 
 	private void OnLocalPlayerGolfCartDriverSeatReserverChanged()
@@ -1558,11 +1770,13 @@ public class PlayerInfo : NetworkBehaviour
 				Movement.InformEnteredGolfCart();
 				AsGolfer.InformEnteredGolfCart();
 				Inventory.InformEnteredGolfCart();
+				currentSeat.golfCart.AsEntity.AsHittable.IsFrozenChanged += OnCurrentGolfCartIsFrozenChanged;
 			}
 			else
 			{
 				Movement.InformExitedGolfCart(previousSeat.golfCart);
 				Inventory.InformExitedGolfCart();
+				previousSeat.golfCart.AsEntity.AsHittable.IsFrozenChanged -= OnCurrentGolfCartIsFrozenChanged;
 			}
 			if (base.isLocalPlayer && !isInGolfCart)
 			{
@@ -1588,6 +1802,7 @@ public class PlayerInfo : NetworkBehaviour
 		}
 		AsEntity.NetworkRigidbody.syncPosition = !isInGolfCart;
 		AsEntity.NetworkRigidbody.syncRotation = !isInGolfCart;
+		UpdateAnimationSpeedLocalOnly();
 		if (isInGolfCart != wasInGolfCart)
 		{
 			this.IsInGolfCartChanged?.Invoke();
@@ -1628,6 +1843,16 @@ public class PlayerInfo : NetworkBehaviour
 		}
 	}
 
+	private void OnNetworkedRocketDriverThrustPowerChanged(float previousPower, float currentPower)
+	{
+		if (NetworkedEquippedItem == ItemType.RocketDriver && RightHandEquipmentSwitcher.TryGetComponentInChildren<RocketDriverEquipment>(out var foundComponent, includeInactive: true))
+		{
+			foundComponent.SetNormalizedCharge(networkedRocketDriverNormalizedCharge);
+			foundComponent.Vfx.SetThrusterPower(BMath.Clamp01(networkedRocketDriverNormalizedCharge));
+			foundComponent.Vfx.SetOvercharged(networkedRocketDriverNormalizedCharge > 1f);
+		}
+	}
+
 	private void OnScorePopupDisappeared(TextPopupUi popup)
 	{
 		RemoveTextPopup(popup);
@@ -1638,6 +1863,7 @@ public class PlayerInfo : NetworkBehaviour
 		_Mirror_SyncVarHookDelegate_shouldPlayOverchargedVfx = OnIsPlayingOverchargedVfxChanged;
 		_Mirror_SyncVarHookDelegate_networkedEquippedItemIndex = OnNetworkedEquippedItemIndexChanged;
 		_Mirror_SyncVarHookDelegate_networkedEquippedItem = OnNetworkedEquippedItemChanged;
+		_Mirror_SyncVarHookDelegate_networkedRocketDriverNormalizedCharge = OnNetworkedRocketDriverThrustPowerChanged;
 		_Mirror_SyncVarHookDelegate_isElectromagnetShieldActive = OnIsElectromagnetShieldActiveChanged;
 		_Mirror_SyncVarHookDelegate_activeGolfCartSeat = OnActiveGolfCartSeatChanged;
 	}
@@ -1645,15 +1871,20 @@ public class PlayerInfo : NetworkBehaviour
 	static PlayerInfo()
 	{
 		playerInfoPerPlayerGuid = new Dictionary<ulong, PlayerInfo>();
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInfo), "System.Void PlayerInfo::CmdInformCancelledEmote()", InvokeUserCode_CmdInformCancelledEmote, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInfo), "System.Void PlayerInfo::CmdRestartPlayer()", InvokeUserCode_CmdRestartPlayer, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInfo), "System.Void PlayerInfo::CmdInformPlayerOfBlownAirhorn(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdInformPlayerOfBlownAirhorn__NetworkConnectionToClient, requiresAuthority: false);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInfo), "System.Void PlayerInfo::CmdPlayAirhornReactionVfxForAllClients(System.Boolean,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayAirhornReactionVfxForAllClients__Boolean__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerInfo), "System.Void PlayerInfo::CmdPlayElectromagnetShieldHitForAllClients(UnityEngine.Vector3,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayElectromagnetShieldHitForAllClients__Vector3__NetworkConnectionToClient, requiresAuthority: false);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformCancelledEmote()", InvokeUserCode_RpcInformCancelledEmote);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformAllClientsPlayerFrozen(System.Boolean)", InvokeUserCode_RpcInformAllClientsPlayerFrozen__Boolean);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcPopUpPlacementScore(System.Int32,System.Int32)", InvokeUserCode_RpcPopUpPlacementScore__Int32__Int32);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcPopUpDrivingRangeScore(System.Int32)", InvokeUserCode_RpcPopUpDrivingRangeScore__Int32);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcPopUp(PlayerTextPopupType,System.Int32)", InvokeUserCode_RpcPopUp__PlayerTextPopupType__Int32);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcAwaitSpawning()", InvokeUserCode_RpcAwaitSpawning);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformOfGolfCartEnterAttemptResult(GolfCartInfo,System.Boolean)", InvokeUserCode_RpcInformOfGolfCartEnterAttemptResult__GolfCartInfo__Boolean);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformFrozeGolfCart(System.Int32)", InvokeUserCode_RpcInformFrozeGolfCart__Int32);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformPlayerFrozen(System.Boolean)", InvokeUserCode_RpcInformPlayerFrozen__Boolean);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformOfHoleFinishStrokesUnderPar(StrokesUnderParType)", InvokeUserCode_RpcInformOfHoleFinishStrokesUnderPar__StrokesUnderParType);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformKnockedOutOtherPlayer(KnockoutType,UnityEngine.Vector3,System.Single,ItemType,System.Boolean,System.Boolean)", InvokeUserCode_RpcInformKnockedOutOtherPlayer__KnockoutType__Vector3__Single__ItemType__Boolean__Boolean);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformPickedUpItemFromItemSpawner()", InvokeUserCode_RpcInformPickedUpItemFromItemSpawner);
@@ -1662,11 +1893,16 @@ public class PlayerInfo : NetworkBehaviour
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformEvadedHomingProjectile()", InvokeUserCode_RpcInformEvadedHomingProjectile);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformOfOrbitalLaserCloseCall()", InvokeUserCode_RpcInformOfOrbitalLaserCloseCall);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformBallEnteredHoleAfterTrajectoryDeflection()", InvokeUserCode_RpcInformBallEnteredHoleAfterTrajectoryDeflection);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformBallEnteredHoleAfterTrajectoryDeflectionByTreeOrFoliage()", InvokeUserCode_RpcInformBallEnteredHoleAfterTrajectoryDeflectionByTreeOrFoliage);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformSpectatedEntireHole()", InvokeUserCode_RpcInformSpectatedEntireHole);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformDisarmedLandmine()", InvokeUserCode_RpcInformDisarmedLandmine);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformDroveGolfCartOutOfBoundsWithOtherPassengers(EliminationReason)", InvokeUserCode_RpcInformDroveGolfCartOutOfBoundsWithOtherPassengers__EliminationReason);
-		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformEliminatedOtherPlayerInWater()", InvokeUserCode_RpcInformEliminatedOtherPlayerInWater);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformEliminatedOtherPlayer(EliminationReason,EliminationReason)", InvokeUserCode_RpcInformEliminatedOtherPlayer__EliminationReason__EliminationReason);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformOtherPlayerEliminatedWhileFrozenBySelf()", InvokeUserCode_RpcInformOtherPlayerEliminatedWhileFrozenBySelf);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::InformKnockedOutSelfAndOtherPlayerWithExplosive()", InvokeUserCode_InformKnockedOutSelfAndOtherPlayerWithExplosive);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformQualifiedForThereCanBeOnlyOneAchievement()", InvokeUserCode_RpcInformQualifiedForThereCanBeOnlyOneAchievement);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformQualifiedTargetRichEnvironmentAchievement()", InvokeUserCode_RpcInformQualifiedTargetRichEnvironmentAchievement);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformQualifiedForOneTrueKingAchievement()", InvokeUserCode_RpcInformQualifiedForOneTrueKingAchievement);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformOfCourseEndState(CourseManager/PlayerState)", InvokeUserCode_RpcInformOfCourseEndState__PlayerState);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformOfBlownAirhorn(PlayerInventory)", InvokeUserCode_RpcInformOfBlownAirhorn__PlayerInventory);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcPlayAirhornReactionVfx(Mirror.NetworkConnectionToClient,System.Boolean)", InvokeUserCode_RpcPlayAirhornReactionVfx__NetworkConnectionToClient__Boolean);
@@ -1696,6 +1932,43 @@ public class PlayerInfo : NetworkBehaviour
 		}
 	}
 
+	protected void UserCode_CmdInformCancelledEmote()
+	{
+		if (serverCancelEmoteCommandRateLimiter.RegisterHit())
+		{
+			RpcInformCancelledEmote();
+		}
+	}
+
+	protected static void InvokeUserCode_CmdInformCancelledEmote(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogError("Command CmdInformCancelledEmote called on client.");
+		}
+		else
+		{
+			((PlayerInfo)obj).UserCode_CmdInformCancelledEmote();
+		}
+	}
+
+	protected void UserCode_RpcInformCancelledEmote()
+	{
+		PlayerAudio.InformCancelledEmote();
+	}
+
+	protected static void InvokeUserCode_RpcInformCancelledEmote(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("RPC RpcInformCancelledEmote called on server.");
+		}
+		else
+		{
+			((PlayerInfo)obj).UserCode_RpcInformCancelledEmote();
+		}
+	}
+
 	protected void UserCode_RpcInformOfGolfCartEnterAttemptResult__GolfCartInfo__Boolean(GolfCartInfo golfCart, bool succeeded)
 	{
 		Movement.InformNoLongerEnteringGolfCartBeingEntered(golfCart);
@@ -1717,15 +1990,20 @@ public class PlayerInfo : NetworkBehaviour
 	{
 		if (serverRestartPlayerCommandRateLimiter.RegisterHit() && RestartPrompt.CanBePressed(this))
 		{
-			if (CourseManager.MatchState < MatchState.CountingDownToEnd)
+			RespawnTarget respawnTarget = GetRespawnTarget();
+			if (Movement.TryBeginRespawn(isRestart: true, respawnTarget) && respawnTarget == RespawnTarget.Ball)
 			{
-				CheckpointManager.ResetCheckpoint(this);
-				Movement.TryBeginRespawn(isRestart: true);
+				Movement.GetRespawnPosition(respawnTarget, out var _, out var position, out var _);
+				CheckpointManager.ResetCheckpointForPlayerRestart(this, position);
 			}
-			else
+		}
+		RespawnTarget GetRespawnTarget()
+		{
+			if (AsGolfer.IsAheadOfBall && AsGolfer.OwnBall != null && AsGolfer.OwnBall.IsStationary)
 			{
-				AsGolfer.ServerEliminate(EliminationReason.TimedOut);
+				return RespawnTarget.Ball;
 			}
+			return RespawnTarget.TeeOrCheckpoint;
 		}
 	}
 
@@ -1741,11 +2019,63 @@ public class PlayerInfo : NetworkBehaviour
 		}
 	}
 
+	protected void UserCode_RpcInformFrozeGolfCart__Int32(int otherPassengerCount)
+	{
+		Movement.InformFrozeGolfCart(otherPassengerCount);
+	}
+
+	protected static void InvokeUserCode_RpcInformFrozeGolfCart__Int32(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcInformFrozeGolfCart called on server.");
+		}
+		else
+		{
+			((PlayerInfo)obj).UserCode_RpcInformFrozeGolfCart__Int32(reader.ReadVarInt());
+		}
+	}
+
+	protected void UserCode_RpcInformPlayerFrozen__Boolean(bool isFrozen)
+	{
+		PlayerAudio.InformPlayerFrozen(isFrozen);
+	}
+
+	protected static void InvokeUserCode_RpcInformPlayerFrozen__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcInformPlayerFrozen called on server.");
+		}
+		else
+		{
+			((PlayerInfo)obj).UserCode_RpcInformPlayerFrozen__Boolean(reader.ReadBool());
+		}
+	}
+
+	protected void UserCode_RpcInformAllClientsPlayerFrozen__Boolean(bool isFrozen)
+	{
+		VoiceChat.InformPlayerFrozen(isFrozen);
+	}
+
+	protected static void InvokeUserCode_RpcInformAllClientsPlayerFrozen__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("RPC RpcInformAllClientsPlayerFrozen called on server.");
+		}
+		else
+		{
+			((PlayerInfo)obj).UserCode_RpcInformAllClientsPlayerFrozen__Boolean(reader.ReadBool());
+		}
+	}
+
 	protected void UserCode_RpcPopUpPlacementScore__Int32__Int32(int placement, int score)
 	{
 		if (placement >= 0)
 		{
-			string text = ((placement >= 7) ? string.Format(Localization.UI.POPUP_FinishedHigh, placement) : LocalizationManager.GetString(StringTable.UI, $"POPUP_Finished{placement + 1}"));
+			int num = placement + 1;
+			string text = ((num > 8) ? string.Format(Localization.UI.POPUP_FinishedHigh, num) : LocalizationManager.GetString(StringTable.UI, $"POPUP_Finished{num}"));
 			string text2 = text;
 			text2 = AddScoreToPopupText(text2, score);
 			PopUpInternal(text2, isPenalty: false);
@@ -1841,6 +2171,7 @@ public class PlayerInfo : NetworkBehaviour
 			}
 			break;
 		case KnockoutType.SwingProjectile:
+		case KnockoutType.RocketDriverSwingProjectile:
 			if (!SingletonBehaviour<DrivingRangeManager>.HasInstance && distance > GameManager.Achievements.HomeRunDistance)
 			{
 				GameManager.AchievementsManager.Unlock(AchievementId.HomeRun);
@@ -1860,10 +2191,23 @@ public class PlayerInfo : NetworkBehaviour
 				}
 			}
 			break;
+		case KnockoutType.ElephantGun:
+		case KnockoutType.DeflectedElephantGunShot:
+			if (!SingletonBehaviour<DrivingRangeManager>.HasInstance && distance > GameManager.Achievements.NowThatsSoldieringDistance)
+			{
+				GameManager.AchievementsManager.IncrementProgress(AchievementId.NowThatsSoldiering, 1);
+			}
+			break;
 		case KnockoutType.Landmine:
 			if (!SingletonBehaviour<DrivingRangeManager>.HasInstance && fromSpecialState)
 			{
 				GameManager.AchievementsManager.IncrementProgress(AchievementId.GreenThumb, 1);
+			}
+			break;
+		case KnockoutType.RocketDriverSwingPostHitSpin:
+			if (!SingletonBehaviour<DrivingRangeManager>.HasInstance)
+			{
+				GameManager.AchievementsManager.Unlock(AchievementId.RocketPirouette);
 			}
 			break;
 		case KnockoutType.GolfCart:
@@ -2022,6 +2366,26 @@ public class PlayerInfo : NetworkBehaviour
 		}
 	}
 
+	protected void UserCode_RpcInformBallEnteredHoleAfterTrajectoryDeflectionByTreeOrFoliage()
+	{
+		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance)
+		{
+			GameManager.AchievementsManager.Unlock(AchievementId.TigerInTheWoods);
+		}
+	}
+
+	protected static void InvokeUserCode_RpcInformBallEnteredHoleAfterTrajectoryDeflectionByTreeOrFoliage(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcInformBallEnteredHoleAfterTrajectoryDeflectionByTreeOrFoliage called on server.");
+		}
+		else
+		{
+			((PlayerInfo)obj).UserCode_RpcInformBallEnteredHoleAfterTrajectoryDeflectionByTreeOrFoliage();
+		}
+	}
+
 	protected void UserCode_RpcInformSpectatedEntireHole()
 	{
 		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance)
@@ -2082,23 +2446,43 @@ public class PlayerInfo : NetworkBehaviour
 		}
 	}
 
-	protected void UserCode_RpcInformEliminatedOtherPlayerInWater()
+	protected void UserCode_RpcInformEliminatedOtherPlayer__EliminationReason__EliminationReason(EliminationReason reason, EliminationReason immediateEliminationReason)
 	{
-		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance)
+		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance && immediateEliminationReason == EliminationReason.FellIntoWater)
 		{
 			GameManager.AchievementsManager.IncrementProgress(AchievementId.WalkThePlank, 1);
 		}
 	}
 
-	protected static void InvokeUserCode_RpcInformEliminatedOtherPlayerInWater(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcInformEliminatedOtherPlayer__EliminationReason__EliminationReason(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
-			Debug.LogError("TargetRPC RpcInformEliminatedOtherPlayerInWater called on server.");
+			Debug.LogError("TargetRPC RpcInformEliminatedOtherPlayer called on server.");
 		}
 		else
 		{
-			((PlayerInfo)obj).UserCode_RpcInformEliminatedOtherPlayerInWater();
+			((PlayerInfo)obj).UserCode_RpcInformEliminatedOtherPlayer__EliminationReason__EliminationReason(GeneratedNetworkCode._Read_EliminationReason(reader), GeneratedNetworkCode._Read_EliminationReason(reader));
+		}
+	}
+
+	protected void UserCode_RpcInformOtherPlayerEliminatedWhileFrozenBySelf()
+	{
+		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance)
+		{
+			GameManager.AchievementsManager.IncrementProgress(AchievementId.IceToSeeYou, 1);
+		}
+	}
+
+	protected static void InvokeUserCode_RpcInformOtherPlayerEliminatedWhileFrozenBySelf(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcInformOtherPlayerEliminatedWhileFrozenBySelf called on server.");
+		}
+		else
+		{
+			((PlayerInfo)obj).UserCode_RpcInformOtherPlayerEliminatedWhileFrozenBySelf();
 		}
 	}
 
@@ -2119,6 +2503,66 @@ public class PlayerInfo : NetworkBehaviour
 		else
 		{
 			((PlayerInfo)obj).UserCode_InformKnockedOutSelfAndOtherPlayerWithExplosive();
+		}
+	}
+
+	protected void UserCode_RpcInformQualifiedForThereCanBeOnlyOneAchievement()
+	{
+		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance)
+		{
+			GameManager.AchievementsManager.Unlock(AchievementId.ThereCanBeOnlyOne);
+		}
+	}
+
+	protected static void InvokeUserCode_RpcInformQualifiedForThereCanBeOnlyOneAchievement(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcInformQualifiedForThereCanBeOnlyOneAchievement called on server.");
+		}
+		else
+		{
+			((PlayerInfo)obj).UserCode_RpcInformQualifiedForThereCanBeOnlyOneAchievement();
+		}
+	}
+
+	protected void UserCode_RpcInformQualifiedTargetRichEnvironmentAchievement()
+	{
+		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance)
+		{
+			GameManager.AchievementsManager.Unlock(AchievementId.TargetRichEnvironment);
+		}
+	}
+
+	protected static void InvokeUserCode_RpcInformQualifiedTargetRichEnvironmentAchievement(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcInformQualifiedTargetRichEnvironmentAchievement called on server.");
+		}
+		else
+		{
+			((PlayerInfo)obj).UserCode_RpcInformQualifiedTargetRichEnvironmentAchievement();
+		}
+	}
+
+	protected void UserCode_RpcInformQualifiedForOneTrueKingAchievement()
+	{
+		if (!SingletonBehaviour<DrivingRangeManager>.HasInstance)
+		{
+			GameManager.AchievementsManager.Unlock(AchievementId.OneTrueKing);
+		}
+	}
+
+	protected static void InvokeUserCode_RpcInformQualifiedForOneTrueKingAchievement(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcInformQualifiedForOneTrueKingAchievement called on server.");
+		}
+		else
+		{
+			((PlayerInfo)obj).UserCode_RpcInformQualifiedForOneTrueKingAchievement();
 		}
 	}
 
@@ -2351,6 +2795,7 @@ public class PlayerInfo : NetworkBehaviour
 			writer.WriteBool(networkedIsAimingItem);
 			writer.WriteVarInt(networkedEquippedItemIndex);
 			GeneratedNetworkCode._Write_ItemType(writer, networkedEquippedItem);
+			writer.WriteFloat(networkedRocketDriverNormalizedCharge);
 			writer.WriteBool(isElectromagnetShieldActive);
 			GeneratedNetworkCode._Write_ItemUseId(writer, electromagnetShieldItemUseId);
 			GeneratedNetworkCode._Write_GolfCartSeat(writer, activeGolfCartSeat);
@@ -2379,13 +2824,17 @@ public class PlayerInfo : NetworkBehaviour
 		}
 		if ((syncVarDirtyBits & 0x20L) != 0L)
 		{
-			writer.WriteBool(isElectromagnetShieldActive);
+			writer.WriteFloat(networkedRocketDriverNormalizedCharge);
 		}
 		if ((syncVarDirtyBits & 0x40L) != 0L)
 		{
-			GeneratedNetworkCode._Write_ItemUseId(writer, electromagnetShieldItemUseId);
+			writer.WriteBool(isElectromagnetShieldActive);
 		}
 		if ((syncVarDirtyBits & 0x80L) != 0L)
+		{
+			GeneratedNetworkCode._Write_ItemUseId(writer, electromagnetShieldItemUseId);
+		}
+		if ((syncVarDirtyBits & 0x100L) != 0L)
 		{
 			GeneratedNetworkCode._Write_GolfCartSeat(writer, activeGolfCartSeat);
 		}
@@ -2401,6 +2850,7 @@ public class PlayerInfo : NetworkBehaviour
 			GeneratedSyncVarDeserialize(ref networkedIsAimingItem, null, reader.ReadBool());
 			GeneratedSyncVarDeserialize(ref networkedEquippedItemIndex, _Mirror_SyncVarHookDelegate_networkedEquippedItemIndex, reader.ReadVarInt());
 			GeneratedSyncVarDeserialize(ref networkedEquippedItem, _Mirror_SyncVarHookDelegate_networkedEquippedItem, GeneratedNetworkCode._Read_ItemType(reader));
+			GeneratedSyncVarDeserialize(ref networkedRocketDriverNormalizedCharge, _Mirror_SyncVarHookDelegate_networkedRocketDriverNormalizedCharge, reader.ReadFloat());
 			GeneratedSyncVarDeserialize(ref isElectromagnetShieldActive, _Mirror_SyncVarHookDelegate_isElectromagnetShieldActive, reader.ReadBool());
 			GeneratedSyncVarDeserialize(ref electromagnetShieldItemUseId, null, GeneratedNetworkCode._Read_ItemUseId(reader));
 			GeneratedSyncVarDeserialize(ref activeGolfCartSeat, _Mirror_SyncVarHookDelegate_activeGolfCartSeat, GeneratedNetworkCode._Read_GolfCartSeat(reader));
@@ -2429,13 +2879,17 @@ public class PlayerInfo : NetworkBehaviour
 		}
 		if ((num & 0x20L) != 0L)
 		{
-			GeneratedSyncVarDeserialize(ref isElectromagnetShieldActive, _Mirror_SyncVarHookDelegate_isElectromagnetShieldActive, reader.ReadBool());
+			GeneratedSyncVarDeserialize(ref networkedRocketDriverNormalizedCharge, _Mirror_SyncVarHookDelegate_networkedRocketDriverNormalizedCharge, reader.ReadFloat());
 		}
 		if ((num & 0x40L) != 0L)
 		{
-			GeneratedSyncVarDeserialize(ref electromagnetShieldItemUseId, null, GeneratedNetworkCode._Read_ItemUseId(reader));
+			GeneratedSyncVarDeserialize(ref isElectromagnetShieldActive, _Mirror_SyncVarHookDelegate_isElectromagnetShieldActive, reader.ReadBool());
 		}
 		if ((num & 0x80L) != 0L)
+		{
+			GeneratedSyncVarDeserialize(ref electromagnetShieldItemUseId, null, GeneratedNetworkCode._Read_ItemUseId(reader));
+		}
+		if ((num & 0x100L) != 0L)
 		{
 			GeneratedSyncVarDeserialize(ref activeGolfCartSeat, _Mirror_SyncVarHookDelegate_activeGolfCartSeat, GeneratedNetworkCode._Read_GolfCartSeat(reader));
 		}

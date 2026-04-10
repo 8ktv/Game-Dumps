@@ -5,6 +5,7 @@ internal enum PassBreakReason
 	NotOptimized,
 	TargetSizeMismatch,
 	NextPassReadsTexture,
+	NextPassTargetsTexture,
 	NonRasterPass,
 	DifferentDepthTextures,
 	AttachmentLimitReached,
@@ -13,6 +14,8 @@ internal enum PassBreakReason
 	FRStateMismatch,
 	DifferentShadingRateImages,
 	DifferentShadingRateStates,
+	MultisampledShaderResolveMustBeLastPass,
+	ExtendedFeatureFlagsIncompatible,
 	PassMergingDisabled,
 	Merged,
 	Count

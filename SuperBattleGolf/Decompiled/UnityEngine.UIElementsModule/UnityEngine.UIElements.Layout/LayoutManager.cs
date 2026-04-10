@@ -115,9 +115,22 @@ internal class LayoutManager : IDisposable
 			ComponentType.Create<LayoutComputedData>(),
 			ComponentType.Create<LayoutCacheData>()
 		};
+		Span<MemoryLabel> span = stackalloc MemoryLabel[4]
+		{
+			new MemoryLabel("UIElements", "Layout.ComponentData<LayoutNodeData>"),
+			new MemoryLabel("UIElements", "Layout.ComponentData<LayoutStyleData>"),
+			new MemoryLabel("UIElements", "Layout.ComponentData<LayoutComputedData>"),
+			new MemoryLabel("UIElements", "Layout.ComponentData<LayoutCacheData>")
+		};
+		ReadOnlySpan<MemoryLabel> labels = span;
 		ComponentType[] components2 = new ComponentType[1] { ComponentType.Create<LayoutConfigData>() };
-		m_Nodes = new LayoutDataStore(components, initialNodeCapacity, allocator);
-		m_Configs = new LayoutDataStore(components2, 32, allocator);
+		span = stackalloc MemoryLabel[1]
+		{
+			new MemoryLabel("UIElements", "Layout.ComponentData<LayoutConfigData>")
+		};
+		ReadOnlySpan<MemoryLabel> labels2 = span;
+		m_Nodes = new LayoutDataStore(components, labels, initialNodeCapacity, allocator);
+		m_Configs = new LayoutDataStore(components2, labels2, 32, allocator);
 		m_DefaultConfig = CreateConfig().Handle;
 	}
 
@@ -126,12 +139,14 @@ internal class LayoutManager : IDisposable
 		s_Managers[m_Index] = null;
 		for (int i = 0; i <= m_HighMark; i++)
 		{
-			LayoutNodeData* componentDataPtr = (LayoutNodeData*)m_Nodes.GetComponentDataPtr(i, 0);
-			if (componentDataPtr->Children.IsCreated)
+			LayoutCacheData* componentDataPtr = (LayoutCacheData*)m_Nodes.GetComponentDataPtr(i, 3);
+			componentDataPtr->ClearCachedMeasurements();
+			LayoutNodeData* componentDataPtr2 = (LayoutNodeData*)m_Nodes.GetComponentDataPtr(i, 0);
+			if (componentDataPtr2->Children.IsCreated)
 			{
-				componentDataPtr->Children.Dispose();
-				componentDataPtr->Children = new LayoutList<LayoutHandle>();
-				GCHandle value = m_ManagedOwners.GetValue(componentDataPtr->ManagedOwnerIndex);
+				componentDataPtr2->Children.Dispose();
+				componentDataPtr2->Children = new LayoutList<LayoutHandle>();
+				GCHandle value = m_ManagedOwners.GetValue(componentDataPtr2->ManagedOwnerIndex);
 				if (value.IsAllocated)
 				{
 					value.Free();
@@ -231,12 +246,15 @@ internal class LayoutManager : IDisposable
 
 	private void FreeNode(LayoutHandle handle)
 	{
-		ref LayoutNodeData nodeData = ref GetAccess().GetNodeData(handle);
+		LayoutDataAccess access = GetAccess();
+		ref LayoutNodeData nodeData = ref access.GetNodeData(handle);
 		if (nodeData.Children.IsCreated)
 		{
 			nodeData.Children.Dispose();
 			nodeData.Children = new LayoutList<LayoutHandle>();
 		}
+		access = GetAccess();
+		access.GetCacheData(handle).ClearCachedMeasurements();
 		nodeData.UsesMeasure = false;
 		nodeData.UsesBaseline = false;
 		GCHandle value = m_ManagedOwners.GetValue(nodeData.ManagedOwnerIndex);

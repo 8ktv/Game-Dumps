@@ -11,16 +11,16 @@ internal struct FindNonRegisteredMaterialsJob : IJobParallelForBatch
 	public const int k_BatchSize = 128;
 
 	[ReadOnly]
-	public NativeArray<int> instanceIDs;
+	public NativeArray<EntityId> instanceIDs;
 
 	[ReadOnly]
 	public NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas;
 
 	[ReadOnly]
-	public NativeParallelHashMap<int, BatchMaterialID> hashMap;
+	public NativeParallelHashMap<EntityId, BatchMaterialID> hashMap;
 
 	[WriteOnly]
-	public NativeList<int>.ParallelWriter outInstancesWriter;
+	public NativeList<EntityId>.ParallelWriter outInstancesWriter;
 
 	[WriteOnly]
 	public NativeList<GPUDrivenPackedMaterialData>.ParallelWriter outPackedMaterialDatasWriter;

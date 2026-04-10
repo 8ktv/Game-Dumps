@@ -8,7 +8,7 @@ using UnityEngine.Pool;
 namespace UnityEngine.UIElements;
 
 [Serializable]
-[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule", "UnityEditor.UIToolkitAuthoringModule" })]
 internal class TemplateAsset : VisualElementAsset
 {
 	[Serializable]
@@ -57,6 +57,14 @@ internal class TemplateAsset : VisualElementAsset
 		[SerializeReference]
 		public UxmlSerializedData m_SerializedData;
 	}
+
+	public static readonly string UxmlInstanceTypeName = "UnityEngine.UIElements.Instance";
+
+	internal const string k_AttributeOverrideElementNameAttributeName = "element-name";
+
+	internal const string k_DifferentTemplateWarning = "TemplateAsset previously linked to a different VisualTreeAsset.";
+
+	internal const string k_LostTemplateError = "TemplateAsset previously had a template registration that was lost.";
 
 	[SerializeField]
 	private string m_TemplateAlias;
@@ -164,15 +172,15 @@ internal class TemplateAsset : VisualElementAsset
 					value2.Add(new CreationContext.SerializedDataOverrideRange(cc.visualTreeAsset, serializedDataOverrides, base.id));
 				}
 				List<int> veaIdsPath = ((cc.veaIdsPath != null) ? new List<int>(cc.veaIdsPath) : new List<int>());
-				CreationContext cc2 = new CreationContext(cc.slotInsertionPoints, value, value2, null, null, veaIdsPath, null);
+				CreationContext cc2 = new CreationContext(cc.slotInsertionPoints, value, value2, null, null, veaIdsPath, null, this);
 				templateContainer.templateSource.CloneTree(templateContainer, cc2);
 				return templateContainer;
 			}
 		}
 	}
 
-	public TemplateAsset(string templateAlias, string fullTypeName, UxmlNamespaceDefinition xmlNamespace = default(UxmlNamespaceDefinition))
-		: base(fullTypeName, xmlNamespace)
+	public TemplateAsset(string templateAlias, UxmlNamespaceDefinition xmlNamespace = default(UxmlNamespaceDefinition))
+		: base(UxmlInstanceTypeName, xmlNamespace)
 	{
 		Assert.IsFalse(string.IsNullOrEmpty(templateAlias), "Template alias must not be null or empty");
 		m_TemplateAlias = templateAlias;
@@ -185,5 +193,78 @@ internal class TemplateAsset : VisualElementAsset
 			m_SlotUsages = new List<VisualTreeAsset.SlotUsageEntry>();
 		}
 		m_SlotUsages.Add(new VisualTreeAsset.SlotUsageEntry(slotName, resId));
+	}
+
+	public void SetAttributeOverride(string attributeName, string value, string[] pathToTemplateAsset)
+	{
+		if (pathToTemplateAsset == null)
+		{
+			Debug.LogError("Cannot set attribute override without a path to the template asset.");
+			return;
+		}
+		string text = string.Join(" ", pathToTemplateAsset);
+		for (int i = 0; i < attributeOverrides.Count; i++)
+		{
+			AttributeOverride value2 = attributeOverrides[i];
+			if (value2.NamesPathMatchesElementNamesPath(pathToTemplateAsset) && value2.m_AttributeName == attributeName && !(value2.m_ElementName != text))
+			{
+				value2.m_ElementName = text;
+				value2.m_AttributeName = attributeName;
+				value2.m_Value = value;
+				attributeOverrides[i] = value2;
+				return;
+			}
+		}
+		AttributeOverride item = new AttributeOverride
+		{
+			m_ElementName = text,
+			m_NamesPath = pathToTemplateAsset,
+			m_AttributeName = attributeName,
+			m_Value = value
+		};
+		attributeOverrides.Add(item);
+	}
+
+	public void RemoveAttributeOverride(string attributeName, string[] pathToTemplateAsset)
+	{
+		for (int i = 0; i < attributeOverrides.Count; i++)
+		{
+			AttributeOverride attributeOverride = attributeOverrides[i];
+			if (attributeOverride.NamesPathMatchesElementNamesPath(pathToTemplateAsset) && attributeOverride.m_AttributeName == attributeName)
+			{
+				attributeOverrides.RemoveAt(i);
+				break;
+			}
+		}
+	}
+
+	private protected override void OnVisualTreeAssetChanged(VisualTreeAsset previousVta, VisualTreeAsset newVta)
+	{
+		base.OnVisualTreeAssetChanged(previousVta, newVta);
+		VisualTreeAsset visualTreeAsset = previousVta?.ResolveTemplate(templateAlias);
+		previousVta?.TryUnregisterTemplate(templateAlias);
+		if (!newVta || newVta == null)
+		{
+			return;
+		}
+		bool flag = newVta.TemplateExists(templateAlias);
+		if (flag && newVta.ResolveTemplate(templateAlias) != visualTreeAsset)
+		{
+			if ((bool)previousVta)
+			{
+				Debug.LogWarning("TemplateAsset previously linked to a different VisualTreeAsset.");
+			}
+		}
+		else if (!visualTreeAsset || visualTreeAsset == null)
+		{
+			if (!flag)
+			{
+				Debug.LogError("TemplateAsset previously had a template registration that was lost.");
+			}
+		}
+		else
+		{
+			newVta.TryRegisterTemplate(templateAlias, visualTreeAsset);
+		}
 	}
 }

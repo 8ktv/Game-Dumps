@@ -13,7 +13,7 @@ public struct Ray : IFormattable
 	public Vector3 origin
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_Origin;
 		}
@@ -27,14 +27,15 @@ public struct Ray : IFormattable
 	public Vector3 direction
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_Direction;
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		set
 		{
-			m_Direction = value.normalized;
+			m_Direction = value;
+			m_Direction.Normalize();
 		}
 	}
 
@@ -42,28 +43,43 @@ public struct Ray : IFormattable
 	public Ray(Vector3 origin, Vector3 direction)
 	{
 		m_Origin = origin;
-		m_Direction = direction.normalized;
-	}
-
-	public Vector3 GetPoint(float distance)
-	{
-		return m_Origin + m_Direction * distance;
+		m_Direction = direction;
+		m_Direction.Normalize();
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override string ToString()
+	public Ray(in Vector3 origin, in Vector3 direction)
+	{
+		m_Origin = origin;
+		m_Direction = direction;
+		m_Direction.Normalize();
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public readonly Vector3 GetPoint(float distance)
+	{
+		return new Vector3
+		{
+			x = m_Origin.x + m_Direction.x * distance,
+			y = m_Origin.y + m_Direction.y * distance,
+			z = m_Origin.z + m_Direction.z * distance
+		};
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public override readonly string ToString()
 	{
 		return ToString(null, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format)
+	public readonly string ToString(string format)
 	{
 		return ToString(format, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format, IFormatProvider formatProvider)
+	public readonly string ToString(string format, IFormatProvider formatProvider)
 	{
 		if (string.IsNullOrEmpty(format))
 		{

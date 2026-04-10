@@ -65,6 +65,8 @@ public sealed class LensFlareCommonSRP
 
 	internal static readonly int _FlareData5 = Shader.PropertyToID("_FlareData5");
 
+	internal static readonly int _FlareData6 = Shader.PropertyToID("_FlareData6");
+
 	internal static readonly int _FlareRadialTint = Shader.PropertyToID("_FlareRadialTint");
 
 	internal static readonly int _ViewId = Shader.PropertyToID("_ViewId");
@@ -325,7 +327,7 @@ public sealed class LensFlareCommonSRP
 		return false;
 	}
 
-	public static Vector4 GetFlareData0(Vector2 screenPos, Vector2 translationScale, Vector2 rayOff0, Vector2 vLocalScreenRatio, float angleDeg, float position, float angularOffset, Vector2 positionOffset, bool autoRotate)
+	private static Vector4 InternalGetFlareData0(Vector2 screenPos, Vector2 translationScale, Vector2 rayOff0, Vector2 vLocalScreenRatio, float angleDeg, float position, float angularOffset, Vector2 positionOffset, bool autoRotate)
 	{
 		if (!SystemInfo.graphicsUVStartsAtTop)
 		{
@@ -349,7 +351,13 @@ public sealed class LensFlareCommonSRP
 		return new Vector4(x, y, positionOffset.x + rayOff0.x * translationScale.x, 0f - positionOffset.y + rayOff0.y * translationScale.y);
 	}
 
-	private static Vector2 GetLensFlareRayOffset(Vector2 screenPos, float position, float globalCos0, float globalSin0, Vector2 vAspectRatio)
+	[Obsolete("This is now deprecated as a public API. Call ComputeOcclusion() or DoLensFlareDataDrivenCommon() instead. #from(6000.3)")]
+	public static Vector4 GetFlareData0(Vector2 screenPos, Vector2 translationScale, Vector2 rayOff0, Vector2 vLocalScreenRatio, float angleDeg, float position, float angularOffset, Vector2 positionOffset, bool autoRotate)
+	{
+		return InternalGetFlareData0(screenPos, translationScale, rayOff0, vLocalScreenRatio, angleDeg, position, angularOffset, positionOffset, autoRotate);
+	}
+
+	private static Vector2 GetLensFlareRayOffset(Vector2 screenPos, float position, float globalCos0, float globalSin0)
 	{
 		Vector2 vector = -(screenPos + screenPos * (position - 1f));
 		return new Vector2(globalCos0 * vector.x - globalSin0 * vector.y, globalSin0 * vector.x + globalCos0 * vector.y);
@@ -414,33 +422,9 @@ public sealed class LensFlareCommonSRP
 		return false;
 	}
 
-	private static void SetOcclusionPermutation(CommandBuffer cmd, bool useFogOpacityOcclusion, int _FlareSunOcclusionTex, Texture sunOcclusionTexture)
-	{
-		uint num = 1u;
-		if (useFogOpacityOcclusion && sunOcclusionTexture != null)
-		{
-			num |= 4;
-			cmd.SetGlobalTexture(_FlareSunOcclusionTex, sunOcclusionTexture);
-		}
-		int value = (int)num;
-		cmd.SetGlobalInt(_FlareOcclusionPermutation, value);
-	}
-
-	[Obsolete("Use ComputeOcclusion without _FlareOcclusionTex.._FlareData4 parameters.")]
-	public static void ComputeOcclusion(Material lensFlareShader, Camera cam, XRPass xr, int xrIndex, float actualWidth, float actualHeight, bool usePanini, float paniniDistance, float paniniCropToFit, bool isCameraRelative, Vector3 cameraPositionWS, Matrix4x4 viewProjMatrix, UnsafeCommandBuffer cmd, bool taaEnabled, bool hasCloudLayer, Texture cloudOpacityTexture, Texture sunOcclusionTexture, int _FlareOcclusionTex, int _FlareCloudOpacity, int _FlareOcclusionIndex, int _FlareTex, int _FlareColorValue, int _FlareSunOcclusionTex, int _FlareData0, int _FlareData1, int _FlareData2, int _FlareData3, int _FlareData4)
-	{
-		ComputeOcclusion(lensFlareShader, cam, xr, xrIndex, actualWidth, actualHeight, usePanini, paniniDistance, paniniCropToFit, isCameraRelative, cameraPositionWS, viewProjMatrix, cmd.m_WrappedCommandBuffer, taaEnabled, hasCloudLayer, cloudOpacityTexture, sunOcclusionTexture, _FlareOcclusionTex, _FlareCloudOpacity, _FlareOcclusionIndex, _FlareTex, _FlareColorValue, _FlareSunOcclusionTex, _FlareData0, _FlareData1, _FlareData2, _FlareData3, _FlareData4);
-	}
-
 	public static void ComputeOcclusion(Material lensFlareShader, Camera cam, XRPass xr, int xrIndex, float actualWidth, float actualHeight, bool usePanini, float paniniDistance, float paniniCropToFit, bool isCameraRelative, Vector3 cameraPositionWS, Matrix4x4 viewProjMatrix, UnsafeCommandBuffer cmd, bool taaEnabled, bool hasCloudLayer, Texture cloudOpacityTexture, Texture sunOcclusionTexture)
 	{
 		ComputeOcclusion(lensFlareShader, cam, xr, xrIndex, actualWidth, actualHeight, usePanini, paniniDistance, paniniCropToFit, isCameraRelative, cameraPositionWS, viewProjMatrix, cmd.m_WrappedCommandBuffer, taaEnabled, hasCloudLayer, cloudOpacityTexture, sunOcclusionTexture);
-	}
-
-	[Obsolete("Use ComputeOcclusion without _FlareOcclusionTex.._FlareData4 parameters.")]
-	public static void ComputeOcclusion(Material lensFlareShader, Camera cam, XRPass xr, int xrIndex, float actualWidth, float actualHeight, bool usePanini, float paniniDistance, float paniniCropToFit, bool isCameraRelative, Vector3 cameraPositionWS, Matrix4x4 viewProjMatrix, CommandBuffer cmd, bool taaEnabled, bool hasCloudLayer, Texture cloudOpacityTexture, Texture sunOcclusionTexture, int _FlareOcclusionTex, int _FlareCloudOpacity, int _FlareOcclusionIndex, int _FlareTex, int _FlareColorValue, int _FlareSunOcclusionTex, int _FlareData0, int _FlareData1, int _FlareData2, int _FlareData3, int _FlareData4)
-	{
-		ComputeOcclusion(lensFlareShader, cam, xr, xrIndex, actualWidth, actualHeight, usePanini, paniniDistance, paniniCropToFit, isCameraRelative, cameraPositionWS, viewProjMatrix, cmd, taaEnabled, hasCloudLayer, cloudOpacityTexture, sunOcclusionTexture);
 	}
 
 	private static bool ForceSingleElement(LensFlareDataElementSRP element)
@@ -452,136 +436,171 @@ public sealed class LensFlareCommonSRP
 		return true;
 	}
 
-	public static void ComputeOcclusion(Material lensFlareShader, Camera cam, XRPass xr, int xrIndex, float actualWidth, float actualHeight, bool usePanini, float paniniDistance, float paniniCropToFit, bool isCameraRelative, Vector3 cameraPositionWS, Matrix4x4 viewProjMatrix, CommandBuffer cmd, bool taaEnabled, bool hasCloudLayer, Texture cloudOpacityTexture, Texture sunOcclusionTexture)
+	private static bool PreDrawSetup(bool occlusionOnly, bool clearRenderTarget, RenderTargetIdentifier rt, Camera cam, XRPass xr, int xrIndex, CommandBuffer cmd)
 	{
-		if (!IsOcclusionRTCompatible())
-		{
-			return;
-		}
 		xr.StopSinglePass(cmd);
 		if (Instance.IsEmpty())
 		{
-			return;
+			return false;
 		}
-		Vector2 vector = new Vector2(actualWidth, actualHeight);
-		float x = vector.x / vector.y;
-		Vector2 vector2 = new Vector2(x, 1f);
+		int value = (occlusionOnly ? (-1) : 0);
 		if (xr.enabled && xr.singlePassEnabled)
 		{
-			CoreUtils.SetRenderTarget(cmd, occlusionRT, ClearFlag.None, 0, CubemapFace.Unknown, xrIndex);
+			CoreUtils.SetRenderTarget(cmd, rt, ClearFlag.None, 0, CubemapFace.Unknown, xrIndex);
 			cmd.SetGlobalInt(_ViewId, xrIndex);
 		}
 		else
 		{
-			CoreUtils.SetRenderTarget(cmd, occlusionRT);
+			CoreUtils.SetRenderTarget(cmd, rt);
 			if (xr.enabled)
 			{
 				cmd.SetGlobalInt(_ViewId, xr.multipassId);
 			}
 			else
 			{
-				cmd.SetGlobalInt(_ViewId, -1);
+				cmd.SetGlobalInt(_ViewId, value);
 			}
 		}
-		if (!taaEnabled)
+		if (clearRenderTarget)
 		{
 			cmd.ClearRenderTarget(clearDepth: false, clearColor: true, Color.black);
 		}
-		_ = 1f / (float)maxLensFlareWithOcclusion;
-		_ = 1f / (float)(maxLensFlareWithOcclusionTemporalSample + mergeNeeded);
-		_ = 0.5f / (float)maxLensFlareWithOcclusion;
-		_ = 0.5f / (float)(maxLensFlareWithOcclusionTemporalSample + mergeNeeded);
+		return true;
+	}
+
+	private static bool DoComponent(bool occlusionOnly, LensFlareCompInfo info, Camera cam, Vector3 cameraPositionWS, float actualWidth, float actualHeight, bool usePanini, float paniniDistance, float paniniCropToFit, bool isCameraRelative, Matrix4x4 viewProjMatrix, CommandBuffer cmd, out Vector3 flarePosWS, out Vector3 flarePosViewport, out Vector2 flarePosScreen, out Vector3 camToFlare, out Light light, out bool isDirLight, out float flareIntensity, out float distanceAttenuation)
+	{
+		flarePosWS = Vector3.zero;
+		flarePosViewport = Vector3.zero;
+		flarePosScreen = Vector2.zero;
+		camToFlare = Vector3.zero;
+		isDirLight = false;
+		light = null;
+		flareIntensity = 0f;
+		distanceAttenuation = 1f;
+		if (info == null || info.comp == null)
+		{
+			return false;
+		}
+		LensFlareComponentSRP comp = info.comp;
+		LensFlareDataSRP lensFlareData = comp.lensFlareData;
+		if (IsLensFlareSRPHidden(cam, comp, lensFlareData))
+		{
+			return false;
+		}
+		if (occlusionOnly && !comp.useOcclusion)
+		{
+			return false;
+		}
+		if (!comp.TryGetComponent<Light>(out light))
+		{
+			light = null;
+		}
+		if (light != null && light.type == LightType.Directional)
+		{
+			flarePosWS = -light.transform.forward * cam.farClipPlane;
+			isDirLight = true;
+		}
+		else
+		{
+			flarePosWS = comp.transform.position;
+		}
+		if (!occlusionOnly && comp.lightOverride != null)
+		{
+			light = comp.lightOverride;
+		}
+		flarePosViewport = WorldToViewport(cam, !isDirLight, isCameraRelative, viewProjMatrix, flarePosWS);
+		if (usePanini && cam == Camera.main)
+		{
+			flarePosViewport = DoPaniniProjection(flarePosViewport, actualWidth, actualHeight, cam.fieldOfView, paniniCropToFit, paniniDistance);
+		}
+		if (flarePosViewport.z < 0f)
+		{
+			return false;
+		}
+		if (!comp.allowOffScreen && (flarePosViewport.x < 0f || flarePosViewport.x > 1f || flarePosViewport.y < 0f || flarePosViewport.y > 1f))
+		{
+			return false;
+		}
+		camToFlare = flarePosWS - cameraPositionWS;
+		if (Vector3.Dot(cam.transform.forward, camToFlare) < 0f)
+		{
+			return false;
+		}
+		float time = camToFlare.magnitude / comp.maxAttenuationDistance;
+		distanceAttenuation = ((!isDirLight && comp.distanceAttenuationCurve.length > 0) ? comp.distanceAttenuationCurve.Evaluate(time) : 1f);
+		flarePosScreen = new Vector2(2f * flarePosViewport.x - 1f, 0f - (2f * flarePosViewport.y - 1f));
+		if (!SystemInfo.graphicsUVStartsAtTop & isDirLight)
+		{
+			flarePosScreen.y = 0f - flarePosScreen.y;
+		}
+		Vector2 vector = new Vector2(Mathf.Abs(flarePosScreen.x), Mathf.Abs(flarePosScreen.y));
+		float time2 = Mathf.Max(vector.x, vector.y);
+		float num = ((comp.radialScreenAttenuationCurve.length > 0) ? comp.radialScreenAttenuationCurve.Evaluate(time2) : 1f);
+		flareIntensity = comp.intensity * num * distanceAttenuation;
+		if (flareIntensity <= 0f)
+		{
+			return false;
+		}
+		float num2 = (isDirLight ? comp.celestialProjectedOcclusionRadius(cam) : comp.occlusionRadius);
+		Vector2 vector2 = flarePosViewport;
+		float magnitude = ((Vector2)WorldToViewport(cam, !isDirLight, isCameraRelative, viewProjMatrix, flarePosWS + cam.transform.up * num2) - vector2).magnitude;
+		Vector3 normalized = (cam.transform.position - comp.transform.position).normalized;
+		Vector3 vector3 = WorldToViewport(cam, !isDirLight, isCameraRelative, viewProjMatrix, flarePosWS + normalized * comp.occlusionOffset);
+		cmd.SetGlobalVector(_FlareData1, new Vector4(magnitude, comp.sampleCount, vector3.z, actualHeight / actualWidth));
+		return true;
+	}
+
+	public static void ComputeOcclusion(Material lensFlareShader, Camera cam, XRPass xr, int xrIndex, float actualWidth, float actualHeight, bool usePanini, float paniniDistance, float paniniCropToFit, bool isCameraRelative, Vector3 cameraPositionWS, Matrix4x4 viewProjMatrix, CommandBuffer cmd, bool taaEnabled, bool hasCloudLayer, Texture cloudOpacityTexture, Texture sunOcclusionTexture)
+	{
+		if (!IsOcclusionRTCompatible())
+		{
+			return;
+		}
+		bool clearRenderTarget = !taaEnabled;
+		if (!PreDrawSetup(occlusionOnly: true, clearRenderTarget, occlusionRT, cam, xr, xrIndex, cmd))
+		{
+			return;
+		}
+		float x = actualWidth / actualHeight;
 		foreach (LensFlareCompInfo datum in m_Data)
 		{
-			if (datum == null || datum.comp == null)
+			if (DoComponent(occlusionOnly: true, datum, cam, cameraPositionWS, actualWidth, actualHeight, usePanini, paniniDistance, paniniCropToFit, isCameraRelative, viewProjMatrix, cmd, out var _, out var _, out var flarePosScreen, out var _, out var _, out var _, out var _, out var _))
 			{
-				continue;
-			}
-			LensFlareComponentSRP comp = datum.comp;
-			LensFlareDataSRP lensFlareData = comp.lensFlareData;
-			if (IsLensFlareSRPHidden(cam, comp, lensFlareData) || !comp.useOcclusion || (comp.useOcclusion && comp.sampleCount == 0))
-			{
-				continue;
-			}
-			Light component = null;
-			if (!comp.TryGetComponent<Light>(out component))
-			{
-				component = null;
-			}
-			bool flag = false;
-			Vector3 vector3;
-			if (component != null && component.type == LightType.Directional)
-			{
-				vector3 = -component.transform.forward * cam.farClipPlane;
-				flag = true;
-			}
-			else
-			{
-				vector3 = comp.transform.position;
-			}
-			Vector3 vector4 = WorldToViewport(cam, !flag, isCameraRelative, viewProjMatrix, vector3);
-			if (usePanini && cam == Camera.main)
-			{
-				vector4 = DoPaniniProjection(vector4, actualWidth, actualHeight, cam.fieldOfView, paniniCropToFit, paniniDistance);
-			}
-			if (vector4.z < 0f || (!comp.allowOffScreen && (vector4.x < 0f || vector4.x > 1f || vector4.y < 0f || vector4.y > 1f)))
-			{
-				continue;
-			}
-			Vector3 rhs = vector3 - cameraPositionWS;
-			if (!(Vector3.Dot(cam.transform.forward, rhs) < 0f))
-			{
-				float magnitude = rhs.magnitude;
-				float time = magnitude / comp.maxAttenuationDistance;
-				float time2 = magnitude / comp.maxAttenuationScale;
-				float num = ((!flag && comp.distanceAttenuationCurve.length > 0) ? comp.distanceAttenuationCurve.Evaluate(time) : 1f);
-				if (!flag && comp.scaleByDistanceCurve.length >= 1)
-				{
-					comp.scaleByDistanceCurve.Evaluate(time2);
-				}
-				Vector3 vector5 = ((!flag) ? (cam.transform.position - comp.transform.position).normalized : comp.transform.forward);
-				Vector3 vector6 = WorldToViewport(cam, !flag, isCameraRelative, viewProjMatrix, vector3 + vector5 * comp.occlusionOffset);
-				float num2 = (flag ? comp.celestialProjectedOcclusionRadius(cam) : comp.occlusionRadius);
-				Vector2 vector7 = vector4;
-				float magnitude2 = ((Vector2)WorldToViewport(cam, !flag, isCameraRelative, viewProjMatrix, vector3 + cam.transform.up * num2) - vector7).magnitude;
-				cmd.SetGlobalVector(_FlareData1, new Vector4(magnitude2, comp.sampleCount, vector6.z, actualHeight / actualWidth));
-				SetOcclusionPermutation(cmd, comp.environmentOcclusion, _FlareSunOcclusionTex, sunOcclusionTexture);
+				LensFlareComponentSRP comp = datum.comp;
 				cmd.EnableShaderKeyword("FLARE_COMPUTE_OCCLUSION");
-				Vector2 screenPos = new Vector2(2f * vector4.x - 1f, 0f - (2f * vector4.y - 1f));
-				if (!SystemInfo.graphicsUVStartsAtTop && flag)
+				uint num = 1u;
+				if (comp.environmentOcclusion && sunOcclusionTexture != null)
 				{
-					screenPos.y = 0f - screenPos.y;
+					num |= 4;
+					cmd.SetGlobalTexture(_FlareSunOcclusionTex, sunOcclusionTexture);
 				}
-				Vector2 vector8 = new Vector2(Mathf.Abs(screenPos.x), Mathf.Abs(screenPos.y));
-				float time3 = Mathf.Max(vector8.x, vector8.y);
-				float num3 = ((comp.radialScreenAttenuationCurve.length > 0) ? comp.radialScreenAttenuationCurve.Evaluate(time3) : 1f);
-				if (!(comp.intensity * num3 * num <= 0f))
+				int value = (int)num;
+				cmd.SetGlobalInt(_FlareOcclusionPermutation, value);
+				float globalCos = Mathf.Cos(0f);
+				float globalSin = Mathf.Sin(0f);
+				float position = 0f;
+				float y = Mathf.Clamp01(0.999999f);
+				cmd.SetGlobalVector(_FlareData3, new Vector4(comp.allowOffScreen ? 1f : (-1f), y, Mathf.Exp(Mathf.Lerp(0f, 4f, 1f)), 1f / 3f));
+				Vector2 lensFlareRayOffset = GetLensFlareRayOffset(flarePosScreen, position, globalCos, globalSin);
+				Vector4 value2 = InternalGetFlareData0(vLocalScreenRatio: new Vector2(x, 1f), screenPos: flarePosScreen, translationScale: Vector2.one, rayOff0: lensFlareRayOffset, angleDeg: 0f, position: position, angularOffset: 0f, positionOffset: Vector2.zero, autoRotate: false);
+				cmd.SetGlobalVector(_FlareData0, value2);
+				cmd.SetGlobalVector(_FlareData2, new Vector4(flarePosScreen.x, flarePosScreen.y, 0f, 0f));
+				Rect viewport = ((!taaEnabled) ? new Rect
 				{
-					float globalCos = Mathf.Cos(0f);
-					float globalSin = Mathf.Sin(0f);
-					float position = 0f;
-					float y = Mathf.Clamp01(0.999999f);
-					cmd.SetGlobalVector(_FlareData3, new Vector4(comp.allowOffScreen ? 1f : (-1f), y, Mathf.Exp(Mathf.Lerp(0f, 4f, 1f)), 1f / 3f));
-					Vector2 lensFlareRayOffset = GetLensFlareRayOffset(screenPos, position, globalCos, globalSin, vector2);
-					Vector4 flareData = GetFlareData0(screenPos, Vector2.one, lensFlareRayOffset, vector2, 0f, position, 0f, Vector2.zero, autoRotate: false);
-					cmd.SetGlobalVector(_FlareData0, flareData);
-					cmd.SetGlobalVector(_FlareData2, new Vector4(screenPos.x, screenPos.y, 0f, 0f));
-					Rect viewport = ((!taaEnabled) ? new Rect
-					{
-						x = datum.index,
-						y = 0f,
-						width = 1f,
-						height = 1f
-					} : new Rect
-					{
-						x = datum.index,
-						y = frameIdx + mergeNeeded,
-						width = 1f,
-						height = 1f
-					});
-					cmd.SetViewport(viewport);
-					Blitter.DrawQuad(cmd, lensFlareShader, lensFlareShader.FindPass("LensFlareOcclusion"));
-				}
+					x = datum.index,
+					y = 0f,
+					width = 1f,
+					height = 1f
+				} : new Rect
+				{
+					x = datum.index,
+					y = frameIdx + mergeNeeded,
+					width = 1f,
+					height = 1f
+				});
+				cmd.SetViewport(viewport);
+				Blitter.DrawQuad(cmd, lensFlareShader, lensFlareShader.FindPass("LensFlareOcclusion"));
 			}
 		}
 		if (taaEnabled)
@@ -601,7 +620,7 @@ public sealed class LensFlareCommonSRP
 		xr.StartSinglePass(cmd);
 	}
 
-	public static void ProcessLensFlareSRPElementsSingle(LensFlareDataElementSRP element, CommandBuffer cmd, Color globalColorModulation, Light light, float compIntensity, float scale, Material lensFlareShader, Vector2 screenPos, bool compAllowOffScreen, Vector2 vScreenRatio, Vector4 flareData1, bool preview, int depth)
+	public static void ProcessLensFlareSRPElementsSingle(LensFlareDataElementSRP element, CommandBuffer cmd, Color globalColorModulation, Light light, float compIntensity, float scale, Material lensFlareShader, Vector2 screenPos, bool compAllowOffScreen, Vector2 vScreenRatio, Vector3 flareData1, bool preview, int depth)
 	{
 		if (element == null || !element.visible || (element.lensFlareTexture == null && element.flareType == SRPLensFlareType.Image) || element.localIntensity <= 0f || element.count <= 0 || (element.flareType == SRPLensFlareType.LensFlareDataSRP && element.lensFlareDataSRP == null))
 		{
@@ -609,7 +628,7 @@ public sealed class LensFlareCommonSRP
 		}
 		if (element.flareType == SRPLensFlareType.LensFlareDataSRP && element.lensFlareDataSRP != null)
 		{
-			ProcessLensFlareSRPElements(ref element.lensFlareDataSRP.elements, cmd, globalColorModulation, light, compIntensity, scale, lensFlareShader, screenPos, compAllowOffScreen, vScreenRatio, flareData1, preview, depth + 1);
+			ProcessLensFlareSRPElements(ref element.lensFlareDataSRP.elements, cmd, globalColorModulation, light, compIntensity, scale, lensFlareShader, screenPos, compAllowOffScreen, vScreenRatio.x, default(Vector3), preview, depth + 1);
 			return;
 		}
 		Color color = globalColorModulation;
@@ -659,10 +678,10 @@ public sealed class LensFlareCommonSRP
 			SRPLensFlareBlendMode.Lerp => lensFlareShader.FindPass("LensFlareLerp"), 
 			_ => lensFlareShader.FindPass("LensFlareOcclusion"), 
 		};
-		flareData1.x = (float)element.flareType;
+		Vector4 value = new Vector4((float)element.flareType, 0f, 0f, 0f);
 		if (ForceSingleElement(element))
 		{
-			cmd.SetGlobalVector(_FlareData1, flareData1);
+			cmd.SetGlobalVector(_FlareData6, value);
 		}
 		if (element.flareType == SRPLensFlareType.Circle || element.flareType == SRPLensFlareType.Polygon || element.flareType == SRPLensFlareType.Ring)
 		{
@@ -693,8 +712,8 @@ public sealed class LensFlareCommonSRP
 			num4 = Mathf.Pow(num4 + 1f, 5f);
 		}
 		float sdfRoundness = element.sdfRoundness;
-		Vector4 value = new Vector4(compAllowOffScreen ? 1f : (-1f), num4, Mathf.Exp(Mathf.Lerp(0f, 4f, Mathf.Clamp01(1f - element.fallOff))), (element.flareType == SRPLensFlareType.Ring) ? element.ringThickness : (1f / (float)element.sideCount));
-		cmd.SetGlobalVector(_FlareData3, value);
+		Vector4 value2 = new Vector4(compAllowOffScreen ? 1f : (-1f), num4, Mathf.Exp(Mathf.Lerp(0f, 4f, Mathf.Clamp01(1f - element.fallOff))), (element.flareType == SRPLensFlareType.Ring) ? element.ringThickness : (1f / (float)element.sideCount));
+		cmd.SetGlobalVector(_FlareData3, value2);
 		if (element.flareType == SRPLensFlareType.Polygon)
 		{
 			float num5 = 1f / (float)element.sideCount;
@@ -717,14 +736,14 @@ public sealed class LensFlareCommonSRP
 		if (ForceSingleElement(element))
 		{
 			Vector2 curSize = vector2;
-			Vector2 lensFlareRayOffset = GetLensFlareRayOffset(screenPos, position, globalCos0, globalSin0, vScreenRatio);
+			Vector2 lensFlareRayOffset = GetLensFlareRayOffset(screenPos, position, globalCos0, globalSin0);
 			if (element.enableRadialDistortion)
 			{
-				Vector2 lensFlareRayOffset2 = GetLensFlareRayOffset(screenPos, 0f, globalCos0, globalSin0, vScreenRatio);
+				Vector2 lensFlareRayOffset2 = GetLensFlareRayOffset(screenPos, 0f, globalCos0, globalSin0);
 				curSize = ComputeLocalSize(lensFlareRayOffset, lensFlareRayOffset2, curSize, element.distortionCurve);
 			}
-			Vector4 flareData2 = GetFlareData0(screenPos, element.translationScale, lensFlareRayOffset, vScreenRatio, rotation, position, num3, element.positionOffset, element.autoRotate);
-			cmd.SetGlobalVector(_FlareData0, flareData2);
+			Vector4 value3 = InternalGetFlareData0(screenPos, element.translationScale, lensFlareRayOffset, vScreenRatio, rotation, position, num3, element.positionOffset, element.autoRotate);
+			cmd.SetGlobalVector(_FlareData0, value3);
 			cmd.SetGlobalVector(_FlareData2, new Vector4(screenPos.x, screenPos.y, curSize.x, curSize.y));
 			cmd.SetGlobalVector(_FlareColorValue, color2);
 			Blitter.DrawQuad(cmd, lensFlareShader, shaderPass);
@@ -737,18 +756,18 @@ public sealed class LensFlareCommonSRP
 			for (int i = 0; i < element.count; i++)
 			{
 				Vector2 curSize2 = vector2;
-				Vector2 lensFlareRayOffset3 = GetLensFlareRayOffset(screenPos, position, globalCos0, globalSin0, vScreenRatio);
+				Vector2 lensFlareRayOffset3 = GetLensFlareRayOffset(screenPos, position, globalCos0, globalSin0);
 				if (element.enableRadialDistortion)
 				{
-					Vector2 lensFlareRayOffset4 = GetLensFlareRayOffset(screenPos, 0f, globalCos0, globalSin0, vScreenRatio);
+					Vector2 lensFlareRayOffset4 = GetLensFlareRayOffset(screenPos, 0f, globalCos0, globalSin0);
 					curSize2 = ComputeLocalSize(lensFlareRayOffset3, lensFlareRayOffset4, curSize2, element.distortionCurve);
 				}
 				float time = ((element.count >= 2) ? ((float)i / (float)(element.count - 1)) : 0.5f);
 				Color color3 = element.colorGradient.Evaluate(time);
-				Vector4 flareData3 = GetFlareData0(screenPos, element.translationScale, lensFlareRayOffset3, vScreenRatio, rotation + num11, position, num3, element.positionOffset, element.autoRotate);
-				cmd.SetGlobalVector(_FlareData0, flareData3);
-				flareData1.y = i;
-				cmd.SetGlobalVector(_FlareData1, flareData1);
+				Vector4 value4 = InternalGetFlareData0(screenPos, element.translationScale, lensFlareRayOffset3, vScreenRatio, rotation + num11, position, num3, element.positionOffset, element.autoRotate);
+				cmd.SetGlobalVector(_FlareData0, value4);
+				value.y = i;
+				cmd.SetGlobalVector(_FlareData6, value);
 				cmd.SetGlobalVector(_FlareData2, new Vector4(screenPos.x, screenPos.y, curSize2.x, curSize2.y));
 				cmd.SetGlobalVector(_FlareColorValue, color2 * color3);
 				Blitter.DrawQuad(cmd, lensFlareShader, shaderPass);
@@ -765,11 +784,11 @@ public sealed class LensFlareCommonSRP
 			for (int j = 0; j < element.count; j++)
 			{
 				float num12 = RandomRange(-1f, 1f) * element.intensityVariation + 1f;
-				Vector2 lensFlareRayOffset5 = GetLensFlareRayOffset(screenPos, position, globalCos0, globalSin0, vScreenRatio);
+				Vector2 lensFlareRayOffset5 = GetLensFlareRayOffset(screenPos, position, globalCos0, globalSin0);
 				Vector2 vector4 = vector2;
 				if (element.enableRadialDistortion)
 				{
-					Vector2 lensFlareRayOffset6 = GetLensFlareRayOffset(screenPos, 0f, globalCos0, globalSin0, vScreenRatio);
+					Vector2 lensFlareRayOffset6 = GetLensFlareRayOffset(screenPos, 0f, globalCos0, globalSin0);
 					vector4 = ComputeLocalSize(lensFlareRayOffset5, lensFlareRayOffset6, vector4, element.distortionCurve);
 				}
 				vector4 += vector4 * (element.scaleVariation * RandomRange(-1f, 1f));
@@ -778,10 +797,10 @@ public sealed class LensFlareCommonSRP
 				float angleDeg = rotation + RandomRange(-MathF.PI, MathF.PI) * element.rotationVariation;
 				if (num12 > 0f)
 				{
-					Vector4 flareData4 = GetFlareData0(screenPos, element.translationScale, lensFlareRayOffset5, vScreenRatio, angleDeg, position, num3, positionOffset, element.autoRotate);
-					cmd.SetGlobalVector(_FlareData0, flareData4);
-					flareData1.y = j;
-					cmd.SetGlobalVector(_FlareData1, flareData1);
+					Vector4 value5 = InternalGetFlareData0(screenPos, element.translationScale, lensFlareRayOffset5, vScreenRatio, angleDeg, position, num3, positionOffset, element.autoRotate);
+					cmd.SetGlobalVector(_FlareData0, value5);
+					value.y = j;
+					cmd.SetGlobalVector(_FlareData6, value);
 					cmd.SetGlobalVector(_FlareData2, new Vector4(screenPos.x, screenPos.y, vector4.x, vector4.y));
 					cmd.SetGlobalVector(_FlareColorValue, color2 * color4 * num12);
 					Blitter.DrawQuad(cmd, lensFlareShader, shaderPass);
@@ -803,20 +822,20 @@ public sealed class LensFlareCommonSRP
 				Color color5 = element.colorGradient.Evaluate(time2);
 				float num13 = ((element.positionCurve.length > 0) ? element.positionCurve.Evaluate(time2) : 1f);
 				float position2 = position + 2f * element.lengthSpread * num13;
-				Vector2 lensFlareRayOffset7 = GetLensFlareRayOffset(screenPos, position2, globalCos0, globalSin0, vScreenRatio);
+				Vector2 lensFlareRayOffset7 = GetLensFlareRayOffset(screenPos, position2, globalCos0, globalSin0);
 				Vector2 curSize3 = vector2;
 				if (element.enableRadialDistortion)
 				{
-					Vector2 lensFlareRayOffset8 = GetLensFlareRayOffset(screenPos, 0f, globalCos0, globalSin0, vScreenRatio);
+					Vector2 lensFlareRayOffset8 = GetLensFlareRayOffset(screenPos, 0f, globalCos0, globalSin0);
 					curSize3 = ComputeLocalSize(lensFlareRayOffset7, lensFlareRayOffset8, curSize3, element.distortionCurve);
 				}
 				float num14 = ((element.scaleCurve.length > 0) ? element.scaleCurve.Evaluate(time2) : 1f);
 				curSize3 *= num14;
 				float num15 = element.uniformAngleCurve.Evaluate(time2) * (180f - 180f / (float)element.count);
-				Vector4 flareData5 = GetFlareData0(screenPos, element.translationScale, lensFlareRayOffset7, vScreenRatio, rotation + num15, position2, num3, element.positionOffset, element.autoRotate);
-				cmd.SetGlobalVector(_FlareData0, flareData5);
-				flareData1.y = k;
-				cmd.SetGlobalVector(_FlareData1, flareData1);
+				Vector4 value6 = InternalGetFlareData0(screenPos, element.translationScale, lensFlareRayOffset7, vScreenRatio, rotation + num15, position2, num3, element.positionOffset, element.autoRotate);
+				cmd.SetGlobalVector(_FlareData0, value6);
+				value.y = k;
+				cmd.SetGlobalVector(_FlareData6, value);
 				cmd.SetGlobalVector(_FlareData2, new Vector4(screenPos.x, screenPos.y, curSize3.x, curSize3.y));
 				cmd.SetGlobalVector(_FlareColorValue, color2 * color5);
 				Blitter.DrawQuad(cmd, lensFlareShader, shaderPass);
@@ -824,7 +843,7 @@ public sealed class LensFlareCommonSRP
 		}
 		Vector2 ComputeLocalSize(Vector2 rayOff, Vector2 rayOff0, Vector2 vector6, AnimationCurve distortionCurve)
 		{
-			GetLensFlareRayOffset(screenPos, position, globalCos0, globalSin0, vScreenRatio);
+			GetLensFlareRayOffset(screenPos, position, globalCos0, globalSin0);
 			float time3;
 			if (!element.distortionRelativeToCenter)
 			{
@@ -844,7 +863,7 @@ public sealed class LensFlareCommonSRP
 		}
 	}
 
-	private static void ProcessLensFlareSRPElements(ref LensFlareDataElementSRP[] elements, CommandBuffer cmd, Color globalColorModulation, Light light, float compIntensity, float scale, Material lensFlareShader, Vector2 screenPos, bool compAllowOffScreen, Vector2 vScreenRatio, Vector4 flareData1, bool preview, int depth)
+	private static void ProcessLensFlareSRPElements(ref LensFlareDataElementSRP[] elements, CommandBuffer cmd, Color globalColorModulation, Light light, float compIntensity, float scale, Material lensFlareShader, Vector2 screenPos, bool compAllowOffScreen, float aspect, Vector4 flareData6, bool preview, int depth)
 	{
 		if (depth > 16)
 		{
@@ -854,14 +873,8 @@ public sealed class LensFlareCommonSRP
 		LensFlareDataElementSRP[] array = elements;
 		for (int i = 0; i < array.Length; i++)
 		{
-			ProcessLensFlareSRPElementsSingle(array[i], cmd, globalColorModulation, light, compIntensity, scale, lensFlareShader, screenPos, compAllowOffScreen, vScreenRatio, flareData1, preview, depth);
+			ProcessLensFlareSRPElementsSingle(array[i], cmd, globalColorModulation, light, compIntensity, scale, lensFlareShader, screenPos, compAllowOffScreen, new Vector2(aspect, 1f), default(Vector3), preview, depth);
 		}
-	}
-
-	[Obsolete("Use DoLensFlareDataDrivenCommon without _FlareOcclusionRemapTex.._FlareData4 parameters.")]
-	public static void DoLensFlareDataDrivenCommon(Material lensFlareShader, Camera cam, Rect viewport, XRPass xr, int xrIndex, float actualWidth, float actualHeight, bool usePanini, float paniniDistance, float paniniCropToFit, bool isCameraRelative, Vector3 cameraPositionWS, Matrix4x4 viewProjMatrix, UnsafeCommandBuffer cmd, bool taaEnabled, bool hasCloudLayer, Texture cloudOpacityTexture, Texture sunOcclusionTexture, RenderTargetIdentifier colorBuffer, Func<Light, Camera, Vector3, float> GetLensFlareLightAttenuation, int _FlareOcclusionRemapTex, int _FlareOcclusionTex, int _FlareOcclusionIndex, int _FlareCloudOpacity, int _FlareSunOcclusionTex, int _FlareTex, int _FlareColorValue, int _FlareData0, int _FlareData1, int _FlareData2, int _FlareData3, int _FlareData4, bool debugView)
-	{
-		DoLensFlareDataDrivenCommon(lensFlareShader, cam, viewport, xr, xrIndex, actualWidth, actualHeight, usePanini, paniniDistance, paniniCropToFit, isCameraRelative, cameraPositionWS, viewProjMatrix, cmd, taaEnabled, hasCloudLayer, cloudOpacityTexture, sunOcclusionTexture, colorBuffer, GetLensFlareLightAttenuation, debugView);
 	}
 
 	public static void DoLensFlareDataDrivenCommon(Material lensFlareShader, Camera cam, Rect viewport, XRPass xr, int xrIndex, float actualWidth, float actualHeight, bool usePanini, float paniniDistance, float paniniCropToFit, bool isCameraRelative, Vector3 cameraPositionWS, Matrix4x4 viewProjMatrix, UnsafeCommandBuffer cmd, bool taaEnabled, bool hasCloudLayer, Texture cloudOpacityTexture, Texture sunOcclusionTexture, RenderTargetIdentifier colorBuffer, Func<Light, Camera, Vector3, float> GetLensFlareLightAttenuation, bool debugView)
@@ -869,120 +882,27 @@ public sealed class LensFlareCommonSRP
 		DoLensFlareDataDrivenCommon(lensFlareShader, cam, viewport, xr, xrIndex, actualWidth, actualHeight, usePanini, paniniDistance, paniniCropToFit, isCameraRelative, cameraPositionWS, viewProjMatrix, cmd.m_WrappedCommandBuffer, taaEnabled, hasCloudLayer, cloudOpacityTexture, sunOcclusionTexture, colorBuffer, GetLensFlareLightAttenuation, debugView);
 	}
 
-	[Obsolete("Use DoLensFlareDataDrivenCommon without _FlareOcclusionRemapTex.._FlareData4 parameters.")]
-	public static void DoLensFlareDataDrivenCommon(Material lensFlareShader, Camera cam, Rect viewport, XRPass xr, int xrIndex, float actualWidth, float actualHeight, bool usePanini, float paniniDistance, float paniniCropToFit, bool isCameraRelative, Vector3 cameraPositionWS, Matrix4x4 viewProjMatrix, CommandBuffer cmd, bool taaEnabled, bool hasCloudLayer, Texture cloudOpacityTexture, Texture sunOcclusionTexture, RenderTargetIdentifier colorBuffer, Func<Light, Camera, Vector3, float> GetLensFlareLightAttenuation, int _FlareOcclusionRemapTex, int _FlareOcclusionTex, int _FlareOcclusionIndex, int _FlareCloudOpacity, int _FlareSunOcclusionTex, int _FlareTex, int _FlareColorValue, int _FlareData0, int _FlareData1, int _FlareData2, int _FlareData3, int _FlareData4, bool debugView)
-	{
-		DoLensFlareDataDrivenCommon(lensFlareShader, cam, viewport, xr, xrIndex, actualWidth, actualHeight, usePanini, paniniDistance, paniniCropToFit, isCameraRelative, cameraPositionWS, viewProjMatrix, cmd, taaEnabled, hasCloudLayer, cloudOpacityTexture, sunOcclusionTexture, colorBuffer, GetLensFlareLightAttenuation, debugView);
-	}
-
 	public static void DoLensFlareDataDrivenCommon(Material lensFlareShader, Camera cam, Rect viewport, XRPass xr, int xrIndex, float actualWidth, float actualHeight, bool usePanini, float paniniDistance, float paniniCropToFit, bool isCameraRelative, Vector3 cameraPositionWS, Matrix4x4 viewProjMatrix, CommandBuffer cmd, bool taaEnabled, bool hasCloudLayer, Texture cloudOpacityTexture, Texture sunOcclusionTexture, RenderTargetIdentifier colorBuffer, Func<Light, Camera, Vector3, float> GetLensFlareLightAttenuation, bool debugView)
 	{
-		xr.StopSinglePass(cmd);
-		if (Instance.IsEmpty())
+		bool clearRenderTarget = debugView;
+		if (!PreDrawSetup(occlusionOnly: false, clearRenderTarget, colorBuffer, cam, xr, xrIndex, cmd))
 		{
 			return;
 		}
-		Vector2 vector = new Vector2(actualWidth, actualHeight);
-		float x = vector.x / vector.y;
-		Vector2 vScreenRatio = new Vector2(x, 1f);
-		if (xr.enabled && xr.singlePassEnabled)
-		{
-			CoreUtils.SetRenderTarget(cmd, colorBuffer, ClearFlag.None, 0, CubemapFace.Unknown, xrIndex);
-			cmd.SetGlobalInt(_ViewId, xrIndex);
-		}
-		else
-		{
-			CoreUtils.SetRenderTarget(cmd, colorBuffer);
-			if (xr.enabled)
-			{
-				cmd.SetGlobalInt(_ViewId, xr.multipassId);
-			}
-			else
-			{
-				cmd.SetGlobalInt(_ViewId, 0);
-			}
-		}
 		cmd.SetViewport(viewport);
-		if (debugView)
-		{
-			cmd.ClearRenderTarget(clearDepth: false, clearColor: true, Color.black);
-		}
+		float aspect = actualWidth / actualHeight;
 		foreach (LensFlareCompInfo datum in m_Data)
 		{
-			if (datum == null || datum.comp == null)
+			if (DoComponent(occlusionOnly: false, datum, cam, cameraPositionWS, actualWidth, actualHeight, usePanini, paniniDistance, paniniCropToFit, isCameraRelative, viewProjMatrix, cmd, out var _, out var _, out var flarePosScreen, out var camToFlare, out var light, out var isDirLight, out var flareIntensity, out var distanceAttenuation))
 			{
-				continue;
-			}
-			LensFlareComponentSRP comp = datum.comp;
-			LensFlareDataSRP lensFlareData = comp.lensFlareData;
-			if (IsLensFlareSRPHidden(cam, comp, lensFlareData))
-			{
-				continue;
-			}
-			Light component = null;
-			if (!comp.TryGetComponent<Light>(out component))
-			{
-				component = null;
-			}
-			bool flag = false;
-			Vector3 vector2;
-			if (component != null && component.type == LightType.Directional)
-			{
-				vector2 = -component.transform.forward * cam.farClipPlane;
-				flag = true;
-			}
-			else
-			{
-				vector2 = comp.transform.position;
-			}
-			if (comp.lightOverride != null)
-			{
-				component = comp.lightOverride;
-			}
-			Vector3 vector3 = WorldToViewport(cam, !flag, isCameraRelative, viewProjMatrix, vector2);
-			if (usePanini && cam == Camera.main)
-			{
-				vector3 = DoPaniniProjection(vector3, actualWidth, actualHeight, cam.fieldOfView, paniniCropToFit, paniniDistance);
-			}
-			if (vector3.z < 0f || (!comp.allowOffScreen && (vector3.x < 0f || vector3.x > 1f || vector3.y < 0f || vector3.y > 1f)))
-			{
-				continue;
-			}
-			Vector3 rhs = vector2 - cameraPositionWS;
-			if (Vector3.Dot(cam.transform.forward, rhs) < 0f)
-			{
-				continue;
-			}
-			float magnitude = rhs.magnitude;
-			float time = magnitude / comp.maxAttenuationDistance;
-			float time2 = magnitude / comp.maxAttenuationScale;
-			float num = ((!flag && comp.distanceAttenuationCurve.length > 0) ? comp.distanceAttenuationCurve.Evaluate(time) : 1f);
-			float num2 = ((!flag && comp.scaleByDistanceCurve.length >= 1) ? comp.scaleByDistanceCurve.Evaluate(time2) : 1f);
-			Color white = Color.white;
-			if (component != null && comp.attenuationByLightShape)
-			{
-				white *= GetLensFlareLightAttenuation(component, cam, -rhs.normalized);
-			}
-			Vector2 screenPos = new Vector2(2f * vector3.x - 1f, 0f - (2f * vector3.y - 1f));
-			if (!SystemInfo.graphicsUVStartsAtTop && flag)
-			{
-				screenPos.y = 0f - screenPos.y;
-			}
-			Vector2 vector4 = new Vector2(Mathf.Abs(screenPos.x), Mathf.Abs(screenPos.y));
-			float time3 = Mathf.Max(vector4.x, vector4.y);
-			float num3 = ((comp.radialScreenAttenuationCurve.length > 0) ? comp.radialScreenAttenuationCurve.Evaluate(time3) : 1f);
-			float num4 = comp.intensity * num3 * num;
-			if (!(num4 <= 0f))
-			{
-				white *= num;
-				Vector3 normalized = (cam.transform.position - comp.transform.position).normalized;
-				Vector3 vector5 = WorldToViewport(cam, !flag, isCameraRelative, viewProjMatrix, vector2 + normalized * comp.occlusionOffset);
-				float num5 = (flag ? comp.celestialProjectedOcclusionRadius(cam) : comp.occlusionRadius);
-				Vector2 vector6 = vector3;
-				_ = ((Vector2)WorldToViewport(cam, !flag, isCameraRelative, viewProjMatrix, vector2 + cam.transform.up * num5) - vector6).magnitude;
-				if (comp.useOcclusion && occlusionRT != null)
+				LensFlareComponentSRP comp = datum.comp;
+				if (comp.useOcclusion && IsOcclusionRTCompatible())
 				{
 					cmd.SetGlobalTexture(_FlareOcclusionTex, occlusionRT);
+					cmd.EnableShaderKeyword("FLARE_HAS_OCCLUSION");
+				}
+				else if (comp.useOcclusion && !IsOcclusionRTCompatible())
+				{
 					cmd.EnableShaderKeyword("FLARE_HAS_OCCLUSION");
 				}
 				else
@@ -999,7 +919,16 @@ public sealed class LensFlareCommonSRP
 				}
 				cmd.SetGlobalVector(_FlareOcclusionIndex, new Vector4(datum.index, 0f, 0f, 0f));
 				cmd.SetGlobalTexture(_FlareOcclusionRemapTex, comp.occlusionRemapCurve.GetTexture());
-				ProcessLensFlareSRPElements(flareData1: new Vector4(0f, comp.sampleCount, vector5.z, actualHeight / actualWidth), elements: ref lensFlareData.elements, cmd: cmd, globalColorModulation: white, light: component, compIntensity: num4, scale: num2 * comp.scale, lensFlareShader: lensFlareShader, screenPos: screenPos, compAllowOffScreen: comp.allowOffScreen, vScreenRatio: vScreenRatio, preview: false, depth: 0);
+				Vector4 flareData = default(Vector4);
+				float time = camToFlare.magnitude / comp.maxAttenuationScale;
+				float num = ((!isDirLight && comp.scaleByDistanceCurve.length >= 1) ? comp.scaleByDistanceCurve.Evaluate(time) : 1f);
+				Color white = Color.white;
+				if (light != null && comp.attenuationByLightShape)
+				{
+					white *= GetLensFlareLightAttenuation(light, cam, -camToFlare.normalized);
+				}
+				white *= distanceAttenuation;
+				ProcessLensFlareSRPElements(ref comp.lensFlareData.elements, cmd, white, light, flareIntensity, num * comp.scale, lensFlareShader, flarePosScreen, comp.allowOffScreen, aspect, flareData, preview: false, 0);
 			}
 		}
 		xr.StartSinglePass(cmd);
@@ -1008,12 +937,6 @@ public sealed class LensFlareCommonSRP
 	public static void DoLensFlareScreenSpaceCommon(Material lensFlareShader, Camera cam, float actualWidth, float actualHeight, Color tintColor, Texture originalBloomTexture, Texture bloomMipTexture, Texture spectralLut, Texture streakTextureTmp, Texture streakTextureTmp2, Vector4 parameters1, Vector4 parameters2, Vector4 parameters3, Vector4 parameters4, Vector4 parameters5, UnsafeCommandBuffer cmd, RTHandle result, bool debugView)
 	{
 		DoLensFlareScreenSpaceCommon(lensFlareShader, cam, actualWidth, actualHeight, tintColor, originalBloomTexture, bloomMipTexture, spectralLut, streakTextureTmp, streakTextureTmp2, parameters1, parameters2, parameters3, parameters4, parameters5, cmd.m_WrappedCommandBuffer, result, debugView);
-	}
-
-	[Obsolete("Use DoLensFlareScreenSpaceCommon without _Shader IDs parameters.")]
-	public static void DoLensFlareScreenSpaceCommon(Material lensFlareShader, Camera cam, float actualWidth, float actualHeight, Color tintColor, Texture originalBloomTexture, Texture bloomMipTexture, Texture spectralLut, Texture streakTextureTmp, Texture streakTextureTmp2, Vector4 parameters1, Vector4 parameters2, Vector4 parameters3, Vector4 parameters4, Vector4 parameters5, CommandBuffer cmd, RTHandle result, int _LensFlareScreenSpaceBloomMipTexture, int _LensFlareScreenSpaceResultTexture, int _LensFlareScreenSpaceSpectralLut, int _LensFlareScreenSpaceStreakTex, int _LensFlareScreenSpaceMipLevel, int _LensFlareScreenSpaceTintColor, int _LensFlareScreenSpaceParams1, int _LensFlareScreenSpaceParams2, int _LensFlareScreenSpaceParams3, int _LensFlareScreenSpaceParams4, int _LensFlareScreenSpaceParams5, bool debugView)
-	{
-		DoLensFlareScreenSpaceCommon(lensFlareShader, cam, actualWidth, actualHeight, tintColor, originalBloomTexture, bloomMipTexture, spectralLut, streakTextureTmp, streakTextureTmp2, parameters1, parameters2, parameters3, parameters4, parameters5, cmd, result, debugView);
 	}
 
 	public static void DoLensFlareScreenSpaceCommon(Material lensFlareShader, Camera cam, float actualWidth, float actualHeight, Color tintColor, Texture originalBloomTexture, Texture bloomMipTexture, Texture spectralLut, Texture streakTextureTmp, Texture streakTextureTmp2, Vector4 parameters1, Vector4 parameters2, Vector4 parameters3, Vector4 parameters4, Vector4 parameters5, CommandBuffer cmd, RTHandle result, bool debugView)

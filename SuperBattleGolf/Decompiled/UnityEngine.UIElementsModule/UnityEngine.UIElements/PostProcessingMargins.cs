@@ -1,22 +1,28 @@
 using System;
+using Unity.Properties;
 
 namespace UnityEngine.UIElements;
 
 [Serializable]
-internal struct PostProcessingMargins
+public struct PostProcessingMargins
 {
+	[DontCreateProperty]
 	[SerializeField]
 	private float m_Left;
 
 	[SerializeField]
+	[DontCreateProperty]
 	private float m_Top;
 
+	[DontCreateProperty]
 	[SerializeField]
 	private float m_Right;
 
+	[DontCreateProperty]
 	[SerializeField]
 	private float m_Bottom;
 
+	[CreateProperty]
 	public float left
 	{
 		get
@@ -29,6 +35,7 @@ internal struct PostProcessingMargins
 		}
 	}
 
+	[CreateProperty]
 	public float top
 	{
 		get
@@ -41,6 +48,7 @@ internal struct PostProcessingMargins
 		}
 	}
 
+	[CreateProperty]
 	public float right
 	{
 		get
@@ -53,6 +61,7 @@ internal struct PostProcessingMargins
 		}
 	}
 
+	[CreateProperty]
 	public float bottom
 	{
 		get

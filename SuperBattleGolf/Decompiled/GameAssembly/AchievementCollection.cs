@@ -43,6 +43,30 @@ public class AchievementCollection : ScriptableObject
 	public float SweetMovesMinTime { get; private set; }
 
 	[field: SerializeField]
+	public int BerserkerKnockoutStreak { get; private set; }
+
+	[field: SerializeField]
+	public int ExplorerOutOfBoundsTimeStep { get; private set; }
+
+	[field: SerializeField]
+	public float NowThatsSoldieringDistance { get; private set; }
+
+	[field: SerializeField]
+	public int ThereCanBeOnlyOneMinTotalPlayerCount { get; private set; }
+
+	[field: SerializeField]
+	public int TargetRichEnvironmentKnockoutTimeWindow { get; private set; }
+
+	[field: SerializeField]
+	public int TargetRichEnvironmentKnockoutCount { get; private set; }
+
+	[field: SerializeField]
+	public int CaffeinatedSpeedBoostTime { get; private set; }
+
+	[field: SerializeField]
+	public int OneTrueKingFirstPlaceStreak { get; private set; }
+
+	[field: SerializeField]
 	[field: HideInInspector]
 	public float FrogLegsDistanceSquared { get; private set; }
 

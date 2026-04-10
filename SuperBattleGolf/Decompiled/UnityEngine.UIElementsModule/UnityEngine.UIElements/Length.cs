@@ -1,6 +1,8 @@
 using System;
 using System.Globalization;
 using Unity.Properties;
+using UnityEngine.Bindings;
+using UnityEngine.UIElements.StyleSheets;
 
 namespace UnityEngine.UIElements;
 
@@ -192,6 +194,7 @@ public struct Length : IEquatable<Length>
 		return text + text2;
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
 	internal static Length ParseString(string str, Length defaultValue = default(Length))
 	{
 		if (string.IsNullOrEmpty(str))
@@ -218,7 +221,7 @@ public struct Length : IEquatable<Length>
 			for (int i = 0; i < str.Length; i++)
 			{
 				char c = str[i];
-				if (char.IsNumber(c) || c == '.')
+				if (char.IsNumber(c) || c == '.' || c == '-')
 				{
 					num++;
 					continue;
@@ -230,20 +233,20 @@ public struct Length : IEquatable<Length>
 				}
 				return defaultValue;
 			}
-			string s = str.Substring(0, num);
+			string text = str.Substring(0, num);
 			string empty = string.Empty;
 			empty = ((num2 <= 0) ? "px" : str.Substring(num2, str.Length - num2));
 			float num3 = defaultValue.value;
 			LengthUnit lengthUnit = defaultValue.unit;
-			if (float.TryParse(s, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture.NumberFormat, out var result2))
+			if (StylePropertyUtil.TryParseFloat(text, out var num4))
 			{
-				num3 = result2;
+				num3 = num4;
 			}
-			string text = empty;
-			string text2 = text;
-			if (!(text2 == "px"))
+			string text2 = empty;
+			string text3 = text2;
+			if (!(text3 == "px"))
 			{
-				if (text2 == "%")
+				if (text3 == "%")
 				{
 					lengthUnit = LengthUnit.Percent;
 				}

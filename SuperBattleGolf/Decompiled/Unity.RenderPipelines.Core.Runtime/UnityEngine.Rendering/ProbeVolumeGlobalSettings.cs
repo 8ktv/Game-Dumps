@@ -5,7 +5,7 @@ namespace UnityEngine.Rendering;
 
 [Serializable]
 [SupportedOnRenderPipeline(new Type[] { })]
-[CategoryInfo(Name = "Adaptive Probe Volumes", Order = 20)]
+[CategoryInfo(Name = "Lighting", Order = 20)]
 internal class ProbeVolumeGlobalSettings : IRenderPipelineGraphicsSettings
 {
 	[SerializeField]

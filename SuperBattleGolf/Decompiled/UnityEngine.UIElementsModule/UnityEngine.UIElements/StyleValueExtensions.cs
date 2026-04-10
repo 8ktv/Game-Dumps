@@ -106,6 +106,18 @@ internal static class StyleValueExtensions
 		return styleLength.value;
 	}
 
+	internal static StyleRatio ToStyleRatio(this StyleKeyword keyword)
+	{
+		StyleKeyword styleKeyword = keyword;
+		StyleKeyword styleKeyword2 = styleKeyword;
+		if (styleKeyword2 == StyleKeyword.Auto)
+		{
+			return StyleRatio.Auto();
+		}
+		Debug.LogAssertion("Unexpected StyleKeyword '" + keyword.ToString() + "'");
+		return default(StyleRatio);
+	}
+
 	internal static void CopyFrom<T>(this List<T> list, List<T> other)
 	{
 		list.Clear();

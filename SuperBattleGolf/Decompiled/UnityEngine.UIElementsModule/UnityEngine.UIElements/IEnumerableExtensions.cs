@@ -60,4 +60,19 @@ internal static class IEnumerableExtensions
 		}
 		return false;
 	}
+
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIBuilderModule" })]
+	internal static HashSet<TResult> UniqueSelect<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector)
+	{
+		HashSet<TResult> hashSet = new HashSet<TResult>();
+		foreach (TSource item in source)
+		{
+			TResult val = selector(item);
+			if (val != null)
+			{
+				hashSet.Add(selector(item));
+			}
+		}
+		return hashSet;
+	}
 }

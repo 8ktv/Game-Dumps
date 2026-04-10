@@ -10,13 +10,28 @@ namespace UnityEngine.Events;
 [UsedByNativeCode]
 public abstract class UnityEventBase : ISerializationCallbackReceiver
 {
+	private static readonly List<WeakReference<UnityEventBase>> s_UnityEvents = new List<WeakReference<UnityEventBase>>();
+
 	private InvokableCallList m_Calls;
 
-	[FormerlySerializedAs("m_PersistentListeners")]
 	[SerializeField]
+	[FormerlySerializedAs("m_PersistentListeners")]
 	private PersistentCallGroup m_PersistentCalls;
 
 	private bool m_CallsDirty = true;
+
+	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+	private static void OnPlayModeStateChange()
+	{
+		foreach (WeakReference<UnityEventBase> s_UnityEvent in s_UnityEvents)
+		{
+			if (s_UnityEvent.TryGetTarget(out var target))
+			{
+				target.DirtyPersistentCalls();
+			}
+		}
+		s_UnityEvents.Clear();
+	}
 
 	protected UnityEventBase()
 	{
@@ -27,11 +42,13 @@ public abstract class UnityEventBase : ISerializationCallbackReceiver
 	void ISerializationCallbackReceiver.OnBeforeSerialize()
 	{
 		DirtyPersistentCalls();
+		s_UnityEvents.Add(new WeakReference<UnityEventBase>(this));
 	}
 
 	void ISerializationCallbackReceiver.OnAfterDeserialize()
 	{
 		DirtyPersistentCalls();
+		s_UnityEvents.Add(new WeakReference<UnityEventBase>(this));
 	}
 
 	protected MethodInfo FindMethod_Impl(string name, object targetObj)

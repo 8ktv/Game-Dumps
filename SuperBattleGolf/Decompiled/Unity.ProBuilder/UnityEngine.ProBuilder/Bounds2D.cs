@@ -384,12 +384,6 @@ internal sealed class Bounds2D
 
 	public override string ToString()
 	{
-		string[] obj = new string[5] { "[cen: ", null, null, null, null };
-		Vector2 vector = center;
-		obj[1] = vector.ToString();
-		obj[2] = " size: ";
-		obj[3] = size.ToString();
-		obj[4] = "]";
-		return string.Concat(obj);
+		return "[cen: " + center.ToString() + " size: " + size.ToString() + "]";
 	}
 }

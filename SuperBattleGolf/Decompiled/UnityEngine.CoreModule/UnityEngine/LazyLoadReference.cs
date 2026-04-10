@@ -5,20 +5,18 @@ namespace UnityEngine;
 [Serializable]
 public struct LazyLoadReference<T> where T : Object
 {
-	private const int kInstanceID_None = 0;
-
 	[SerializeField]
 	private int m_InstanceID;
 
-	public bool isSet => m_InstanceID != 0;
+	public bool isSet => m_InstanceID != EntityId.None;
 
-	public bool isBroken => m_InstanceID != 0 && !Object.DoesObjectWithInstanceIDExist(m_InstanceID);
+	public bool isBroken => m_InstanceID != EntityId.None && !Object.DoesObjectWithInstanceIDExist(m_InstanceID);
 
 	public T asset
 	{
 		get
 		{
-			if (m_InstanceID == 0)
+			if (m_InstanceID == EntityId.None)
 			{
 				return null;
 			}
@@ -28,18 +26,18 @@ public struct LazyLoadReference<T> where T : Object
 		{
 			if (value == null)
 			{
-				m_InstanceID = 0;
+				m_InstanceID = EntityId.None;
 				return;
 			}
 			if (!Object.IsPersistent(value))
 			{
 				throw new ArgumentException("Object that does not belong to a persisted asset cannot be set as the target of a LazyLoadReference.");
 			}
-			m_InstanceID = value.GetInstanceID();
+			m_InstanceID = value.GetEntityId();
 		}
 	}
 
-	public int instanceID
+	public EntityId entityId
 	{
 		get
 		{
@@ -51,20 +49,39 @@ public struct LazyLoadReference<T> where T : Object
 		}
 	}
 
+	[Obsolete("Use entityId instead, this will be removed in a future version", false)]
+	public int instanceID
+	{
+		get
+		{
+			return entityId;
+		}
+		set
+		{
+			entityId = value;
+		}
+	}
+
 	public LazyLoadReference(T asset)
 	{
 		if (asset == null)
 		{
-			m_InstanceID = 0;
+			m_InstanceID = EntityId.None;
 			return;
 		}
 		if (!Object.IsPersistent(asset))
 		{
 			throw new ArgumentException("Object that does not belong to a persisted asset cannot be set as the target of a LazyLoadReference.");
 		}
-		m_InstanceID = asset.GetInstanceID();
+		m_InstanceID = asset.GetEntityId();
 	}
 
+	public LazyLoadReference(EntityId entityId)
+	{
+		m_InstanceID = entityId;
+	}
+
+	[Obsolete("Use LazyLoadReference(EntityId entityId) instead, this will be removed in a future version", false)]
 	public LazyLoadReference(int instanceID)
 	{
 		m_InstanceID = instanceID;
@@ -78,11 +95,20 @@ public struct LazyLoadReference<T> where T : Object
 		};
 	}
 
+	public static implicit operator LazyLoadReference<T>(EntityId entityId)
+	{
+		return new LazyLoadReference<T>
+		{
+			m_InstanceID = entityId
+		};
+	}
+
+	[Obsolete("Use LazyLoadReference(EntityId entityId) instead, this will be removed in a future version", false)]
 	public static implicit operator LazyLoadReference<T>(int instanceID)
 	{
 		return new LazyLoadReference<T>
 		{
-			instanceID = instanceID
+			m_InstanceID = instanceID
 		};
 	}
 }

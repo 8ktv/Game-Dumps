@@ -7,9 +7,9 @@ namespace UnityEngine.UIElements;
 
 [HelpURL("UIE-get-started-with-runtime-ui")]
 [DefaultExecutionOrder(-100)]
-[AddComponentMenu("UI Toolkit/UI Document")]
 [DisallowMultipleComponent]
 [ExecuteAlways]
+[AddComponentMenu("UI Toolkit/UI Document")]
 public sealed class UIDocument : MonoBehaviour
 {
 	public enum WorldSpaceSizeMode
@@ -21,6 +21,8 @@ public sealed class UIDocument : MonoBehaviour
 	internal const string k_RootStyleClassName = "unity-ui-document__root";
 
 	internal const string k_VisualElementNameSuffix = "-container";
+
+	internal const string k_EditorElementsWarningMessage = "The VisualTreeAsset contains editor-only elements that are incompatible at runtime.\nTo fix this, remove the editor elements from the VisualTreeAsset.";
 
 	private const int k_DefaultSortingOrder = 0;
 
@@ -311,7 +313,12 @@ public sealed class UIDocument : MonoBehaviour
 		}
 	}
 
-	internal void LateUpdate()
+	private void LateUpdate()
+	{
+		DoUpdate();
+	}
+
+	internal void DoUpdate()
 	{
 		if (m_RootVisualElement == null || panelSettings == null || panelSettings.panel == null)
 		{
@@ -358,7 +365,6 @@ public sealed class UIDocument : MonoBehaviour
 		BaseRuntimePanel baseRuntimePanel = (BaseRuntimePanel)m_RootVisualElement.panel;
 		if (baseRuntimePanel != null)
 		{
-			Debug.Assert(baseRuntimePanel.drawsInCameras);
 			Bounds bounds = SanitizeRendererBounds(rootVisualElement.localBounds3D);
 			Matrix4x4 matrix = TransformToGameObjectMatrix();
 			VisualElement.TransformAlignedBounds(ref matrix, ref bounds);
@@ -415,7 +421,7 @@ public sealed class UIDocument : MonoBehaviour
 		else
 		{
 			Rect worldBound = rootVisualElement.worldBound;
-			b = new Bounds(worldBound.center, worldBound.size);
+			b = new Bounds((Vector3)worldBound.center, (Vector3)worldBound.size);
 		}
 		if (!IsValidBounds(in b))
 		{
@@ -629,6 +635,10 @@ public sealed class UIDocument : MonoBehaviour
 			rootVisualElement = new UIDocumentRootElement(this, sourceAsset);
 			try
 			{
+				if (sourceAsset.hasEditorElements)
+				{
+					Debug.LogWarning("The VisualTreeAsset contains editor-only elements that are incompatible at runtime.\nTo fix this, remove the editor elements from the VisualTreeAsset.", this);
+				}
 				sourceAsset.CloneTree(m_RootVisualElement);
 			}
 			catch (Exception exception)

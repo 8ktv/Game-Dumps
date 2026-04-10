@@ -338,7 +338,7 @@ internal static class RenderEvents
 		renderData.firstChild = null;
 		renderData.lastChild = null;
 		renderData.renderTree = null;
-		renderTreeManager.ResetTextures(renderData);
+		renderTreeManager.ResetGraphicEntries(renderData);
 		if (renderData.hasExtraData)
 		{
 			renderTreeManager.FreeExtraMeshes(renderData);
@@ -426,6 +426,7 @@ internal static class RenderEvents
 			stats.recursiveClipUpdatesExpanded++;
 		}
 		isPendingHierarchicalRepaint |= (renderData.dirtiedValues & RenderDataDirtyTypes.VisualsHierarchy) != 0;
+		hierarchical |= (renderData.dirtiedValues & RenderDataDirtyTypes.ClippingHierarchy) != 0;
 		bool flag = hierarchical || isRootOfChange || inheritedClipRectIDChanged;
 		bool flag2 = hierarchical || isRootOfChange;
 		bool flag3 = hierarchical || isRootOfChange || inheritedMaskingChanged;
@@ -723,18 +724,19 @@ internal static class RenderEvents
 		{
 			return false;
 		}
-		bool flag = RenderData.AllocatesID(ve.renderData.textCoreSettingsID);
+		RenderData renderData = ve.nestedRenderData ?? ve.renderData;
+		bool flag = RenderData.AllocatesID(renderData.textCoreSettingsID);
 		TextCoreSettings textCoreSettingsForElement = TextUtilities.GetTextCoreSettingsForElement(ve, ignoreColors: false);
 		if (!NeedsColorID(ve) && !NeedsTextCoreSettings(ve) && !flag)
 		{
-			ve.renderData.textCoreSettingsID = UIRVEShaderInfoAllocator.defaultTextCoreSettings;
+			renderData.textCoreSettingsID = UIRVEShaderInfoAllocator.defaultTextCoreSettings;
 			return true;
 		}
 		if (!flag)
 		{
-			ve.renderData.textCoreSettingsID = renderTreeManager.shaderInfoAllocator.AllocTextCoreSettings(textCoreSettingsForElement);
+			renderData.textCoreSettingsID = renderTreeManager.shaderInfoAllocator.AllocTextCoreSettings(textCoreSettingsForElement);
 		}
-		if (RenderData.AllocatesID(ve.renderData.textCoreSettingsID))
+		if (RenderData.AllocatesID(renderData.textCoreSettingsID))
 		{
 			if (ve.panel.contextType == ContextType.Editor)
 			{
@@ -743,7 +745,7 @@ internal static class RenderEvents
 				textCoreSettingsForElement.outlineColor *= playModeTintColor;
 				textCoreSettingsForElement.underlayColor *= playModeTintColor;
 			}
-			renderTreeManager.shaderInfoAllocator.SetTextCoreSettingValue(ve.renderData.textCoreSettingsID, textCoreSettingsForElement);
+			renderTreeManager.shaderInfoAllocator.SetTextCoreSettingValue(renderData.textCoreSettingsID, textCoreSettingsForElement);
 		}
 		return true;
 	}

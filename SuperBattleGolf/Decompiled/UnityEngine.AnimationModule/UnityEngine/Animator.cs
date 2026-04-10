@@ -11,9 +11,9 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [UsedByNativeCode]
-[NativeHeader("Modules/Animation/ScriptBindings/AnimatorControllerParameter.bindings.h")]
 [NativeHeader("Modules/Animation/Animator.h")]
 [NativeHeader("Modules/Animation/ScriptBindings/Animator.bindings.h")]
+[NativeHeader("Modules/Animation/ScriptBindings/AnimatorControllerParameter.bindings.h")]
 public class Animator : Behaviour
 {
 	public bool isOptimizable
@@ -458,6 +458,7 @@ public class Animator : Behaviour
 	public AnimatorControllerParameter[] parameters
 	{
 		[FreeFunction(Name = "AnimatorBindings::GetParameters", HasExplicitThis = true)]
+		[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 		get
 		{
 			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1488,7 +1489,7 @@ public class Animator : Behaviour
 	}
 
 	[FreeFunction(Name = "AnimatorBindings::GetCurrentAnimatorClipInfo", HasExplicitThis = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public AnimatorClipInfo[] GetCurrentAnimatorClipInfo(int layerIndex)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1500,7 +1501,7 @@ public class Animator : Behaviour
 	}
 
 	[FreeFunction(Name = "AnimatorBindings::GetNextAnimatorClipInfo", HasExplicitThis = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public AnimatorClipInfo[] GetNextAnimatorClipInfo(int layerIndex)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -1826,6 +1827,16 @@ public class Animator : Behaviour
 		float normalizedTime = float.NegativeInfinity;
 		int layer = -1;
 		Play(stateNameHash, layer, normalizedTime);
+	}
+
+	public void ResetControllerState([UnityEngine.Internal.DefaultValue("true")] bool resetParameters = true)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		ResetControllerState_Injected(intPtr, resetParameters);
 	}
 
 	public void SetTarget(AvatarTarget targetIndex, float targetNormalizedTime)
@@ -2853,6 +2864,9 @@ public class Animator : Behaviour
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void Play_Injected(IntPtr _unity_self, int stateNameHash, [UnityEngine.Internal.DefaultValue("-1")] int layer, [UnityEngine.Internal.DefaultValue("float.NegativeInfinity")] float normalizedTime);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void ResetControllerState_Injected(IntPtr _unity_self, [UnityEngine.Internal.DefaultValue("true")] bool resetParameters);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void SetTarget_Injected(IntPtr _unity_self, AvatarTarget targetIndex, float targetNormalizedTime);

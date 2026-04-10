@@ -35,7 +35,7 @@ public struct Vector3Int : IEquatable<Vector3Int>, IFormattable
 	public int x
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_X;
 		}
@@ -49,7 +49,7 @@ public struct Vector3Int : IEquatable<Vector3Int>, IFormattable
 	public int y
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_Y;
 		}
@@ -63,7 +63,7 @@ public struct Vector3Int : IEquatable<Vector3Int>, IFormattable
 	public int z
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return m_Z;
 		}
@@ -77,13 +77,13 @@ public struct Vector3Int : IEquatable<Vector3Int>, IFormattable
 	public int this[int index]
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get
+		readonly get
 		{
 			return index switch
 			{
-				0 => x, 
-				1 => y, 
-				2 => z, 
+				0 => m_X, 
+				1 => m_Y, 
+				2 => m_Z, 
 				_ => throw new IndexOutOfRangeException($"Invalid Vector3Int index addressed: {index}!"), 
 			};
 		}
@@ -93,13 +93,13 @@ public struct Vector3Int : IEquatable<Vector3Int>, IFormattable
 			switch (index)
 			{
 			case 0:
-				x = value;
+				m_X = value;
 				break;
 			case 1:
-				y = value;
+				m_Y = value;
 				break;
 			case 2:
-				z = value;
+				m_Z = value;
 				break;
 			default:
 				throw new IndexOutOfRangeException($"Invalid Vector3Int index addressed: {index}!");
@@ -107,21 +107,21 @@ public struct Vector3Int : IEquatable<Vector3Int>, IFormattable
 		}
 	}
 
-	public float magnitude
+	public readonly float magnitude
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
 		{
-			return Mathf.Sqrt(x * x + y * y + z * z);
+			return Mathf.Sqrt(m_X * m_X + m_Y * m_Y + m_Z * m_Z);
 		}
 	}
 
-	public int sqrMagnitude
+	public readonly int sqrMagnitude
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		get
 		{
-			return x * x + y * y + z * z;
+			return m_X * m_X + m_Y * m_Y + m_Z * m_Z;
 		}
 	}
 
@@ -228,56 +228,104 @@ public struct Vector3Int : IEquatable<Vector3Int>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static float Distance(in Vector3Int a, in Vector3Int b)
+	{
+		return (a - b).magnitude;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3Int Min(Vector3Int lhs, Vector3Int rhs)
 	{
-		return new Vector3Int(Mathf.Min(lhs.x, rhs.x), Mathf.Min(lhs.y, rhs.y), Mathf.Min(lhs.z, rhs.z));
+		return new Vector3Int(Mathf.Min(lhs.m_X, rhs.m_X), Mathf.Min(lhs.m_Y, rhs.m_Y), Mathf.Min(lhs.m_Z, rhs.m_Z));
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3Int Min(in Vector3Int lhs, in Vector3Int rhs)
+	{
+		return new Vector3Int(Mathf.Min(lhs.m_X, rhs.m_X), Mathf.Min(lhs.m_Y, rhs.m_Y), Mathf.Min(lhs.m_Z, rhs.m_Z));
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3Int Max(Vector3Int lhs, Vector3Int rhs)
 	{
-		return new Vector3Int(Mathf.Max(lhs.x, rhs.x), Mathf.Max(lhs.y, rhs.y), Mathf.Max(lhs.z, rhs.z));
+		return new Vector3Int(Mathf.Max(lhs.m_X, rhs.m_X), Mathf.Max(lhs.m_Y, rhs.m_Y), Mathf.Max(lhs.m_Z, rhs.m_Z));
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3Int Max(in Vector3Int lhs, in Vector3Int rhs)
+	{
+		return new Vector3Int(Mathf.Max(lhs.m_X, rhs.m_X), Mathf.Max(lhs.m_Y, rhs.m_Y), Mathf.Max(lhs.m_Z, rhs.m_Z));
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3Int Scale(Vector3Int a, Vector3Int b)
 	{
-		return new Vector3Int(a.x * b.x, a.y * b.y, a.z * b.z);
+		return new Vector3Int(a.m_X * b.m_X, a.m_Y * b.m_Y, a.m_Z * b.m_Z);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3Int Scale(in Vector3Int a, in Vector3Int b)
+	{
+		return new Vector3Int(a.m_X * b.m_X, a.m_Y * b.m_Y, a.m_Z * b.m_Z);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void Scale(Vector3Int scale)
 	{
-		x *= scale.x;
-		y *= scale.y;
-		z *= scale.z;
+		m_X *= scale.m_X;
+		m_Y *= scale.m_Y;
+		m_Z *= scale.m_Z;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public void Scale(in Vector3Int scale)
+	{
+		m_X *= scale.m_X;
+		m_Y *= scale.m_Y;
+		m_Z *= scale.m_Z;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public void Clamp(Vector3Int min, Vector3Int max)
 	{
-		x = Math.Max(min.x, x);
-		x = Math.Min(max.x, x);
-		y = Math.Max(min.y, y);
-		y = Math.Min(max.y, y);
-		z = Math.Max(min.z, z);
-		z = Math.Min(max.z, z);
+		m_X = Mathf.Clamp(m_X, min.m_X, max.m_X);
+		m_Y = Mathf.Clamp(m_Y, min.m_Y, max.m_Y);
+		m_Z = Mathf.Clamp(m_Z, min.m_Z, max.m_Z);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public void Clamp(in Vector3Int min, in Vector3Int max)
+	{
+		m_X = Mathf.Clamp(m_X, min.m_X, max.m_X);
+		m_Y = Mathf.Clamp(m_Y, min.m_Y, max.m_Y);
+		m_Z = Mathf.Clamp(m_Z, min.m_Z, max.m_Z);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static implicit operator Vector3(Vector3Int v)
 	{
-		return new Vector3(v.x, v.y, v.z);
+		return new Vector3
+		{
+			x = v.m_X,
+			y = v.m_Y,
+			z = v.m_Z
+		};
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static explicit operator Vector2Int(Vector3Int v)
 	{
-		return new Vector2Int(v.x, v.y);
+		return new Vector2Int(v.m_X, v.m_Y);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3Int FloorToInt(Vector3 v)
+	{
+		return new Vector3Int(Mathf.FloorToInt(v.x), Mathf.FloorToInt(v.y), Mathf.FloorToInt(v.z));
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3Int FloorToInt(in Vector3 v)
 	{
 		return new Vector3Int(Mathf.FloorToInt(v.x), Mathf.FloorToInt(v.y), Mathf.FloorToInt(v.z));
 	}
@@ -289,7 +337,19 @@ public struct Vector3Int : IEquatable<Vector3Int>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3Int CeilToInt(in Vector3 v)
+	{
+		return new Vector3Int(Mathf.CeilToInt(v.x), Mathf.CeilToInt(v.y), Mathf.CeilToInt(v.z));
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3Int RoundToInt(Vector3 v)
+	{
+		return new Vector3Int(Mathf.RoundToInt(v.x), Mathf.RoundToInt(v.y), Mathf.RoundToInt(v.z));
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static Vector3Int RoundToInt(in Vector3 v)
 	{
 		return new Vector3Int(Mathf.RoundToInt(v.x), Mathf.RoundToInt(v.y), Mathf.RoundToInt(v.z));
 	}
@@ -297,49 +357,49 @@ public struct Vector3Int : IEquatable<Vector3Int>, IFormattable
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3Int operator +(Vector3Int a, Vector3Int b)
 	{
-		return new Vector3Int(a.x + b.x, a.y + b.y, a.z + b.z);
+		return new Vector3Int(a.m_X + b.m_X, a.m_Y + b.m_Y, a.m_Z + b.m_Z);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3Int operator -(Vector3Int a, Vector3Int b)
 	{
-		return new Vector3Int(a.x - b.x, a.y - b.y, a.z - b.z);
+		return new Vector3Int(a.m_X - b.m_X, a.m_Y - b.m_Y, a.m_Z - b.m_Z);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3Int operator *(Vector3Int a, Vector3Int b)
 	{
-		return new Vector3Int(a.x * b.x, a.y * b.y, a.z * b.z);
+		return new Vector3Int(a.m_X * b.m_X, a.m_Y * b.m_Y, a.m_Z * b.m_Z);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3Int operator -(Vector3Int a)
 	{
-		return new Vector3Int(-a.x, -a.y, -a.z);
+		return new Vector3Int(-a.m_X, -a.m_Y, -a.m_Z);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3Int operator *(Vector3Int a, int b)
 	{
-		return new Vector3Int(a.x * b, a.y * b, a.z * b);
+		return new Vector3Int(a.m_X * b, a.m_Y * b, a.m_Z * b);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3Int operator *(int a, Vector3Int b)
 	{
-		return new Vector3Int(a * b.x, a * b.y, a * b.z);
+		return new Vector3Int(a * b.m_X, a * b.m_Y, a * b.m_Z);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static Vector3Int operator /(Vector3Int a, int b)
 	{
-		return new Vector3Int(a.x / b, a.y / b, a.z / b);
+		return new Vector3Int(a.m_X / b, a.m_Y / b, a.m_Z / b);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static bool operator ==(Vector3Int lhs, Vector3Int rhs)
 	{
-		return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
+		return lhs.m_X == rhs.m_X && lhs.m_Y == rhs.m_Y && lhs.m_Z == rhs.m_Z;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -349,48 +409,54 @@ public struct Vector3Int : IEquatable<Vector3Int>, IFormattable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override bool Equals(object other)
+	public override readonly bool Equals(object other)
 	{
 		if (other is Vector3Int other2)
 		{
-			return Equals(other2);
+			return Equals(in other2);
 		}
 		return false;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public bool Equals(Vector3Int other)
+	public readonly bool Equals(Vector3Int other)
 	{
 		return this == other;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override int GetHashCode()
+	public readonly bool Equals(in Vector3Int other)
 	{
-		int hashCode = y.GetHashCode();
-		int hashCode2 = z.GetHashCode();
-		return x.GetHashCode() ^ (hashCode << 4) ^ (hashCode >> 28) ^ (hashCode2 >> 4) ^ (hashCode2 << 28);
+		return this == other;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public override string ToString()
+	public override readonly int GetHashCode()
+	{
+		int hashCode = m_Y.GetHashCode();
+		int hashCode2 = m_Z.GetHashCode();
+		return m_X.GetHashCode() ^ (hashCode << 4) ^ (hashCode >> 28) ^ (hashCode2 >> 4) ^ (hashCode2 << 28);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public override readonly string ToString()
 	{
 		return ToString(null, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format)
+	public readonly string ToString(string format)
 	{
 		return ToString(format, null);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public string ToString(string format, IFormatProvider formatProvider)
+	public readonly string ToString(string format, IFormatProvider formatProvider)
 	{
 		if (formatProvider == null)
 		{
 			formatProvider = CultureInfo.InvariantCulture.NumberFormat;
 		}
-		return $"({x.ToString(format, formatProvider)}, {y.ToString(format, formatProvider)}, {z.ToString(format, formatProvider)})";
+		return $"({m_X.ToString(format, formatProvider)}, {m_Y.ToString(format, formatProvider)}, {m_Z.ToString(format, formatProvider)})";
 	}
 }

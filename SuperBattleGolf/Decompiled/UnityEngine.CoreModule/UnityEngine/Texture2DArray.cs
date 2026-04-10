@@ -10,8 +10,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[ExcludeFromPreset]
 [NativeHeader("Runtime/Graphics/Texture2DArray.h")]
+[ExcludeFromPreset]
 public sealed class Texture2DArray : Texture
 {
 	public static extern int allSlices
@@ -179,7 +179,7 @@ public sealed class Texture2DArray : Texture
 	}
 
 	[FreeFunction(Name = "Texture2DArrayScripting::GetPixels", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public Color[] GetPixels(int arrayElement, int miplevel)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -218,7 +218,7 @@ public sealed class Texture2DArray : Texture
 	}
 
 	[FreeFunction(Name = "Texture2DArrayScripting::GetPixels32", HasExplicitThis = true, ThrowsException = true)]
-	[return: Unmarshalled]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public Color32[] GetPixels32(int arrayElement, int miplevel)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);

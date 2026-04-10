@@ -6,6 +6,7 @@ using UnityEngine.Internal;
 
 namespace UnityEngine.UIElements;
 
+[UxmlElement(null, new Type[] { typeof(Button) })]
 public class ToggleButtonGroup : BaseField<ToggleButtonGroupState>
 {
 	[Serializable]
@@ -15,17 +16,17 @@ public class ToggleButtonGroup : BaseField<ToggleButtonGroupState>
 		[SerializeField]
 		private bool isMultipleSelection;
 
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
 		[HideInInspector]
 		private UxmlAttributeFlags isMultipleSelection_UxmlAttributeFlags;
 
 		[SerializeField]
 		private bool allowEmptySelection;
 
-		[HideInInspector]
 		[SerializeField]
 		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags allowEmptySelection_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -83,6 +84,26 @@ public class ToggleButtonGroup : BaseField<ToggleButtonGroupState>
 			ToggleButtonGroup toggleButtonGroup = (ToggleButtonGroup)ve;
 			toggleButtonGroup.isMultipleSelection = m_IsMultipleSelection.GetValueFromBag(bag, cc);
 			toggleButtonGroup.allowEmptySelection = m_AllowEmptySelection.GetValueFromBag(bag, cc);
+		}
+	}
+
+	private class ButtonGroupContainer : VisualElement
+	{
+		private readonly ToggleButtonGroup m_Group;
+
+		public ButtonGroupContainer(ToggleButtonGroup group)
+		{
+			m_Group = group;
+		}
+
+		internal override void OnChildAdded(VisualElement ve)
+		{
+			m_Group.OnButtonGroupContainerElementAdded(ve);
+		}
+
+		internal override void OnChildRemoved(VisualElement ve)
+		{
+			m_Group.OnButtonGroupContainerElementRemoved(ve);
 		}
 	}
 
@@ -197,15 +218,13 @@ public class ToggleButtonGroup : BaseField<ToggleButtonGroupState>
 		: base(label)
 	{
 		AddToClassList(ussClassName);
-		base.visualInput = new VisualElement
+		base.visualInput = new ButtonGroupContainer(this)
 		{
 			name = containerUssClassName,
 			classList = { buttonGroupClassName },
-			focusable = false
+			delegatesFocus = true
 		};
 		m_ButtonGroupContainer = base.visualInput;
-		m_ButtonGroupContainer.elementAdded += OnButtonGroupContainerElementAdded;
-		m_ButtonGroupContainer.elementRemoved += OnButtonGroupContainerElementRemoved;
 		SetValueWithoutNotify(toggleButtonGroupState);
 	}
 
@@ -221,7 +240,7 @@ public class ToggleButtonGroup : BaseField<ToggleButtonGroupState>
 		{
 			foreach (Button button in m_Buttons)
 			{
-				button.pseudoStates &= ~PseudoStates.Checked;
+				button.SetCheckedPseudoState(value: false);
 				button.IncrementVersion(VersionChangeType.Styles);
 			}
 			return;
@@ -252,7 +271,16 @@ public class ToggleButtonGroup : BaseField<ToggleButtonGroupState>
 		UpdateButtonStates(newValue);
 	}
 
-	private void OnButtonGroupContainerElementAdded(VisualElement ve, int index)
+	public Button GetButton(int index)
+	{
+		if (index < 0 || index >= m_Buttons.Count)
+		{
+			return null;
+		}
+		return m_Buttons[index];
+	}
+
+	private void OnButtonGroupContainerElementAdded(VisualElement ve)
 	{
 		if (!(ve is Button button))
 		{
@@ -303,7 +331,7 @@ public class ToggleButtonGroup : BaseField<ToggleButtonGroupState>
 		button.clickable.clickedWithEventInfo -= OnOptionChange;
 		if (flag)
 		{
-			m_Buttons[index].pseudoStates &= ~PseudoStates.Checked;
+			m_Buttons[index].SetCheckedPseudoState(value: false);
 		}
 		m_Buttons.Remove(button);
 		UpdateButtonsStyling();
@@ -332,12 +360,12 @@ public class ToggleButtonGroup : BaseField<ToggleButtonGroupState>
 		{
 			if (activeOptions.IndexOf(i) == -1)
 			{
-				m_Buttons[i].pseudoStates &= ~PseudoStates.Checked;
+				m_Buttons[i].SetCheckedPseudoState(value: false);
 				m_Buttons[i].IncrementVersion(VersionChangeType.Styles);
 			}
 			else
 			{
-				m_Buttons[i].pseudoStates |= PseudoStates.Checked;
+				m_Buttons[i].SetCheckedPseudoState(value: true);
 				m_Buttons[i].IncrementVersion(VersionChangeType.Styles);
 			}
 		}

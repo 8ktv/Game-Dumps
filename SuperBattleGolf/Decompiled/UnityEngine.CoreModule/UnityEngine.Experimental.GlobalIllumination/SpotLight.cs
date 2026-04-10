@@ -1,8 +1,10 @@
+using System;
+
 namespace UnityEngine.Experimental.GlobalIllumination;
 
 public struct SpotLight
 {
-	public int instanceID;
+	public EntityId entityId;
 
 	public bool shadow;
 
@@ -27,4 +29,17 @@ public struct SpotLight
 	public FalloffType falloff;
 
 	public AngularFalloffType angularFalloff;
+
+	[Obsolete("Please use entityId instead.", false)]
+	public int instanceID
+	{
+		get
+		{
+			return entityId;
+		}
+		set
+		{
+			entityId = value;
+		}
+	}
 }

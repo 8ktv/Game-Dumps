@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
-using UnityEngine.Assertions;
 using UnityEngine.Bindings;
 using UnityEngine.Scripting;
 
@@ -26,12 +25,13 @@ internal class GPUDrivenProcessor
 
 	private unsafe static GPUDrivenRendererDataNativeCallback s_NativeRendererCallback = delegate(in GPUDrivenRendererGroupDataNative nativeData, List<Mesh> meshes, List<Material> materials, GPUDrivenRendererDataCallback callback)
 	{
-		NativeArray<int> rendererGroupID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.rendererGroupID, nativeData.rendererGroupCount, Allocator.Invalid);
+		NativeArray<EntityId> rendererGroupID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<EntityId>(nativeData.rendererGroupID, nativeData.rendererGroupCount, Allocator.Invalid);
 		NativeArray<Bounds> localBounds = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<Bounds>(nativeData.localBounds, (nativeData.localBounds != null) ? nativeData.rendererGroupCount : 0, Allocator.Invalid);
 		NativeArray<Vector4> lightmapScaleOffset = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<Vector4>(nativeData.lightmapScaleOffset, nativeData.rendererGroupCount, Allocator.Invalid);
 		NativeArray<int> gameObjectLayer = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.gameObjectLayer, nativeData.rendererGroupCount, Allocator.Invalid);
 		NativeArray<uint> renderingLayerMask = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<uint>(nativeData.renderingLayerMask, nativeData.rendererGroupCount, Allocator.Invalid);
-		NativeArray<int> lodGroupID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.lodGroupID, (nativeData.lodGroupID != null) ? nativeData.rendererGroupCount : 0, Allocator.Invalid);
+		NativeArray<uint> rendererUserValues = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<uint>(nativeData.rendererUserValues, nativeData.rendererGroupCount, Allocator.Invalid);
+		NativeArray<EntityId> lodGroupID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<EntityId>(nativeData.lodGroupID, (nativeData.lodGroupID != null) ? nativeData.rendererGroupCount : 0, Allocator.Invalid);
 		NativeArray<int> lightmapIndex = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.motionVecGenMode, nativeData.rendererGroupCount, Allocator.Invalid);
 		NativeArray<GPUDrivenPackedRendererData> packedRendererData = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<GPUDrivenPackedRendererData>(nativeData.packedRendererData, nativeData.rendererGroupCount, Allocator.Invalid);
 		NativeArray<int> rendererPriority = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.rendererPriority, nativeData.rendererGroupCount, Allocator.Invalid);
@@ -43,17 +43,17 @@ internal class GPUDrivenProcessor
 		NativeArray<int> instancesCount = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(null, 0, Allocator.Invalid);
 		NativeArray<GPUDrivenRendererEditorData> editorData = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<GPUDrivenRendererEditorData>(nativeData.editorData, nativeData.rendererGroupCount, Allocator.Invalid);
 		NativeArray<GPUDrivenRendererMeshLodData> meshLodData = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<GPUDrivenRendererMeshLodData>(nativeData.meshLodData, nativeData.rendererGroupCount, Allocator.Invalid);
-		NativeArray<int> invalidRendererGroupID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.invalidRendererGroupID, nativeData.invalidRendererGroupIDCount, Allocator.Invalid);
+		NativeArray<EntityId> invalidRendererGroupID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<EntityId>(nativeData.invalidRendererGroupID, nativeData.invalidRendererGroupIDCount, Allocator.Invalid);
 		NativeArray<Matrix4x4> localToWorldMatrix = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<Matrix4x4>(nativeData.localToWorldMatrix, (nativeData.localToWorldMatrix != null) ? nativeData.rendererGroupCount : 0, Allocator.Invalid);
 		NativeArray<Matrix4x4> prevLocalToWorldMatrix = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<Matrix4x4>(nativeData.prevLocalToWorldMatrix, (nativeData.prevLocalToWorldMatrix != null) ? nativeData.rendererGroupCount : 0, Allocator.Invalid);
 		NativeArray<int> rendererGroupIndex = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(null, 0, Allocator.Invalid);
-		NativeArray<int> meshID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.meshID, nativeData.meshCount, Allocator.Invalid);
+		NativeArray<EntityId> meshID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<EntityId>(nativeData.meshID, nativeData.meshCount, Allocator.Invalid);
 		NativeArray<GPUDrivenMeshLodInfo> meshLodInfo = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<GPUDrivenMeshLodInfo>(nativeData.meshLodInfo, nativeData.meshCount, Allocator.Invalid);
 		NativeArray<short> subMeshCount = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<short>(nativeData.subMeshCount, nativeData.meshCount, Allocator.Invalid);
 		NativeArray<int> subMeshDescOffset = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.subMeshDescOffset, nativeData.meshCount, Allocator.Invalid);
 		NativeArray<SubMeshDescriptor> subMeshDesc = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<SubMeshDescriptor>(nativeData.subMeshDesc, nativeData.subMeshDescCount, Allocator.Invalid);
 		NativeArray<int> materialIndex = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.materialIndex, nativeData.materialIndexCount, Allocator.Invalid);
-		NativeArray<int> materialID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.materialID, nativeData.materialCount, Allocator.Invalid);
+		NativeArray<EntityId> materialID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<EntityId>(nativeData.materialID, nativeData.materialCount, Allocator.Invalid);
 		NativeArray<GPUDrivenPackedMaterialData> packedMaterialData = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<GPUDrivenPackedMaterialData>(nativeData.packedMaterialData, (nativeData.packedMaterialData != null) ? nativeData.materialCount : 0, Allocator.Invalid);
 		NativeArray<int> materialFilterFlags = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.materialFilterFlags, (nativeData.packedMaterialData != null) ? nativeData.materialCount : 0, Allocator.Invalid);
 		callback(new GPUDrivenRendererGroupData
@@ -63,6 +63,7 @@ internal class GPUDrivenProcessor
 			lightmapScaleOffset = lightmapScaleOffset,
 			gameObjectLayer = gameObjectLayer,
 			renderingLayerMask = renderingLayerMask,
+			rendererUserValues = rendererUserValues,
 			lodGroupID = lodGroupID,
 			lightmapIndex = lightmapIndex,
 			packedRendererData = packedRendererData,
@@ -93,7 +94,7 @@ internal class GPUDrivenProcessor
 
 	private unsafe static GPUDrivenLODGroupDataNativeCallback s_NativeLODGroupCallback = delegate(in GPUDrivenLODGroupDataNative nativeData, GPUDrivenLODGroupDataCallback callback)
 	{
-		NativeArray<int> lodGroupID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.lodGroupID, nativeData.lodGroupCount, Allocator.Invalid);
+		NativeArray<EntityId> lodGroupID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<EntityId>(nativeData.lodGroupID, nativeData.lodGroupCount, Allocator.Invalid);
 		NativeArray<int> lodOffset = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.lodOffset, nativeData.lodGroupCount, Allocator.Invalid);
 		NativeArray<int> lodCount = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.lodCount, nativeData.lodGroupCount, Allocator.Invalid);
 		NativeArray<LODFadeMode> fadeMode = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<LODFadeMode>(nativeData.fadeMode, nativeData.lodGroupCount, Allocator.Invalid);
@@ -102,7 +103,7 @@ internal class GPUDrivenProcessor
 		NativeArray<short> renderersCount = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<short>(nativeData.renderersCount, nativeData.lodGroupCount, Allocator.Invalid);
 		NativeArray<bool> lastLODIsBillboard = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<bool>(nativeData.lastLODIsBillboard, nativeData.lodGroupCount, Allocator.Invalid);
 		NativeArray<byte> forceLODMask = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<byte>(nativeData.forceLODMask, nativeData.lodGroupCount, Allocator.Invalid);
-		NativeArray<int> invalidLODGroupID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<int>(nativeData.invalidLODGroupID, nativeData.invalidLODGroupCount, Allocator.Invalid);
+		NativeArray<EntityId> invalidLODGroupID = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<EntityId>(nativeData.invalidLODGroupID, nativeData.invalidLODGroupCount, Allocator.Invalid);
 		NativeArray<short> lodRenderersCount = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<short>(nativeData.lodRenderersCount, nativeData.lodDataCount, Allocator.Invalid);
 		NativeArray<float> lodScreenRelativeTransitionHeight = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<float>(nativeData.lodScreenRelativeTransitionHeight, nativeData.lodDataCount, Allocator.Invalid);
 		NativeArray<float> lodFadeTransitionWidth = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<float>(nativeData.lodFadeTransitionWidth, nativeData.lodDataCount, Allocator.Invalid);
@@ -208,60 +209,61 @@ internal class GPUDrivenProcessor
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void Internal_Destroy(IntPtr ptr);
 
-	private unsafe void EnableGPUDrivenRenderingAndDispatchRendererData(ReadOnlySpan<int> renderersID, GPUDrivenRendererDataNativeCallback callback, List<Mesh> meshes, List<Material> materials, GPUDrivenRendererDataCallback param, bool materialUpdateOnly)
+	private unsafe void EnableGPUDrivenRenderingAndDispatchRendererData(ReadOnlySpan<EntityId> renderersID, GPUDrivenRendererDataNativeCallback callback, List<Mesh> meshes, List<Material> materials, GPUDrivenRendererDataCallback param, bool materialUpdateOnly)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
 		if (intPtr == (IntPtr)0)
 		{
 			ThrowHelper.ThrowNullReferenceException(this);
 		}
-		ReadOnlySpan<int> readOnlySpan = renderersID;
-		fixed (int* begin = readOnlySpan)
+		ReadOnlySpan<EntityId> readOnlySpan = renderersID;
+		fixed (EntityId* begin = readOnlySpan)
 		{
 			ManagedSpanWrapper renderersID2 = new ManagedSpanWrapper(begin, readOnlySpan.Length);
 			EnableGPUDrivenRenderingAndDispatchRendererData_Injected(intPtr, ref renderersID2, callback, meshes, materials, param, materialUpdateOnly);
 		}
 	}
 
-	public void EnableGPUDrivenRenderingAndDispatchRendererData(ReadOnlySpan<int> renderersID, GPUDrivenRendererDataCallback callback, bool materialUpdateOnly = false)
+	public void EnableGPUDrivenRenderingAndDispatchRendererData(ReadOnlySpan<EntityId> renderersID, GPUDrivenRendererDataCallback callback, bool materialUpdateOnly = false)
 	{
 		scratchMeshes.Clear();
 		scratchMaterials.Clear();
 		EnableGPUDrivenRenderingAndDispatchRendererData(renderersID, s_NativeRendererCallback, scratchMeshes, scratchMaterials, callback, materialUpdateOnly);
 	}
 
-	public unsafe void DisableGPUDrivenRendering(ReadOnlySpan<int> renderersID)
+	public unsafe void DisableGPUDrivenRendering(ReadOnlySpan<EntityId> renderersID)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
 		if (intPtr == (IntPtr)0)
 		{
 			ThrowHelper.ThrowNullReferenceException(this);
 		}
-		ReadOnlySpan<int> readOnlySpan = renderersID;
-		fixed (int* begin = readOnlySpan)
+		ReadOnlySpan<EntityId> readOnlySpan = renderersID;
+		fixed (EntityId* begin = readOnlySpan)
 		{
 			ManagedSpanWrapper renderersID2 = new ManagedSpanWrapper(begin, readOnlySpan.Length);
 			DisableGPUDrivenRendering_Injected(intPtr, ref renderersID2);
 		}
 	}
 
-	private unsafe void DispatchLODGroupData(ReadOnlySpan<int> lodGroupID, GPUDrivenLODGroupDataNativeCallback callback, GPUDrivenLODGroupDataCallback param)
+	private unsafe void DispatchLODGroupData(ReadOnlySpan<EntityId> lodGroupID, GPUDrivenLODGroupDataNativeCallback callback, GPUDrivenLODGroupDataCallback param)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
 		if (intPtr == (IntPtr)0)
 		{
 			ThrowHelper.ThrowNullReferenceException(this);
 		}
-		ReadOnlySpan<int> readOnlySpan = lodGroupID;
-		fixed (int* begin = readOnlySpan)
+		ReadOnlySpan<EntityId> readOnlySpan = lodGroupID;
+		fixed (EntityId* begin = readOnlySpan)
 		{
 			ManagedSpanWrapper lodGroupID2 = new ManagedSpanWrapper(begin, readOnlySpan.Length);
 			DispatchLODGroupData_Injected(intPtr, ref lodGroupID2, callback, param);
 		}
 	}
 
-	public void DispatchLODGroupData(ReadOnlySpan<int> lodGroupID, GPUDrivenLODGroupDataCallback callback)
+	public void DispatchLODGroupData(ReadOnlySpan<EntityId> lodGroupID, GPUDrivenLODGroupDataCallback callback)
 	{
+		Debug.Assert(UnsafeUtility.SizeOf<EntityId>() == 4, "EntityId size has changed, please fix the code.");
 		DispatchLODGroupData(lodGroupID, s_NativeLODGroupCallback, callback);
 	}
 
@@ -330,12 +332,6 @@ internal class GPUDrivenProcessor
 	public static int ClassifyMaterials(NativeArray<EntityId> materialIDs, NativeArray<EntityId> unsupportedMaterialIDs, NativeArray<EntityId> supportedMaterialIDs, NativeArray<GPUDrivenPackedMaterialData> supportedPackedMaterialDatas)
 	{
 		return ClassifyMaterialsImpl(materialIDs, unsupportedMaterialIDs, supportedMaterialIDs, supportedPackedMaterialDatas);
-	}
-
-	public unsafe static int ClassifyMaterials(NativeArray<int> materialIDs, NativeArray<int> unsupportedMaterialIDs, NativeArray<int> supportedMaterialIDs, NativeArray<GPUDrivenPackedMaterialData> supportedPackedMaterialDatas)
-	{
-		Assert.IsTrue(4 == sizeof(EntityId));
-		return ClassifyMaterialsImpl(materialIDs.Reinterpret<EntityId>(), unsupportedMaterialIDs.Reinterpret<EntityId>(), supportedMaterialIDs.Reinterpret<EntityId>(), supportedPackedMaterialDatas);
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]

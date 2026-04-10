@@ -4,10 +4,13 @@ using UnityEngine.TextCore.Text;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct StyleFontDefinition : IStyleValue<FontDefinition>, IEquatable<StyleFontDefinition>
 {
+	[SerializeField]
 	private StyleKeyword m_Keyword;
 
+	[SerializeField]
 	private FontDefinition m_Value;
 
 	public FontDefinition value

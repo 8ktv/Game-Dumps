@@ -39,15 +39,17 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 			Count = ComputeCount(vertices);
 		}
 
-		internal GlyphsEnumerable(TextElement te, List<NativeSlice<Vertex>> vertices, ATGMeshInfo[] meshInfos)
+		internal GlyphsEnumerable(TextElement te, List<NativeSlice<Vertex>> vertices, Span<ATGMeshInfo> meshInfos)
 		{
 			m_TextElement = te;
 			m_Vertices = vertices;
 			Count = ComputeCount(vertices);
-			for (int i = 0; i < meshInfos.Length; i++)
+			Span<ATGMeshInfo> span = meshInfos;
+			for (int i = 0; i < span.Length; i++)
 			{
-				ATGMeshInfo aTGMeshInfo = meshInfos[i];
-				if (aTGMeshInfo.textElementInfoIndicesByAtlas.Count > 1)
+				ATGMeshInfo aTGMeshInfo = span[i];
+				UnityEngine.TextCore.Text.TextAsset textAssetByID = UnityEngine.TextCore.Text.TextAsset.GetTextAssetByID(aTGMeshInfo.textAssetId);
+				if (textAssetByID is FontAsset { atlasTextureCount: >1 })
 				{
 					Debug.LogWarning("PostProcessTextVertices with ATG does not support this Multi-Atlas.");
 				}
@@ -141,60 +143,60 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : BindableElement.UxmlSerializedData
 	{
-		[SerializeField]
 		[MultilineTextField]
+		[SerializeField]
 		private string text;
 
-		[HideInInspector]
 		[UxmlIgnore]
+		[HideInInspector]
 		[SerializeField]
 		private UxmlAttributeFlags text_UxmlAttributeFlags;
 
 		[SerializeField]
 		private bool enableRichText;
 
-		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
+		[HideInInspector]
 		private UxmlAttributeFlags enableRichText_UxmlAttributeFlags;
 
 		[SerializeField]
 		private bool emojiFallbackSupport;
 
-		[UxmlIgnore]
 		[HideInInspector]
+		[UxmlIgnore]
 		[SerializeField]
 		private UxmlAttributeFlags emojiFallbackSupport_UxmlAttributeFlags;
 
 		[SerializeField]
 		private bool parseEscapeSequences;
 
-		[SerializeField]
-		[UxmlIgnore]
 		[HideInInspector]
+		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags parseEscapeSequences_UxmlAttributeFlags;
 
 		[UxmlAttribute("selectable")]
-		[FormerlySerializedAs("selectable")]
-		[SelectableTextElement]
 		[SerializeField]
+		[SelectableTextElement]
+		[FormerlySerializedAs("selectable")]
 		private bool isSelectable;
 
-		[SerializeField]
 		[HideInInspector]
-		[FormerlySerializedAs("selectable_UxmlAttributeFlags")]
 		[UxmlIgnore]
+		[FormerlySerializedAs("selectable_UxmlAttributeFlags")]
+		[SerializeField]
 		private UxmlAttributeFlags isSelectable_UxmlAttributeFlags;
 
-		[SerializeField]
 		[FormerlySerializedAs("selectWordByDoubleClick")]
 		[UxmlAttribute("double-click-selects-word", new string[] { "select-word-by-double-click" })]
+		[SerializeField]
 		private bool doubleClickSelectsWord;
 
+		[FormerlySerializedAs("selectWordByDoubleClick_UxmlAttributeFlags")]
+		[SerializeField]
 		[HideInInspector]
 		[UxmlIgnore]
-		[SerializeField]
-		[FormerlySerializedAs("selectWordByDoubleClick_UxmlAttributeFlags")]
 		private UxmlAttributeFlags doubleClickSelectsWord_UxmlAttributeFlags;
 
 		[UxmlAttribute("triple-click-selects-line", new string[] { "select-line-by-triple-click" })]
@@ -202,18 +204,18 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 		[SerializeField]
 		private bool tripleClickSelectsLine;
 
+		[UxmlIgnore]
 		[FormerlySerializedAs("selectLineByTripleClick_UxmlAttributeFlags")]
 		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
 		private UxmlAttributeFlags tripleClickSelectsLine_UxmlAttributeFlags;
 
 		[SerializeField]
 		private bool displayTooltipWhenElided;
 
+		[SerializeField]
 		[UxmlIgnore]
 		[HideInInspector]
-		[SerializeField]
 		private UxmlAttributeFlags displayTooltipWhenElided_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -873,22 +875,25 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 		}
 	}
 
-	internal bool showPlaceholderText
+	internal bool needsPlaceholderIfTextIsEmpty
 	{
 		get
 		{
 			bool flag = m_PlaceholderText.Length > 0;
 			bool flag2 = edition.hidePlaceholderOnFocus && hasFocus;
-			bool result = string.IsNullOrEmpty(text);
-			if (!flag)
+			return flag && !flag2;
+		}
+	}
+
+	internal bool showPlaceholderText
+	{
+		get
+		{
+			if (!needsPlaceholderIfTextIsEmpty)
 			{
 				return false;
 			}
-			if (flag2)
-			{
-				return false;
-			}
-			return result;
+			return string.IsNullOrEmpty(text);
 		}
 	}
 
@@ -933,11 +938,27 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 			{
 				return TextUtilities.IsAdvancedTextEnabledForElement(this) ? new RenderedText(effectiveMaskChar, m_RenderedText?.Length ?? 0) : new RenderedText(effectiveMaskChar, m_RenderedText?.Length ?? 0, "\u200b");
 			}
-			if (!TextUtilities.IsAdvancedTextEnabledForElement(this) && (!isReadOnly || ((base.pseudoStates & PseudoStates.Disabled) != 0 && isSelectable)))
+			if (!TextUtilities.IsAdvancedTextEnabledForElement(this) && (!isReadOnly || ((base.pseudoStates & PseudoStates.Disabled) != PseudoStates.None && isSelectable)))
 			{
 				return new RenderedText(m_RenderedText, "\u200b");
 			}
 			return new RenderedText(m_RenderedText);
+		}
+	}
+
+	internal string renderedTextString
+	{
+		get
+		{
+			if (showPlaceholderText)
+			{
+				return m_PlaceholderText;
+			}
+			if (effectiveMaskChar != 0)
+			{
+				return "".PadLeft(m_RenderedText?.Length ?? 0, effectiveMaskChar);
+			}
+			return m_RenderedText;
 		}
 	}
 
@@ -1271,6 +1292,34 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 		}
 	}
 
+	event Action ITextSelection.OnCursorIndexChange
+	{
+		add
+		{
+			TextSelectingUtilities selectingUtilities = selectingManipulator.m_SelectingUtilities;
+			selectingUtilities.OnCursorIndexChange = (Action)Delegate.Combine(selectingUtilities.OnCursorIndexChange, value);
+		}
+		remove
+		{
+			TextSelectingUtilities selectingUtilities = selectingManipulator.m_SelectingUtilities;
+			selectingUtilities.OnCursorIndexChange = (Action)Delegate.Remove(selectingUtilities.OnCursorIndexChange, value);
+		}
+	}
+
+	event Action ITextSelection.OnSelectIndexChange
+	{
+		add
+		{
+			TextSelectingUtilities selectingUtilities = selectingManipulator.m_SelectingUtilities;
+			selectingUtilities.OnSelectIndexChange = (Action)Delegate.Combine(selectingUtilities.OnSelectIndexChange, value);
+		}
+		remove
+		{
+			TextSelectingUtilities selectingUtilities = selectingManipulator.m_SelectingUtilities;
+			selectingUtilities.OnSelectIndexChange = (Action)Delegate.Remove(selectingUtilities.OnSelectIndexChange, value);
+		}
+	}
+
 	public TextElement()
 	{
 		base.requireMeasureFunction = true;
@@ -1313,9 +1362,14 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 		base.HandleEventBubbleUp(evt);
 		if (evt.target == this)
 		{
-			if (evt is GeometryChangedEvent e)
+			if (evt is GeometryChangedEvent)
 			{
-				OnGeometryChanged(e);
+				UpdateVisibleText();
+				return;
+			}
+			if (evt is AttachToPanelEvent attachEvent)
+			{
+				OnAttachToPanel(attachEvent);
 				return;
 			}
 			if (evt is DetachFromPanelEvent detachEvent)
@@ -1324,18 +1378,29 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 				return;
 			}
 		}
-		EditionHandleEvent(evt);
+		if (selection.isSelectable)
+		{
+			EditionHandleEvent(evt);
+		}
 	}
 
-	private void OnGeometryChanged(GeometryChangedEvent e)
+	private void OnAttachToPanel(AttachToPanelEvent attachEvent)
 	{
-		UpdateVisibleText();
+		if (TextUtilities.IsAdvancedTextEnabledForPanel(attachEvent.destinationPanel))
+		{
+			(attachEvent.destinationPanel as BaseVisualElementPanel)?.textElementRegistry.Value.Add(this);
+		}
 	}
 
 	private void OnDetachFromPanel(DetachFromPanelEvent detachEvent)
 	{
-		uitkTextHandle.RemoveTextInfoFromPermanentCache();
-		uitkTextHandle.RemoveTextInfoFromTemporaryCache();
+		uitkTextHandle.RemoveFromPermanentCache();
+		uitkTextHandle.RemoveFromTemporaryCache();
+		Lazy<HashSet<TextElement>> lazy = (detachEvent.originPanel as BaseVisualElementPanel)?.textElementRegistry;
+		if (lazy != null && lazy.IsValueCreated)
+		{
+			lazy.Value.Remove(this);
+		}
 	}
 
 	internal static void OnGenerateVisualContent(MeshGenerationContext mgc)
@@ -1382,6 +1447,7 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 		{
 			isElided = uitkTextHandle.IsElided();
 		}
+		UpdateTooltip();
 	}
 
 	internal string ElideText(string drawText, string ellipsisText, float width, TextOverflowPosition textOverflowPosition)
@@ -1392,12 +1458,12 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 			f = 0f;
 		}
 		float num = Mathf.Clamp(f, 1f / base.scaledPixelsPerPoint, 1f);
-		if (MeasureTextSize(drawText, 0f, MeasureMode.Undefined, 0f, MeasureMode.Undefined).x <= width + num || string.IsNullOrEmpty(ellipsisText))
+		if (MeasureTextSize(drawText, float.NaN, MeasureMode.Undefined, float.NaN, MeasureMode.Undefined).x <= width + num || string.IsNullOrEmpty(ellipsisText))
 		{
 			return drawText;
 		}
 		string text = ((drawText.Length > 1) ? ellipsisText : drawText);
-		if (MeasureTextSize(text, 0f, MeasureMode.Undefined, 0f, MeasureMode.Undefined).x >= width)
+		if (MeasureTextSize(text, float.NaN, MeasureMode.Undefined, float.NaN, MeasureMode.Undefined).x >= width)
 		{
 			return text;
 		}
@@ -1420,7 +1486,7 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 				text2 = ((num6 - 1 <= 0) ? "" : drawText.Substring(0, num6 - 1)) + ellipsisText + ((num2 - (num6 - 1) <= 0) ? "" : drawText.Substring(num2 - (num6 - 1)));
 				break;
 			}
-			Vector2 vector = MeasureTextSize(text2, 0f, MeasureMode.Undefined, 0f, MeasureMode.Undefined);
+			Vector2 vector = MeasureTextSize(text2, float.NaN, MeasureMode.Undefined, float.NaN, MeasureMode.Undefined);
 			if (Math.Abs(vector.x - width) < 1E-30f)
 			{
 				return text2;
@@ -1510,17 +1576,26 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 
 	public Vector2 MeasureTextSize(string textToMeasure, float width, MeasureMode widthMode, float height, MeasureMode heightMode)
 	{
-		return TextUtilities.MeasureVisualElementTextSize(this, new RenderedText(textToMeasure), width, widthMode, height, heightMode);
+		return TextUtilities.MeasureVisualElementTextSize(this, textToMeasure, width, widthMode, height, heightMode);
 	}
 
-	internal Vector2 MeasureTextSize(string textToMeasure, float width, MeasureMode widthMode, float height, MeasureMode heightMode, float? fontsize = null)
+	public Vector2 MeasureTextSize(string textToMeasure, float width, MeasureMode widthMode, float height, MeasureMode heightMode, float? fontsize = null)
 	{
-		return TextUtilities.MeasureVisualElementTextSize(this, new RenderedText(textToMeasure), width, widthMode, height, heightMode, fontsize);
+		return TextUtilities.MeasureVisualElementTextSize(this, textToMeasure, width, widthMode, height, heightMode, fontsize);
 	}
 
 	protected internal override Vector2 DoMeasure(float desiredWidth, MeasureMode widthMode, float desiredHeight, MeasureMode heightMode)
 	{
+		if (TextUtilities.IsAdvancedTextEnabledForElement(this))
+		{
+			return TextUtilities.MeasureVisualElementTextSize(this, renderedTextString, desiredWidth, widthMode, desiredHeight, heightMode);
+		}
 		return TextUtilities.MeasureVisualElementTextSize(this, renderedText, desiredWidth, widthMode, desiredHeight, heightMode);
+	}
+
+	internal static bool AnySizeAutoOrNone(ComputedStyle computedStyle)
+	{
+		return computedStyle.height.IsAuto() || computedStyle.height.IsNone() || computedStyle.width.IsAuto() || computedStyle.width.IsNone();
 	}
 
 	void INotifyValueChanged<string>.SetValueWithoutNotify(string newValue)
@@ -1530,7 +1605,7 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 		{
 			SetRenderedText(newValue);
 			m_Text = newValue;
-			if (base.computedStyle.height.IsAuto() || base.computedStyle.height.IsNone() || base.computedStyle.width.IsAuto() || base.computedStyle.width.IsNone())
+			if (AnySizeAutoOrNone(base.computedStyle))
 			{
 				IncrementVersion(VersionChangeType.Layout | VersionChangeType.Repaint);
 			}
@@ -1547,6 +1622,12 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 		{
 			editingManipulator.editingUtilities.text = newValue;
 		}
+	}
+
+	public void MarkDirtyText()
+	{
+		IncrementVersion(VersionChangeType.Layout | VersionChangeType.Repaint);
+		uitkTextHandle.SetDirty();
 	}
 
 	private void ProcessMenuCommand(string command)
@@ -1607,10 +1688,6 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 
 	private void EditionHandleEvent(EventBase evt)
 	{
-		if (!selection.isSelectable)
-		{
-			return;
-		}
 		TextEditingManipulator textEditingManipulator = editingManipulator;
 		if (textEditingManipulator == null || !textEditingManipulator.editingUtilities.TouchScreenKeyboardShouldBeUsed() || edition.hideMobileInput)
 		{
@@ -1620,8 +1697,31 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 		{
 			editingManipulator?.HandleEventBubbleUp(evt);
 		}
-		base.elementPanel?.contextualMenuManager?.DisplayMenuIfEventMatches(evt, this);
-		if (evt?.eventTypeId == EventBase<ContextualMenuPopulateEvent>.TypeId())
+		BaseVisualElementPanel baseVisualElementPanel = base.elementPanel;
+		if (baseVisualElementPanel != null && baseVisualElementPanel.contextualMenuManager?.CheckIfEventMatches(evt) == true)
+		{
+			if (evt.eventTypeId == EventBase<PointerDownEvent>.TypeId() && !focusController.IsFocused(this))
+			{
+				long evtTimestamp = evt.timestamp;
+				RegisterCallbackOnce<FocusEvent>(delegate
+				{
+					if (evt.timestamp == evtTimestamp)
+					{
+						DropdownMenu menu = new DropdownMenu
+						{
+							repaintPanelBeforeDisplay = true
+						};
+						base.elementPanel?.contextualMenuManager?.DisplayMenu(evt, this, menu);
+					}
+				});
+			}
+			else
+			{
+				base.elementPanel.contextualMenuManager.DisplayMenu(evt, this);
+			}
+			evt.StopPropagation();
+		}
+		if (evt.eventTypeId == EventBase<ContextualMenuPopulateEvent>.TypeId())
 		{
 			ContextualMenuPopulateEvent contextualMenuPopulateEvent = evt as ContextualMenuPopulateEvent;
 			int count = contextualMenuPopulateEvent.menu.MenuItems().Count;
@@ -1726,6 +1826,92 @@ public class TextElement : BindableElement, ITextElement, INotifyValueChanged<st
 		{
 			selectingManipulator.m_SelectingUtilities.MoveTextEnd();
 		}
+	}
+
+	Vector2 ITextSelection.GetCursorPositionFromStringIndex(int stringIndex)
+	{
+		uitkTextHandle.AddToPermanentCacheAndGenerateMesh();
+		return uitkTextHandle.GetCursorPositionFromStringIndexUsingLineHeight(stringIndex) + base.contentRect.min;
+	}
+
+	void ITextSelection.MoveForward()
+	{
+		uitkTextHandle.AddToPermanentCacheAndGenerateMesh();
+		if (!TextUtilities.IsAdvancedTextEnabledForElement(this))
+		{
+			uitkTextHandle.ComputeSettingsAndUpdate();
+		}
+		selectingManipulator.m_SelectingUtilities.MoveRight();
+	}
+
+	void ITextSelection.MoveBackward()
+	{
+		uitkTextHandle.AddToPermanentCacheAndGenerateMesh();
+		if (!TextUtilities.IsAdvancedTextEnabledForElement(this))
+		{
+			uitkTextHandle.ComputeSettingsAndUpdate();
+		}
+		selectingManipulator.m_SelectingUtilities.MoveLeft();
+	}
+
+	void ITextSelection.MoveToParagraphEnd()
+	{
+		uitkTextHandle.AddToPermanentCacheAndGenerateMesh();
+		if (!TextUtilities.IsAdvancedTextEnabledForElement(this))
+		{
+			uitkTextHandle.ComputeSettingsAndUpdate();
+		}
+		selectingManipulator.m_SelectingUtilities.MoveLineEnd();
+	}
+
+	void ITextSelection.MoveToParagraphStart()
+	{
+		uitkTextHandle.AddToPermanentCacheAndGenerateMesh();
+		if (!TextUtilities.IsAdvancedTextEnabledForElement(this))
+		{
+			uitkTextHandle.ComputeSettingsAndUpdate();
+		}
+		selectingManipulator.m_SelectingUtilities.MoveLineStart();
+	}
+
+	void ITextSelection.MoveToEndOfPreviousWord()
+	{
+		uitkTextHandle.AddToPermanentCacheAndGenerateMesh();
+		if (!TextUtilities.IsAdvancedTextEnabledForElement(this))
+		{
+			uitkTextHandle.ComputeSettingsAndUpdate();
+		}
+		selectingManipulator.m_SelectingUtilities.MoveToEndOfPreviousWord();
+	}
+
+	void ITextSelection.MoveToStartOfNextWord()
+	{
+		uitkTextHandle.AddToPermanentCacheAndGenerateMesh();
+		if (!TextUtilities.IsAdvancedTextEnabledForElement(this))
+		{
+			uitkTextHandle.ComputeSettingsAndUpdate();
+		}
+		selectingManipulator.m_SelectingUtilities.MoveToStartOfNextWord();
+	}
+
+	void ITextSelection.MoveWordBackward()
+	{
+		uitkTextHandle.AddToPermanentCacheAndGenerateMesh();
+		if (!TextUtilities.IsAdvancedTextEnabledForElement(this))
+		{
+			uitkTextHandle.ComputeSettingsAndUpdate();
+		}
+		selectingManipulator.m_SelectingUtilities.MoveWordLeft();
+	}
+
+	void ITextSelection.MoveWordForward()
+	{
+		uitkTextHandle.AddToPermanentCacheAndGenerateMesh();
+		if (!TextUtilities.IsAdvancedTextEnabledForElement(this))
+		{
+			uitkTextHandle.ComputeSettingsAndUpdate();
+		}
+		selectingManipulator.m_SelectingUtilities.MoveWordRight();
 	}
 
 	private void DrawHighlighting(MeshGenerationContext mgc)

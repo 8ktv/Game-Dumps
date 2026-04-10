@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using UnityEngine;
 
 public class SpectatorButtonPrompts : SingletonBehaviour<SpectatorButtonPrompts>, IBUpdateCallback, IAnyBUpdateCallback
@@ -47,12 +45,12 @@ public class SpectatorButtonPrompts : SingletonBehaviour<SpectatorButtonPrompts>
 
 	private void Show()
 	{
-		FadeTo(1f, fadeInDuration, BMath.EaseOut);
+		visibilityController.AnimatedDesiredAlpha(1f, fadeInDuration, BMath.EaseOut);
 	}
 
 	private void Hide()
 	{
-		FadeTo(0f, fadeInDuration, BMath.EaseIn);
+		visibilityController.AnimatedDesiredAlpha(0f, fadeInDuration, BMath.EaseIn);
 	}
 
 	public void OnBUpdate()
@@ -92,16 +90,20 @@ public class SpectatorButtonPrompts : SingletonBehaviour<SpectatorButtonPrompts>
 	{
 		bool flag = isUpdateLoopRunning;
 		isUpdateLoopRunning = ShouldRun();
-		if (isUpdateLoopRunning != flag)
+		if (isUpdateLoopRunning == flag)
 		{
-			if (isUpdateLoopRunning)
-			{
-				BUpdate.RegisterCallback(this);
-			}
-			else
-			{
-				BUpdate.DeregisterCallback(this);
-			}
+			return;
+		}
+		if (isUpdateLoopRunning)
+		{
+			BUpdate.RegisterCallback(this);
+			return;
+		}
+		BUpdate.DeregisterCallback(this);
+		if (isVisible)
+		{
+			Hide();
+			isVisible = false;
 		}
 		static bool ShouldRun()
 		{
@@ -114,28 +116,6 @@ public class SpectatorButtonPrompts : SingletonBehaviour<SpectatorButtonPrompts>
 				return false;
 			}
 			return true;
-		}
-	}
-
-	private Coroutine FadeTo(float targetAlpha, float duration, Func<float, float> Easing)
-	{
-		if (visibilityRoutine != null)
-		{
-			StopCoroutine(visibilityRoutine);
-		}
-		visibilityRoutine = StartCoroutine(FadeRoutine(targetAlpha, duration, Easing));
-		return visibilityRoutine;
-		IEnumerator FadeRoutine(float num2, float num, Func<float, float> func)
-		{
-			float initialAlpha = visibilityController.DesiredAlpha;
-			for (float time = 0f; time < num; time += Time.deltaTime)
-			{
-				float arg = time / num;
-				float t = func(arg);
-				visibilityController.SetDesiredAlpha(BMath.Lerp(initialAlpha, num2, t));
-				yield return null;
-			}
-			visibilityController.SetDesiredAlpha(num2);
 		}
 	}
 

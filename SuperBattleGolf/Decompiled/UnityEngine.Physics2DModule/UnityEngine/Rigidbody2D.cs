@@ -720,9 +720,9 @@ public sealed class Rigidbody2D : Component
 		}
 	}
 
+	[Obsolete("Rigidbody2D.fixedAngle is obsolete. Use Rigidbody2D.constraints instead.", true)]
 	[ExcludeFromDocs]
 	[EditorBrowsable(EditorBrowsableState.Never)]
-	[Obsolete("Rigidbody2D.fixedAngle is obsolete. Use Rigidbody2D.constraints instead.", true)]
 	public bool fixedAngle
 	{
 		get
@@ -735,9 +735,9 @@ public sealed class Rigidbody2D : Component
 		}
 	}
 
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("isKinematic has been deprecated. Please use bodyType.", false)]
 	[ExcludeFromDocs]
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	public bool isKinematic
 	{
 		get
@@ -750,8 +750,8 @@ public sealed class Rigidbody2D : Component
 		}
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("drag has been deprecated. Please use linearDamping. (UnityUpgradable) -> linearDamping", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	[ExcludeFromDocs]
 	public float drag
 	{
@@ -766,8 +766,8 @@ public sealed class Rigidbody2D : Component
 	}
 
 	[EditorBrowsable(EditorBrowsableState.Never)]
-	[ExcludeFromDocs]
 	[Obsolete("angularDrag has been deprecated. Please use angularDamping. (UnityUpgradable) -> angularDamping", false)]
+	[ExcludeFromDocs]
 	public float angularDrag
 	{
 		get
@@ -780,9 +780,9 @@ public sealed class Rigidbody2D : Component
 		}
 	}
 
+	[ExcludeFromDocs]
 	[Obsolete("velocity has been deprecated. Please use linearVelocity. (UnityUpgradable) -> linearVelocity", false)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
-	[ExcludeFromDocs]
 	public Vector2 velocity
 	{
 		get
@@ -795,9 +795,9 @@ public sealed class Rigidbody2D : Component
 		}
 	}
 
-	[ExcludeFromDocs]
 	[Obsolete("velocityX has been deprecated. Please use linearVelocityX. (UnityUpgradable) -> linearVelocityX", false)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
 	public float velocityX
 	{
 		get
@@ -810,9 +810,9 @@ public sealed class Rigidbody2D : Component
 		}
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	[Obsolete("velocityY has been deprecated. Please use linearVelocityY (UnityUpgradable) -> linearVelocityY", false)]
 	[ExcludeFromDocs]
+	[Obsolete("velocityY has been deprecated. Please use linearVelocityY (UnityUpgradable) -> linearVelocityY", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public float velocityY
 	{
 		get
@@ -1442,43 +1442,43 @@ public sealed class Rigidbody2D : Component
 	[ExcludeFromDocs]
 	public int Cast(Vector2 direction, RaycastHit2D[] results)
 	{
-		return CastArray_Internal(direction, float.PositiveInfinity, results);
+		return CastArray_Internal(direction, float.PositiveInfinity, checkIgnoreColliders: false, results);
 	}
 
 	public int Cast(Vector2 direction, RaycastHit2D[] results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance)
 	{
-		return CastArray_Internal(direction, distance, results);
+		return CastArray_Internal(direction, distance, checkIgnoreColliders: false, results);
 	}
 
 	public int Cast(Vector2 direction, List<RaycastHit2D> results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance = float.PositiveInfinity)
 	{
-		return CastList_Internal(direction, distance, results);
+		return CastList_Internal(direction, distance, checkIgnoreColliders: false, results);
 	}
 
 	[ExcludeFromDocs]
 	public int Cast(Vector2 direction, ContactFilter2D contactFilter, RaycastHit2D[] results)
 	{
-		return CastFilteredArray_Internal(direction, float.PositiveInfinity, contactFilter, results);
+		return CastFilteredArray_Internal(direction, float.PositiveInfinity, checkIgnoreColliders: false, contactFilter, results);
 	}
 
 	public int Cast(Vector2 direction, ContactFilter2D contactFilter, RaycastHit2D[] results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance = float.PositiveInfinity)
 	{
-		return CastFilteredArray_Internal(direction, distance, contactFilter, results);
+		return CastFilteredArray_Internal(direction, distance, checkIgnoreColliders: false, contactFilter, results);
 	}
 
 	public int Cast(Vector2 direction, ContactFilter2D contactFilter, List<RaycastHit2D> results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance = float.PositiveInfinity)
 	{
-		return CastFilteredList_Internal(direction, distance, contactFilter, results);
+		return CastFilteredList_Internal(direction, distance, checkIgnoreColliders: false, contactFilter, results);
 	}
 
 	public int Cast(Vector2 position, float angle, Vector2 direction, List<RaycastHit2D> results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance = float.PositiveInfinity)
 	{
-		return CastFrom_Internal(position, angle, direction, distance, results);
+		return CastFrom_Internal(position, angle, direction, distance, checkIgnoreColliders: false, results);
 	}
 
 	public int Cast(Vector2 position, float angle, Vector2 direction, ContactFilter2D contactFilter, List<RaycastHit2D> results, [UnityEngine.Internal.DefaultValue("Mathf.Infinity")] float distance = float.PositiveInfinity)
 	{
-		return CastFromFiltered_Internal(position, angle, direction, distance, contactFilter, results);
+		return CastFromFiltered_Internal(position, angle, direction, distance, checkIgnoreColliders: false, contactFilter, results);
 	}
 
 	public int Overlap(ContactFilter2D contactFilter, [Out] Collider2D[] results)
@@ -1507,7 +1507,7 @@ public sealed class Rigidbody2D : Component
 	}
 
 	[NativeMethod("GetAttachedCollidersArray_Binding")]
-	private int GetAttachedCollidersArray_Internal([Unmarshalled][NotNull] Collider2D[] results, bool findTriggers)
+	private int GetAttachedCollidersArray_Internal([UnityMarshalAs(NativeType.ScriptingObjectPtr)][NotNull] Collider2D[] results, bool findTriggers)
 	{
 		if (results == null)
 		{
@@ -1548,7 +1548,7 @@ public sealed class Rigidbody2D : Component
 	}
 
 	[NativeMethod("CastArray_Binding")]
-	private unsafe int CastArray_Internal(Vector2 direction, float distance, [NotNull] RaycastHit2D[] results)
+	private unsafe int CastArray_Internal(Vector2 direction, float distance, bool checkIgnoreColliders, [NotNull] RaycastHit2D[] results)
 	{
 		if (results == null)
 		{
@@ -1564,13 +1564,13 @@ public sealed class Rigidbody2D : Component
 		fixed (RaycastHit2D* begin = span)
 		{
 			ManagedSpanWrapper results2 = new ManagedSpanWrapper(begin, span.Length);
-			result = CastArray_Internal_Injected(intPtr, ref direction, distance, ref results2);
+			result = CastArray_Internal_Injected(intPtr, ref direction, distance, checkIgnoreColliders, ref results2);
 		}
 		return result;
 	}
 
 	[NativeMethod("CastList_Binding")]
-	private unsafe int CastList_Internal(Vector2 direction, float distance, [NotNull] List<RaycastHit2D> results)
+	private unsafe int CastList_Internal(Vector2 direction, float distance, bool checkIgnoreColliders, [NotNull] List<RaycastHit2D> results)
 	{
 		if (results == null)
 		{
@@ -1594,7 +1594,7 @@ public sealed class Rigidbody2D : Component
 					arrayWrapper = new BlittableArrayWrapper(Unsafe.AsPointer(ref array[0]), array.Length);
 				}
 				results2 = new BlittableListWrapper(arrayWrapper, list.Count);
-				return CastList_Internal_Injected(intPtr, ref direction, distance, ref results2);
+				return CastList_Internal_Injected(intPtr, ref direction, distance, checkIgnoreColliders, ref results2);
 			}
 		}
 		finally
@@ -1604,7 +1604,7 @@ public sealed class Rigidbody2D : Component
 	}
 
 	[NativeMethod("CastFilteredArray_Binding")]
-	private unsafe int CastFilteredArray_Internal(Vector2 direction, float distance, ContactFilter2D contactFilter, [NotNull] RaycastHit2D[] results)
+	private unsafe int CastFilteredArray_Internal(Vector2 direction, float distance, bool checkIgnoreColliders, ContactFilter2D contactFilter, [NotNull] RaycastHit2D[] results)
 	{
 		if (results == null)
 		{
@@ -1620,13 +1620,13 @@ public sealed class Rigidbody2D : Component
 		fixed (RaycastHit2D* begin = span)
 		{
 			ManagedSpanWrapper results2 = new ManagedSpanWrapper(begin, span.Length);
-			result = CastFilteredArray_Internal_Injected(intPtr, ref direction, distance, ref contactFilter, ref results2);
+			result = CastFilteredArray_Internal_Injected(intPtr, ref direction, distance, checkIgnoreColliders, ref contactFilter, ref results2);
 		}
 		return result;
 	}
 
 	[NativeMethod("CastFilteredList_Binding")]
-	private unsafe int CastFilteredList_Internal(Vector2 direction, float distance, ContactFilter2D contactFilter, [NotNull] List<RaycastHit2D> results)
+	private unsafe int CastFilteredList_Internal(Vector2 direction, float distance, bool checkIgnoreColliders, ContactFilter2D contactFilter, [NotNull] List<RaycastHit2D> results)
 	{
 		if (results == null)
 		{
@@ -1650,7 +1650,7 @@ public sealed class Rigidbody2D : Component
 					arrayWrapper = new BlittableArrayWrapper(Unsafe.AsPointer(ref array[0]), array.Length);
 				}
 				results2 = new BlittableListWrapper(arrayWrapper, list.Count);
-				return CastFilteredList_Internal_Injected(intPtr, ref direction, distance, ref contactFilter, ref results2);
+				return CastFilteredList_Internal_Injected(intPtr, ref direction, distance, checkIgnoreColliders, ref contactFilter, ref results2);
 			}
 		}
 		finally
@@ -1660,7 +1660,7 @@ public sealed class Rigidbody2D : Component
 	}
 
 	[NativeMethod("CastFrom_Binding")]
-	private unsafe int CastFrom_Internal(Vector2 position, float angle, Vector2 direction, float distance, [NotNull] List<RaycastHit2D> results)
+	private unsafe int CastFrom_Internal(Vector2 position, float angle, Vector2 direction, float distance, bool checkIgnoreColliders, [NotNull] List<RaycastHit2D> results)
 	{
 		if (results == null)
 		{
@@ -1684,7 +1684,7 @@ public sealed class Rigidbody2D : Component
 					arrayWrapper = new BlittableArrayWrapper(Unsafe.AsPointer(ref array[0]), array.Length);
 				}
 				results2 = new BlittableListWrapper(arrayWrapper, list.Count);
-				return CastFrom_Internal_Injected(intPtr, ref position, angle, ref direction, distance, ref results2);
+				return CastFrom_Internal_Injected(intPtr, ref position, angle, ref direction, distance, checkIgnoreColliders, ref results2);
 			}
 		}
 		finally
@@ -1694,7 +1694,7 @@ public sealed class Rigidbody2D : Component
 	}
 
 	[NativeMethod("CastFromFiltered_Binding")]
-	private unsafe int CastFromFiltered_Internal(Vector2 position, float angle, Vector2 direction, float distance, ContactFilter2D contactFilter, [NotNull] List<RaycastHit2D> results)
+	private unsafe int CastFromFiltered_Internal(Vector2 position, float angle, Vector2 direction, float distance, bool checkIgnoreColliders, ContactFilter2D contactFilter, [NotNull] List<RaycastHit2D> results)
 	{
 		if (results == null)
 		{
@@ -1718,7 +1718,7 @@ public sealed class Rigidbody2D : Component
 					arrayWrapper = new BlittableArrayWrapper(Unsafe.AsPointer(ref array[0]), array.Length);
 				}
 				results2 = new BlittableListWrapper(arrayWrapper, list.Count);
-				return CastFromFiltered_Internal_Injected(intPtr, ref position, angle, ref direction, distance, ref contactFilter, ref results2);
+				return CastFromFiltered_Internal_Injected(intPtr, ref position, angle, ref direction, distance, checkIgnoreColliders, ref contactFilter, ref results2);
 			}
 		}
 		finally
@@ -1728,7 +1728,7 @@ public sealed class Rigidbody2D : Component
 	}
 
 	[NativeMethod("OverlapArray_Binding")]
-	private int OverlapArray_Internal(ContactFilter2D contactFilter, [NotNull][Unmarshalled] Collider2D[] results)
+	private int OverlapArray_Internal(ContactFilter2D contactFilter, [NotNull][UnityMarshalAs(NativeType.ScriptingObjectPtr)] Collider2D[] results)
 	{
 		if (results == null)
 		{
@@ -1803,8 +1803,8 @@ public sealed class Rigidbody2D : Component
 	}
 
 	[EditorBrowsable(EditorBrowsableState.Never)]
-	[Obsolete("OverlapCollider has been deprecated. Please use Overlap (UnityUpgradable) -> Overlap(*)", false)]
 	[ExcludeFromDocs]
+	[Obsolete("OverlapCollider has been deprecated. Please use Overlap (UnityUpgradable) -> Overlap(*)", false)]
 	public int OverlapCollider(ContactFilter2D contactFilter, [Out] Collider2D[] results)
 	{
 		return Overlap(contactFilter, results);
@@ -2080,22 +2080,22 @@ public sealed class Rigidbody2D : Component
 	private static extern int GetShapes_Internal_Injected(IntPtr _unity_self, ref PhysicsShapeGroup2D.GroupState physicsShapeGroupState);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern int CastArray_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, ref ManagedSpanWrapper results);
+	private static extern int CastArray_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, bool checkIgnoreColliders, ref ManagedSpanWrapper results);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern int CastList_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, ref BlittableListWrapper results);
+	private static extern int CastList_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, bool checkIgnoreColliders, ref BlittableListWrapper results);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern int CastFilteredArray_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, [In] ref ContactFilter2D contactFilter, ref ManagedSpanWrapper results);
+	private static extern int CastFilteredArray_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, bool checkIgnoreColliders, [In] ref ContactFilter2D contactFilter, ref ManagedSpanWrapper results);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern int CastFilteredList_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, [In] ref ContactFilter2D contactFilter, ref BlittableListWrapper results);
+	private static extern int CastFilteredList_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 direction, float distance, bool checkIgnoreColliders, [In] ref ContactFilter2D contactFilter, ref BlittableListWrapper results);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern int CastFrom_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 position, float angle, [In] ref Vector2 direction, float distance, ref BlittableListWrapper results);
+	private static extern int CastFrom_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 position, float angle, [In] ref Vector2 direction, float distance, bool checkIgnoreColliders, ref BlittableListWrapper results);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern int CastFromFiltered_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 position, float angle, [In] ref Vector2 direction, float distance, [In] ref ContactFilter2D contactFilter, ref BlittableListWrapper results);
+	private static extern int CastFromFiltered_Internal_Injected(IntPtr _unity_self, [In] ref Vector2 position, float angle, [In] ref Vector2 direction, float distance, bool checkIgnoreColliders, [In] ref ContactFilter2D contactFilter, ref BlittableListWrapper results);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern int OverlapArray_Internal_Injected(IntPtr _unity_self, [In] ref ContactFilter2D contactFilter, Collider2D[] results);

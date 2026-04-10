@@ -18,10 +18,10 @@ public abstract class PhraseRecognizer : IDisposable
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[NativeThrows]
 	[NativeHeader("PlatformDependent/Win/Bindings/SpeechBindings.h")]
-	protected static extern IntPtr CreateFromKeywords(object self, [Unmarshalled] string[] keywords, ConfidenceLevel minimumConfidence);
+	protected static extern IntPtr CreateFromKeywords(object self, [UnityMarshalAs(NativeType.ScriptingObjectPtr)] string[] keywords, ConfidenceLevel minimumConfidence);
 
-	[NativeHeader("PlatformDependent/Win/Bindings/SpeechBindings.h")]
 	[NativeThrows]
+	[NativeHeader("PlatformDependent/Win/Bindings/SpeechBindings.h")]
 	protected unsafe static IntPtr CreateFromGrammarFile(object self, string grammarFilePath, ConfidenceLevel minimumConfidence)
 	{
 		//The blocks IL_002a are reachable both inside and outside the pinned region starting at IL_0019. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
@@ -45,8 +45,8 @@ public abstract class PhraseRecognizer : IDisposable
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[NativeHeader("PlatformDependent/Win/Bindings/SpeechBindings.h")]
 	[NativeThrows]
+	[NativeHeader("PlatformDependent/Win/Bindings/SpeechBindings.h")]
 	private static extern void Start_Internal(IntPtr recognizer);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]

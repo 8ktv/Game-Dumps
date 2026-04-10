@@ -20,6 +20,8 @@ public class SliderOption : MonoBehaviour
 
 	public Slider Slider => slider;
 
+	public TextMeshProUGUI label => sliderLabel;
+
 	public float value
 	{
 		get

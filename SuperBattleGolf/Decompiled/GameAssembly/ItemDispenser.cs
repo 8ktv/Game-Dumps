@@ -199,7 +199,7 @@ public class ItemDispenser : NetworkBehaviour, IInteractable
 
 	private void StartDispensingInternal()
 	{
-		VfxManager.PlayPooledVfxLocalOnly(VfxType.BallDispenserStart, base.transform.position, base.transform.rotation);
+		VfxManager.PlayPooledVfxLocalOnly(VfxType.CoffeeDispenserStart, base.transform.position, base.transform.rotation);
 		vfx.Dispensing();
 		coffeeDispenserActivationInstance = RuntimeManager.CreateInstance(GameManager.AudioSettings.CoffeeDispenserActivationEvent);
 		RuntimeManager.AttachInstanceToGameObject(coffeeDispenserActivationInstance, AsEntity.TargetReticlePosition.gameObject);

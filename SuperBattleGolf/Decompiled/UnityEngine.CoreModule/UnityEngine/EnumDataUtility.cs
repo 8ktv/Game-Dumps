@@ -6,7 +6,7 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
+[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule", "UnityEditor.UIBuilderModule" })]
 internal static class EnumDataUtility
 {
 	public enum CachedType

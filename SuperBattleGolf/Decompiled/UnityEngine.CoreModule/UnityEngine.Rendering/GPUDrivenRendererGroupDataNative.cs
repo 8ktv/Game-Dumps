@@ -5,7 +5,7 @@ namespace UnityEngine.Rendering;
 [UsedByNativeCode]
 internal struct GPUDrivenRendererGroupDataNative
 {
-	public unsafe int* rendererGroupID;
+	public unsafe EntityId* rendererGroupID;
 
 	public unsafe Bounds* localBounds;
 
@@ -15,7 +15,9 @@ internal struct GPUDrivenRendererGroupDataNative
 
 	public unsafe uint* renderingLayerMask;
 
-	public unsafe int* lodGroupID;
+	public unsafe uint* rendererUserValues;
+
+	public unsafe EntityId* lodGroupID;
 
 	public unsafe MotionVectorGenerationMode* motionVecGenMode;
 
@@ -39,7 +41,7 @@ internal struct GPUDrivenRendererGroupDataNative
 
 	public int rendererGroupCount;
 
-	public unsafe int* invalidRendererGroupID;
+	public unsafe EntityId* invalidRendererGroupID;
 
 	public int invalidRendererGroupIDCount;
 
@@ -53,7 +55,7 @@ internal struct GPUDrivenRendererGroupDataNative
 
 	public int instanceCount;
 
-	public unsafe int* meshID;
+	public unsafe EntityId* meshID;
 
 	public unsafe GPUDrivenMeshLodInfo* meshLodInfo;
 
@@ -71,7 +73,7 @@ internal struct GPUDrivenRendererGroupDataNative
 
 	public int materialIndexCount;
 
-	public unsafe int* materialID;
+	public unsafe EntityId* materialID;
 
 	public unsafe GPUDrivenPackedMaterialData* packedMaterialData;
 

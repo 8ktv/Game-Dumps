@@ -19,12 +19,12 @@ public class MemorylessManager
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[StaticAccessor("GetPlayerSettings()", StaticAccessorType.Dot)]
 	[NativeMethod(Name = "GetFramebufferDepthMemorylessMode")]
+	[StaticAccessor("GetPlayerSettings()", StaticAccessorType.Dot)]
 	internal static extern MemorylessMode GetFramebufferDepthMemorylessMode();
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	[StaticAccessor("GetPlayerSettings()", StaticAccessorType.Dot)]
 	[NativeMethod(Name = "SetFramebufferDepthMemorylessMode")]
+	[StaticAccessor("GetPlayerSettings()", StaticAccessorType.Dot)]
 	internal static extern void SetFramebufferDepthMemorylessMode(MemorylessMode mode);
 }

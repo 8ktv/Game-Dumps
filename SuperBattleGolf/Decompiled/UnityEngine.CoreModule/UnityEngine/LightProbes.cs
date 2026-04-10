@@ -14,7 +14,14 @@ namespace UnityEngine;
 [NativeHeader("Runtime/Export/Graphics/Graphics.bindings.h")]
 public sealed class LightProbes : Object
 {
-	public Vector3[] positions
+	internal struct Hash128IntPair
+	{
+		internal Hash128 Hash;
+
+		internal int Value;
+	}
+
+	public unsafe Vector3[] positions
 	{
 		[NativeName("GetLightProbePositions")]
 		[FreeFunction(HasExplicitThis = true)]
@@ -38,6 +45,22 @@ public sealed class LightProbes : Object
 				result = array;
 			}
 			return result;
+		}
+		[FreeFunction(HasExplicitThis = true)]
+		[NativeName("SetLightProbePositions")]
+		internal set
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			Span<Vector3> span = new Span<Vector3>(value);
+			fixed (Vector3* begin = span)
+			{
+				ManagedSpanWrapper value2 = new ManagedSpanWrapper(begin, span.Length);
+				set_positions_Injected(intPtr, ref value2);
+			}
 		}
 	}
 
@@ -66,8 +89,8 @@ public sealed class LightProbes : Object
 			}
 			return result;
 		}
-		[NativeName("SetBakedCoefficients")]
 		[FreeFunction(HasExplicitThis = true)]
+		[NativeName("SetBakedCoefficients")]
 		set
 		{
 			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -101,8 +124,8 @@ public sealed class LightProbes : Object
 
 	public int countSelf
 	{
-		[NativeName("GetLightProbeCountSelf")]
 		[FreeFunction(HasExplicitThis = true)]
+		[NativeName("GetLightProbeCountSelf")]
 		get
 		{
 			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -144,6 +167,248 @@ public sealed class LightProbes : Object
 		}
 	}
 
+	internal unsafe Hash128IntPair[] nonTetrahedralizedProbeSetIndexMap
+	{
+		[FreeFunction(HasExplicitThis = true)]
+		[NativeName("GetNonTetrahedralizedProbeSetIndexMap")]
+		get
+		{
+			BlittableArrayWrapper ret = default(BlittableArrayWrapper);
+			Hash128IntPair[] result;
+			try
+			{
+				IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+				if (intPtr == (IntPtr)0)
+				{
+					ThrowHelper.ThrowNullReferenceException(this);
+				}
+				get_nonTetrahedralizedProbeSetIndexMap_Injected(intPtr, out ret);
+			}
+			finally
+			{
+				Hash128IntPair[] array = default(Hash128IntPair[]);
+				ret.Unmarshal(ref array);
+				result = array;
+			}
+			return result;
+		}
+		[FreeFunction(HasExplicitThis = true)]
+		[NativeName("SetNonTetrahedralizedProbeSetIndexMap")]
+		set
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			Span<Hash128IntPair> span = new Span<Hash128IntPair>(value);
+			fixed (Hash128IntPair* begin = span)
+			{
+				ManagedSpanWrapper value2 = new ManagedSpanWrapper(begin, span.Length);
+				set_nonTetrahedralizedProbeSetIndexMap_Injected(intPtr, ref value2);
+			}
+		}
+	}
+
+	internal unsafe LightProbeOcclusion[] bakedLightOcclusion
+	{
+		[NativeName("GetBakedLightOcclusion")]
+		[FreeFunction(HasExplicitThis = true)]
+		get
+		{
+			BlittableArrayWrapper ret = default(BlittableArrayWrapper);
+			LightProbeOcclusion[] result;
+			try
+			{
+				IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+				if (intPtr == (IntPtr)0)
+				{
+					ThrowHelper.ThrowNullReferenceException(this);
+				}
+				get_bakedLightOcclusion_Injected(intPtr, out ret);
+			}
+			finally
+			{
+				LightProbeOcclusion[] array = default(LightProbeOcclusion[]);
+				ret.Unmarshal(ref array);
+				result = array;
+			}
+			return result;
+		}
+		[NativeName("SetBakedLightOcclusion")]
+		[FreeFunction(HasExplicitThis = true)]
+		set
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			Span<LightProbeOcclusion> span = new Span<LightProbeOcclusion>(value);
+			fixed (LightProbeOcclusion* begin = span)
+			{
+				ManagedSpanWrapper value2 = new ManagedSpanWrapper(begin, span.Length);
+				set_bakedLightOcclusion_Injected(intPtr, ref value2);
+			}
+		}
+	}
+
+	internal Bounds boundingBox
+	{
+		[FreeFunction(HasExplicitThis = true)]
+		[NativeName("GetBoundingBox")]
+		get
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			get_boundingBox_Injected(intPtr, out var ret);
+			return ret;
+		}
+		[FreeFunction(HasExplicitThis = true)]
+		[NativeName("SetBoundingBox")]
+		set
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			set_boundingBox_Injected(intPtr, ref value);
+		}
+	}
+
+	internal unsafe ProbeSetIndex[] probeSets
+	{
+		[NativeName("GetProbeSets")]
+		[FreeFunction(HasExplicitThis = true)]
+		get
+		{
+			BlittableArrayWrapper ret = default(BlittableArrayWrapper);
+			ProbeSetIndex[] result;
+			try
+			{
+				IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+				if (intPtr == (IntPtr)0)
+				{
+					ThrowHelper.ThrowNullReferenceException(this);
+				}
+				get_probeSets_Injected(intPtr, out ret);
+			}
+			finally
+			{
+				ProbeSetIndex[] array = default(ProbeSetIndex[]);
+				ret.Unmarshal(ref array);
+				result = array;
+			}
+			return result;
+		}
+		[NativeName("SetProbeSets")]
+		[FreeFunction(HasExplicitThis = true)]
+		set
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			Span<ProbeSetIndex> span = new Span<ProbeSetIndex>(value);
+			fixed (ProbeSetIndex* begin = span)
+			{
+				ManagedSpanWrapper value2 = new ManagedSpanWrapper(begin, span.Length);
+				set_probeSets_Injected(intPtr, ref value2);
+			}
+		}
+	}
+
+	internal unsafe Tetrahedron[] tetrahedra
+	{
+		[NativeName("GetTetrahedra")]
+		[FreeFunction(HasExplicitThis = true)]
+		get
+		{
+			BlittableArrayWrapper ret = default(BlittableArrayWrapper);
+			Tetrahedron[] result;
+			try
+			{
+				IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+				if (intPtr == (IntPtr)0)
+				{
+					ThrowHelper.ThrowNullReferenceException(this);
+				}
+				get_tetrahedra_Injected(intPtr, out ret);
+			}
+			finally
+			{
+				Tetrahedron[] array = default(Tetrahedron[]);
+				ret.Unmarshal(ref array);
+				result = array;
+			}
+			return result;
+		}
+		[FreeFunction(HasExplicitThis = true)]
+		[NativeName("SetTetrahedra")]
+		set
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			Span<Tetrahedron> span = new Span<Tetrahedron>(value);
+			fixed (Tetrahedron* begin = span)
+			{
+				ManagedSpanWrapper value2 = new ManagedSpanWrapper(begin, span.Length);
+				set_tetrahedra_Injected(intPtr, ref value2);
+			}
+		}
+	}
+
+	internal unsafe Vector3[] hullRays
+	{
+		[NativeName("GetHullRays")]
+		[FreeFunction(HasExplicitThis = true)]
+		get
+		{
+			BlittableArrayWrapper ret = default(BlittableArrayWrapper);
+			Vector3[] result;
+			try
+			{
+				IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+				if (intPtr == (IntPtr)0)
+				{
+					ThrowHelper.ThrowNullReferenceException(this);
+				}
+				get_hullRays_Injected(intPtr, out ret);
+			}
+			finally
+			{
+				Vector3[] array = default(Vector3[]);
+				ret.Unmarshal(ref array);
+				result = array;
+			}
+			return result;
+		}
+		[FreeFunction(HasExplicitThis = true)]
+		[NativeName("SetHullRays")]
+		set
+		{
+			IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+			if (intPtr == (IntPtr)0)
+			{
+				ThrowHelper.ThrowNullReferenceException(this);
+			}
+			Span<Vector3> span = new Span<Vector3>(value);
+			fixed (Vector3* begin = span)
+			{
+				ManagedSpanWrapper value2 = new ManagedSpanWrapper(begin, span.Length);
+				set_hullRays_Injected(intPtr, ref value2);
+			}
+		}
+	}
+
 	[Obsolete("Use bakedProbes instead.", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	public float[] coefficients
@@ -163,9 +428,13 @@ public sealed class LightProbes : Object
 
 	public static event Action needsRetetrahedralization;
 
-	private LightProbes()
+	internal LightProbes()
 	{
+		Internal_Create(this);
 	}
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void Internal_Create([Writable] LightProbes self);
 
 	[RequiredByNativeCode]
 	private static void Internal_CallLightProbesUpdatedFunction()
@@ -316,8 +585,8 @@ public sealed class LightProbes : Object
 		return result;
 	}
 
-	[FreeFunction(HasExplicitThis = true)]
 	[NativeName("SetLightProbePositionsSelf")]
+	[FreeFunction(HasExplicitThis = true)]
 	public unsafe bool SetPositionsSelf(Vector3[] positions, bool checkForDuplicatePositions)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -335,13 +604,29 @@ public sealed class LightProbes : Object
 		return result;
 	}
 
+	[FreeFunction(HasExplicitThis = true)]
+	internal unsafe void SetBakedCoefficients_Internal(SphericalHarmonicsL2[] coefficients)
+	{
+		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
+		if (intPtr == (IntPtr)0)
+		{
+			ThrowHelper.ThrowNullReferenceException(this);
+		}
+		Span<SphericalHarmonicsL2> span = new Span<SphericalHarmonicsL2>(coefficients);
+		fixed (SphericalHarmonicsL2* begin = span)
+		{
+			ManagedSpanWrapper managedSpanWrapper = new ManagedSpanWrapper(begin, span.Length);
+			SetBakedCoefficients_Internal_Injected(intPtr, ref managedSpanWrapper);
+		}
+	}
+
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[NativeName("GetLightProbeCount")]
 	[FreeFunction]
 	internal static extern int GetCount();
 
-	[Obsolete("Use GetInterpolatedProbe instead.", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
+	[Obsolete("Use GetInterpolatedProbe instead.", true)]
 	public void GetInterpolatedLightProbe(Vector3 position, Renderer renderer, float[] coefficients)
 	{
 	}
@@ -365,6 +650,9 @@ public sealed class LightProbes : Object
 	private static extern void get_positions_Injected(IntPtr _unity_self, out BlittableArrayWrapper ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_positions_Injected(IntPtr _unity_self, ref ManagedSpanWrapper value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void GetPositionsSelf_Injected(IntPtr _unity_self, out BlittableArrayWrapper ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -377,6 +665,9 @@ public sealed class LightProbes : Object
 	private static extern void set_bakedProbes_Injected(IntPtr _unity_self, ref ManagedSpanWrapper value);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void SetBakedCoefficients_Internal_Injected(IntPtr _unity_self, ref ManagedSpanWrapper coefficients);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern int get_count_Injected(IntPtr _unity_self);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -387,4 +678,40 @@ public sealed class LightProbes : Object
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern int get_cellCountSelf_Injected(IntPtr _unity_self);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void get_nonTetrahedralizedProbeSetIndexMap_Injected(IntPtr _unity_self, out BlittableArrayWrapper ret);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_nonTetrahedralizedProbeSetIndexMap_Injected(IntPtr _unity_self, ref ManagedSpanWrapper value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void get_bakedLightOcclusion_Injected(IntPtr _unity_self, out BlittableArrayWrapper ret);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_bakedLightOcclusion_Injected(IntPtr _unity_self, ref ManagedSpanWrapper value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void get_boundingBox_Injected(IntPtr _unity_self, out Bounds ret);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_boundingBox_Injected(IntPtr _unity_self, [In] ref Bounds value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void get_probeSets_Injected(IntPtr _unity_self, out BlittableArrayWrapper ret);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_probeSets_Injected(IntPtr _unity_self, ref ManagedSpanWrapper value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void get_tetrahedra_Injected(IntPtr _unity_self, out BlittableArrayWrapper ret);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_tetrahedra_Injected(IntPtr _unity_self, ref ManagedSpanWrapper value);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void get_hullRays_Injected(IntPtr _unity_self, out BlittableArrayWrapper ret);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void set_hullRays_Injected(IntPtr _unity_self, ref ManagedSpanWrapper value);
 }

@@ -24,9 +24,9 @@ public sealed class ReflectionProbe : Behaviour
 
 	private static List<Action<Texture>> registeredDefaultReflectionTextureActions = new List<Action<Texture>>();
 
+	[NativeName("ProbeType")]
 	[Obsolete("type property has been deprecated. Starting with Unity 5.4, the only supported reflection probe type is Cube.", true)]
 	[EditorBrowsable(EditorBrowsableState.Never)]
-	[NativeName("ProbeType")]
 	public ReflectionProbeType type
 	{
 		get

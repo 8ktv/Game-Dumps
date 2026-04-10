@@ -14,7 +14,7 @@ public class PlayerAudio : NetworkBehaviour
 
 	private EventInstance itemUseInstance;
 
-	private EventInstance gunAimInstance;
+	private EventInstance itemAimInstance;
 
 	private EventInstance electromagnetShieldHumInstance;
 
@@ -23,6 +23,10 @@ public class PlayerAudio : NetworkBehaviour
 	private EventInstance respawnInstance;
 
 	private EventInstance electromagnetShieldMuffleSnapshotInstance;
+
+	private EventInstance frozenInIceMuffleSnapshotInstance;
+
+	private EventInstance emoteInstance;
 
 	private bool isPlayingFoliageSound;
 
@@ -40,13 +44,17 @@ public class PlayerAudio : NetworkBehaviour
 
 	private AntiCheatRateChecker serverRocketLauncherShotCommandRateLimiter;
 
-	private AntiCheatRateChecker serverGunAimCommandRateLimiter;
+	private AntiCheatRateChecker serverItemAimCommandRateLimiter;
 
 	private AntiCheatRateChecker serverItemUseCommandRateLimiter;
 
 	private AntiCheatRateChecker serverCancelItemUseCommandRateLimiter;
 
 	private AntiCheatRateChecker serverLandminePlantCommandRateLimiter;
+
+	private AntiCheatRateChecker serverRocketDriverEnteredOverchargeCommandRateLimiter;
+
+	private AntiCheatRateChecker serverFreezeBombShotCommandRateLimiter;
 
 	private AntiCheatRateChecker serverMovingInFoliageCommandRateLimiter;
 
@@ -73,9 +81,9 @@ public class PlayerAudio : NetworkBehaviour
 		{
 			itemUseInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
 		}
-		if (gunAimInstance.isValid())
+		if (itemAimInstance.isValid())
 		{
-			gunAimInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
+			itemAimInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
 		}
 		if (electromagnetShieldHumInstance.isValid())
 		{
@@ -93,6 +101,14 @@ public class PlayerAudio : NetworkBehaviour
 		{
 			electromagnetShieldMuffleSnapshotInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
 		}
+		if (frozenInIceMuffleSnapshotInstance.isValid())
+		{
+			frozenInIceMuffleSnapshotInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
+		}
+		if (emoteInstance.isValid())
+		{
+			emoteInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
+		}
 	}
 
 	public override void OnStartServer()
@@ -102,12 +118,14 @@ public class PlayerAudio : NetworkBehaviour
 		serverOverchargedSwingCommandRateLimiter = new AntiCheatRateChecker("Overcharged swing sound", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
 		serverSwingHitCommandRateLimiter = new AntiCheatRateChecker("Swing hit sound", base.connectionToClient.connectionId, 0.05f, 50, 150, 1f, 10);
 		serverPistolShotCommandRateLimiter = new AntiCheatRateChecker("Pistol shot sound", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
-		serverElephantGunShotCommandRateLimiter = new AntiCheatRateChecker("Elephant gun shot sound", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
+		serverElephantGunShotCommandRateLimiter = new AntiCheatRateChecker("Elephant gun shot sound", base.connectionToClient.connectionId, 0.2f, 5, 10, 1f, 2);
 		serverRocketLauncherShotCommandRateLimiter = new AntiCheatRateChecker("Rocket launcher shot sound", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
-		serverGunAimCommandRateLimiter = new AntiCheatRateChecker("Gun aim sound", base.connectionToClient.connectionId, 0.025f, 20, 40, 0.25f);
+		serverItemAimCommandRateLimiter = new AntiCheatRateChecker("Gun aim sound", base.connectionToClient.connectionId, 0.025f, 20, 40, 0.25f);
 		serverItemUseCommandRateLimiter = new AntiCheatRateChecker("Item use sound", base.connectionToClient.connectionId, 0.25f, 5, 10, 2f);
 		serverCancelItemUseCommandRateLimiter = new AntiCheatRateChecker("Cancel item use sound", base.connectionToClient.connectionId, 0.25f, 5, 10, 2f);
 		serverLandminePlantCommandRateLimiter = new AntiCheatRateChecker("Landmine plant sound", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
+		serverRocketDriverEnteredOverchargeCommandRateLimiter = new AntiCheatRateChecker("Rocket driver entered overcharge", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
+		serverFreezeBombShotCommandRateLimiter = new AntiCheatRateChecker("Freeze bomb shot sound", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
 		serverMovingInFoliageCommandRateLimiter = new AntiCheatRateChecker("Moving in foliage sound", base.connectionToClient.connectionId, 0.01f, 20, 50, 0.02f);
 		serverStopMovingInFoliageCommandRateLimiter = new AntiCheatRateChecker("Stop moving in foliage sound", base.connectionToClient.connectionId, 0.1f, 5, 10, 1f);
 		serverCancelRespawnCommandRateLimiter = new AntiCheatRateChecker("Cancel respawn sound", base.connectionToClient.connectionId, 0.5f, 5, 10, 2f);
@@ -187,37 +205,44 @@ public class PlayerAudio : NetworkBehaviour
 		swingChargeInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
 	}
 
-	public void PlaySwingForAllClients(float normalizedPower)
+	public void PlaySwingForAllClients(float normalizedPower, bool isUsingRocketDriver)
 	{
-		PlaySwingInternal(normalizedPower);
-		CmdPlaySwingForAllClients(normalizedPower);
+		PlaySwingInternal(normalizedPower, isUsingRocketDriver);
+		CmdPlaySwingForAllClients(normalizedPower, isUsingRocketDriver);
 	}
 
 	[Command]
-	private void CmdPlaySwingForAllClients(float normalizedPower, NetworkConnectionToClient sender = null)
+	private void CmdPlaySwingForAllClients(float normalizedPower, bool isUsingRocketDriver, NetworkConnectionToClient sender = null)
 	{
 		if (base.isServer && base.isClient)
 		{
-			UserCode_CmdPlaySwingForAllClients__Single__NetworkConnectionToClient(normalizedPower, sender);
+			UserCode_CmdPlaySwingForAllClients__Single__Boolean__NetworkConnectionToClient(normalizedPower, isUsingRocketDriver, sender);
 			return;
 		}
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteFloat(normalizedPower);
-		SendCommandInternal("System.Void PlayerAudio::CmdPlaySwingForAllClients(System.Single,Mirror.NetworkConnectionToClient)", 2116338308, writer, 0);
+		writer.WriteBool(isUsingRocketDriver);
+		SendCommandInternal("System.Void PlayerAudio::CmdPlaySwingForAllClients(System.Single,System.Boolean,Mirror.NetworkConnectionToClient)", -701052905, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
 	[TargetRpc]
-	private void RpcPlaySwing(NetworkConnectionToClient connection, float normalizedPower)
+	private void RpcPlaySwing(NetworkConnectionToClient connection, float normalizedPower, bool isUsingRocketDriver)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteFloat(normalizedPower);
-		SendTargetRPCInternal(connection, "System.Void PlayerAudio::RpcPlaySwing(Mirror.NetworkConnectionToClient,System.Single)", -2081079069, writer, 0);
+		writer.WriteBool(isUsingRocketDriver);
+		SendTargetRPCInternal(connection, "System.Void PlayerAudio::RpcPlaySwing(Mirror.NetworkConnectionToClient,System.Single,System.Boolean)", 1049021302, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
-	private void PlaySwingInternal(float normalizedPower)
+	private void PlaySwingInternal(float normalizedPower, bool isUsingRocketDriver)
 	{
+		if (isUsingRocketDriver)
+		{
+			RuntimeManager.PlayOneShotAttached(GameManager.AudioSettings.RocketDriverSwingEvent, base.gameObject);
+			return;
+		}
 		EventInstance instance = RuntimeManager.CreateInstance(GameManager.AudioSettings.SwingEvent);
 		RuntimeManager.AttachInstanceToGameObject(instance, base.gameObject);
 		instance.setParameterByID(AudioSettings.StrengthId, GetStrengthParameterValue());
@@ -241,79 +266,83 @@ public class PlayerAudio : NetworkBehaviour
 		}
 	}
 
-	public void PlayOverchargedSwingForAllClients(bool isLockedOn)
+	public void PlayOverchargedSwingForAllClients(bool isLockedOn, bool isUsingRocketDriver)
 	{
-		PlayOverchargedSwingInternal(isLockedOn);
-		CmdPlayOverchargedSwingForAllClients(isLockedOn);
+		PlayOverchargedSwingInternal(isLockedOn, isUsingRocketDriver);
+		CmdPlayOverchargedSwingForAllClients(isLockedOn, isUsingRocketDriver);
 	}
 
 	[Command]
-	private void CmdPlayOverchargedSwingForAllClients(bool isLockedOn, NetworkConnectionToClient sender = null)
+	private void CmdPlayOverchargedSwingForAllClients(bool isLockedOn, bool isUsingRocketDriver, NetworkConnectionToClient sender = null)
 	{
 		if (base.isServer && base.isClient)
 		{
-			UserCode_CmdPlayOverchargedSwingForAllClients__Boolean__NetworkConnectionToClient(isLockedOn, sender);
+			UserCode_CmdPlayOverchargedSwingForAllClients__Boolean__Boolean__NetworkConnectionToClient(isLockedOn, isUsingRocketDriver, sender);
 			return;
 		}
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteBool(isLockedOn);
-		SendCommandInternal("System.Void PlayerAudio::CmdPlayOverchargedSwingForAllClients(System.Boolean,Mirror.NetworkConnectionToClient)", -221196264, writer, 0);
+		writer.WriteBool(isUsingRocketDriver);
+		SendCommandInternal("System.Void PlayerAudio::CmdPlayOverchargedSwingForAllClients(System.Boolean,System.Boolean,Mirror.NetworkConnectionToClient)", 505631027, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
 	[TargetRpc]
-	private void RpcPlayOverchargedSwing(NetworkConnectionToClient connection, bool isLockedOn)
+	private void RpcPlayOverchargedSwing(NetworkConnectionToClient connection, bool isLockedOn, bool isUsingRocketDriver)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteBool(isLockedOn);
-		SendTargetRPCInternal(connection, "System.Void PlayerAudio::RpcPlayOverchargedSwing(Mirror.NetworkConnectionToClient,System.Boolean)", 597625165, writer, 0);
+		writer.WriteBool(isUsingRocketDriver);
+		SendTargetRPCInternal(connection, "System.Void PlayerAudio::RpcPlayOverchargedSwing(Mirror.NetworkConnectionToClient,System.Boolean,System.Boolean)", -802348024, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
-	private void PlayOverchargedSwingInternal(bool isLockedOn)
+	private void PlayOverchargedSwingInternal(bool isLockedOn, bool isUsingRocketDriver)
 	{
-		EventInstance instance = RuntimeManager.CreateInstance(GameManager.AudioSettings.OverchargedSwingEvent);
+		EventInstance instance = RuntimeManager.CreateInstance(isUsingRocketDriver ? GameManager.AudioSettings.RocketDriverOverchargedSwingEvent : GameManager.AudioSettings.OverchargedSwingEvent);
 		RuntimeManager.AttachInstanceToGameObject(instance, base.gameObject);
 		instance.setParameterByID(AudioSettings.LockedOnId, isLockedOn ? 1f : 0f);
 		instance.start();
 		instance.release();
 	}
 
-	public void PlaySwingHitForAllClients(Hittable hitHittable)
+	public void PlaySwingHitForAllClients(Hittable hitHittable, bool fromRocketDriver)
 	{
 		if (!(hitHittable == null))
 		{
-			PlaySwingHitInternal(hitHittable);
-			CmdPlaySwingHitForAllClients(hitHittable);
+			PlaySwingHitInternal(hitHittable, fromRocketDriver);
+			CmdPlaySwingHitForAllClients(hitHittable, fromRocketDriver);
 		}
 	}
 
 	[Command]
-	private void CmdPlaySwingHitForAllClients(Hittable hitHittable, NetworkConnectionToClient sender = null)
+	private void CmdPlaySwingHitForAllClients(Hittable hitHittable, bool fromRocketDriver, NetworkConnectionToClient sender = null)
 	{
 		if (base.isServer && base.isClient)
 		{
-			UserCode_CmdPlaySwingHitForAllClients__Hittable__NetworkConnectionToClient(hitHittable, sender);
+			UserCode_CmdPlaySwingHitForAllClients__Hittable__Boolean__NetworkConnectionToClient(hitHittable, fromRocketDriver, sender);
 			return;
 		}
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteNetworkBehaviour(hitHittable);
-		SendCommandInternal("System.Void PlayerAudio::CmdPlaySwingHitForAllClients(Hittable,Mirror.NetworkConnectionToClient)", -1187357637, writer, 0);
+		writer.WriteBool(fromRocketDriver);
+		SendCommandInternal("System.Void PlayerAudio::CmdPlaySwingHitForAllClients(Hittable,System.Boolean,Mirror.NetworkConnectionToClient)", -974466314, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
 	[TargetRpc]
-	private void RpcPlaySwingHit(NetworkConnectionToClient connection, Hittable hitHittable)
+	private void RpcPlaySwingHit(NetworkConnectionToClient connection, Hittable hitHittable, bool fromRocketDriver)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteNetworkBehaviour(hitHittable);
-		SendTargetRPCInternal(connection, "System.Void PlayerAudio::RpcPlaySwingHit(Mirror.NetworkConnectionToClient,Hittable)", 1933817884, writer, 0);
+		writer.WriteBool(fromRocketDriver);
+		SendTargetRPCInternal(connection, "System.Void PlayerAudio::RpcPlaySwingHit(Mirror.NetworkConnectionToClient,Hittable,System.Boolean)", -2020579581, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
-	private void PlaySwingHitInternal(Hittable hitHittable)
+	private void PlaySwingHitInternal(Hittable hitHittable, bool fromRocketDriver)
 	{
-		EventInstance instance = RuntimeManager.CreateInstance(GameManager.AudioSettings.SwingHitEvent);
+		EventInstance instance = RuntimeManager.CreateInstance(fromRocketDriver ? GameManager.AudioSettings.RocketDriverSwingHitEvent : GameManager.AudioSettings.SwingHitEvent);
 		RuntimeManager.AttachInstanceToGameObject(instance, hitHittable.gameObject);
 		instance.setParameterByID(AudioSettings.ObjectId, (float)GetObjectType());
 		instance.start();
@@ -440,47 +469,53 @@ public class PlayerAudio : NetworkBehaviour
 		RuntimeManager.PlayOneShot(GameManager.AudioSettings.RocketLauncherShotEvent, rocketLauncherRocketPosition);
 	}
 
-	public void PlayGunAimForAllClients(ItemType gunType)
+	public void PlayItemAimForAllClients(ItemType gunType)
 	{
-		PlayGunAimInternal(gunType);
-		CmdPlayGunAimForAllClients(gunType);
+		PlayItemAimInternal(gunType);
+		CmdPlayItemAimForAllClients(gunType);
 	}
 
 	[Command]
-	private void CmdPlayGunAimForAllClients(ItemType gunType, NetworkConnectionToClient sender = null)
+	private void CmdPlayItemAimForAllClients(ItemType gunType, NetworkConnectionToClient sender = null)
 	{
 		if (base.isServer && base.isClient)
 		{
-			UserCode_CmdPlayGunAimForAllClients__ItemType__NetworkConnectionToClient(gunType, sender);
+			UserCode_CmdPlayItemAimForAllClients__ItemType__NetworkConnectionToClient(gunType, sender);
 			return;
 		}
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		GeneratedNetworkCode._Write_ItemType(writer, gunType);
-		SendCommandInternal("System.Void PlayerAudio::CmdPlayGunAimForAllClients(ItemType,Mirror.NetworkConnectionToClient)", -2135649989, writer, 0);
+		SendCommandInternal("System.Void PlayerAudio::CmdPlayItemAimForAllClients(ItemType,Mirror.NetworkConnectionToClient)", 1794862730, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
 	[TargetRpc]
-	private void RpcPlayGunAim(NetworkConnectionToClient connection, ItemType gunType)
+	private void RpcPlayItemAim(NetworkConnectionToClient connection, ItemType item)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
-		GeneratedNetworkCode._Write_ItemType(writer, gunType);
-		SendTargetRPCInternal(connection, "System.Void PlayerAudio::RpcPlayGunAim(Mirror.NetworkConnectionToClient,ItemType)", 2080912328, writer, 0);
+		GeneratedNetworkCode._Write_ItemType(writer, item);
+		SendTargetRPCInternal(connection, "System.Void PlayerAudio::RpcPlayItemAim(Mirror.NetworkConnectionToClient,ItemType)", 1448491793, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
-	private void PlayGunAimInternal(ItemType gunType)
+	private void PlayItemAimInternal(ItemType item)
 	{
-		if (gunAimInstance.isValid())
+		if (itemAimInstance.isValid())
 		{
-			gunAimInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+			itemAimInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
 		}
-		EventReference eventReference = ((gunType == ItemType.RocketLauncher) ? GameManager.AudioSettings.RocketLauncherAimEvent : GameManager.AudioSettings.GunAimEvent);
-		GameObject gameObject = ((gunType == ItemType.DuelingPistol) ? playerInfo.LeftHandEquipmentSwitcher.gameObject : playerInfo.RightHandEquipmentSwitcher.gameObject);
-		gunAimInstance = RuntimeManager.CreateInstance(eventReference);
-		RuntimeManager.AttachInstanceToGameObject(gunAimInstance, gameObject);
-		gunAimInstance.start();
-		gunAimInstance.release();
+		EventReference eventReference = item switch
+		{
+			ItemType.RocketLauncher => GameManager.AudioSettings.RocketLauncherAimEvent, 
+			ItemType.RocketDriver => GameManager.AudioSettings.RocketDriverAimEvent, 
+			ItemType.FreezeBomb => GameManager.AudioSettings.FreezeBombAimEvent, 
+			_ => GameManager.AudioSettings.GunAimEvent, 
+		};
+		GameObject gameObject = ((item == ItemType.DuelingPistol) ? playerInfo.LeftHandEquipmentSwitcher.gameObject : playerInfo.RightHandEquipmentSwitcher.gameObject);
+		itemAimInstance = RuntimeManager.CreateInstance(eventReference);
+		RuntimeManager.AttachInstanceToGameObject(itemAimInstance, gameObject);
+		itemAimInstance.start();
+		itemAimInstance.release();
 	}
 
 	public void PlaySpeedBoostLocalOnly()
@@ -631,6 +666,23 @@ public class PlayerAudio : NetworkBehaviour
 		eventInstance.release();
 	}
 
+	public void InformPlayerFrozen(bool isFrozen)
+	{
+		if (!(playerInfo == null))
+		{
+			if (frozenInIceMuffleSnapshotInstance.isValid())
+			{
+				frozenInIceMuffleSnapshotInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+			}
+			if (isFrozen)
+			{
+				frozenInIceMuffleSnapshotInstance = RuntimeManager.CreateInstance(GameManager.AudioSettings.FrozenInIceSnapshot);
+				frozenInIceMuffleSnapshotInstance.start();
+				frozenInIceMuffleSnapshotInstance.release();
+			}
+		}
+	}
+
 	public void SetElectromagnetShieldActiveLocalOnly(bool isActive)
 	{
 		if (playerInfo == null)
@@ -684,6 +736,75 @@ public class PlayerAudio : NetworkBehaviour
 		RuntimeManager.AttachInstanceToGameObject(instance, base.gameObject);
 		instance.start();
 		instance.release();
+	}
+
+	public void PlayRocketDriverEnteredOverchargeForAllClients()
+	{
+		PlayRocketDriverEnteredOverchargeInternal();
+		CmdPlayRocketDriverEnteredOverchargeForAllClients();
+	}
+
+	[Command]
+	private void CmdPlayRocketDriverEnteredOverchargeForAllClients(NetworkConnectionToClient sender = null)
+	{
+		if (base.isServer && base.isClient)
+		{
+			UserCode_CmdPlayRocketDriverEnteredOverchargeForAllClients__NetworkConnectionToClient(sender);
+			return;
+		}
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendCommandInternal("System.Void PlayerAudio::CmdPlayRocketDriverEnteredOverchargeForAllClients(Mirror.NetworkConnectionToClient)", -1647288814, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	private void RpcPlayRocketDriverEnteredOvercharge(NetworkConnectionToClient connection)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendTargetRPCInternal(connection, "System.Void PlayerAudio::RpcPlayRocketDriverEnteredOvercharge(Mirror.NetworkConnectionToClient)", 1843126397, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	private void PlayRocketDriverEnteredOverchargeInternal()
+	{
+		RuntimeManager.PlayOneShotAttached(GameManager.AudioSettings.RocketDriverEnteredOverchargeEvent, playerInfo.RightHandEquipmentSwitcher.gameObject);
+	}
+
+	public void PlayRocketDriverPostHitSpinLocalOnly()
+	{
+		RuntimeManager.PlayOneShotAttached(GameManager.AudioSettings.RocketDriverPostHitSpinEvent, base.gameObject);
+	}
+
+	public void PlayFreezeBombShotForAllClients()
+	{
+		PlayFreezeBombShotInternal();
+		CmdPlayFreezeBombShotForAllClients();
+	}
+
+	[Command]
+	private void CmdPlayFreezeBombShotForAllClients(NetworkConnectionToClient sender = null)
+	{
+		if (base.isServer && base.isClient)
+		{
+			UserCode_CmdPlayFreezeBombShotForAllClients__NetworkConnectionToClient(sender);
+			return;
+		}
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendCommandInternal("System.Void PlayerAudio::CmdPlayFreezeBombShotForAllClients(Mirror.NetworkConnectionToClient)", 2066161656, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[TargetRpc]
+	private void RpcPlayFreezeBombShot(NetworkConnectionToClient connection)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		SendTargetRPCInternal(connection, "System.Void PlayerAudio::RpcPlayFreezeBombShot(Mirror.NetworkConnectionToClient)", 1097610493, writer, 0);
+		NetworkWriterPool.Return(writer);
+	}
+
+	private void PlayFreezeBombShotInternal()
+	{
+		RuntimeManager.PlayOneShot(GameManager.AudioSettings.FreezeBombShotEvent, playerInfo.RightHandEquipmentSwitcher.transform.position);
 	}
 
 	public void StartKnockoutLoopLocalOnly()
@@ -866,10 +987,136 @@ public class PlayerAudio : NetworkBehaviour
 
 	private void PlayClapLocalOnly()
 	{
-		EventInstance instance = RuntimeManager.CreateInstance(GameManager.AudioSettings.PlayerEmoteClapEvent);
-		RuntimeManager.AttachInstanceToGameObject(instance, playerInfo.RightHandEquipmentSwitcher.gameObject);
-		instance.start();
-		instance.release();
+		if (emoteInstance.isValid())
+		{
+			emoteInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+		}
+		emoteInstance = RuntimeManager.CreateInstance(GameManager.AudioSettings.PlayerEmoteClapEvent);
+		RuntimeManager.AttachInstanceToGameObject(emoteInstance, playerInfo.RightHandEquipmentSwitcher.gameObject);
+		emoteInstance.start();
+		emoteInstance.release();
+	}
+
+	private void PlayFacepalmLocalOnly(AnimationEvent animationEvent)
+	{
+		if (emoteInstance.isValid())
+		{
+			emoteInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+		}
+		if (!(animationEvent.animatorClipInfo.weight < 0.9f))
+		{
+			emoteInstance = RuntimeManager.CreateInstance(GameManager.AudioSettings.PlayerEmoteFacepalmEvent);
+			RuntimeManager.AttachInstanceToGameObject(emoteInstance, playerInfo.RightHandEquipmentSwitcher.gameObject);
+			emoteInstance.start();
+			emoteInstance.release();
+		}
+	}
+
+	private void PlayPointLaughLocalOnly()
+	{
+		if (emoteInstance.isValid())
+		{
+			emoteInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+		}
+		emoteInstance = RuntimeManager.CreateInstance(GameManager.AudioSettings.PlayerEmotePointLaughEvent);
+		RuntimeManager.AttachInstanceToGameObject(emoteInstance, playerInfo.RightHandEquipmentSwitcher.gameObject);
+		emoteInstance.start();
+		emoteInstance.release();
+	}
+
+	private void PlayThumbsUpLocalOnly(AnimationEvent animationEvent)
+	{
+		if (emoteInstance.isValid())
+		{
+			emoteInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+		}
+		if (!(animationEvent.animatorClipInfo.weight < 0.9f))
+		{
+			emoteInstance = RuntimeManager.CreateInstance(GameManager.AudioSettings.PlayerEmoteThumbsUpEvent);
+			RuntimeManager.AttachInstanceToGameObject(emoteInstance, playerInfo.RightHandEquipmentSwitcher.gameObject);
+			emoteInstance.start();
+			emoteInstance.release();
+		}
+	}
+
+	private void PlayVPoseLocalOnly(AnimationEvent animationEvent)
+	{
+		if (emoteInstance.isValid())
+		{
+			emoteInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+		}
+		if (!(animationEvent.animatorClipInfo.weight < 0.9f))
+		{
+			emoteInstance = RuntimeManager.CreateInstance(GameManager.AudioSettings.PlayerEmoteVPoseEvent);
+			RuntimeManager.AttachInstanceToGameObject(emoteInstance, playerInfo.RightHandEquipmentSwitcher.gameObject);
+			emoteInstance.start();
+			emoteInstance.release();
+		}
+	}
+
+	private void PlayWaveLocalOnly(AnimationEvent animationEvent)
+	{
+		if (emoteInstance.isValid())
+		{
+			emoteInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+		}
+		if (!(animationEvent.animatorClipInfo.weight < 0.9f))
+		{
+			emoteInstance = RuntimeManager.CreateInstance(GameManager.AudioSettings.PlayerEmoteWaveEvent);
+			RuntimeManager.AttachInstanceToGameObject(emoteInstance, playerInfo.RightHandEquipmentSwitcher.gameObject);
+			emoteInstance.start();
+			emoteInstance.release();
+		}
+	}
+
+	private void PlayChickenLocalOnly(AnimationEvent animationEvent)
+	{
+		if (emoteInstance.isValid())
+		{
+			emoteInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+		}
+		if (!(animationEvent.animatorClipInfo.weight < 0.9f))
+		{
+			emoteInstance = RuntimeManager.CreateInstance(GameManager.AudioSettings.PlayerEmoteChickenEvent);
+			RuntimeManager.AttachInstanceToGameObject(emoteInstance, playerInfo.RightHandEquipmentSwitcher.gameObject);
+			emoteInstance.start();
+			emoteInstance.release();
+		}
+	}
+
+	private void PlayFistPumpLocalOnly(AnimationEvent animationEvent)
+	{
+		if (emoteInstance.isValid())
+		{
+			emoteInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+		}
+		if (!(animationEvent.animatorClipInfo.weight < 0.9f))
+		{
+			emoteInstance = RuntimeManager.CreateInstance(GameManager.AudioSettings.PlayerEmoteFistPumpEvent);
+			RuntimeManager.AttachInstanceToGameObject(emoteInstance, playerInfo.RightHandEquipmentSwitcher.gameObject);
+			emoteInstance.start();
+			emoteInstance.release();
+		}
+	}
+
+	private void PlayHandsUpLocalOnly(AnimationEvent animationEvent)
+	{
+		if (emoteInstance.isValid())
+		{
+			emoteInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+		}
+		emoteInstance = RuntimeManager.CreateInstance(GameManager.AudioSettings.PlayerEmoteHandsUpEvent);
+		RuntimeManager.AttachInstanceToGameObject(emoteInstance, playerInfo.RightHandEquipmentSwitcher.gameObject);
+		emoteInstance.start();
+		emoteInstance.release();
+	}
+
+	public void InformCancelledEmote()
+	{
+		if (emoteInstance.isValid())
+		{
+			emoteInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+		}
 	}
 
 	public void PlayGolfCartBriefcaseOpenLocalOnly(bool isStart)
@@ -930,7 +1177,7 @@ public class PlayerAudio : NetworkBehaviour
 		}
 	}
 
-	protected void UserCode_CmdPlaySwingForAllClients__Single__NetworkConnectionToClient(float normalizedPower, NetworkConnectionToClient sender)
+	protected void UserCode_CmdPlaySwingForAllClients__Single__Boolean__NetworkConnectionToClient(float normalizedPower, bool isUsingRocketDriver, NetworkConnectionToClient sender)
 	{
 		if (!serverSwingCommandRateLimiter.RegisterHit())
 		{
@@ -938,18 +1185,18 @@ public class PlayerAudio : NetworkBehaviour
 		}
 		if (sender != null && sender != NetworkServer.localConnection)
 		{
-			PlaySwingInternal(normalizedPower);
+			PlaySwingInternal(normalizedPower, isUsingRocketDriver);
 		}
 		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
 		{
 			if (value != NetworkServer.localConnection && value != sender)
 			{
-				RpcPlaySwing(value, normalizedPower);
+				RpcPlaySwing(value, normalizedPower, isUsingRocketDriver);
 			}
 		}
 	}
 
-	protected static void InvokeUserCode_CmdPlaySwingForAllClients__Single__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_CmdPlaySwingForAllClients__Single__Boolean__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkServer.active)
 		{
@@ -957,16 +1204,16 @@ public class PlayerAudio : NetworkBehaviour
 		}
 		else
 		{
-			((PlayerAudio)obj).UserCode_CmdPlaySwingForAllClients__Single__NetworkConnectionToClient(reader.ReadFloat(), senderConnection);
+			((PlayerAudio)obj).UserCode_CmdPlaySwingForAllClients__Single__Boolean__NetworkConnectionToClient(reader.ReadFloat(), reader.ReadBool(), senderConnection);
 		}
 	}
 
-	protected void UserCode_RpcPlaySwing__NetworkConnectionToClient__Single(NetworkConnectionToClient connection, float normalizedPower)
+	protected void UserCode_RpcPlaySwing__NetworkConnectionToClient__Single__Boolean(NetworkConnectionToClient connection, float normalizedPower, bool isUsingRocketDriver)
 	{
-		PlaySwingInternal(normalizedPower);
+		PlaySwingInternal(normalizedPower, isUsingRocketDriver);
 	}
 
-	protected static void InvokeUserCode_RpcPlaySwing__NetworkConnectionToClient__Single(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcPlaySwing__NetworkConnectionToClient__Single__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -974,11 +1221,11 @@ public class PlayerAudio : NetworkBehaviour
 		}
 		else
 		{
-			((PlayerAudio)obj).UserCode_RpcPlaySwing__NetworkConnectionToClient__Single(null, reader.ReadFloat());
+			((PlayerAudio)obj).UserCode_RpcPlaySwing__NetworkConnectionToClient__Single__Boolean(null, reader.ReadFloat(), reader.ReadBool());
 		}
 	}
 
-	protected void UserCode_CmdPlayOverchargedSwingForAllClients__Boolean__NetworkConnectionToClient(bool isLockedOn, NetworkConnectionToClient sender)
+	protected void UserCode_CmdPlayOverchargedSwingForAllClients__Boolean__Boolean__NetworkConnectionToClient(bool isLockedOn, bool isUsingRocketDriver, NetworkConnectionToClient sender)
 	{
 		if (!serverOverchargedSwingCommandRateLimiter.RegisterHit())
 		{
@@ -986,18 +1233,18 @@ public class PlayerAudio : NetworkBehaviour
 		}
 		if (sender != null && sender != NetworkServer.localConnection)
 		{
-			PlayOverchargedSwingInternal(isLockedOn);
+			PlayOverchargedSwingInternal(isLockedOn, isUsingRocketDriver);
 		}
 		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
 		{
 			if (value != NetworkServer.localConnection && value != sender)
 			{
-				RpcPlayOverchargedSwing(value, isLockedOn);
+				RpcPlayOverchargedSwing(value, isLockedOn, isUsingRocketDriver);
 			}
 		}
 	}
 
-	protected static void InvokeUserCode_CmdPlayOverchargedSwingForAllClients__Boolean__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_CmdPlayOverchargedSwingForAllClients__Boolean__Boolean__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkServer.active)
 		{
@@ -1005,16 +1252,16 @@ public class PlayerAudio : NetworkBehaviour
 		}
 		else
 		{
-			((PlayerAudio)obj).UserCode_CmdPlayOverchargedSwingForAllClients__Boolean__NetworkConnectionToClient(reader.ReadBool(), senderConnection);
+			((PlayerAudio)obj).UserCode_CmdPlayOverchargedSwingForAllClients__Boolean__Boolean__NetworkConnectionToClient(reader.ReadBool(), reader.ReadBool(), senderConnection);
 		}
 	}
 
-	protected void UserCode_RpcPlayOverchargedSwing__NetworkConnectionToClient__Boolean(NetworkConnectionToClient connection, bool isLockedOn)
+	protected void UserCode_RpcPlayOverchargedSwing__NetworkConnectionToClient__Boolean__Boolean(NetworkConnectionToClient connection, bool isLockedOn, bool isUsingRocketDriver)
 	{
-		PlayOverchargedSwingInternal(isLockedOn);
+		PlayOverchargedSwingInternal(isLockedOn, isUsingRocketDriver);
 	}
 
-	protected static void InvokeUserCode_RpcPlayOverchargedSwing__NetworkConnectionToClient__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcPlayOverchargedSwing__NetworkConnectionToClient__Boolean__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -1022,11 +1269,11 @@ public class PlayerAudio : NetworkBehaviour
 		}
 		else
 		{
-			((PlayerAudio)obj).UserCode_RpcPlayOverchargedSwing__NetworkConnectionToClient__Boolean(null, reader.ReadBool());
+			((PlayerAudio)obj).UserCode_RpcPlayOverchargedSwing__NetworkConnectionToClient__Boolean__Boolean(null, reader.ReadBool(), reader.ReadBool());
 		}
 	}
 
-	protected void UserCode_CmdPlaySwingHitForAllClients__Hittable__NetworkConnectionToClient(Hittable hitHittable, NetworkConnectionToClient sender)
+	protected void UserCode_CmdPlaySwingHitForAllClients__Hittable__Boolean__NetworkConnectionToClient(Hittable hitHittable, bool fromRocketDriver, NetworkConnectionToClient sender)
 	{
 		if (!serverSwingHitCommandRateLimiter.RegisterHit() || hitHittable == null)
 		{
@@ -1034,18 +1281,18 @@ public class PlayerAudio : NetworkBehaviour
 		}
 		if (sender != null && sender != NetworkServer.localConnection)
 		{
-			PlaySwingHitInternal(hitHittable);
+			PlaySwingHitInternal(hitHittable, fromRocketDriver);
 		}
 		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
 		{
 			if (value != NetworkServer.localConnection && value != sender)
 			{
-				RpcPlaySwingHit(value, hitHittable);
+				RpcPlaySwingHit(value, hitHittable, fromRocketDriver);
 			}
 		}
 	}
 
-	protected static void InvokeUserCode_CmdPlaySwingHitForAllClients__Hittable__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_CmdPlaySwingHitForAllClients__Hittable__Boolean__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkServer.active)
 		{
@@ -1053,19 +1300,19 @@ public class PlayerAudio : NetworkBehaviour
 		}
 		else
 		{
-			((PlayerAudio)obj).UserCode_CmdPlaySwingHitForAllClients__Hittable__NetworkConnectionToClient(reader.ReadNetworkBehaviour<Hittable>(), senderConnection);
+			((PlayerAudio)obj).UserCode_CmdPlaySwingHitForAllClients__Hittable__Boolean__NetworkConnectionToClient(reader.ReadNetworkBehaviour<Hittable>(), reader.ReadBool(), senderConnection);
 		}
 	}
 
-	protected void UserCode_RpcPlaySwingHit__NetworkConnectionToClient__Hittable(NetworkConnectionToClient connection, Hittable hitHittable)
+	protected void UserCode_RpcPlaySwingHit__NetworkConnectionToClient__Hittable__Boolean(NetworkConnectionToClient connection, Hittable hitHittable, bool fromRocketDriver)
 	{
 		if (!(hitHittable == null))
 		{
-			PlaySwingHitInternal(hitHittable);
+			PlaySwingHitInternal(hitHittable, fromRocketDriver);
 		}
 	}
 
-	protected static void InvokeUserCode_RpcPlaySwingHit__NetworkConnectionToClient__Hittable(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcPlaySwingHit__NetworkConnectionToClient__Hittable__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -1073,7 +1320,7 @@ public class PlayerAudio : NetworkBehaviour
 		}
 		else
 		{
-			((PlayerAudio)obj).UserCode_RpcPlaySwingHit__NetworkConnectionToClient__Hittable(null, reader.ReadNetworkBehaviour<Hittable>());
+			((PlayerAudio)obj).UserCode_RpcPlaySwingHit__NetworkConnectionToClient__Hittable__Boolean(null, reader.ReadNetworkBehaviour<Hittable>(), reader.ReadBool());
 		}
 	}
 
@@ -1221,51 +1468,51 @@ public class PlayerAudio : NetworkBehaviour
 		}
 	}
 
-	protected void UserCode_CmdPlayGunAimForAllClients__ItemType__NetworkConnectionToClient(ItemType gunType, NetworkConnectionToClient sender)
+	protected void UserCode_CmdPlayItemAimForAllClients__ItemType__NetworkConnectionToClient(ItemType gunType, NetworkConnectionToClient sender)
 	{
-		if (!serverGunAimCommandRateLimiter.RegisterHit())
+		if (!serverItemAimCommandRateLimiter.RegisterHit())
 		{
 			return;
 		}
 		if (sender != null && sender != NetworkServer.localConnection)
 		{
-			PlayGunAimInternal(gunType);
+			PlayItemAimInternal(gunType);
 		}
 		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
 		{
 			if (value != NetworkServer.localConnection && value != sender)
 			{
-				RpcPlayGunAim(value, gunType);
+				RpcPlayItemAim(value, gunType);
 			}
 		}
 	}
 
-	protected static void InvokeUserCode_CmdPlayGunAimForAllClients__ItemType__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_CmdPlayItemAimForAllClients__ItemType__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkServer.active)
 		{
-			Debug.LogError("Command CmdPlayGunAimForAllClients called on client.");
+			Debug.LogError("Command CmdPlayItemAimForAllClients called on client.");
 		}
 		else
 		{
-			((PlayerAudio)obj).UserCode_CmdPlayGunAimForAllClients__ItemType__NetworkConnectionToClient(GeneratedNetworkCode._Read_ItemType(reader), senderConnection);
+			((PlayerAudio)obj).UserCode_CmdPlayItemAimForAllClients__ItemType__NetworkConnectionToClient(GeneratedNetworkCode._Read_ItemType(reader), senderConnection);
 		}
 	}
 
-	protected void UserCode_RpcPlayGunAim__NetworkConnectionToClient__ItemType(NetworkConnectionToClient connection, ItemType gunType)
+	protected void UserCode_RpcPlayItemAim__NetworkConnectionToClient__ItemType(NetworkConnectionToClient connection, ItemType item)
 	{
-		PlayGunAimInternal(gunType);
+		PlayItemAimInternal(item);
 	}
 
-	protected static void InvokeUserCode_RpcPlayGunAim__NetworkConnectionToClient__ItemType(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcPlayItemAim__NetworkConnectionToClient__ItemType(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
-			Debug.LogError("TargetRPC RpcPlayGunAim called on server.");
+			Debug.LogError("TargetRPC RpcPlayItemAim called on server.");
 		}
 		else
 		{
-			((PlayerAudio)obj).UserCode_RpcPlayGunAim__NetworkConnectionToClient__ItemType(null, GeneratedNetworkCode._Read_ItemType(reader));
+			((PlayerAudio)obj).UserCode_RpcPlayItemAim__NetworkConnectionToClient__ItemType(null, GeneratedNetworkCode._Read_ItemType(reader));
 		}
 	}
 
@@ -1410,6 +1657,102 @@ public class PlayerAudio : NetworkBehaviour
 		else
 		{
 			((PlayerAudio)obj).UserCode_RpcPlayLandminePlant__NetworkConnectionToClient__Boolean(null, reader.ReadBool());
+		}
+	}
+
+	protected void UserCode_CmdPlayRocketDriverEnteredOverchargeForAllClients__NetworkConnectionToClient(NetworkConnectionToClient sender)
+	{
+		if (!serverRocketDriverEnteredOverchargeCommandRateLimiter.RegisterHit())
+		{
+			return;
+		}
+		if (sender != null && sender != NetworkServer.localConnection)
+		{
+			PlayRocketDriverEnteredOverchargeInternal();
+		}
+		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
+		{
+			if (value != NetworkServer.localConnection && value != sender)
+			{
+				RpcPlayRocketDriverEnteredOvercharge(value);
+			}
+		}
+	}
+
+	protected static void InvokeUserCode_CmdPlayRocketDriverEnteredOverchargeForAllClients__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogError("Command CmdPlayRocketDriverEnteredOverchargeForAllClients called on client.");
+		}
+		else
+		{
+			((PlayerAudio)obj).UserCode_CmdPlayRocketDriverEnteredOverchargeForAllClients__NetworkConnectionToClient(senderConnection);
+		}
+	}
+
+	protected void UserCode_RpcPlayRocketDriverEnteredOvercharge__NetworkConnectionToClient(NetworkConnectionToClient connection)
+	{
+		PlayRocketDriverEnteredOverchargeInternal();
+	}
+
+	protected static void InvokeUserCode_RpcPlayRocketDriverEnteredOvercharge__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcPlayRocketDriverEnteredOvercharge called on server.");
+		}
+		else
+		{
+			((PlayerAudio)obj).UserCode_RpcPlayRocketDriverEnteredOvercharge__NetworkConnectionToClient(null);
+		}
+	}
+
+	protected void UserCode_CmdPlayFreezeBombShotForAllClients__NetworkConnectionToClient(NetworkConnectionToClient sender)
+	{
+		if (!serverFreezeBombShotCommandRateLimiter.RegisterHit())
+		{
+			return;
+		}
+		if (sender != null && sender != NetworkServer.localConnection)
+		{
+			PlayFreezeBombShotInternal();
+		}
+		foreach (NetworkConnectionToClient value in NetworkServer.connections.Values)
+		{
+			if (value != NetworkServer.localConnection && value != sender)
+			{
+				RpcPlayFreezeBombShot(value);
+			}
+		}
+	}
+
+	protected static void InvokeUserCode_CmdPlayFreezeBombShotForAllClients__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogError("Command CmdPlayFreezeBombShotForAllClients called on client.");
+		}
+		else
+		{
+			((PlayerAudio)obj).UserCode_CmdPlayFreezeBombShotForAllClients__NetworkConnectionToClient(senderConnection);
+		}
+	}
+
+	protected void UserCode_RpcPlayFreezeBombShot__NetworkConnectionToClient(NetworkConnectionToClient connection)
+	{
+		PlayFreezeBombShotInternal();
+	}
+
+	protected static void InvokeUserCode_RpcPlayFreezeBombShot__NetworkConnectionToClient(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("TargetRPC RpcPlayFreezeBombShot called on server.");
+		}
+		else
+		{
+			((PlayerAudio)obj).UserCode_RpcPlayFreezeBombShot__NetworkConnectionToClient(null);
 		}
 	}
 
@@ -1560,30 +1903,34 @@ public class PlayerAudio : NetworkBehaviour
 	static PlayerAudio()
 	{
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayJumpForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayJumpForAllClients__NetworkConnectionToClient, requiresAuthority: true);
-		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlaySwingForAllClients(System.Single,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlaySwingForAllClients__Single__NetworkConnectionToClient, requiresAuthority: true);
-		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayOverchargedSwingForAllClients(System.Boolean,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayOverchargedSwingForAllClients__Boolean__NetworkConnectionToClient, requiresAuthority: true);
-		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlaySwingHitForAllClients(Hittable,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlaySwingHitForAllClients__Hittable__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlaySwingForAllClients(System.Single,System.Boolean,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlaySwingForAllClients__Single__Boolean__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayOverchargedSwingForAllClients(System.Boolean,System.Boolean,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayOverchargedSwingForAllClients__Boolean__Boolean__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlaySwingHitForAllClients(Hittable,System.Boolean,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlaySwingHitForAllClients__Hittable__Boolean__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayPistolShotForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayPistolShotForAllClients__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayElephantGunShotForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayElephantGunShotForAllClients__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayRocketLauncherShotForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayRocketLauncherShotForAllClients__NetworkConnectionToClient, requiresAuthority: true);
-		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayGunAimForAllClients(ItemType,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayGunAimForAllClients__ItemType__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayItemAimForAllClients(ItemType,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayItemAimForAllClients__ItemType__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayItemUseForAllClients(ItemType,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayItemUseForAllClients__ItemType__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdCancelItemUseForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdCancelItemUseForAllClients__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayLandminePlantForAllClients(System.Boolean,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayLandminePlantForAllClients__Boolean__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayRocketDriverEnteredOverchargeForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayRocketDriverEnteredOverchargeForAllClients__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayFreezeBombShotForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayFreezeBombShotForAllClients__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdPlayOrUpdateMovingInFoliageForAllClients(System.Single,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdPlayOrUpdateMovingInFoliageForAllClients__Single__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdStopMovingInFoliageForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdStopMovingInFoliageForAllClients__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterCommand(typeof(PlayerAudio), "System.Void PlayerAudio::CmdCancelRespawnForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdCancelRespawnForAllClients__NetworkConnectionToClient, requiresAuthority: true);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayJump(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayJump__NetworkConnectionToClient);
-		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlaySwing(Mirror.NetworkConnectionToClient,System.Single)", InvokeUserCode_RpcPlaySwing__NetworkConnectionToClient__Single);
-		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayOverchargedSwing(Mirror.NetworkConnectionToClient,System.Boolean)", InvokeUserCode_RpcPlayOverchargedSwing__NetworkConnectionToClient__Boolean);
-		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlaySwingHit(Mirror.NetworkConnectionToClient,Hittable)", InvokeUserCode_RpcPlaySwingHit__NetworkConnectionToClient__Hittable);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlaySwing(Mirror.NetworkConnectionToClient,System.Single,System.Boolean)", InvokeUserCode_RpcPlaySwing__NetworkConnectionToClient__Single__Boolean);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayOverchargedSwing(Mirror.NetworkConnectionToClient,System.Boolean,System.Boolean)", InvokeUserCode_RpcPlayOverchargedSwing__NetworkConnectionToClient__Boolean__Boolean);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlaySwingHit(Mirror.NetworkConnectionToClient,Hittable,System.Boolean)", InvokeUserCode_RpcPlaySwingHit__NetworkConnectionToClient__Hittable__Boolean);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayPistolShot(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayPistolShot__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayElephantGunShot(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayElephantGunShot__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayRocketLauncherShot(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayRocketLauncherShot__NetworkConnectionToClient);
-		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayGunAim(Mirror.NetworkConnectionToClient,ItemType)", InvokeUserCode_RpcPlayGunAim__NetworkConnectionToClient__ItemType);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayItemAim(Mirror.NetworkConnectionToClient,ItemType)", InvokeUserCode_RpcPlayItemAim__NetworkConnectionToClient__ItemType);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayItemUse(Mirror.NetworkConnectionToClient,ItemType)", InvokeUserCode_RpcPlayItemUse__NetworkConnectionToClient__ItemType);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcCancelItemUse(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcCancelItemUse__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayLandminePlant(Mirror.NetworkConnectionToClient,System.Boolean)", InvokeUserCode_RpcPlayLandminePlant__NetworkConnectionToClient__Boolean);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayRocketDriverEnteredOvercharge(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayRocketDriverEnteredOvercharge__NetworkConnectionToClient);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayFreezeBombShot(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcPlayFreezeBombShot__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcPlayOrUpdateMovingInFoliage(Mirror.NetworkConnectionToClient,System.Single)", InvokeUserCode_RpcPlayOrUpdateMovingInFoliage__NetworkConnectionToClient__Single);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcStopMovingInFoliage(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcStopMovingInFoliage__NetworkConnectionToClient);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerAudio), "System.Void PlayerAudio::RpcCancelRespawn(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcCancelRespawn__NetworkConnectionToClient);

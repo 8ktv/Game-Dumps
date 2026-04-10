@@ -7,6 +7,7 @@ using FMODUnity;
 using Mirror;
 using Mirror.RemoteCalls;
 using UnityEngine;
+using UnityEngine.Pool;
 
 public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCallback, ILateBUpdateCallback
 {
@@ -34,6 +35,9 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 	[SyncVar(hook = "OnOwnerChanged")]
 	private PlayerGolfer owner;
 
+	[SyncVar]
+	private float rollingDownhillTime;
+
 	private FrictionMode frictionMode;
 
 	[SyncVar(hook = "OnOutOfBoundsReturnStateChanged")]
@@ -41,9 +45,13 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 
 	private bool performedBallOutOfBoundsTeleport;
 
+	private bool hasBallBeenMovedToHangOverHeadPosition;
+
 	private double returnToBoundsDropOnHeadStartTimestamp;
 
 	private Coroutine returnToBoundsRoutine;
+
+	private HashSet<Collider> temporarilyIgnoredColliders = new HashSet<Collider>();
 
 	private NameTagUi nameTag;
 
@@ -62,7 +70,13 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 
 	private bool isInHole;
 
+	private bool canBeAffectedByWind;
+
 	public bool serverLastStrokeTrajectoryDeflected;
+
+	public bool serverLastStrokeTrajectoryDeflectedByTree;
+
+	public bool serverLastStrokeSlowedByFoliage;
 
 	private readonly RaycastHit[] raycastHitBuffer = new RaycastHit[10];
 
@@ -120,6 +134,19 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 	}
 
+	public float NetworkrollingDownhillTime
+	{
+		get
+		{
+			return rollingDownhillTime;
+		}
+		[param: In]
+		set
+		{
+			GeneratedSyncVarSetter(value, ref rollingDownhillTime, 2uL, null);
+		}
+	}
+
 	public BallOutOfBoundsReturnState NetworkoutOfBoundsReturnState
 	{
 		get
@@ -129,7 +156,7 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		[param: In]
 		set
 		{
-			GeneratedSyncVarSetter(value, ref outOfBoundsReturnState, 2uL, _Mirror_SyncVarHookDelegate_outOfBoundsReturnState);
+			GeneratedSyncVarSetter(value, ref outOfBoundsReturnState, 4uL, _Mirror_SyncVarHookDelegate_outOfBoundsReturnState);
 		}
 	}
 
@@ -142,13 +169,19 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		[param: In]
 		set
 		{
-			GeneratedSyncVarSetter(value, ref isHidden, 4uL, _Mirror_SyncVarHookDelegate_isHidden);
+			GeneratedSyncVarSetter(value, ref isHidden, 8uL, _Mirror_SyncVarHookDelegate_isHidden);
 		}
 	}
+
+	public event Action OutOfBoundsReturnStateChanged;
+
+	public event Action IsHiddenChanged;
 
 	public event Action<GolfBall> IsHiddenChangedReferenced;
 
 	public static event Action LocalPlayerBallIsHiddenChanged;
+
+	public static event Action LocalPlayerBallIsStationaryChanged;
 
 	[CCommand("drawBallDistanceFromPlayerDebug", "", false, false)]
 	private static void DrawBallDistanceFromPlayerDebug(bool draw)
@@ -214,16 +247,27 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 				puttingTrailVfx.Initialize(this);
 			}
 		}
+		UpdateCanPassThrough(GameManager.LocalPlayerInfo);
+		foreach (PlayerInfo remotePlayer in GameManager.RemotePlayers)
+		{
+			UpdateCanPassThrough(remotePlayer);
+		}
 		GameManager.LocalPlayerRegistered += OnLocalPlayerRegistered;
+		GameManager.RemotePlayerRegistered += OnRemotePlayerRegistered;
+		CourseManager.PlayerKnockoutStreaksChanged += OnPlayerKnockoutStreakChanged;
 		PlayerSpectator.LocalPlayerIsSpectatingChanged += OnLocalPlayerIsSpectatingChanged;
 		PlayerSpectator.LocalPlayerSetSpectatingTarget += OnLocalPlayerSetSpectatingTarget;
 		PlayerSpectator.LocalPlayerStoppedSpectating += OnLocalPlayerStoppedSpectating;
+		AsEntity.FinishedTemporarilyIgnoringCollisionsWith += OnFinishedTemporarilyIgnoringCollisionsWith;
 		AsEntity.AsHittable.WillApplyGolfSwingHitPhysics += OnWillApplyGolfSwingHitPhysics;
 		AsEntity.AsHittable.WillApplyItemHitPhysics += OnWillApplyItemHitPhysics;
 		AsEntity.AsHittable.WillApplyRocketLauncherBackBlastHitPhysics += OnWillApplyRocketLauncherBackBlastHitPhysics;
+		AsEntity.AsHittable.WillApplyRocketDriverSwingPostHitSpinHitPhysics += OnWillApplyRocketDriverSwingPostHitSpinHitPhysics;
 		AsEntity.AsHittable.WillApplyScoreKnockbackPhysics += OnWillApplyScoreKnockbackPhysics;
+		AsEntity.AsHittable.WillApplyJumpPadPhysics += OnWillApplyJumpPadPhysics;
 		AsEntity.AsHittable.WasHitByGolfSwing += OnWasHitByGolfSwing;
 		AsEntity.AsHittable.IsPlayingHomingWarningChanged += OnIsPlayingHomingWarningChanged;
+		AsEntity.AsHittable.AppliedPostHitBounce += OnAppliedPostHitBounce;
 		GetComponent<PlayerCosmeticsObjectSwitcher>().OnModelOverride += OnModelOverride;
 		if (drawBallDistanceFromPlayerDebug)
 		{
@@ -286,6 +330,8 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		RemoveNameTag();
 		RemoveWorldspaceIcon();
 		GameManager.LocalPlayerRegistered -= OnLocalPlayerRegistered;
+		GameManager.RemotePlayerRegistered -= OnRemotePlayerRegistered;
+		CourseManager.PlayerKnockoutStreaksChanged -= OnPlayerKnockoutStreakChanged;
 		PlayerSpectator.LocalPlayerIsSpectatingChanged -= OnLocalPlayerIsSpectatingChanged;
 		PlayerSpectator.LocalPlayerSetSpectatingTarget -= OnLocalPlayerSetSpectatingTarget;
 		PlayerSpectator.LocalPlayerStoppedSpectating -= OnLocalPlayerStoppedSpectating;
@@ -313,29 +359,45 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 				BallStatusMessage.Clear(forced: true);
 			}
 		}
+		AsEntity.FinishedTemporarilyIgnoringCollisionsWith -= OnFinishedTemporarilyIgnoringCollisionsWith;
 		AsEntity.AsHittable.WillApplyGolfSwingHitPhysics -= OnWillApplyGolfSwingHitPhysics;
 		AsEntity.AsHittable.WillApplyItemHitPhysics -= OnWillApplyItemHitPhysics;
 		AsEntity.AsHittable.WillApplyRocketLauncherBackBlastHitPhysics -= OnWillApplyRocketLauncherBackBlastHitPhysics;
+		AsEntity.AsHittable.WillApplyRocketDriverSwingPostHitSpinHitPhysics -= OnWillApplyRocketDriverSwingPostHitSpinHitPhysics;
 		AsEntity.AsHittable.WillApplyScoreKnockbackPhysics -= OnWillApplyScoreKnockbackPhysics;
+		AsEntity.AsHittable.WillApplyJumpPadPhysics -= OnWillApplyJumpPadPhysics;
 		AsEntity.AsHittable.WasHitByGolfSwing -= OnWasHitByGolfSwing;
 		AsEntity.AsHittable.IsPlayingHomingWarningChanged -= OnIsPlayingHomingWarningChanged;
+		AsEntity.AsHittable.AppliedPostHitBounce -= OnAppliedPostHitBounce;
 		GetComponent<PlayerCosmeticsObjectSwitcher>().OnModelOverride -= OnModelOverride;
 	}
 
 	private void OnCollisionEnter(Collision collision)
 	{
-		int hitObjectLayerMask;
-		if (NetworkServer.active && collision.contactCount > 0)
+		if (!NetworkServer.active || collision.contactCount <= 0)
 		{
-			hitObjectLayerMask = 1 << collision.collider.gameObject.layer;
-			if ((hitObjectLayerMask & (int)GameManager.LayerSettings.BallTrajectoryDeflectorMask) != 0)
+			return;
+		}
+		int hitObjectLayerMask = 1 << collision.collider.gameObject.layer;
+		if ((hitObjectLayerMask & (int)GameManager.LayerSettings.BallTrajectoryDeflectorMask) != 0)
+		{
+			serverLastStrokeTrajectoryDeflected = true;
+		}
+		Entity foundComponent2;
+		if (collision.collider.attachedRigidbody != null)
+		{
+			if (collision.collider.attachedRigidbody.TryGetComponentInParent<Entity>(out var foundComponent, includeInactive: true) && foundComponent.IsTree)
 			{
-				serverLastStrokeTrajectoryDeflected = true;
+				serverLastStrokeTrajectoryDeflectedByTree = true;
 			}
-			if (ShouldBeReturnedFromOutOfBounds())
-			{
-				ServerReturnToBounds(suppressDisappearanceVfx: false);
-			}
+		}
+		else if (collision.collider.TryGetComponentInParent<Entity>(out foundComponent2, includeInactive: true) && foundComponent2.IsTree)
+		{
+			serverLastStrokeTrajectoryDeflectedByTree = true;
+		}
+		if (ShouldBeReturnedFromOutOfBounds())
+		{
+			ServerReturnToBounds(suppressDisappearanceVfx: false);
 		}
 		bool ShouldBeReturnedFromOutOfBounds()
 		{
@@ -372,7 +434,9 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 		else if (!isHidden)
 		{
+			UpdateTemporarilyIgnoredColliders();
 			UpdateGroundingState();
+			UpdateDownhillState();
 			ApplyGravity();
 			AsEntity.AsHittable.ApplySpinForce();
 			ApplyLinearDamping();
@@ -384,6 +448,11 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 			{
 				if (outOfBoundsReturnState == BallOutOfBoundsReturnState.AppearingOverHead || outOfBoundsReturnState == BallOutOfBoundsReturnState.HangingOverHead)
 				{
+					if (hasBallBeenMovedToHangOverHeadPosition)
+					{
+						hasBallBeenMovedToHangOverHeadPosition = false;
+						PlayRespawnSound();
+					}
 					Vector3 position = Networkowner.PlayerInfo.HeadBone.position + GameManager.GolfSettings.BallReturnToBoundsDropOnHeadCurve[0].value * Vector3.up;
 					if (!performedBallOutOfBoundsTeleport)
 					{
@@ -391,6 +460,7 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 						AsEntity.Rigidbody.position = position;
 						AsEntity.InformTeleported();
 						performedBallOutOfBoundsTeleport = true;
+						hasBallBeenMovedToHangOverHeadPosition = true;
 					}
 					else
 					{
@@ -423,9 +493,16 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		ServerUpdateIsHidden();
 		OnEnteredHole(hole);
 		RpcInformEnteredHole(hole);
-		if (serverLastStrokeTrajectoryDeflected && Networkowner != null)
+		if (Networkowner != null)
 		{
-			Networkowner.PlayerInfo.RpcInformBallEnteredHoleAfterTrajectoryDeflection();
+			if (serverLastStrokeTrajectoryDeflected)
+			{
+				Networkowner.PlayerInfo.RpcInformBallEnteredHoleAfterTrajectoryDeflection();
+			}
+			if (serverLastStrokeTrajectoryDeflectedByTree || serverLastStrokeSlowedByFoliage)
+			{
+				Networkowner.PlayerInfo.RpcInformBallEnteredHoleAfterTrajectoryDeflectionByTreeOrFoliage();
+			}
 		}
 	}
 
@@ -433,6 +510,14 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 	{
 		isInHole = false;
 		ServerUpdateIsHidden();
+	}
+
+	public void InformStartedMovingInFoliage()
+	{
+		if (base.isServer)
+		{
+			serverLastStrokeSlowedByFoliage = true;
+		}
 	}
 
 	[ClientRpc]
@@ -475,6 +560,7 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 
 	public void OnTeleported()
 	{
+		canBeAffectedByWind = false;
 		if (puttingTrailVfx != null)
 		{
 			puttingTrailVfx.AfterTeleport();
@@ -512,6 +598,29 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 				return false;
 			}
 			return true;
+		}
+	}
+
+	private void UpdateTemporarilyIgnoredColliders()
+	{
+		if (temporarilyIgnoredColliders.Count <= 0)
+		{
+			return;
+		}
+		HashSet<Collider> value;
+		using (CollectionPool<HashSet<UnityEngine.Collider>, UnityEngine.Collider>.Get(out value))
+		{
+			value.UnionWith(temporarilyIgnoredColliders);
+			int num = Physics.OverlapSphereNonAlloc(rigidbody.position, collider.radius, layerMask: GameManager.LayerSettings.BallTemporarilyIgnorableMask, results: PlayerGolfer.overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
+			for (int i = 0; i < num; i++)
+			{
+				value.Remove(PlayerGolfer.overlappingColliderBuffer[i]);
+			}
+			foreach (Collider item in value)
+			{
+				Physics.IgnoreCollision(item, collider, ignore: false);
+				temporarilyIgnoredColliders.Remove(item);
+			}
 		}
 	}
 
@@ -592,15 +701,15 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 			}
 			reference.point = raycastHit.point;
 			reference.normal = raycastHit.normal;
-			TerrainEdgeDetail foundComponent;
+			TerrainAddition foundComponent;
 			if (raycastHit.collider is TerrainCollider)
 			{
 				reference.groundTerrainType = GroundTerrainType.Terrain;
 				reference.terrainDominantGlobalLayer = TerrainManager.GetDominantGlobalLayerAtPoint(base.transform.position);
 			}
-			else if (raycastHit.collider.TryGetComponentInParent<TerrainEdgeDetail>(out foundComponent, includeInactive: true))
+			else if (raycastHit.collider.TryGetComponentInParent<TerrainAddition>(out foundComponent, includeInactive: true))
 			{
-				reference.groundTerrainType = GroundTerrainType.TerrainEdgeDetail;
+				reference.groundTerrainType = GroundTerrainType.TerrainAddition;
 				reference.terrainDominantGlobalLayer = foundComponent.TerrainLayer;
 			}
 			else
@@ -609,6 +718,29 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 				reference.terrainDominantGlobalLayer = (TerrainLayer)(-1);
 			}
 			return true;
+		}
+	}
+
+	private void UpdateDownhillState()
+	{
+		if (base.isServer)
+		{
+			if (!IsRollingDownhill())
+			{
+				NetworkrollingDownhillTime = 0f;
+			}
+			else
+			{
+				NetworkrollingDownhillTime = rollingDownhillTime + Time.deltaTime;
+			}
+		}
+		bool IsRollingDownhill()
+		{
+			if (!IsGrounded)
+			{
+				return false;
+			}
+			return rigidbody.linearVelocity.y < -0.005f;
 		}
 	}
 
@@ -653,7 +785,7 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 		else
 		{
-			AsEntity.AsHittable.ApplyAirDamping(GameManager.GolfBallSettings.LinearAirDragFactor);
+			AsEntity.AsHittable.ApplyAirDamping(GameManager.GolfBallSettings.LinearAirDragFactor, GameManager.GolfBallSettings.RocketDriverSwingLinearAirDragFactor, canBeAffectedByWind);
 		}
 		void ApplyGroundDamping()
 		{
@@ -663,22 +795,57 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 			rigidbody.linearVelocity += vector - velocityAlongGround;
 			float GetDamping()
 			{
+				float num2 = 90f + GroundData.normal.GetPitchDeg();
+				float num3;
+				float num4;
+				if (GroundData.groundTerrainType != GroundTerrainType.NotTerrain)
+				{
+					TerrainLayerSettings terrainLayerSettings = TerrainManager.Settings.LayerSettings[GroundData.terrainDominantGlobalLayer];
+					num3 = terrainLayerSettings.FullStopMaxPitch;
+					num4 = terrainLayerSettings.FullRollMinPitch;
+				}
+				else
+				{
+					num3 = GameManager.GolfBallSettings.GroundFullStopMaxPitch;
+					num4 = GameManager.GolfBallSettings.GroundFullRollMinPitch;
+				}
+				if (velocityAlongGround.y < 0.5f && num2 >= num4)
+				{
+					fullStopFactor = 0f;
+					return 0f;
+				}
 				float sqrMagnitude = velocityAlongGround.sqrMagnitude;
-				if (sqrMagnitude < GameManager.GolfBallSettings.FullStopMaxDampingSpeedSquared)
+				float num5 = BMath.RemapClamped(GameManager.GolfBallSettings.FullStopRollingDownhillStartTime, GameManager.GolfBallSettings.FullStopRollingDownhillEndTime, 1f, GameManager.GolfBallSettings.FullStopRollingDownhillEndDampingSpeedFactor, rollingDownhillTime);
+				float num6 = num5 * GameManager.GolfBallSettings.FullStopMaxDampingSpeed;
+				if (num2 < num3 && sqrMagnitude < num6 * num6)
 				{
 					fullStopFactor = 1f;
 					return GameManager.GolfBallSettings.FullStopLinearDamping;
 				}
-				float num2 = ((GroundData.groundTerrainType == GroundTerrainType.NotTerrain) ? GameManager.GolfBallSettings.GroundFrictionLinearDamping : TerrainManager.Settings.LayerSettings[GroundData.terrainDominantGlobalLayer].LinearDamping);
-				float num3 = BMath.RemapClamped(-90f, 0f, 1f, 0f, GroundData.normal.GetPitchDeg(), BMath.EaseIn) * num2;
-				if (sqrMagnitude >= GameManager.GolfBallSettings.FullStopMinDampingSpeedSquared)
+				float num7;
+				AnimationCurve animationCurve;
+				if (GroundData.groundTerrainType != GroundTerrainType.NotTerrain)
+				{
+					TerrainLayerSettings terrainLayerSettings2 = TerrainManager.Settings.LayerSettings[GroundData.terrainDominantGlobalLayer];
+					num7 = terrainLayerSettings2.LinearDamping;
+					animationCurve = terrainLayerSettings2.BallFullStopToFullRollCurve;
+				}
+				else
+				{
+					num7 = GameManager.GolfBallSettings.GroundFrictionLinearDamping;
+					animationCurve = GameManager.GolfBallSettings.GroundFullStopToFullRollCurve;
+				}
+				float num8 = BMath.RemapClamped(0f, 90f, 1f, 0f, num2, BMath.EaseIn) * num7;
+				float num9 = num5 * GameManager.GolfBallSettings.FullStopMinDampingSpeed;
+				if (sqrMagnitude >= num9 * num9)
 				{
 					fullStopFactor = 0f;
-					return num3;
+					return num8;
 				}
 				float value = BMath.Sqrt(sqrMagnitude);
-				fullStopFactor = BMath.InverseLerp(GameManager.GolfBallSettings.FullStopMinDampingSpeed, GameManager.GolfBallSettings.FullStopMaxDampingSpeed, value);
-				return BMath.Lerp(num3, GameManager.GolfBallSettings.FullStopLinearDamping, fullStopFactor);
+				fullStopFactor = BMath.InverseLerp(num9, num6, value);
+				fullStopFactor *= animationCurve.Evaluate(BMath.InverseLerpClamped(num3, num4, num2));
+				return BMath.Lerp(num8, GameManager.GolfBallSettings.FullStopLinearDamping, fullStopFactor);
 			}
 		}
 	}
@@ -1103,9 +1270,17 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 	{
 		bool isStationary = IsStationary;
 		IsStationary = ShouldBeStationary();
+		if (IsStationary)
+		{
+			canBeAffectedByWind = false;
+		}
 		if (IsStationary != isStationary)
 		{
 			base.gameObject.SetLayerRecursively(IsStationary ? GameManager.LayerSettings.StationaryBallLayer : GameManager.LayerSettings.DynamicBallLayer);
+			if (Networkowner.isLocalPlayer)
+			{
+				GolfBall.LocalPlayerBallIsStationaryChanged?.Invoke();
+			}
 		}
 		bool ShouldBeStationary()
 		{
@@ -1118,6 +1293,28 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 				return false;
 			}
 			return true;
+		}
+	}
+
+	private void UpdateCanPassThrough(PlayerInfo player)
+	{
+		if (!(player == null))
+		{
+			SetCanPassThrough(ShouldPassThrough());
+		}
+		void SetCanPassThrough(bool canPassThrough)
+		{
+			Physics.IgnoreCollision(collider, player.Movement.UprightCollider, canPassThrough);
+			Physics.IgnoreCollision(collider, player.Movement.DivingCollider, canPassThrough);
+			Physics.IgnoreCollision(collider, player.Movement.HittableCollider, canPassThrough);
+		}
+		bool ShouldPassThrough()
+		{
+			if (Networkowner == null)
+			{
+				return false;
+			}
+			return player.Movement.IsKnockoutProtectedFromPlayer(Networkowner.PlayerInfo);
 		}
 	}
 
@@ -1196,22 +1393,37 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 	}
 
-	private void OnWasHitByGolfSwing(PlayerGolfer hitter, Vector3 worldDirection, float power)
+	private void OnWasHitByGolfSwing(PlayerGolfer hitter, Vector3 worldDirection, float power, bool isRocketDriver)
 	{
 		if (base.isServer)
 		{
 			ServerLastStrokePosition = base.transform.position;
 			serverLastStrokeTrajectoryDeflected = false;
+			serverLastStrokeTrajectoryDeflectedByTree = false;
+			serverLastStrokeSlowedByFoliage = AsEntity.IsMovingInFoliage;
 		}
+		canBeAffectedByWind = true;
 		if (vfxSettings != null)
 		{
-			VfxManager.PlayPooledVfxLocalOnly(vfxSettings.Launch, base.transform.position, Quaternion.identity);
+			if (isRocketDriver)
+			{
+				VfxManager.PlayPooledVfxLocalOnly(VfxType.RocketDriverRegularHit, base.transform.position, Quaternion.LookRotation(worldDirection));
+			}
+			else
+			{
+				VfxManager.PlayPooledVfxLocalOnly(vfxSettings.Launch, base.transform.position, Quaternion.identity);
+			}
 		}
 	}
 
 	private void OnIsPlayingHomingWarningChanged()
 	{
 		UpdateWorldspaceIconEnabled();
+	}
+
+	private void OnAppliedPostHitBounce()
+	{
+		canBeAffectedByWind = false;
 	}
 
 	private void OnServerMatchStateChanged(MatchState previousState, MatchState currentState)
@@ -1225,6 +1437,20 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 	private void OnLocalPlayerRegistered()
 	{
 		UpdateWorldspaceIconEnabled();
+		UpdateCanPassThrough(GameManager.LocalPlayerInfo);
+	}
+
+	private void OnRemotePlayerRegistered(PlayerInfo remotePlayer)
+	{
+		UpdateCanPassThrough(remotePlayer);
+	}
+
+	private void OnPlayerKnockoutStreakChanged(SyncIDictionary<CourseManager.PlayerPair, int>.Operation operation, CourseManager.PlayerPair playerPair, int streak)
+	{
+		if (GameManager.TryFindPlayerByGuid(playerPair.playerAGuid, out var playerInfo) && !(playerInfo == null) && !(playerInfo.AsGolfer != Networkowner) && GameManager.TryFindPlayerByGuid(playerPair.playerBGuid, out var playerInfo2) && !(playerInfo2 == null))
+		{
+			UpdateCanPassThrough(playerInfo2);
+		}
 	}
 
 	private void OnLocalPlayerIsSpectatingChanged()
@@ -1242,7 +1468,15 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		UpdateWorldspaceIconEnabled();
 	}
 
-	private void OnWillApplyGolfSwingHitPhysics(PlayerGolfer hitter, float power, Vector3 localHitPosition, Vector3 localOrigin, Vector3 incomingVelocityChange)
+	private void OnFinishedTemporarilyIgnoringCollisionsWith(Entity otherEntity)
+	{
+		if (otherEntity.IsPlayer)
+		{
+			UpdateCanPassThrough(otherEntity.PlayerInfo);
+		}
+	}
+
+	private void OnWillApplyGolfSwingHitPhysics(PlayerGolfer hitter, float power, Vector3 localHitPosition, Vector3 localOrigin, Vector3 incomingVelocityChange, bool isRocketDriver)
 	{
 		Unground();
 	}
@@ -1265,7 +1499,25 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 	}
 
+	private void OnWillApplyRocketDriverSwingPostHitSpinHitPhysics(PlayerGolfer hitter, Vector3 hitLocalPosition, Vector3 localOrigin, Vector3 incomingVelocityChange)
+	{
+		Unground();
+		if (base.isServer)
+		{
+			serverLastStrokeTrajectoryDeflected = true;
+		}
+	}
+
 	private void OnWillApplyScoreKnockbackPhysics()
+	{
+		Unground();
+		if (base.isServer)
+		{
+			serverLastStrokeTrajectoryDeflected = true;
+		}
+	}
+
+	private void OnWillApplyJumpPadPhysics()
 	{
 		Unground();
 		if (base.isServer)
@@ -1304,6 +1556,7 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		{
 			GolfBall.LocalPlayerBallIsHiddenChanged?.Invoke();
 		}
+		this.IsHiddenChanged?.Invoke();
 		this.IsHiddenChangedReferenced?.Invoke(this);
 	}
 
@@ -1362,11 +1615,18 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		bool flag2 = outOfBoundsReturnState != BallOutOfBoundsReturnState.None;
 		if (flag2 != flag)
 		{
-			if (base.isServer && flag2)
-			{
-				AsEntity.AsHittable.ServerStopBeingSwingProjectile();
-			}
 			UpdatePhysics();
+			if (flag2)
+			{
+				if (base.isServer)
+				{
+					AsEntity.AsHittable.ServerStopBeingSwingProjectile();
+				}
+			}
+			else
+			{
+				EnsureNoOverlapWithEnvironment();
+			}
 		}
 		if (outOfBoundsReturnState == BallOutOfBoundsReturnState.AppearingOverHead)
 		{
@@ -1381,6 +1641,42 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		{
 			BallStatusMessage.SetReturned();
 		}
+		this.OutOfBoundsReturnStateChanged?.Invoke();
+		void EnsureNoOverlapWithEnvironment()
+		{
+			Vector3 position = rigidbody.position;
+			for (int i = 0; i < 10; i++)
+			{
+				int num = Physics.OverlapSphereNonAlloc(rigidbody.position, this.collider.radius, layerMask: GameManager.LayerSettings.BallGroundableMask, results: PlayerGolfer.overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
+				if (num > 0)
+				{
+					int num2 = BMath.Min(num, 10);
+					float num3 = 0f;
+					Vector3 vector = default(Vector3);
+					for (int j = 0; j < num2; j++)
+					{
+						Collider collider = PlayerGolfer.overlappingColliderBuffer[j];
+						if (Physics.ComputePenetration(this.collider, rigidbody.position, rigidbody.rotation, collider, collider.transform.position, collider.transform.rotation, out var direction, out var distance) && !(distance <= num3))
+						{
+							num3 = distance;
+							vector = direction;
+						}
+					}
+					if (num3 <= 0f)
+					{
+						break;
+					}
+					position += num3 * vector;
+				}
+			}
+			int num4 = Physics.OverlapSphereNonAlloc(rigidbody.position, this.collider.radius, layerMask: GameManager.LayerSettings.BallTemporarilyIgnorableMask, results: PlayerGolfer.overlappingColliderBuffer, queryTriggerInteraction: QueryTriggerInteraction.Ignore);
+			for (int k = 0; k < num4; k++)
+			{
+				Collider collider2 = PlayerGolfer.overlappingColliderBuffer[k];
+				Physics.IgnoreCollision(collider2, this.collider, ignore: true);
+				temporarilyIgnoredColliders.Add(collider2);
+			}
+		}
 		void PlayRespawnVfx()
 		{
 			if (!VfxPersistentData.TryGetPooledVfx(VfxType.BallRespawn, out respawnVfx))
@@ -1394,6 +1690,11 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 				respawnVfx.Play();
 			}
 		}
+	}
+
+	private void PlayRespawnSound()
+	{
+		RuntimeManager.PlayOneShot(GameManager.AudioSettings.BallRespawnEvent, base.transform.position);
 	}
 
 	private void DrawOnGuiDebug()
@@ -1502,6 +1803,7 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		if (forceAll)
 		{
 			writer.WriteNetworkBehaviour(Networkowner);
+			writer.WriteFloat(rollingDownhillTime);
 			GeneratedNetworkCode._Write_BallOutOfBoundsReturnState(writer, outOfBoundsReturnState);
 			writer.WriteBool(isHidden);
 			return;
@@ -1513,9 +1815,13 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 		if ((syncVarDirtyBits & 2L) != 0L)
 		{
-			GeneratedNetworkCode._Write_BallOutOfBoundsReturnState(writer, outOfBoundsReturnState);
+			writer.WriteFloat(rollingDownhillTime);
 		}
 		if ((syncVarDirtyBits & 4L) != 0L)
+		{
+			GeneratedNetworkCode._Write_BallOutOfBoundsReturnState(writer, outOfBoundsReturnState);
+		}
+		if ((syncVarDirtyBits & 8L) != 0L)
 		{
 			writer.WriteBool(isHidden);
 		}
@@ -1527,6 +1833,7 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		if (initialState)
 		{
 			GeneratedSyncVarDeserialize_NetworkBehaviour(ref owner, _Mirror_SyncVarHookDelegate_owner, reader, ref ___ownerNetId);
+			GeneratedSyncVarDeserialize(ref rollingDownhillTime, null, reader.ReadFloat());
 			GeneratedSyncVarDeserialize(ref outOfBoundsReturnState, _Mirror_SyncVarHookDelegate_outOfBoundsReturnState, GeneratedNetworkCode._Read_BallOutOfBoundsReturnState(reader));
 			GeneratedSyncVarDeserialize(ref isHidden, _Mirror_SyncVarHookDelegate_isHidden, reader.ReadBool());
 			return;
@@ -1538,9 +1845,13 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		}
 		if ((num & 2L) != 0L)
 		{
-			GeneratedSyncVarDeserialize(ref outOfBoundsReturnState, _Mirror_SyncVarHookDelegate_outOfBoundsReturnState, GeneratedNetworkCode._Read_BallOutOfBoundsReturnState(reader));
+			GeneratedSyncVarDeserialize(ref rollingDownhillTime, null, reader.ReadFloat());
 		}
 		if ((num & 4L) != 0L)
+		{
+			GeneratedSyncVarDeserialize(ref outOfBoundsReturnState, _Mirror_SyncVarHookDelegate_outOfBoundsReturnState, GeneratedNetworkCode._Read_BallOutOfBoundsReturnState(reader));
+		}
+		if ((num & 8L) != 0L)
 		{
 			GeneratedSyncVarDeserialize(ref isHidden, _Mirror_SyncVarHookDelegate_isHidden, reader.ReadBool());
 		}

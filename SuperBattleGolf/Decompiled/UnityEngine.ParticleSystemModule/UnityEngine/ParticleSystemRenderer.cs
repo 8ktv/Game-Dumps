@@ -8,9 +8,9 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [NativeHeader("Modules/ParticleSystem/ScriptBindings/ParticleSystemRendererScriptBindings.h")]
+[NativeHeader("Modules/ParticleSystem/ParticleSystemRenderer.h")]
 [RequireComponent(typeof(Transform))]
 [NativeHeader("ParticleSystemScriptingClasses.h")]
-[NativeHeader("Modules/ParticleSystem/ParticleSystemRenderer.h")]
 public sealed class ParticleSystemRenderer : Renderer
 {
 	internal struct BakeTextureOutput

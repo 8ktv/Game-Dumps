@@ -8,8 +8,8 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
-[NativeHeader("Runtime/Math/AnimationCurve.bindings.h")]
 [RequiredByNativeCode]
+[NativeHeader("Runtime/Math/AnimationCurve.bindings.h")]
 public class AnimationCurve : IEquatable<AnimationCurve>
 {
 	internal static class BindingsMarshaller
@@ -220,8 +220,8 @@ public class AnimationCurve : IEquatable<AnimationCurve>
 		return AddKey_Internal_Injected(intPtr, ref key);
 	}
 
-	[NativeThrows]
 	[FreeFunction("AnimationCurveBindings::MoveKey", HasExplicitThis = true, IsThreadSafe = true)]
+	[NativeThrows]
 	public int MoveKey(int index, Keyframe key)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -243,8 +243,8 @@ public class AnimationCurve : IEquatable<AnimationCurve>
 		ClearKeys_Injected(intPtr);
 	}
 
-	[NativeThrows]
 	[FreeFunction("AnimationCurveBindings::RemoveKey", HasExplicitThis = true, IsThreadSafe = true)]
+	[NativeThrows]
 	public void RemoveKey(int index)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -255,8 +255,8 @@ public class AnimationCurve : IEquatable<AnimationCurve>
 		RemoveKey_Injected(intPtr, index);
 	}
 
-	[NativeThrows]
 	[FreeFunction("AnimationCurveBindings::GetKey", HasExplicitThis = true, IsThreadSafe = true)]
+	[NativeThrows]
 	private Keyframe GetKey(int index)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);
@@ -301,8 +301,8 @@ public class AnimationCurve : IEquatable<AnimationCurve>
 		GetKeysWithSpan(keys);
 	}
 
-	[SecurityCritical]
 	[FreeFunction(Name = "AnimationCurveBindings::GetKeysWithSpan", HasExplicitThis = true, IsThreadSafe = true)]
+	[SecurityCritical]
 	private unsafe void GetKeysWithSpan(Span<Keyframe> keys)
 	{
 		IntPtr intPtr = BindingsMarshaller.ConvertToNative(this);

@@ -1,13 +1,15 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Unity.IntegerTime;
 using UnityEngine.Bindings;
 
 namespace UnityEngine.Audio;
 
-[NativeHeader("Modules/Audio/Public/AudioRandomContainer.h")]
 [ExcludeFromPreset]
-internal sealed class AudioRandomContainer : AudioResource
+[HelpURL("AudioRandomContainer-UI")]
+[NativeHeader("Modules/Audio/Public/AudioRandomContainer.h")]
+internal sealed class AudioRandomContainer : AudioResource, IAudioGenerator, GeneratorInstance.ICapabilities
 {
 	internal enum ChangeEventType
 	{
@@ -416,6 +418,30 @@ internal sealed class AudioRandomContainer : AudioResource
 		}
 	}
 
+	bool GeneratorInstance.ICapabilities.isFinite
+	{
+		get
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	bool GeneratorInstance.ICapabilities.isRealtime
+	{
+		get
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	DiscreteTime? GeneratorInstance.ICapabilities.length
+	{
+		get
+		{
+			throw new NotImplementedException();
+		}
+	}
+
 	internal AudioRandomContainer()
 	{
 		Internal_Create(this);
@@ -433,6 +459,11 @@ internal sealed class AudioRandomContainer : AudioResource
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void Internal_Create([Writable] AudioRandomContainer self);
+
+	GeneratorInstance IAudioGenerator.CreateInstance(ControlContext context, AudioFormat? nestedFormat, ProcessorInstance.CreationParameters creationParameters)
+	{
+		throw new NotImplementedException();
+	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern float get_volume_Injected(IntPtr _unity_self);

@@ -4,6 +4,7 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Bindings;
+using UnityEngine.Networking.PlayerConnection;
 using UnityEngine.Scripting;
 
 namespace Unity.Profiling.Memory;
@@ -17,10 +18,10 @@ public static class MemoryProfiler
 
 	public static event Action<MemorySnapshotMetadata> CreatingMetadata;
 
-	[StaticAccessor("profiling::memory::GetMemorySnapshotManager()", StaticAccessorType.Dot)]
 	[NativeMethod("StartOperation")]
+	[StaticAccessor("profiling::memory::GetMemorySnapshotManager()", StaticAccessorType.Dot)]
 	[NativeConditional("ENABLE_PROFILER")]
-	private unsafe static void StartOperation(uint captureFlag, bool requestScreenshot, string path, bool isRemote)
+	private unsafe static void StartOperation(uint captureFlags, bool requestScreenshot, string path, bool isRemote)
 	{
 		//The blocks IL_002b are reachable both inside and outside the pinned region starting at IL_001a. ILSpy has duplicated these blocks in order to place them both within and outside the `fixed` statement.
 		try
@@ -32,16 +33,22 @@ public static class MemoryProfiler
 				fixed (char* begin = readOnlySpan)
 				{
 					managedSpanWrapper = new ManagedSpanWrapper(begin, readOnlySpan.Length);
-					StartOperation_Injected(captureFlag, requestScreenshot, ref managedSpanWrapper, isRemote);
+					StartOperation_Injected(captureFlags, requestScreenshot, ref managedSpanWrapper, isRemote);
 					return;
 				}
 			}
-			StartOperation_Injected(captureFlag, requestScreenshot, ref managedSpanWrapper, isRemote);
+			StartOperation_Injected(captureFlags, requestScreenshot, ref managedSpanWrapper, isRemote);
 		}
 		finally
 		{
 		}
 	}
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[NativeConditional("ENABLE_PROFILER")]
+	[NativeMethod("RequestEditorTakeSnapshotOfPlayer")]
+	[StaticAccessor("profiling::memory::GetMemorySnapshotManager()", StaticAccessorType.Dot)]
+	private static extern void RequestEditorTakeSnapshotOfPlayer(uint captureFlags, bool requestScreenshot);
 
 	public static void TakeSnapshot(string path, Action<string, bool> finishCallback, CaptureFlags captureFlags = CaptureFlags.ManagedObjects | CaptureFlags.NativeObjects)
 	{
@@ -54,11 +61,16 @@ public static class MemoryProfiler
 		{
 			Debug.LogWarning("Canceling snapshot, there is another snapshot in progress.");
 			finishCallback(path, arg2: false);
+			return;
+		}
+		m_SnapshotFinished += finishCallback;
+		m_SaveScreenshotToDisk += screenshotCallback;
+		if (string.IsNullOrEmpty(path) && PlayerConnection.instance.isConnected)
+		{
+			RequestEditorTakeSnapshotOfPlayer((uint)captureFlags, MemoryProfiler.m_SaveScreenshotToDisk != null);
 		}
 		else
 		{
-			m_SnapshotFinished += finishCallback;
-			m_SaveScreenshotToDisk += screenshotCallback;
 			StartOperation((uint)captureFlags, MemoryProfiler.m_SaveScreenshotToDisk != null, path, isRemote: false);
 		}
 	}
@@ -164,5 +176,5 @@ public static class MemoryProfiler
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void StartOperation_Injected(uint captureFlag, bool requestScreenshot, ref ManagedSpanWrapper path, bool isRemote);
+	private static extern void StartOperation_Injected(uint captureFlags, bool requestScreenshot, ref ManagedSpanWrapper path, bool isRemote);
 }

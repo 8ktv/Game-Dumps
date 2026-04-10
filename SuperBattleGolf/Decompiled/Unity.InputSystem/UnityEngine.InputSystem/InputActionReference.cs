@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 
 namespace UnityEngine.InputSystem;
 
@@ -14,21 +13,27 @@ public class InputActionReference : ScriptableObject
 	[NonSerialized]
 	private InputAction m_Action;
 
-	public InputActionAsset asset => m_Asset;
+	public InputActionAsset asset
+	{
+		get
+		{
+			if (m_Action?.m_ActionMap == null)
+			{
+				return m_Asset;
+			}
+			return m_Action.m_ActionMap.asset;
+		}
+	}
 
 	public InputAction action
 	{
 		get
 		{
-			if (m_Action == null)
+			if (m_Action != null && m_Action.actionMap != null && m_Action.actionMap.asset == m_Asset && (bool)m_Asset)
 			{
-				if (m_Asset == null)
-				{
-					return null;
-				}
-				m_Action = m_Asset.FindAction(new Guid(m_ActionId));
+				return m_Action;
 			}
-			return m_Action;
+			return m_Action = (m_Asset ? m_Asset.FindAction(new Guid(m_ActionId)) : null);
 		}
 	}
 
@@ -38,6 +43,8 @@ public class InputActionReference : ScriptableObject
 		{
 			m_Asset = null;
 			m_ActionId = null;
+			m_Action = null;
+			base.name = string.Empty;
 			return;
 		}
 		InputActionMap actionMap = action.actionMap;
@@ -70,36 +77,38 @@ public class InputActionReference : ScriptableObject
 		SetInternal(asset, inputAction);
 	}
 
-	private void SetInternal(InputActionAsset asset, InputAction action)
+	private void SetInternal(InputActionAsset assetArg, InputAction actionArg)
 	{
-		InputActionMap actionMap = action.actionMap;
-		if (!asset.actionMaps.Contains(actionMap))
-		{
-			throw new ArgumentException($"Action '{action}' is not contained in asset '{asset}'", "action");
-		}
-		m_Asset = asset;
-		m_ActionId = action.id.ToString();
-		base.name = GetDisplayName(action);
+		CheckImmutableReference();
+		m_Asset = assetArg;
+		m_ActionId = actionArg.id.ToString();
+		m_Action = actionArg;
+		base.name = GetDisplayName(actionArg);
 	}
 
 	public override string ToString()
 	{
-		try
+		InputAction inputAction = action;
+		if (inputAction == null)
 		{
-			InputAction inputAction = action;
+			return base.ToString();
+		}
+		if (inputAction.actionMap != null)
+		{
+			if (!(m_Asset != null))
+			{
+				return inputAction.actionMap.name + "/" + inputAction.name;
+			}
 			return m_Asset.name + ":" + inputAction.actionMap.name + "/" + inputAction.name;
 		}
-		catch
+		if (!(m_Asset != null))
 		{
-			if (m_Asset != null)
-			{
-				return m_Asset.name + ":" + m_ActionId;
-			}
+			return m_ActionId;
 		}
-		return base.ToString();
+		return m_Asset.name + ":" + m_ActionId;
 	}
 
-	internal static string GetDisplayName(InputAction action)
+	private static string GetDisplayName(InputAction action)
 	{
 		if (string.IsNullOrEmpty(action?.actionMap?.name))
 		{
@@ -124,26 +133,31 @@ public class InputActionReference : ScriptableObject
 
 	public static InputActionReference Create(InputAction action)
 	{
-		if (action == null)
-		{
-			return null;
-		}
 		InputActionReference inputActionReference = ScriptableObject.CreateInstance<InputActionReference>();
 		inputActionReference.Set(action);
 		return inputActionReference;
 	}
 
-	internal static void ResetCachedAction()
+	internal static void InvalidateAll()
 	{
 		Object[] array = Resources.FindObjectsOfTypeAll(typeof(InputActionReference));
 		for (int i = 0; i < array.Length; i++)
 		{
-			((InputActionReference)array[i]).m_Action = null;
+			((InputActionReference)array[i]).Invalidate();
 		}
+	}
+
+	internal void Invalidate()
+	{
+		m_Action = null;
 	}
 
 	public InputAction ToInputAction()
 	{
 		return action;
+	}
+
+	private void CheckImmutableReference()
+	{
 	}
 }

@@ -3,6 +3,9 @@ using UnityEngine;
 public class ItemSpawnerVisuals : MonoBehaviour
 {
 	[SerializeField]
+	private ItemSpawnerVisualType type;
+
+	[SerializeField]
 	private Transform effectSourcePoint;
 
 	[SerializeField]
@@ -68,12 +71,12 @@ public class ItemSpawnerVisuals : MonoBehaviour
 		{
 			if (!isTaken)
 			{
-				VfxManager.PlayPooledVfxLocalOnly(VfxType.ItemBoxSpawn, EffectSourcePosition, Quaternion.identity);
+				VfxManager.PlayPooledVfxLocalOnly(GetSpawnVfxType(), EffectSourcePosition, Quaternion.identity);
 				animator.SetTrigger(spawnHash);
 			}
 			else
 			{
-				VfxManager.PlayPooledVfxLocalOnly(VfxType.ItemBoxAcquire, EffectSourcePosition, Quaternion.identity);
+				VfxManager.PlayPooledVfxLocalOnly(GetAcquireVfxType(), EffectSourcePosition, Quaternion.identity);
 				animator.SetTrigger(takenHash);
 			}
 		}
@@ -85,5 +88,23 @@ public class ItemSpawnerVisuals : MonoBehaviour
 	{
 		props.SetFloat("_Fill", displayedFill);
 		fillMeshRenderer.SetPropertyBlock(props);
+	}
+
+	private VfxType GetSpawnVfxType()
+	{
+		if (type != ItemSpawnerVisualType.Regular)
+		{
+			return VfxType.MobilityBoxSpawn;
+		}
+		return VfxType.ItemBoxSpawn;
+	}
+
+	private VfxType GetAcquireVfxType()
+	{
+		if (type != ItemSpawnerVisualType.Regular)
+		{
+			return VfxType.MobilityBoxAcquire;
+		}
+		return VfxType.ItemBoxAcquire;
 	}
 }

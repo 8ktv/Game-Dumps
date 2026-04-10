@@ -6,9 +6,9 @@ using UnityEngine.Scripting;
 namespace UnityEngine;
 
 [StructLayout(LayoutKind.Sequential)]
-[NativeAsStruct]
-[UsedByNativeCode]
 [Obsolete("SplatPrototype is obsolete. Use TerrainLayer instead.", false)]
+[UsedByNativeCode]
+[NativeAsStruct]
 public sealed class SplatPrototype
 {
 	[NativeName("texture")]

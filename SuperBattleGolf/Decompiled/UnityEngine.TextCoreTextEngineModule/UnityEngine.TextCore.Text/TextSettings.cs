@@ -7,9 +7,9 @@ using UnityEngine.Serialization;
 namespace UnityEngine.TextCore.Text;
 
 [Serializable]
+[NativeHeader("Modules/TextCoreTextEngine/Native/TextSettings.h")]
 [ExcludeFromObjectFactory]
 [ExcludeFromPreset]
-[NativeHeader("Modules/TextCoreTextEngine/Native/TextSettings.h")]
 public class TextSettings : ScriptableObject
 {
 	[Serializable]
@@ -29,22 +29,22 @@ public class TextSettings : ScriptableObject
 	[SerializeField]
 	protected string m_Version;
 
-	[SerializeField]
 	[FormerlySerializedAs("m_defaultFontAsset")]
+	[SerializeField]
 	protected FontAsset m_DefaultFontAsset;
 
-	[SerializeField]
 	[FormerlySerializedAs("m_defaultFontAssetPath")]
+	[SerializeField]
 	protected string m_DefaultFontAssetPath = "Fonts & Materials/";
 
-	[SerializeField]
 	[FormerlySerializedAs("m_fallbackFontAssets")]
+	[SerializeField]
 	protected List<FontAsset> m_FallbackFontAssets;
 
 	private static List<FontAsset> s_FallbackOSFontAssetInternal;
 
-	[FormerlySerializedAs("m_matchMaterialPreset")]
 	[SerializeField]
+	[FormerlySerializedAs("m_matchMaterialPreset")]
 	protected bool m_MatchMaterialPreset;
 
 	[SerializeField]
@@ -64,8 +64,8 @@ public class TextSettings : ScriptableObject
 	[SerializeField]
 	protected SpriteAsset m_DefaultSpriteAsset;
 
-	[FormerlySerializedAs("m_defaultSpriteAssetPath")]
 	[SerializeField]
+	[FormerlySerializedAs("m_defaultSpriteAssetPath")]
 	protected string m_DefaultSpriteAssetPath = "Sprite Assets/";
 
 	[SerializeField]
@@ -74,12 +74,11 @@ public class TextSettings : ScriptableObject
 	[SerializeField]
 	protected uint m_MissingSpriteCharacterUnicode;
 
-	[SerializeField]
 	[FormerlySerializedAs("m_defaultStyleSheet")]
+	[SerializeField]
 	protected TextStyleSheet m_DefaultStyleSheet;
 
-	[SerializeField]
-	protected string m_StyleSheetsResourcePath = "Text Style Sheets/";
+	private string m_StyleSheetsResourcePath = "Text Style Sheets/";
 
 	[FormerlySerializedAs("m_defaultColorGradientPresetsPath")]
 	[SerializeField]
@@ -88,8 +87,8 @@ public class TextSettings : ScriptableObject
 	[SerializeField]
 	protected UnicodeLineBreakingRules m_UnicodeLineBreakingRules;
 
-	[FormerlySerializedAs("m_warningsDisabled")]
 	[SerializeField]
+	[FormerlySerializedAs("m_warningsDisabled")]
 	protected bool m_DisplayWarnings = false;
 
 	internal Dictionary<int, FontAsset> m_FontLookup;
@@ -286,6 +285,7 @@ public class TextSettings : ScriptableObject
 		}
 	}
 
+	[Obsolete("styleSheetsResourcePath is no longer used and will be removed in a future version.", false)]
 	public string styleSheetsResourcePath
 	{
 		get
@@ -378,7 +378,7 @@ public class TextSettings : ScriptableObject
 	{
 		if (m_NativeTextSettings != IntPtr.Zero)
 		{
-			DestroyNativeObject(m_NativeTextSettings);
+			DestroyNativeObject(m_NativeTextSettings, MarshalledUnityObject.MarshalNotNull(this));
 		}
 	}
 
@@ -409,7 +409,7 @@ public class TextSettings : ScriptableObject
 	[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule", "UnityEngine.UIElementsModule" })]
 	internal FontAsset GetCachedFontAsset(Font font)
 	{
-		if (font == null)
+		if ((object)font == null)
 		{
 			return null;
 		}
@@ -443,21 +443,21 @@ public class TextSettings : ScriptableObject
 	}
 
 	[NativeMethod(Name = "TextSettings::Create")]
-	private unsafe static IntPtr CreateNativeObject(IntPtr[] fallbacks)
+	private unsafe static IntPtr CreateNativeObject(IntPtr[] fallbacks, IntPtr managedObject)
 	{
 		Span<IntPtr> span = new Span<IntPtr>(fallbacks);
 		IntPtr result;
 		fixed (IntPtr* begin = span)
 		{
 			ManagedSpanWrapper fallbacks2 = new ManagedSpanWrapper(begin, span.Length);
-			result = CreateNativeObject_Injected(ref fallbacks2);
+			result = CreateNativeObject_Injected(ref fallbacks2, managedObject);
 		}
 		return result;
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[NativeMethod(Name = "TextSettings::Destroy")]
-	private static extern void DestroyNativeObject(IntPtr m_NativeTextSettings);
+	private static extern void DestroyNativeObject(IntPtr m_NativeTextSettings, IntPtr managedObject);
 
 	private unsafe static void UpdateFallbacks(IntPtr ptr, IntPtr[] fallbacks)
 	{
@@ -483,6 +483,20 @@ public class TextSettings : ScriptableObject
 				else
 				{
 					globalFontAssetFallbacks.Add(fallback.nativeFontAsset);
+				}
+			}
+		});
+		emojiFallbackTextAssets?.ForEach(delegate(TextAsset fallback)
+		{
+			if (fallback is FontAsset fontAsset)
+			{
+				if (fontAsset.atlasPopulationMode == AtlasPopulationMode.Static && fontAsset.characterTable.Count > 0)
+				{
+					Debug.LogWarning("Advanced text system cannot use static font asset " + fallback.name + " as fallback.");
+				}
+				else
+				{
+					globalFontAssetFallbacks.Add(fontAsset.nativeFontAsset);
 				}
 			}
 		});
@@ -517,12 +531,17 @@ public class TextSettings : ScriptableObject
 		return globalFontAssetFallbacks.ToArray();
 	}
 
+	internal void SetNativeTextSettingsDirty()
+	{
+		m_IsNativeTextSettingsDirty = true;
+	}
+
 	[VisibleToOtherModules(new string[] { "UnityEngine.UIElementsModule" })]
 	internal void UpdateNativeTextSettings()
 	{
 		if (m_NativeTextSettings == IntPtr.Zero)
 		{
-			m_NativeTextSettings = CreateNativeObject(GetGlobalFallbacks());
+			m_NativeTextSettings = CreateNativeObject(GetGlobalFallbacks(), MarshalledUnityObject.MarshalNotNull(this));
 			m_IsNativeTextSettingsDirty = false;
 		}
 		else if (m_IsNativeTextSettingsDirty && m_NativeTextSettings != IntPtr.Zero)
@@ -533,7 +552,7 @@ public class TextSettings : ScriptableObject
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern IntPtr CreateNativeObject_Injected(ref ManagedSpanWrapper fallbacks);
+	private static extern IntPtr CreateNativeObject_Injected(ref ManagedSpanWrapper fallbacks, IntPtr managedObject);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void UpdateFallbacks_Injected(IntPtr ptr, ref ManagedSpanWrapper fallbacks);

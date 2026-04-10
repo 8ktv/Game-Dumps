@@ -19,28 +19,28 @@ public class GPUResidentDrawer
 		public const int k_BatchSize = 128;
 
 		[ReadOnly]
-		public NativeHashSet<int>.ReadOnly materialIDs;
+		public NativeHashSet<EntityId>.ReadOnly materialIDs;
 
 		[ReadOnly]
-		public NativeArray<SmallIntegerArray>.ReadOnly materialIDArrays;
+		public NativeArray<SmallEntityIdArray>.ReadOnly materialIDArrays;
 
 		[ReadOnly]
-		public NativeArray<int>.ReadOnly meshIDs;
+		public NativeArray<EntityId>.ReadOnly meshIDs;
 
 		[ReadOnly]
-		public NativeArray<int>.ReadOnly meshIDArray;
+		public NativeArray<EntityId>.ReadOnly meshIDArray;
 
 		[ReadOnly]
-		public NativeArray<int>.ReadOnly rendererGroupIDs;
+		public NativeArray<EntityId>.ReadOnly rendererGroupIDs;
 
 		[ReadOnly]
-		public NativeArray<int>.ReadOnly sortedExcludeRendererIDs;
+		public NativeArray<EntityId>.ReadOnly sortedExcludeRendererIDs;
 
 		[WriteOnly]
-		public NativeList<int>.ParallelWriter selectedRenderGroupsForMaterials;
+		public NativeList<EntityId>.ParallelWriter selectedRenderGroupsForMaterials;
 
 		[WriteOnly]
-		public NativeList<int>.ParallelWriter selectedRenderGroupsForMeshes;
+		public NativeList<EntityId>.ParallelWriter selectedRenderGroupsForMeshes;
 
 		public unsafe void Execute(int startIndex, int count)
 		{
@@ -53,24 +53,24 @@ public class GPUResidentDrawer
 			for (int i = 0; i < count; i++)
 			{
 				int index = startIndex + i;
-				int value = rendererGroupIDs[index];
-				if (sortedExcludeRendererIDs.BinarySearch(value) >= 0)
+				EntityId entityId = rendererGroupIDs[index];
+				if (sortedExcludeRendererIDs.BinarySearch(entityId) >= 0)
 				{
 					continue;
 				}
-				int value2 = meshIDArray[index];
-				if (meshIDs.Contains(value2))
+				EntityId value = meshIDArray[index];
+				if (meshIDs.Contains(value))
 				{
-					unsafeList2.AddNoResize(value);
+					unsafeList2.AddNoResize(entityId);
 					continue;
 				}
-				SmallIntegerArray smallIntegerArray = materialIDArrays[index];
-				for (int j = 0; j < smallIntegerArray.Length; j++)
+				SmallEntityIdArray smallEntityIdArray = materialIDArrays[index];
+				for (int j = 0; j < smallEntityIdArray.Length; j++)
 				{
-					int item = smallIntegerArray[j];
+					EntityId item = smallEntityIdArray[j];
 					if (materialIDs.Contains(item))
 					{
-						unsafeList.AddNoResize(value);
+						unsafeList.AddNoResize(entityId);
 						break;
 					}
 				}
@@ -93,6 +93,8 @@ public class GPUResidentDrawer
 		public static readonly string kernelNotPresent = "GPUResidentDrawer Kernel not present, please ensure the player settings includes a supported graphics API.";
 
 		public static readonly string batchRendererGroupShaderStrippingModeInvalid = "GPUResidentDrawer \"BatchRendererGroup Variants\" setting must be \"Keep All\".  The current setting will cause errors when building a player because all DOTS instancing shaders will be stripped To fix, modify Graphics settings and set \"BatchRendererGroup Variants\" to \"Keep All\".";
+
+		public static readonly string visionOSNotSupported = "GPUResidentDrawer Disabled on VisionOS as it is non applicable. This platform uses a custom rendering path and doesn't go through the resident drawer.";
 	}
 
 	private static GPUResidentDrawer s_Instance;
@@ -162,12 +164,12 @@ public class GPUResidentDrawer
 
 	public static void RenderDebugOcclusionTestOverlay(RenderGraph renderGraph, DebugDisplayGPUResidentDrawer debugSettings, int viewInstanceID, TextureHandle colorBuffer)
 	{
-		s_Instance?.batcher.occlusionCullingCommon.RenderDebugOcclusionTestOverlay(renderGraph, debugSettings, viewInstanceID, colorBuffer);
+		s_Instance?.batcher.occlusionCullingCommon.RenderDebugOcclusionTestOverlay(renderGraph, debugSettings, viewInstanceID, in colorBuffer);
 	}
 
 	public static void RenderDebugOccluderOverlay(RenderGraph renderGraph, DebugDisplayGPUResidentDrawer debugSettings, Vector2 screenPos, float maxHeight, TextureHandle colorBuffer)
 	{
-		s_Instance?.batcher.occlusionCullingCommon.RenderDebugOccluderOverlay(renderGraph, debugSettings, screenPos, maxHeight, colorBuffer);
+		s_Instance?.batcher.occlusionCullingCommon.RenderDebugOccluderOverlay(renderGraph, debugSettings, screenPos, maxHeight, in colorBuffer);
 	}
 
 	internal static DebugRendererBatcherStats GetDebugStats()
@@ -394,7 +396,7 @@ public class GPUResidentDrawer
 		TypeDispatchData typeChangesAndClear4 = m_Dispatcher.GetTypeChangesAndClear<Material>(Allocator.TempJob, sortByInstanceID: false, noScriptingArray: true);
 		TypeDispatchData typeChangesAndClear5 = m_Dispatcher.GetTypeChangesAndClear<MeshRenderer>(Allocator.TempJob, sortByInstanceID: false, noScriptingArray: true);
 		ClassifyMaterials(typeChangesAndClear4.changedID, out var unsupportedMaterials, out var supportedMaterials, out var supportedPackedMaterialDatas, Allocator.TempJob);
-		NativeList<int> nativeList = FindUnsupportedRenderers(unsupportedMaterials.AsArray());
+		NativeList<EntityId> nativeList = FindUnsupportedRenderers(unsupportedMaterials.AsArray());
 		ProcessMaterials(typeChangesAndClear4.destroyedID, unsupportedMaterials.AsArray());
 		ProcessMeshes(typeChangesAndClear2.destroyedID);
 		ProcessLODGroups(typeChangesAndClear.changedID, typeChangesAndClear.destroyedID, transformChangesAndClear.transformedID);
@@ -415,7 +417,7 @@ public class GPUResidentDrawer
 		m_Batcher.UpdateFrame();
 	}
 
-	private void ProcessMaterials(NativeArray<int> destroyedID, NativeArray<int> unsupportedMaterials)
+	private void ProcessMaterials(NativeArray<EntityId> destroyedID, NativeArray<EntityId> unsupportedMaterials)
 	{
 		if (destroyedID.Length > 0)
 		{
@@ -427,13 +429,13 @@ public class GPUResidentDrawer
 		}
 	}
 
-	private void ProcessCameras(NativeArray<int> changedIDs, NativeArray<int> destroyedIDs)
+	private void ProcessCameras(NativeArray<EntityId> changedIDs, NativeArray<EntityId> destroyedIDs)
 	{
 		m_BatchersContext.UpdateCameras(changedIDs);
 		m_BatchersContext.FreePerCameraInstanceData(destroyedIDs);
 	}
 
-	private void ProcessMeshes(NativeArray<int> destroyedID)
+	private void ProcessMeshes(NativeArray<EntityId> destroyedID)
 	{
 		if (destroyedID.Length != 0)
 		{
@@ -445,20 +447,20 @@ public class GPUResidentDrawer
 		}
 	}
 
-	private void ProcessLODGroups(NativeArray<int> changedID, NativeArray<int> destroyed, NativeArray<int> transformedID)
+	private void ProcessLODGroups(NativeArray<EntityId> changedID, NativeArray<EntityId> destroyed, NativeArray<EntityId> transformedID)
 	{
 		m_BatchersContext.DestroyLODGroups(destroyed);
 		m_BatchersContext.UpdateLODGroups(changedID);
 		m_BatchersContext.TransformLODGroups(transformedID);
 	}
 
-	private void ProcessRendererMaterialAndMeshChanges(NativeArray<int> excludedRenderers, NativeArray<int> changedMaterials, NativeArray<GPUDrivenPackedMaterialData> changedPackedMaterialDatas, NativeArray<int> changedMeshes)
+	private void ProcessRendererMaterialAndMeshChanges(NativeArray<EntityId> excludedRenderers, NativeArray<EntityId> changedMaterials, NativeArray<GPUDrivenPackedMaterialData> changedPackedMaterialDatas, NativeArray<EntityId> changedMeshes)
 	{
 		if (changedMaterials.Length == 0 && changedMeshes.Length == 0)
 		{
 			return;
 		}
-		NativeHashSet<int> materialsWithChangedPackedMaterial = GetMaterialsWithChangedPackedMaterial(changedMaterials, changedPackedMaterialDatas, Allocator.TempJob);
+		NativeHashSet<EntityId> materialsWithChangedPackedMaterial = GetMaterialsWithChangedPackedMaterial(changedMaterials, changedPackedMaterialDatas, Allocator.TempJob);
 		JobHandle jobHandle = m_Batcher.SchedulePackedMaterialCacheUpdate(changedMaterials, changedPackedMaterialDatas);
 		if (materialsWithChangedPackedMaterial.Count == 0 && changedMeshes.Length == 0)
 		{
@@ -466,10 +468,10 @@ public class GPUResidentDrawer
 			jobHandle.Complete();
 			return;
 		}
-		NativeArray<int> nativeArray = new NativeArray<int>(excludedRenderers, Allocator.TempJob);
+		NativeArray<EntityId> nativeArray = new NativeArray<EntityId>(excludedRenderers, Allocator.TempJob);
 		if (nativeArray.Length > 0)
 		{
-			nativeArray.ParallelSort().Complete();
+			nativeArray.SortJob().Schedule().Complete();
 		}
 		var (nativeList, nativeList2) = FindRenderersFromMaterialsOrMeshes(nativeArray, materialsWithChangedPackedMaterial, changedMeshes, Allocator.TempJob);
 		materialsWithChangedPackedMaterial.Dispose();
@@ -485,18 +487,20 @@ public class GPUResidentDrawer
 		int length2 = nativeList2.Length;
 		int length3 = length + length2;
 		NativeArray<InstanceHandle> instances = new NativeArray<InstanceHandle>(length3, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-		NativeArray<int> nativeArray2 = new NativeArray<int>(length3, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-		NativeArray<int>.Copy(nativeList.AsArray(), nativeArray2, length);
-		NativeArray<int>.Copy(nativeList2.AsArray(), nativeArray2.GetSubArray(length, length2), length2);
+		NativeArray<EntityId> nativeArray2 = new NativeArray<EntityId>(length3, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+		NativeArray<EntityId>.Copy(nativeList.AsArray(), nativeArray2, length);
+		NativeArray<EntityId>.Copy(nativeList2.AsArray(), nativeArray2.GetSubArray(length, length2), length2);
 		ScheduleQueryRendererGroupInstancesJob(nativeArray2, instances).Complete();
 		m_Batcher.DestroyDrawInstances(instances);
 		m_Batcher.UpdateRenderers(nativeList.AsArray(), materialUpdateOnly: true);
 		m_Batcher.UpdateRenderers(nativeList2.AsArray());
+		instances.Dispose();
+		nativeArray2.Dispose();
 		nativeList.Dispose();
 		nativeList2.Dispose();
 	}
 
-	private void ProcessRenderers(TypeDispatchData rendererChanges, NativeArray<int> unsupportedRenderers)
+	private void ProcessRenderers(TypeDispatchData rendererChanges, NativeArray<EntityId> unsupportedRenderers)
 	{
 		NativeArray<InstanceHandle> instances = new NativeArray<InstanceHandle>(rendererChanges.changedID.Length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
 		ScheduleQueryRendererGroupInstancesJob(rendererChanges.changedID, instances).Complete();
@@ -523,7 +527,7 @@ public class GPUResidentDrawer
 		m_BatchersContext.FreeInstances(instances);
 	}
 
-	private void FreeRendererGroupInstances(NativeArray<int> rendererGroupIDs, NativeArray<int> unsupportedRendererGroupIDs)
+	private void FreeRendererGroupInstances(NativeArray<EntityId> rendererGroupIDs, NativeArray<EntityId> unsupportedRendererGroupIDs)
 	{
 		m_Batcher.FreeRendererGroupInstances(rendererGroupIDs);
 		if (unsupportedRendererGroupIDs.Length > 0)
@@ -538,30 +542,30 @@ public class GPUResidentDrawer
 		throw new NotImplementedException();
 	}
 
-	private JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<int> rendererGroupIDs, NativeArray<InstanceHandle> instances)
+	private JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<EntityId> rendererGroupIDs, NativeArray<InstanceHandle> instances)
 	{
 		return m_BatchersContext.ScheduleQueryRendererGroupInstancesJob(rendererGroupIDs, instances);
 	}
 
-	private JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<int> rendererGroupIDs, NativeList<InstanceHandle> instances)
+	private JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<EntityId> rendererGroupIDs, NativeList<InstanceHandle> instances)
 	{
 		return m_BatchersContext.ScheduleQueryRendererGroupInstancesJob(rendererGroupIDs, instances);
 	}
 
-	private JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<int> rendererGroupIDs, NativeArray<int> instancesOffset, NativeArray<int> instancesCount, NativeList<InstanceHandle> instances)
+	private JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<EntityId> rendererGroupIDs, NativeArray<int> instancesOffset, NativeArray<int> instancesCount, NativeList<InstanceHandle> instances)
 	{
 		return m_BatchersContext.ScheduleQueryRendererGroupInstancesJob(rendererGroupIDs, instancesOffset, instancesCount, instances);
 	}
 
-	private JobHandle ScheduleQueryMeshInstancesJob(NativeArray<int> sortedMeshIDs, NativeList<InstanceHandle> instances)
+	private JobHandle ScheduleQueryMeshInstancesJob(NativeArray<EntityId> sortedMeshIDs, NativeList<InstanceHandle> instances)
 	{
 		return m_BatchersContext.ScheduleQueryMeshInstancesJob(sortedMeshIDs, instances);
 	}
 
-	private void ClassifyMaterials(NativeArray<int> materials, out NativeList<int> unsupportedMaterials, out NativeList<int> supportedMaterials, out NativeList<GPUDrivenPackedMaterialData> supportedPackedMaterialDatas, Allocator allocator)
+	private void ClassifyMaterials(NativeArray<EntityId> materials, out NativeList<EntityId> unsupportedMaterials, out NativeList<EntityId> supportedMaterials, out NativeList<GPUDrivenPackedMaterialData> supportedPackedMaterialDatas, Allocator allocator)
 	{
-		supportedMaterials = new NativeList<int>(materials.Length, allocator);
-		unsupportedMaterials = new NativeList<int>(materials.Length, allocator);
+		supportedMaterials = new NativeList<EntityId>(materials.Length, allocator);
+		unsupportedMaterials = new NativeList<EntityId>(materials.Length, allocator);
 		supportedPackedMaterialDatas = new NativeList<GPUDrivenPackedMaterialData>(materials.Length, allocator);
 		if (materials.Length > 0)
 		{
@@ -569,31 +573,31 @@ public class GPUResidentDrawer
 		}
 	}
 
-	private NativeList<int> FindUnsupportedRenderers(NativeArray<int> unsupportedMaterials)
+	private NativeList<EntityId> FindUnsupportedRenderers(NativeArray<EntityId> unsupportedMaterials)
 	{
-		NativeList<int> unsupportedRenderers = new NativeList<int>(Allocator.TempJob);
+		NativeList<EntityId> unsupportedRenderers = new NativeList<EntityId>(Allocator.TempJob);
 		if (unsupportedMaterials.Length > 0)
 		{
 			CPUSharedInstanceData.ReadOnly sharedInstanceData = m_BatchersContext.sharedInstanceData;
-			ref readonly NativeArray<SmallIntegerArray>.ReadOnly materialIDArrays = ref sharedInstanceData.materialIDArrays;
+			ref readonly NativeArray<SmallEntityIdArray>.ReadOnly materialIDArrays = ref sharedInstanceData.materialIDArrays;
 			CPUSharedInstanceData.ReadOnly sharedInstanceData2 = m_BatchersContext.sharedInstanceData;
 			GPUResidentDrawerBurst.FindUnsupportedRenderers(in unsupportedMaterials, in materialIDArrays, in sharedInstanceData2.rendererGroupIDs, ref unsupportedRenderers);
 		}
 		return unsupportedRenderers;
 	}
 
-	private NativeHashSet<int> GetMaterialsWithChangedPackedMaterial(NativeArray<int> materials, NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas, Allocator allocator)
+	private NativeHashSet<EntityId> GetMaterialsWithChangedPackedMaterial(NativeArray<EntityId> materials, NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas, Allocator allocator)
 	{
-		NativeHashSet<int> filteredMaterials = new NativeHashSet<int>(materials.Length, allocator);
+		NativeHashSet<EntityId> filteredMaterials = new NativeHashSet<EntityId>(materials.Length, allocator);
 		GPUResidentDrawerBurst.GetMaterialsWithChangedPackedMaterial(in materials, in packedMaterialDatas, batcher.instanceCullingBatcher.packedMaterialHash.AsReadOnly(), ref filteredMaterials);
 		return filteredMaterials;
 	}
 
-	private (NativeList<int> renderersWithMaterials, NativeList<int> renderersWithMeshes) FindRenderersFromMaterialsOrMeshes(NativeArray<int> sortedExcludeRenderers, NativeHashSet<int> materials, NativeArray<int> meshes, Allocator rendererListAllocator)
+	private (NativeList<EntityId> renderersWithMaterials, NativeList<EntityId> renderersWithMeshes) FindRenderersFromMaterialsOrMeshes(NativeArray<EntityId> sortedExcludeRenderers, NativeHashSet<EntityId> materials, NativeArray<EntityId> meshes, Allocator rendererListAllocator)
 	{
 		CPUSharedInstanceData.ReadOnly sharedInstanceData = m_BatchersContext.sharedInstanceData;
-		NativeList<int> item = new NativeList<int>(sharedInstanceData.rendererGroupIDs.Length, rendererListAllocator);
-		NativeList<int> item2 = new NativeList<int>(sharedInstanceData.rendererGroupIDs.Length, rendererListAllocator);
+		NativeList<EntityId> item = new NativeList<EntityId>(sharedInstanceData.rendererGroupIDs.Length, rendererListAllocator);
+		NativeList<EntityId> item2 = new NativeList<EntityId>(sharedInstanceData.rendererGroupIDs.Length, rendererListAllocator);
 		new FindRenderersFromMaterialOrMeshJob
 		{
 			materialIDs = materials.AsReadOnly(),
@@ -619,6 +623,12 @@ public class GPUResidentDrawer
 	{
 		message = string.Empty;
 		severity = LogType.Log;
+		if (Application.platform == RuntimePlatform.VisionOS)
+		{
+			message = Strings.visionOSNotSupported;
+			severity = LogType.Log;
+			return false;
+		}
 		if (BatchRendererGroup.BufferTarget != BatchBufferTarget.RawBuffer)
 		{
 			severity = LogType.Warning;

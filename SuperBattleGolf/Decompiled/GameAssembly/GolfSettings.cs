@@ -59,7 +59,13 @@ public class GolfSettings : ScriptableObject
 	public float SwingFollowThroughFrames { get; private set; }
 
 	[field: SerializeField]
+	public float RocketDriverSwingFollowThroughFrames { get; private set; }
+
+	[field: SerializeField]
 	public float SwingMinInterruptionFrames { get; private set; }
+
+	[field: SerializeField]
+	public float RocketDriverSwingMinInterruptionFrames { get; private set; }
 
 	[field: SerializeField]
 	public float SwingVfxFrames { get; private set; }
@@ -168,9 +174,15 @@ public class GolfSettings : ScriptableObject
 
 	public float SwingFollowThroughDuration { get; private set; }
 
+	public float RocketDriverSwingFollowThroughDuration { get; private set; }
+
 	public float SwingTotalDuration { get; private set; }
 
+	public float RocketDriverSwingTotalDuration { get; private set; }
+
 	public float SwingMinInterruptionTime { get; private set; }
+
+	public float RocketDriverSwingMinInterruptionTime { get; private set; }
 
 	public float SwingVfxTime { get; private set; }
 
@@ -199,8 +211,11 @@ public class GolfSettings : ScriptableObject
 		SwingHitStartTime = SwingHitStartFrame / num;
 		SwingHitEndTime = SwingHitStartTime + SwingHitFrames / num;
 		SwingFollowThroughDuration = SwingFollowThroughFrames / num;
+		RocketDriverSwingFollowThroughDuration = RocketDriverSwingFollowThroughFrames / num;
 		SwingTotalDuration = SwingHitEndTime + SwingFollowThroughDuration;
+		RocketDriverSwingTotalDuration = SwingHitEndTime + RocketDriverSwingFollowThroughDuration;
 		SwingMinInterruptionTime = SwingMinInterruptionFrames / num;
+		RocketDriverSwingMinInterruptionTime = RocketDriverSwingMinInterruptionFrames / num;
 		SwingVfxTime = SwingVfxFrames / num;
 		LockOnMaxDistanceSquared = LockOnMaxDistance * LockOnMaxDistance;
 		BallReturnPositionRegistrationMaxSpeedSquared = BallReturnPositionRegistrationMaxSpeed * BallReturnPositionRegistrationMaxSpeed;

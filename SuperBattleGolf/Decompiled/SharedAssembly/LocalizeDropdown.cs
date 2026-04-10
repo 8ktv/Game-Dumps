@@ -24,6 +24,11 @@ public class LocalizeDropdown : MonoBehaviour
 		LocalizationSettings.SelectedLocaleChanged -= OnLocaleChanged;
 	}
 
+	public LocalizedString GetLocalizedOption()
+	{
+		return dropdownOptions[tmpDropdown.value];
+	}
+
 	public void RefreshOptions()
 	{
 		if (tmpDropdown == null)

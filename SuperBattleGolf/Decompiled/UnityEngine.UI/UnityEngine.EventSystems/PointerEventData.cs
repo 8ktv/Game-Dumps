@@ -170,8 +170,8 @@ public class PointerEventData : BaseEventData
 	public override string ToString()
 	{
 		StringBuilder stringBuilder = new StringBuilder();
-		stringBuilder.AppendLine("<b>Position</b>: " + position.ToString());
-		stringBuilder.AppendLine("<b>delta</b>: " + delta.ToString());
+		stringBuilder.AppendLine("<b>Position</b>: " + position);
+		stringBuilder.AppendLine("<b>delta</b>: " + delta);
 		stringBuilder.AppendLine("<b>eligibleForClick</b>: " + eligibleForClick);
 		stringBuilder.AppendLine("<b>pointerEnter</b>: " + pointerEnter);
 		stringBuilder.AppendLine("<b>pointerPress</b>: " + pointerPress);
@@ -189,10 +189,10 @@ public class PointerEventData : BaseEventData
 		stringBuilder.AppendLine("<b>altitudeAngle</b>: " + altitudeAngle);
 		stringBuilder.AppendLine("<b>azimuthAngle</b>: " + azimuthAngle);
 		stringBuilder.AppendLine("<b>twist</b>: " + twist);
-		stringBuilder.AppendLine("<b>tilt</b>: " + tilt.ToString());
+		stringBuilder.AppendLine("<b>tilt</b>: " + tilt);
 		stringBuilder.AppendLine("<b>penStatus</b>: " + penStatus);
-		stringBuilder.AppendLine("<b>radius</b>: " + radius.ToString());
-		stringBuilder.AppendLine("<b>radiusVariance</b>: " + radiusVariance.ToString());
+		stringBuilder.AppendLine("<b>radius</b>: " + radius);
+		stringBuilder.AppendLine("<b>radiusVariance</b>: " + radiusVariance);
 		return stringBuilder.ToString();
 	}
 }

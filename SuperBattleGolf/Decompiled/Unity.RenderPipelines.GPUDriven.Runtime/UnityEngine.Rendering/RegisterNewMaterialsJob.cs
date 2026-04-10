@@ -10,7 +10,7 @@ internal struct RegisterNewMaterialsJob : IJobParallelFor
 	public const int k_BatchSize = 128;
 
 	[ReadOnly]
-	public NativeArray<int> instanceIDs;
+	public NativeArray<EntityId> instanceIDs;
 
 	[ReadOnly]
 	public NativeArray<GPUDrivenPackedMaterialData> packedMaterialDatas;
@@ -19,14 +19,14 @@ internal struct RegisterNewMaterialsJob : IJobParallelFor
 	public NativeArray<BatchMaterialID> batchIDs;
 
 	[WriteOnly]
-	public NativeParallelHashMap<int, BatchMaterialID>.ParallelWriter batchMaterialHashMap;
+	public NativeParallelHashMap<EntityId, BatchMaterialID>.ParallelWriter batchMaterialHashMap;
 
 	[WriteOnly]
-	public NativeParallelHashMap<int, GPUDrivenPackedMaterialData>.ParallelWriter packedMaterialHashMap;
+	public NativeParallelHashMap<EntityId, GPUDrivenPackedMaterialData>.ParallelWriter packedMaterialHashMap;
 
 	public void Execute(int index)
 	{
-		int key = instanceIDs[index];
+		EntityId key = instanceIDs[index];
 		batchMaterialHashMap.TryAdd(key, batchIDs[index]);
 		packedMaterialHashMap.TryAdd(key, packedMaterialDatas[index]);
 	}

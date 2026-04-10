@@ -49,6 +49,11 @@ internal static class CSSSpec
 		return num;
 	}
 
+	public static bool ValidateSelector(string selector)
+	{
+		return rgx.Matches(selector).Count > 0;
+	}
+
 	public static bool ParseSelector(string selector, out StyleSelectorPart[] parts)
 	{
 		MatchCollection matchCollection = rgx.Matches(selector);

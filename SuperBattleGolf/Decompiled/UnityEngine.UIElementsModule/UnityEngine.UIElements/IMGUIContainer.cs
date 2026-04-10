@@ -5,6 +5,7 @@ using Unity.Profiling;
 using Unity.Properties;
 using UnityEngine.Internal;
 using UnityEngine.UIElements.Experimental;
+using UnityEngine.UIElements.UIR;
 
 namespace UnityEngine.UIElements;
 
@@ -279,9 +280,9 @@ public class IMGUIContainer : VisualElement, IDisposable
 
 	private void OnGenerateVisualContent(MeshGenerationContext mgc)
 	{
-		if (base.elementPanel is BaseRuntimePanel { drawsInCameras: not false })
+		if (base.elementPanel is BaseRuntimePanel)
 		{
-			Debug.LogError("IMGUIContainer cannot be used in a panel drawn by cameras.");
+			Debug.LogError("IMGUIContainer cannot be used in a runtime panel.");
 			return;
 		}
 		lastWorldClip = base.elementPanel.repaintData.currentWorldClip;
@@ -532,10 +533,14 @@ public class IMGUIContainer : VisualElement, IDisposable
 	{
 		using (k_ImmediateCallbackMarker.Auto())
 		{
-			Matrix4x4 currentOffset = base.elementPanel.repaintData.currentOffset;
-			m_CachedClippingRect = VisualElement.ComputeAAAlignedBound(base.worldClip, currentOffset);
-			m_CachedTransform = currentOffset * base.worldTransform;
-			HandleIMGUIEvent(base.elementPanel.repaintData.repaintEvent, m_CachedTransform, m_CachedClippingRect, onGUIHandler, canAffectFocus: true);
+			Utility.DisableScissor();
+			using (new GUIClip.ParentClipScope(base.worldTransform, base.worldClip))
+			{
+				Matrix4x4 currentOffset = base.elementPanel.repaintData.currentOffset;
+				m_CachedClippingRect = VisualElement.ComputeAAAlignedBound(base.worldClip, currentOffset);
+				m_CachedTransform = currentOffset * base.worldTransform;
+				HandleIMGUIEvent(base.elementPanel.repaintData.repaintEvent, m_CachedTransform, m_CachedClippingRect, onGUIHandler, canAffectFocus: true);
+			}
 		}
 	}
 

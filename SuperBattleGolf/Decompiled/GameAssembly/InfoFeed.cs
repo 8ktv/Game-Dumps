@@ -9,91 +9,98 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	{
 	}
 
-	public struct GenericMessageData : IMessageData
+	public struct KnockoutMessageData : IMessageData
 	{
-		public string preIconText;
+		public ulong responsiblePlayer;
 
-		public string postIconText;
+		public ulong knockedOutPlayer;
 
-		public InfoFeedIconSettings.Type icon1;
+		public InfoFeedIconType icon;
 
-		public InfoFeedIconSettings.Type icon2;
-
-		public GenericMessageData(string preIconText, string postIconText, InfoFeedIconSettings.Type icon1, InfoFeedIconSettings.Type icon2)
+		public KnockoutMessageData(ulong responsiblePlayer, ulong knockedOutPlayer, InfoFeedIconType icon)
 		{
-			this.preIconText = preIconText;
-			this.postIconText = postIconText;
-			this.icon1 = icon1;
-			this.icon2 = icon2;
+			this.responsiblePlayer = responsiblePlayer;
+			this.knockedOutPlayer = knockedOutPlayer;
+			this.icon = icon;
 		}
+	}
 
-		public GenericMessageData(string text, InfoFeedIconSettings.Type icon1, InfoFeedIconSettings.Type icon2)
+	public struct EliminationMessaqeData : IMessageData
+	{
+		public ulong responsiblePlayer;
+
+		public ulong knockedOutPlayer;
+
+		public InfoFeedIconType icon;
+
+		public EliminationMessaqeData(ulong responsiblePlayer, ulong knockedOutPlayer, InfoFeedIconType icon)
 		{
-			preIconText = text;
-			postIconText = null;
-			this.icon1 = icon1;
-			this.icon2 = icon2;
+			this.responsiblePlayer = responsiblePlayer;
+			this.knockedOutPlayer = knockedOutPlayer;
+			this.icon = icon;
 		}
+	}
 
-		public GenericMessageData(string preIconText, string postIconText, InfoFeedIconSettings.Type icon)
+	public struct SelfKnockoutMessageData : IMessageData
+	{
+		public ulong playerGuid;
+
+		public InfoFeedIconType icon;
+
+		public SelfKnockoutMessageData(ulong playerGuid, InfoFeedIconType icon)
 		{
-			this.preIconText = preIconText;
-			this.postIconText = postIconText;
-			icon1 = icon;
-			icon2 = InfoFeedIconSettings.Type.None;
+			this.playerGuid = playerGuid;
+			this.icon = icon;
 		}
+	}
 
-		public GenericMessageData(string text, InfoFeedIconSettings.Type icon)
-		{
-			preIconText = text;
-			postIconText = null;
-			icon1 = icon;
-			icon2 = InfoFeedIconSettings.Type.None;
-		}
+	public struct SelfEliminationMessageData : IMessageData
+	{
+		public ulong playerGuid;
 
-		public GenericMessageData(string text)
+		public InfoFeedIconType icon;
+
+		public SelfEliminationMessageData(ulong playerGuid, InfoFeedIconType icon)
 		{
-			preIconText = text;
-			postIconText = null;
-			icon1 = InfoFeedIconSettings.Type.None;
-			icon2 = InfoFeedIconSettings.Type.None;
+			this.playerGuid = playerGuid;
+			this.icon = icon;
 		}
 	}
 
 	public struct FinishedHoleMessageData : IMessageData
 	{
-		public string playerName;
+		public ulong playerGuid;
 
 		public int displayPlacement;
 
-		public FinishedHoleMessageData(string playerName, int displayPlacement)
+		public FinishedHoleMessageData(ulong playerGuid, int displayPlacement)
 		{
-			this.playerName = playerName;
+			this.playerGuid = playerGuid;
 			this.displayPlacement = displayPlacement;
 		}
 	}
 
 	public struct ScoredOnDrivingRangeMessageData : IMessageData
 	{
-		public string playerName;
+		public ulong playerGuid;
 
-		public ScoredOnDrivingRangeMessageData(string playerName)
+		public ScoredOnDrivingRangeMessageData(ulong playerGuid)
 		{
-			this.playerName = playerName;
+			this.playerGuid = playerGuid;
 		}
 	}
 
 	public struct StrokesMessageData : IMessageData
 	{
-		public string playerName;
+		public ulong playerGuid;
 
 		public StrokesUnderParType strokesUnderParType;
 
 		public int strokesUnderPar;
 
-		public StrokesMessageData(string playerName, StrokesUnderParType strokesUnderParType, int strokesUnderPar)
+		public StrokesMessageData(ulong playerGuid, StrokesUnderParType strokesUnderParType, int strokesUnderPar)
 		{
-			this.playerName = playerName;
+			this.playerGuid = playerGuid;
 			this.strokesUnderParType = strokesUnderParType;
 			this.strokesUnderPar = strokesUnderPar;
 		}
@@ -101,53 +108,66 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 
 	public struct ChipInMessageData : IMessageData
 	{
-		public string playerName;
+		public ulong playerGuid;
 
 		public float distance;
 
-		public ChipInMessageData(string playerName, float distance)
+		public ChipInMessageData(ulong playerGuid, float distance)
 		{
-			this.playerName = playerName;
+			this.playerGuid = playerGuid;
 			this.distance = distance;
 		}
 	}
 
 	public struct SpeedrunMessageData : IMessageData
 	{
-		public string playerName;
+		public ulong playerGuid;
 
 		public float time;
 
-		public SpeedrunMessageData(string playerName, float time)
+		public SpeedrunMessageData(ulong playerGuid, float time)
 		{
-			this.playerName = playerName;
+			this.playerGuid = playerGuid;
 			this.time = time;
 		}
 	}
 
 	public struct DominatingMessageData : IMessageData
 	{
-		public string dominatingPlayerName;
+		public ulong dominatingPlayerGuid;
 
-		public string dominatedPlayerName;
+		public ulong dominatedPlayerGuid;
 
-		public DominatingMessageData(string dominatingPlayerName, string dominatedPlayerName)
+		public DominatingMessageData(ulong dominatingPlayerGuid, ulong dominatedPlayerGuid)
 		{
-			this.dominatingPlayerName = dominatingPlayerName;
-			this.dominatedPlayerName = dominatedPlayerName;
+			this.dominatingPlayerGuid = dominatingPlayerGuid;
+			this.dominatedPlayerGuid = dominatedPlayerGuid;
 		}
 	}
 
 	public struct RevengeMessageData : IMessageData
 	{
-		public string previouslyDominatedPlayerName;
+		public ulong previouslyDominatedPlayerGuid;
 
-		public string previouslyDominatingPlayerName;
+		public ulong previouslyDominatingPlayerGuid;
 
-		public RevengeMessageData(string previouslyDominatedPlayerName, string previouslyDominatingPlayerName)
+		public RevengeMessageData(ulong previouslyDominatedPlayerGuid, ulong previouslyDominatingPlayerGuid)
 		{
-			this.previouslyDominatedPlayerName = previouslyDominatedPlayerName;
-			this.previouslyDominatingPlayerName = previouslyDominatingPlayerName;
+			this.previouslyDominatedPlayerGuid = previouslyDominatedPlayerGuid;
+			this.previouslyDominatingPlayerGuid = previouslyDominatingPlayerGuid;
+		}
+	}
+
+	public struct ComebackMessageData : IMessageData
+	{
+		public ulong playerGuid;
+
+		public int comebackBonus;
+
+		public ComebackMessageData(ulong playerGuid, int comebackBonus)
+		{
+			this.playerGuid = playerGuid;
+			this.comebackBonus = comebackBonus;
 		}
 	}
 
@@ -319,6 +339,9 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 		case 9:
 			ShowRevengeMessage(GameManager.LocalPlayerInfo, GameManager.LocalPlayerInfo);
 			break;
+		case 10:
+			ShowComebackMessage(GameManager.LocalPlayerInfo, Random.Range(1, 100));
+			break;
 		default:
 			Debug.LogWarning("No test message at this index!!!");
 			break;
@@ -413,6 +436,14 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 		}
 	}
 
+	public static void ShowComebackMessage(PlayerInfo player, int comebackBonus)
+	{
+		if (SingletonNetworkBehaviour<InfoFeed>.HasInstance)
+		{
+			SingletonNetworkBehaviour<InfoFeed>.Instance.ShowComebackMessageInternal(player, comebackBonus);
+		}
+	}
+
 	public static void InformMessageDisappeared(InfoFeedMessage message)
 	{
 		if (SingletonNetworkBehaviour<InfoFeed>.HasInstance)
@@ -430,7 +461,7 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	{
 		if (!(player == null) && placement >= 0)
 		{
-			FinishedHoleMessageData messageData = new FinishedHoleMessageData(player.PlayerId.PlayerNameNoRichText, placement + 1);
+			FinishedHoleMessageData messageData = new FinishedHoleMessageData(player.PlayerId.Guid, placement + 1);
 			ServerShowMessageForAllClients(messageData);
 		}
 	}
@@ -439,7 +470,7 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	{
 		if (!(player == null))
 		{
-			ScoredOnDrivingRangeMessageData messageData = new ScoredOnDrivingRangeMessageData(player.PlayerId.PlayerNameNoRichText);
+			ScoredOnDrivingRangeMessageData messageData = new ScoredOnDrivingRangeMessageData(player.PlayerId.Guid);
 			ServerShowMessageForAllClients(messageData);
 		}
 	}
@@ -448,7 +479,7 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	{
 		if (!(player == null))
 		{
-			StrokesMessageData messageData = new StrokesMessageData(player.PlayerId.PlayerNameNoRichText, strokesUnderParType, strokesUnderPar);
+			StrokesMessageData messageData = new StrokesMessageData(player.PlayerId.Guid, strokesUnderParType, strokesUnderPar);
 			ServerShowMessageForAllClients(messageData);
 		}
 	}
@@ -457,7 +488,7 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	{
 		if (!(player == null))
 		{
-			ChipInMessageData messageData = new ChipInMessageData(player.PlayerId.PlayerNameNoRichText, chipInDistance);
+			ChipInMessageData messageData = new ChipInMessageData(player.PlayerId.Guid, chipInDistance);
 			ServerShowMessageForAllClients(messageData);
 		}
 	}
@@ -466,7 +497,7 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	{
 		if (!(player == null))
 		{
-			SpeedrunMessageData messageData = new SpeedrunMessageData(player.PlayerId.PlayerNameNoRichText, time);
+			SpeedrunMessageData messageData = new SpeedrunMessageData(player.PlayerId.Guid, time);
 			ServerShowMessageForAllClients(messageData);
 		}
 	}
@@ -475,12 +506,12 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	{
 		if (!(responsiblePlayer == null) && !(knockedOutPlayer == null))
 		{
-			if (!iconSettings.TryGetIconType(knockoutType, out var iconType))
+			if (!GameManager.KnockoutSettings.TryGetKnockoutData(knockoutType, out var data))
 			{
-				Debug.LogError($"Attempted to display a knockout message for type {knockoutType}, but it has no icon type", base.gameObject);
+				Debug.LogError($"Attempted to display a knockout message for type {knockoutType}, but it has no data", base.gameObject);
 				return;
 			}
-			GenericMessageData messageData = new GenericMessageData(ColorizePlayerName(responsiblePlayer.PlayerId.PlayerNameNoRichText, player0Color), ColorizePlayerName(knockedOutPlayer.PlayerId.PlayerNameNoRichText, player1Color), iconType);
+			KnockoutMessageData messageData = new KnockoutMessageData(responsiblePlayer.PlayerId.Guid, knockedOutPlayer.PlayerId.Guid, data.icon);
 			ServerShowMessageForAllClients(messageData);
 		}
 	}
@@ -489,12 +520,12 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	{
 		if (!(knockedOutPlayer == null))
 		{
-			if (!iconSettings.TryGetIconType(knockoutType, out var iconType))
+			if (!GameManager.KnockoutSettings.TryGetKnockoutData(knockoutType, out var data))
 			{
-				Debug.LogError($"Attempted to display a knockout message for type {knockoutType}, but it has no icon type", base.gameObject);
+				Debug.LogError($"Attempted to display a knockout message for type {knockoutType}, but it has no data", base.gameObject);
 				return;
 			}
-			GenericMessageData messageData = new GenericMessageData(ColorizePlayerName(knockedOutPlayer.PlayerId.PlayerNameNoRichText, player1Color), iconType);
+			SelfKnockoutMessageData messageData = new SelfKnockoutMessageData(knockedOutPlayer.PlayerId.Guid, data.icon);
 			ServerShowMessageForAllClients(messageData);
 		}
 	}
@@ -503,12 +534,12 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	{
 		if (!(responsiblePlayer == null) && !(eliminatedPlayer == null))
 		{
-			if (!iconSettings.TryGetIconType(eliminationReason, out var iconType))
+			if (!GameManager.EliminationSettings.TryGetEliminationData(eliminationReason, out var data))
 			{
-				Debug.LogError($"Attempted to display an elimination message for reason {eliminationReason}, but it has no icon type", base.gameObject);
+				Debug.LogError($"Attempted to display an elimination message for reason {eliminationReason}, but it has no data", base.gameObject);
 				return;
 			}
-			GenericMessageData messageData = new GenericMessageData(ColorizePlayerName(responsiblePlayer.PlayerId.PlayerNameNoRichText, player0Color), ColorizePlayerName(eliminatedPlayer.PlayerId.PlayerNameNoRichText, player1Color), iconType, InfoFeedIconSettings.Type.Elimination);
+			EliminationMessaqeData messageData = new EliminationMessaqeData(responsiblePlayer.PlayerId.Guid, eliminatedPlayer.PlayerId.Guid, data.icon);
 			ServerShowMessageForAllClients(messageData);
 		}
 	}
@@ -517,12 +548,12 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	{
 		if (!(eliminatedPlayer == null))
 		{
-			if (!iconSettings.TryGetIconType(eliminationReason, out var iconType))
+			if (!GameManager.EliminationSettings.TryGetEliminationData(eliminationReason, out var data))
 			{
-				Debug.LogError($"Attempted to display an elimination message for reason {eliminationReason}, but it has no icon type", base.gameObject);
+				Debug.LogError($"Attempted to display an elimination message for reason {eliminationReason}, but it has no data", base.gameObject);
 				return;
 			}
-			GenericMessageData messageData = new GenericMessageData(ColorizePlayerName(eliminatedPlayer.PlayerId.PlayerNameNoRichText, player1Color), iconType, InfoFeedIconSettings.Type.Elimination);
+			SelfEliminationMessageData messageData = new SelfEliminationMessageData(eliminatedPlayer.PlayerId.Guid, data.icon);
 			ServerShowMessageForAllClients(messageData);
 		}
 	}
@@ -531,7 +562,7 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	{
 		if (!(dominatingPlayer == null) && !(dominatedPlayer == null))
 		{
-			DominatingMessageData messageData = new DominatingMessageData(ColorizePlayerName(dominatingPlayer.PlayerId.PlayerNameNoRichText, player0Color), ColorizePlayerName(dominatedPlayer.PlayerId.PlayerNameNoRichText, player1Color));
+			DominatingMessageData messageData = new DominatingMessageData(dominatingPlayer.PlayerId.Guid, dominatedPlayer.PlayerId.Guid);
 			ServerShowMessageForAllClients(messageData);
 		}
 	}
@@ -540,7 +571,16 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	{
 		if (!(previouslyDominatedPlayer == null) && !(previouslyDominatingPlayer == null))
 		{
-			RevengeMessageData messageData = new RevengeMessageData(ColorizePlayerName(previouslyDominatedPlayer.PlayerId.PlayerNameNoRichText, player0Color), ColorizePlayerName(previouslyDominatingPlayer.PlayerId.PlayerNameNoRichText, player1Color));
+			RevengeMessageData messageData = new RevengeMessageData(previouslyDominatedPlayer.PlayerId.Guid, previouslyDominatingPlayer.PlayerId.Guid);
+			ServerShowMessageForAllClients(messageData);
+		}
+	}
+
+	private void ShowComebackMessageInternal(PlayerInfo player, int comebackBonus)
+	{
+		if (!(player == null))
+		{
+			ComebackMessageData messageData = new ComebackMessageData(player.PlayerId.Guid, comebackBonus);
 			ServerShowMessageForAllClients(messageData);
 		}
 	}
@@ -554,11 +594,50 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	}
 
 	[Server]
-	private void ServerShowMessageForAllClients(GenericMessageData messageData)
+	private void ServerShowMessageForAllClients(KnockoutMessageData messageData)
 	{
 		if (!NetworkServer.active)
 		{
-			Debug.LogWarning("[Server] function 'System.Void InfoFeed::ServerShowMessageForAllClients(InfoFeed/GenericMessageData)' called when server was not active");
+			Debug.LogWarning("[Server] function 'System.Void InfoFeed::ServerShowMessageForAllClients(InfoFeed/KnockoutMessageData)' called when server was not active");
+		}
+		else
+		{
+			RpcShowMessage(messageData);
+		}
+	}
+
+	[Server]
+	private void ServerShowMessageForAllClients(SelfKnockoutMessageData messageData)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogWarning("[Server] function 'System.Void InfoFeed::ServerShowMessageForAllClients(InfoFeed/SelfKnockoutMessageData)' called when server was not active");
+		}
+		else
+		{
+			RpcShowMessage(messageData);
+		}
+	}
+
+	[Server]
+	private void ServerShowMessageForAllClients(EliminationMessaqeData messageData)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogWarning("[Server] function 'System.Void InfoFeed::ServerShowMessageForAllClients(InfoFeed/EliminationMessaqeData)' called when server was not active");
+		}
+		else
+		{
+			RpcShowMessage(messageData);
+		}
+	}
+
+	[Server]
+	private void ServerShowMessageForAllClients(SelfEliminationMessageData messageData)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogWarning("[Server] function 'System.Void InfoFeed::ServerShowMessageForAllClients(InfoFeed/SelfEliminationMessageData)' called when server was not active");
 		}
 		else
 		{
@@ -657,12 +736,52 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 		}
 	}
 
+	[Server]
+	private void ServerShowMessageForAllClients(ComebackMessageData messageData)
+	{
+		if (!NetworkServer.active)
+		{
+			Debug.LogWarning("[Server] function 'System.Void InfoFeed::ServerShowMessageForAllClients(InfoFeed/ComebackMessageData)' called when server was not active");
+		}
+		else
+		{
+			RpcShowMessage(messageData);
+		}
+	}
+
 	[ClientRpc]
-	private void RpcShowMessage(GenericMessageData messageData)
+	private void RpcShowMessage(KnockoutMessageData messageData)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
-		GeneratedNetworkCode._Write_InfoFeed_002FGenericMessageData(writer, messageData);
-		SendRPCInternal("System.Void InfoFeed::RpcShowMessage(InfoFeed/GenericMessageData)", 1444391163, writer, 0, includeOwner: true);
+		GeneratedNetworkCode._Write_InfoFeed_002FKnockoutMessageData(writer, messageData);
+		SendRPCInternal("System.Void InfoFeed::RpcShowMessage(InfoFeed/KnockoutMessageData)", -1838257786, writer, 0, includeOwner: true);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[ClientRpc]
+	private void RpcShowMessage(EliminationMessaqeData messageData)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		GeneratedNetworkCode._Write_InfoFeed_002FEliminationMessaqeData(writer, messageData);
+		SendRPCInternal("System.Void InfoFeed::RpcShowMessage(InfoFeed/EliminationMessaqeData)", -2000009451, writer, 0, includeOwner: true);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[ClientRpc]
+	private void RpcShowMessage(SelfEliminationMessageData messageData)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		GeneratedNetworkCode._Write_InfoFeed_002FSelfEliminationMessageData(writer, messageData);
+		SendRPCInternal("System.Void InfoFeed::RpcShowMessage(InfoFeed/SelfEliminationMessageData)", -1754053707, writer, 0, includeOwner: true);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[ClientRpc]
+	private void RpcShowMessage(SelfKnockoutMessageData messageData)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		GeneratedNetworkCode._Write_InfoFeed_002FSelfKnockoutMessageData(writer, messageData);
+		SendRPCInternal("System.Void InfoFeed::RpcShowMessage(InfoFeed/SelfKnockoutMessageData)", 1405512492, writer, 0, includeOwner: true);
 		NetworkWriterPool.Return(writer);
 	}
 
@@ -726,6 +845,15 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		GeneratedNetworkCode._Write_InfoFeed_002FRevengeMessageData(writer, messageData);
 		SendRPCInternal("System.Void InfoFeed::RpcShowMessage(InfoFeed/RevengeMessageData)", 1646614592, writer, 0, includeOwner: true);
+		NetworkWriterPool.Return(writer);
+	}
+
+	[ClientRpc]
+	private void RpcShowMessage(ComebackMessageData messageData)
+	{
+		NetworkWriterPooled writer = NetworkWriterPool.Get();
+		GeneratedNetworkCode._Write_InfoFeed_002FComebackMessageData(writer, messageData);
+		SendRPCInternal("System.Void InfoFeed::RpcShowMessage(InfoFeed/ComebackMessageData)", 789964077, writer, 0, includeOwner: true);
 		NetworkWriterPool.Return(writer);
 	}
 
@@ -836,7 +964,10 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 	static InfoFeed()
 	{
 		messagePool = new Stack<InfoFeedMessage>();
-		RemoteProcedureCalls.RegisterRpc(typeof(InfoFeed), "System.Void InfoFeed::RpcShowMessage(InfoFeed/GenericMessageData)", InvokeUserCode_RpcShowMessage__GenericMessageData);
+		RemoteProcedureCalls.RegisterRpc(typeof(InfoFeed), "System.Void InfoFeed::RpcShowMessage(InfoFeed/KnockoutMessageData)", InvokeUserCode_RpcShowMessage__KnockoutMessageData);
+		RemoteProcedureCalls.RegisterRpc(typeof(InfoFeed), "System.Void InfoFeed::RpcShowMessage(InfoFeed/EliminationMessaqeData)", InvokeUserCode_RpcShowMessage__EliminationMessaqeData);
+		RemoteProcedureCalls.RegisterRpc(typeof(InfoFeed), "System.Void InfoFeed::RpcShowMessage(InfoFeed/SelfEliminationMessageData)", InvokeUserCode_RpcShowMessage__SelfEliminationMessageData);
+		RemoteProcedureCalls.RegisterRpc(typeof(InfoFeed), "System.Void InfoFeed::RpcShowMessage(InfoFeed/SelfKnockoutMessageData)", InvokeUserCode_RpcShowMessage__SelfKnockoutMessageData);
 		RemoteProcedureCalls.RegisterRpc(typeof(InfoFeed), "System.Void InfoFeed::RpcShowMessage(InfoFeed/FinishedHoleMessageData)", InvokeUserCode_RpcShowMessage__FinishedHoleMessageData);
 		RemoteProcedureCalls.RegisterRpc(typeof(InfoFeed), "System.Void InfoFeed::RpcShowMessage(InfoFeed/ScoredOnDrivingRangeMessageData)", InvokeUserCode_RpcShowMessage__ScoredOnDrivingRangeMessageData);
 		RemoteProcedureCalls.RegisterRpc(typeof(InfoFeed), "System.Void InfoFeed::RpcShowMessage(InfoFeed/StrokesMessageData)", InvokeUserCode_RpcShowMessage__StrokesMessageData);
@@ -844,6 +975,7 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 		RemoteProcedureCalls.RegisterRpc(typeof(InfoFeed), "System.Void InfoFeed::RpcShowMessage(InfoFeed/SpeedrunMessageData)", InvokeUserCode_RpcShowMessage__SpeedrunMessageData);
 		RemoteProcedureCalls.RegisterRpc(typeof(InfoFeed), "System.Void InfoFeed::RpcShowMessage(InfoFeed/DominatingMessageData)", InvokeUserCode_RpcShowMessage__DominatingMessageData);
 		RemoteProcedureCalls.RegisterRpc(typeof(InfoFeed), "System.Void InfoFeed::RpcShowMessage(InfoFeed/RevengeMessageData)", InvokeUserCode_RpcShowMessage__RevengeMessageData);
+		RemoteProcedureCalls.RegisterRpc(typeof(InfoFeed), "System.Void InfoFeed::RpcShowMessage(InfoFeed/ComebackMessageData)", InvokeUserCode_RpcShowMessage__ComebackMessageData);
 	}
 
 	public override bool Weaved()
@@ -851,12 +983,12 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 		return true;
 	}
 
-	protected void UserCode_RpcShowMessage__GenericMessageData(GenericMessageData messageData)
+	protected void UserCode_RpcShowMessage__KnockoutMessageData(KnockoutMessageData messageData)
 	{
 		ShowMessage(messageData);
 	}
 
-	protected static void InvokeUserCode_RpcShowMessage__GenericMessageData(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcShowMessage__KnockoutMessageData(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -864,7 +996,58 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 		}
 		else
 		{
-			((InfoFeed)obj).UserCode_RpcShowMessage__GenericMessageData(GeneratedNetworkCode._Read_InfoFeed_002FGenericMessageData(reader));
+			((InfoFeed)obj).UserCode_RpcShowMessage__KnockoutMessageData(GeneratedNetworkCode._Read_InfoFeed_002FKnockoutMessageData(reader));
+		}
+	}
+
+	protected void UserCode_RpcShowMessage__EliminationMessaqeData(EliminationMessaqeData messageData)
+	{
+		ShowMessage(messageData);
+	}
+
+	protected static void InvokeUserCode_RpcShowMessage__EliminationMessaqeData(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("RPC RpcShowMessage called on server.");
+		}
+		else
+		{
+			((InfoFeed)obj).UserCode_RpcShowMessage__EliminationMessaqeData(GeneratedNetworkCode._Read_InfoFeed_002FEliminationMessaqeData(reader));
+		}
+	}
+
+	protected void UserCode_RpcShowMessage__SelfEliminationMessageData(SelfEliminationMessageData messageData)
+	{
+		ShowMessage(messageData);
+	}
+
+	protected static void InvokeUserCode_RpcShowMessage__SelfEliminationMessageData(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("RPC RpcShowMessage called on server.");
+		}
+		else
+		{
+			((InfoFeed)obj).UserCode_RpcShowMessage__SelfEliminationMessageData(GeneratedNetworkCode._Read_InfoFeed_002FSelfEliminationMessageData(reader));
+		}
+	}
+
+	protected void UserCode_RpcShowMessage__SelfKnockoutMessageData(SelfKnockoutMessageData messageData)
+	{
+		ShowMessage(messageData);
+	}
+
+	protected static void InvokeUserCode_RpcShowMessage__SelfKnockoutMessageData(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("RPC RpcShowMessage called on server.");
+		}
+		else
+		{
+			((InfoFeed)obj).UserCode_RpcShowMessage__SelfKnockoutMessageData(GeneratedNetworkCode._Read_InfoFeed_002FSelfKnockoutMessageData(reader));
 		}
 	}
 
@@ -984,6 +1167,23 @@ public class InfoFeed : SingletonNetworkBehaviour<InfoFeed>
 		else
 		{
 			((InfoFeed)obj).UserCode_RpcShowMessage__RevengeMessageData(GeneratedNetworkCode._Read_InfoFeed_002FRevengeMessageData(reader));
+		}
+	}
+
+	protected void UserCode_RpcShowMessage__ComebackMessageData(ComebackMessageData messageData)
+	{
+		ShowMessage(messageData);
+	}
+
+	protected static void InvokeUserCode_RpcShowMessage__ComebackMessageData(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	{
+		if (!NetworkClient.active)
+		{
+			Debug.LogError("RPC RpcShowMessage called on server.");
+		}
+		else
+		{
+			((InfoFeed)obj).UserCode_RpcShowMessage__ComebackMessageData(GeneratedNetworkCode._Read_InfoFeed_002FComebackMessageData(reader));
 		}
 	}
 }

@@ -5,9 +5,9 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[NativeHeader("Runtime/Graphics/LOD/LODGroupManager.h")]
-[NativeHeader("Runtime/Graphics/LOD/LODGroup.h")]
 [StaticAccessor("GetLODGroupManager()", StaticAccessorType.Dot)]
+[NativeHeader("Runtime/Graphics/LOD/LODGroup.h")]
+[NativeHeader("Runtime/Graphics/LOD/LODGroupManager.h")]
 [NativeHeader("Runtime/Graphics/LOD/LODUtility.h")]
 public class LODGroup : Component
 {
@@ -195,6 +195,7 @@ public class LODGroup : Component
 	}
 
 	[FreeFunction("GetLODs_Binding", HasExplicitThis = true)]
+	[return: UnityMarshalAs(NativeType.ScriptingObjectPtr)]
 	public LOD[] GetLODs()
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
@@ -212,7 +213,7 @@ public class LODGroup : Component
 	}
 
 	[FreeFunction("SetLODs_Binding", HasExplicitThis = true)]
-	public void SetLODs([Unmarshalled] LOD[] lods)
+	public void SetLODs([UnityMarshalAs(NativeType.ScriptingObjectPtr)] LOD[] lods)
 	{
 		IntPtr intPtr = MarshalledUnityObject.MarshalNotNull(this);
 		if (intPtr == (IntPtr)0)

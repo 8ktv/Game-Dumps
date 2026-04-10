@@ -15,6 +15,8 @@ internal enum DataType
 	Url,
 	Time,
 	FilterFunction,
+	Prop,
 	Angle,
-	CustomIdent
+	CustomIdent,
+	Ratio
 }

@@ -7,8 +7,8 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.Animations;
 
-[NativeHeader("Modules/Animation/ScriptBindings/AnimationRemoveScalePlayable.bindings.h")]
 [NativeHeader("Modules/Animation/Director/AnimationRemoveScalePlayable.h")]
+[NativeHeader("Modules/Animation/ScriptBindings/AnimationRemoveScalePlayable.bindings.h")]
 [NativeHeader("Runtime/Director/Core/HPlayable.h")]
 [StaticAccessor("AnimationRemoveScalePlayableBindings", StaticAccessorType.DoubleColon)]
 [RequiredByNativeCode]

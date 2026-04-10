@@ -324,21 +324,21 @@ public static class SplineUtility
 			return default(Bounds);
 		}
 		BezierKnot bezierKnot = spline[0];
-		Bounds result = new Bounds(math.transform(transform, bezierKnot.Position), Vector3.zero);
+		Bounds result = new Bounds((Vector3)math.transform(transform, bezierKnot.Position), Vector3.zero);
 		if (spline.Closed)
 		{
-			result.Encapsulate(math.transform(transform, bezierKnot.Position + math.rotate(bezierKnot.Rotation, bezierKnot.TangentIn)));
+			result.Encapsulate((Vector3)math.transform(transform, bezierKnot.Position + math.rotate(bezierKnot.Rotation, bezierKnot.TangentIn)));
 		}
-		result.Encapsulate(math.transform(transform, bezierKnot.Position + math.rotate(bezierKnot.Rotation, bezierKnot.TangentOut)));
+		result.Encapsulate((Vector3)math.transform(transform, bezierKnot.Position + math.rotate(bezierKnot.Rotation, bezierKnot.TangentOut)));
 		int i = 1;
 		for (int count = spline.Count; i < count; i++)
 		{
 			bezierKnot = spline[i];
-			result.Encapsulate(math.transform(transform, bezierKnot.Position));
-			result.Encapsulate(math.transform(transform, bezierKnot.Position + math.rotate(bezierKnot.Rotation, bezierKnot.TangentIn)));
+			result.Encapsulate((Vector3)math.transform(transform, bezierKnot.Position));
+			result.Encapsulate((Vector3)math.transform(transform, bezierKnot.Position + math.rotate(bezierKnot.Rotation, bezierKnot.TangentIn)));
 			if (spline.Closed || (!spline.Closed && i < count - 1))
 			{
-				result.Encapsulate(math.transform(transform, bezierKnot.Position + math.rotate(bezierKnot.Rotation, bezierKnot.TangentOut)));
+				result.Encapsulate((Vector3)math.transform(transform, bezierKnot.Position + math.rotate(bezierKnot.Rotation, bezierKnot.TangentOut)));
 			}
 		}
 		return result;
@@ -679,9 +679,9 @@ public static class SplineUtility
 	{
 		if (math.lengthsq(tangent) == 0f)
 		{
-			tangent = math.rotate(Quaternion.FromToRotation(math.up(), normal), math.forward());
+			tangent = math.rotate(Quaternion.FromToRotation((Vector3)math.up(), (Vector3)normal), math.forward());
 		}
-		float3 up = (Mathf.Approximately(math.abs(math.dot(math.normalizesafe(tangent), math.normalizesafe(normal))), 1f) ? math.cross(math.normalizesafe(tangent), math.right()) : ((float3)Vector3.ProjectOnPlane(normal, tangent).normalized));
+		float3 up = (Mathf.Approximately(math.abs(math.dot(math.normalizesafe(tangent), math.normalizesafe(normal))), 1f) ? math.cross(math.normalizesafe(tangent), math.right()) : ((float3)Vector3.ProjectOnPlane((Vector3)normal, (Vector3)tangent).normalized));
 		return quaternion.LookRotationSafe(math.normalizesafe(tangent), up);
 	}
 
@@ -1085,7 +1085,7 @@ public static class SplineUtility
 			float3 position2 = value.Position;
 			value.Position = position;
 			splines[item.Spline].SetKnotNoNotify(item.Knot, value);
-			if (!Mathf.Approximately(Vector3.Distance(position, position2), 0f))
+			if (!Mathf.Approximately(Vector3.Distance((Vector3)position, (Vector3)position2), 0f))
 			{
 				splines[item.Spline].SetDirty(SplineModification.KnotModified, item.Knot);
 			}

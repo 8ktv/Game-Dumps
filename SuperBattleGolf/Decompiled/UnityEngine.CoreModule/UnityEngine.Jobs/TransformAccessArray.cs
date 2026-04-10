@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine.Bindings;
@@ -45,6 +46,12 @@ public struct TransformAccessArray : IDisposable
 		SetTransforms(m_TransformArray, transforms);
 	}
 
+	public unsafe TransformAccessArray(NativeArray<TransformHandle> transformHandles, int desiredJobCount = -1)
+	{
+		Allocate(transformHandles.Length, desiredJobCount, out this);
+		SetTransformHandles(m_TransformArray, transformHandles.GetUnsafeReadOnlyPtr(), transformHandles.Length);
+	}
+
 	public TransformAccessArray(int capacity, int desiredJobCount = -1)
 	{
 		Allocate(capacity, desiredJobCount, out this);
@@ -68,14 +75,35 @@ public struct TransformAccessArray : IDisposable
 		return m_TransformArray;
 	}
 
+	public TransformHandle GetTransformHandle(int index)
+	{
+		return GetTransformHandleInternal(m_TransformArray, index);
+	}
+
+	public void SetTransformHandle(int index, TransformHandle transformHandle)
+	{
+		SetTransformHandleInternal(m_TransformArray, index, transformHandle);
+	}
+
 	public void Add(Transform transform)
 	{
 		Add(m_TransformArray, transform);
 	}
 
+	[Obsolete("TransformAccessArray.Add(int) is obsolete. Use TransformAccessArray.Add(EntityId) instead.")]
 	public void Add(int instanceId)
 	{
 		AddInstanceId(m_TransformArray, instanceId);
+	}
+
+	public void Add(TransformHandle transformHandle)
+	{
+		AddTransformHandle(m_TransformArray, transformHandle);
+	}
+
+	public void Add(EntityId entityId)
+	{
+		AddInstanceId(m_TransformArray, entityId);
 	}
 
 	public void RemoveAtSwapBack(int index)
@@ -86,6 +114,11 @@ public struct TransformAccessArray : IDisposable
 	public void SetTransforms(Transform[] transforms)
 	{
 		SetTransforms(m_TransformArray, transforms);
+	}
+
+	public unsafe void SetTransformHandles(NativeArray<TransformHandle> transformHandles)
+	{
+		SetTransformHandles(m_TransformArray, transformHandles.GetUnsafeReadOnlyPtr(), transformHandles.Length);
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -100,15 +133,27 @@ public struct TransformAccessArray : IDisposable
 	[NativeMethod(Name = "TransformAccessArrayBindings::SetTransforms", IsFreeFunction = true)]
 	private static extern void SetTransforms(IntPtr transformArrayIntPtr, Transform[] transforms);
 
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	[NativeMethod(Name = "TransformAccessArrayBindings::SetTransformHandles", IsFreeFunction = true)]
+	private unsafe static extern void SetTransformHandles(IntPtr transformArrayIntPtr, void* transformHandles, int count);
+
 	[NativeMethod(Name = "TransformAccessArrayBindings::AddTransform", IsFreeFunction = true)]
 	private static void Add(IntPtr transformArrayIntPtr, Transform transform)
 	{
 		Add_Injected(transformArrayIntPtr, Object.MarshalledUnityObject.Marshal(transform));
 	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
+	[NativeMethod(Name = "TransformAccessArrayBindings::AddTransformHandle", IsFreeFunction = true)]
+	private static void AddTransformHandle(IntPtr transformArrayIntPtr, TransformHandle transformHandle)
+	{
+		AddTransformHandle_Injected(transformArrayIntPtr, ref transformHandle);
+	}
+
 	[NativeMethod(Name = "TransformAccessArrayBindings::AddTransformInstanceId", IsFreeFunction = true)]
-	private static extern void AddInstanceId(IntPtr transformArrayIntPtr, int instanceId);
+	private static void AddInstanceId(IntPtr transformArrayIntPtr, EntityId instanceId)
+	{
+		AddInstanceId_Injected(transformArrayIntPtr, ref instanceId);
+	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	[NativeMethod(Name = "TransformAccessArrayBindings::RemoveAtSwapBack", IsFreeFunction = true, ThrowsException = true)]
@@ -146,12 +191,37 @@ public struct TransformAccessArray : IDisposable
 		SetTransform_Injected(transformArrayIntPtr, index, Object.MarshalledUnityObject.Marshal(transform));
 	}
 
+	[NativeMethod(Name = "TransformAccessArrayBindings::GetTransformHandle", IsFreeFunction = true, ThrowsException = true)]
+	internal static TransformHandle GetTransformHandleInternal(IntPtr transformArrayIntPtr, int index)
+	{
+		GetTransformHandleInternal_Injected(transformArrayIntPtr, index, out var ret);
+		return ret;
+	}
+
+	[NativeMethod(Name = "TransformAccessArrayBindings::SetTransformHandle", IsFreeFunction = true, ThrowsException = true)]
+	internal static void SetTransformHandleInternal(IntPtr transformArrayIntPtr, int index, TransformHandle transformHandle)
+	{
+		SetTransformHandleInternal_Injected(transformArrayIntPtr, index, ref transformHandle);
+	}
+
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void Add_Injected(IntPtr transformArrayIntPtr, IntPtr transform);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void AddTransformHandle_Injected(IntPtr transformArrayIntPtr, [In] ref TransformHandle transformHandle);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void AddInstanceId_Injected(IntPtr transformArrayIntPtr, [In] ref EntityId instanceId);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern IntPtr GetTransform_Injected(IntPtr transformArrayIntPtr, int index);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void SetTransform_Injected(IntPtr transformArrayIntPtr, int index, IntPtr transform);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void GetTransformHandleInternal_Injected(IntPtr transformArrayIntPtr, int index, out TransformHandle ret);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void SetTransformHandleInternal_Injected(IntPtr transformArrayIntPtr, int index, [In] ref TransformHandle transformHandle);
 }

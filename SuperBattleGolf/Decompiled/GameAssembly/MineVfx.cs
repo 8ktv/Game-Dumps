@@ -74,7 +74,12 @@ public class MineVfx : MonoBehaviour, IBUpdateCallback, IAnyBUpdateCallback
 		if (!skipArmingEffects)
 		{
 			PlayArmedBlink(soundOnly: true);
-			VfxManager.PlayPooledVfxLocalOnly(VfxType.MineArmedStart, base.transform.position, base.transform.rotation);
+			if (VfxPersistentData.TryGetPooledVfx(VfxType.MineArmedStart, out var particleSystem))
+			{
+				particleSystem.transform.SetParent(base.transform);
+				particleSystem.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+				particleSystem.Play();
+			}
 			RuntimeManager.PlayOneShotAttached(GameManager.AudioSettings.LandmineArmEvent, base.gameObject);
 		}
 	}

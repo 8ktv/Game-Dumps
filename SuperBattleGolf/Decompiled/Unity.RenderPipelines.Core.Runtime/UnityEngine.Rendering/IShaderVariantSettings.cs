@@ -2,7 +2,7 @@ using System;
 
 namespace UnityEngine.Rendering;
 
-[Obsolete("Use GraphicsSettings.GetRenderPipelineSettings<ShaderStrippingSetting>(). #from(23.3)")]
+[Obsolete("Use GraphicsSettings.GetRenderPipelineSettings<ShaderStrippingSetting>(). #from(2023.3)")]
 public interface IShaderVariantSettings
 {
 	ShaderVariantLogLevel shaderVariantLogLevel { get; set; }

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Unity.Properties;
+using UnityEngine.Bindings;
 
 namespace UnityEngine.UIElements;
 
+[Serializable]
 public struct Background : IEquatable<Background>
 {
 	internal class PropertyBag : ContainerPropertyBag<Background>
@@ -85,12 +87,16 @@ public struct Background : IEquatable<Background>
 		}
 	}
 
+	[SerializeField]
 	private Texture2D m_Texture;
 
+	[SerializeField]
 	private Sprite m_Sprite;
 
+	[SerializeField]
 	private RenderTexture m_RenderTexture;
 
+	[SerializeField]
 	private VectorImage m_VectorImage;
 
 	public Texture2D texture
@@ -217,6 +223,7 @@ public struct Background : IEquatable<Background>
 		};
 	}
 
+	[VisibleToOtherModules(new string[] { "UnityEditor.UIToolkitAuthoringModule" })]
 	internal static Background FromObject(object obj)
 	{
 		Texture2D texture2D = obj as Texture2D;

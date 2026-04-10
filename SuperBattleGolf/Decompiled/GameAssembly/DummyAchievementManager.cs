@@ -21,6 +21,7 @@ public class DummyAchievementManager : AchievementsManager
 		else if (unlockedAchievements.Add(id))
 		{
 			Debug.Log($"Unlocked achievement {id}");
+			OnAchievementUnlocked(id);
 		}
 	}
 
@@ -50,7 +51,7 @@ public class DummyAchievementManager : AchievementsManager
 			Debug.LogError($"Attempted to set achievement {id} progress to {value}, but it's lower than the current progress of {value3}");
 			return;
 		}
-		achievementProgress[id] = value3;
+		achievementProgress[id] = value;
 		Debug.Log($"Set achievement {id} progress to {value}/{value2.RequiredProgress}");
 		if (value >= value2.RequiredProgress)
 		{

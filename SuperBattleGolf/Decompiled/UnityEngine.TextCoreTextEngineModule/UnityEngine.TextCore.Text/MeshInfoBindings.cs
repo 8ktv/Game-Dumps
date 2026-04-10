@@ -3,9 +3,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine.TextCore.Text;
 
-[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule" })]
-[UsedByNativeCode("MeshInfo")]
 [NativeHeader("Modules/TextCoreTextEngine/Native/IMGUI/MeshInfo.h")]
+[UsedByNativeCode("MeshInfo")]
+[VisibleToOtherModules(new string[] { "UnityEngine.IMGUIModule" })]
 internal struct MeshInfoBindings
 {
 	public TextCoreVertex[] vertexData;

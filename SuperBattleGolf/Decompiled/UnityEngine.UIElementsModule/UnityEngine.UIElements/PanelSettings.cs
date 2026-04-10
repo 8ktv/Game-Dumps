@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using UnityEngine.Bindings;
 using UnityEngine.Serialization;
 using UnityEngine.TextCore.Text;
 using UnityEngine.UIElements.UIR;
@@ -17,13 +18,15 @@ public class PanelSettings : ScriptableObject
 
 		internal bool isInitialized => m_RuntimePanel != null;
 
+		internal bool isTransient { get; set; }
+
 		internal BaseRuntimePanel panel
 		{
 			get
 			{
 				if (m_RuntimePanel == null)
 				{
-					m_RuntimePanel = CreateRelatedRuntimePanel();
+					m_RuntimePanel = (isTransient ? RuntimePanel.Create(m_Settings) : CreateRelatedRuntimePanel());
 					m_RuntimePanel.sortingPriority = m_Settings.m_SortingOrder;
 					m_RuntimePanel.targetDisplay = m_Settings.m_TargetDisplay;
 					m_RuntimePanel.panelChangeReceiver = m_Settings.GetPanelChangeReceiver();
@@ -182,6 +185,9 @@ public class PanelSettings : ScriptableObject
 	[SerializeField]
 	private uint m_VertexBudget = 0u;
 
+	[SerializeField]
+	private TextureSlotCount m_TextureSlotCount = TextureSlotCount.Eight;
+
 	private RuntimePanelAccess m_PanelAccess;
 
 	internal UIDocumentList m_AttachedUIDocumentsList;
@@ -194,28 +200,32 @@ public class PanelSettings : ScriptableObject
 	[HideInInspector]
 	private Shader m_AtlasBlitShader;
 
-	[HideInInspector]
 	[SerializeField]
-	private Shader m_RuntimeShader;
+	[HideInInspector]
+	private Shader m_DefaultShader;
 
 	[SerializeField]
 	[HideInInspector]
-	private Shader m_RuntimeWorldShader;
+	private Shader m_RuntimeGaussianBlurShader;
 
 	[SerializeField]
 	[HideInInspector]
+	private Shader m_RuntimeColorEffectShader;
+
+	[HideInInspector]
+	[SerializeField]
 	private Shader m_SDFShader;
 
 	[HideInInspector]
 	[SerializeField]
 	private Shader m_BitmapShader;
 
-	[SerializeField]
 	[HideInInspector]
+	[SerializeField]
 	private Shader m_SpriteShader;
 
-	[HideInInspector]
 	[SerializeField]
+	[HideInInspector]
 	internal TextAsset m_ICUDataAsset;
 
 	[SerializeField]
@@ -244,6 +254,18 @@ public class PanelSettings : ScriptableObject
 		{
 			themeUss = value;
 			ApplyThemeStyleSheet();
+		}
+	}
+
+	internal bool disableNoThemeWarning
+	{
+		get
+		{
+			return m_DisableNoThemeWarning;
+		}
+		set
+		{
+			m_DisableNoThemeWarning = value;
 		}
 	}
 
@@ -496,9 +518,40 @@ public class PanelSettings : ScriptableObject
 		}
 	}
 
-	internal BaseRuntimePanel panel => m_PanelAccess.panel;
+	public TextureSlotCount textureSlotCount
+	{
+		get
+		{
+			return m_TextureSlotCount;
+		}
+		set
+		{
+			m_TextureSlotCount = value;
+		}
+	}
+
+	internal BaseRuntimePanel panel
+	{
+		[VisibleToOtherModules(new string[] { "UnityEngine.VectorGraphicsModule" })]
+		get
+		{
+			return m_PanelAccess.panel;
+		}
+	}
 
 	internal bool isInitialized => m_PanelAccess?.isInitialized ?? false;
+
+	internal bool isTransient
+	{
+		get
+		{
+			return m_PanelAccess.isTransient;
+		}
+		set
+		{
+			m_PanelAccess.isTransient = value;
+		}
+	}
 
 	internal VisualElement visualTree => m_PanelAccess.panel.visualTree;
 
@@ -532,10 +585,6 @@ public class PanelSettings : ScriptableObject
 
 	private void OnEnable()
 	{
-		if (!m_DisableNoThemeWarning && themeUss == null)
-		{
-			Debug.LogWarning("No Theme Style Sheet set to PanelSettings " + base.name + ", UI will not render properly", this);
-		}
 		UpdateScreenDPI();
 		InitializeShaders();
 		AssignICUData();
@@ -585,6 +634,10 @@ public class PanelSettings : ScriptableObject
 				themeUss.isDefaultStyleSheet = true;
 				root?.styleSheets.Add(themeUss);
 			}
+			else if (!m_DisableNoThemeWarning)
+			{
+				Debug.LogWarning("No Theme Style Sheet set to PanelSettings " + base.name + ", UI will not render properly", this);
+			}
 			m_OldThemeUss = themeUss;
 		}
 	}
@@ -600,13 +653,17 @@ public class PanelSettings : ScriptableObject
 		{
 			m_AtlasBlitShader = Shader.Find(Shaders.k_AtlasBlit);
 		}
-		if (m_RuntimeShader == null)
+		if (m_DefaultShader == null)
 		{
-			m_RuntimeShader = Shader.Find(Shaders.k_Runtime);
+			m_DefaultShader = Shader.Find(Shaders.k_Default);
 		}
-		if (m_RuntimeWorldShader == null)
+		if (m_RuntimeGaussianBlurShader == null)
 		{
-			m_RuntimeWorldShader = Shader.Find(Shaders.k_RuntimeWorld);
+			m_RuntimeGaussianBlurShader = Shader.Find(Shaders.k_RuntimeGaussianBlur);
+		}
+		if (m_RuntimeColorEffectShader == null)
+		{
+			m_RuntimeColorEffectShader = Shader.Find(Shaders.k_RuntimeColorEffect);
 		}
 		if (m_SDFShader == null)
 		{
@@ -663,6 +720,7 @@ public class PanelSettings : ScriptableObject
 		};
 		baseRuntimePanel.referenceSpritePixelsPerUnit = referenceSpritePixelsPerUnit;
 		baseRuntimePanel.panelRenderer.vertexBudget = m_VertexBudget;
+		baseRuntimePanel.panelRenderer.textureSlotCount = m_TextureSlotCount;
 		baseRuntimePanel.dataBindingManager.logLevel = m_BindingLogLevel;
 		if (baseRuntimePanel.atlas is DynamicAtlas dynamicAtlas)
 		{

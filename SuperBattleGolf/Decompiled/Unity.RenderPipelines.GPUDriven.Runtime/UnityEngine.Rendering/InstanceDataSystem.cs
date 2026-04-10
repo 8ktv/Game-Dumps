@@ -76,7 +76,7 @@ internal class InstanceDataSystem : IDisposable
 		[NativeDisableContainerSafetyRestriction]
 		[NoAlias]
 		[ReadOnly]
-		public NativeArray<int> rendererGroupIDs;
+		public NativeArray<EntityId> rendererGroupIDs;
 
 		[NativeDisableContainerSafetyRestriction]
 		[NoAlias]
@@ -87,8 +87,8 @@ internal class InstanceDataSystem : IDisposable
 		{
 			for (int i = startIndex; i < startIndex + count; i++)
 			{
-				int key = rendererGroupIDs[i];
-				if (rendererGroupInstanceMultiHash.TryGetFirstValue(key, out var item, out var _))
+				EntityId entityId = rendererGroupIDs[i];
+				if (rendererGroupInstanceMultiHash.TryGetFirstValue(entityId, out var item, out var _))
 				{
 					SharedInstanceHandle instance = instanceData.Get_SharedInstance(item);
 					int value = sharedInstanceData.Get_RefCount(instance);
@@ -136,7 +136,7 @@ internal class InstanceDataSystem : IDisposable
 		[NativeDisableContainerSafetyRestriction]
 		[NoAlias]
 		[ReadOnly]
-		public NativeArray<int> rendererGroupIDs;
+		public NativeArray<EntityId> rendererGroupIDs;
 
 		[NativeDisableContainerSafetyRestriction]
 		[NoAlias]
@@ -177,7 +177,7 @@ internal class InstanceDataSystem : IDisposable
 		[NativeDisableContainerSafetyRestriction]
 		[NoAlias]
 		[ReadOnly]
-		public NativeArray<int> rendererGroupIDs;
+		public NativeArray<EntityId> rendererGroupIDs;
 
 		[NativeDisableContainerSafetyRestriction]
 		[NoAlias]
@@ -206,12 +206,12 @@ internal class InstanceDataSystem : IDisposable
 			int num2 = 0;
 			for (int i = startIndex; i < startIndex + count; i++)
 			{
-				int key = rendererGroupIDs[i];
+				EntityId entityId = rendererGroupIDs[i];
 				int num3 = instancesOffsets[i];
 				int num4 = instancesCounts[i];
 				InstanceHandle item;
 				NativeParallelMultiHashMapIterator<int> it;
-				bool flag = rendererGroupInstanceMultiHash.TryGetFirstValue(key, out item, out it);
+				bool flag = rendererGroupInstanceMultiHash.TryGetFirstValue(entityId, out item, out it);
 				if (!flag)
 				{
 					num++;
@@ -254,7 +254,7 @@ internal class InstanceDataSystem : IDisposable
 		public CPUSharedInstanceData sharedInstanceData;
 
 		[ReadOnly]
-		public NativeArray<int> sortedMeshID;
+		public NativeArray<EntityId> sortedMeshID;
 
 		[NativeDisableParallelForRestriction]
 		[WriteOnly]
@@ -268,24 +268,24 @@ internal class InstanceDataSystem : IDisposable
 				int index = startIndex + i;
 				_ = instanceData.instances[index];
 				SharedInstanceHandle instance = instanceData.sharedInstances[index];
-				int value = sharedInstanceData.Get_MeshID(instance);
-				if (sortedMeshID.BinarySearch(value) >= 0)
+				int num2 = sharedInstanceData.Get_MeshID(instance);
+				if (sortedMeshID.BinarySearch(num2) >= 0)
 				{
 					num |= (ulong)(1L << i);
 				}
 			}
-			int num2 = math.countbits(num);
-			if (num2 > 0)
+			int num3 = math.countbits(num);
+			if (num3 > 0)
 			{
-				int num3 = AtomicAddLengthNoResize(in instances, num2);
-				int num4 = math.tzcnt(num);
+				int num4 = AtomicAddLengthNoResize(in instances, num3);
+				int num5 = math.tzcnt(num);
 				while (num != 0L)
 				{
-					int index2 = startIndex + num4;
-					instances[num3] = instanceData.instances[index2];
-					num3++;
-					num &= (ulong)(~(1L << num4));
-					num4 = math.tzcnt(num);
+					int index2 = startIndex + num5;
+					instances[num4] = instanceData.instances[index2];
+					num4++;
+					num &= (ulong)(~(1L << num5));
+					num5 = math.tzcnt(num);
 				}
 			}
 		}
@@ -618,10 +618,10 @@ internal class InstanceDataSystem : IDisposable
 
 		public unsafe void Execute(int index)
 		{
-			int rendererGroupID = rendererData.rendererGroupID[index];
+			EntityId rendererGroupID = rendererData.rendererGroupID[index];
 			int index2 = rendererData.meshIndex[index];
 			GPUDrivenPackedRendererData gPUDrivenPackedRendererData = rendererData.packedRendererData[index];
-			int key = rendererData.lodGroupID[index];
+			EntityId entityId = rendererData.lodGroupID[index];
 			int gameObjectLayer = rendererData.gameObjectLayer[index];
 			int num = rendererData.lightmapIndex[index];
 			AABB localAABB = rendererData.localBounds[index].ToAABB();
@@ -662,7 +662,7 @@ internal class InstanceDataSystem : IDisposable
 				instanceFlags |= InstanceFlags.SmallMeshCulling;
 			}
 			uint lodGroupAndMask = uint.MaxValue;
-			if (lodGroupDataMap.TryGetValue(key, out var item) && gPUDrivenPackedRendererData.lodMask > 0)
+			if (lodGroupDataMap.TryGetValue(entityId, out var item) && gPUDrivenPackedRendererData.lodMask > 0)
 			{
 				lodGroupAndMask = (uint)((item.index << 8) | gPUDrivenPackedRendererData.lodMask);
 			}
@@ -682,11 +682,11 @@ internal class InstanceDataSystem : IDisposable
 			{
 				InstanceHandle instance = instances[num6];
 				SharedInstanceHandle instance2 = instanceData.Get_SharedInstance(instance);
-				SmallIntegerArray materialIDs = new SmallIntegerArray(num3, Allocator.Persistent);
+				SmallEntityIdArray materialIDs = new SmallEntityIdArray(num3, Allocator.Persistent);
 				for (int i = 0; i < num3; i++)
 				{
 					int index3 = rendererData.materialIndex[num2 + i];
-					int value = rendererData.materialID[index3];
+					EntityId value = rendererData.materialID[index3];
 					materialIDs[i] = value;
 				}
 				sharedInstanceData.Set(instance2, rendererGroupID, in materialIDs, meshID, in localAABB, transformUpdateFlags, instanceFlags, lodGroupAndMask, meshLodInfo, gameObjectLayer, sharedInstanceData.Get_RefCount(instance2));
@@ -1257,7 +1257,7 @@ internal class InstanceDataSystem : IDisposable
 		InstanceDataSystemBurst.ReallocateInstances(num2, in rendererData.rendererGroupID, in rendererData.packedRendererData, in rendererData.instancesOffset, in rendererData.instancesCount, ref m_InstanceAllocators, ref m_InstanceData, ref m_PerCameraInstanceData, ref m_SharedInstanceData, ref instances, ref m_RendererGroupInstanceMultiHash);
 	}
 
-	public void FreeRendererGroupInstances(NativeArray<int> rendererGroupsID)
+	public void FreeRendererGroupInstances(NativeArray<EntityId> rendererGroupsID)
 	{
 		InstanceDataSystemBurst.FreeRendererGroupInstances(rendererGroupsID.AsReadOnly(), ref m_InstanceAllocators, ref m_InstanceData, ref m_PerCameraInstanceData, ref m_SharedInstanceData, ref m_RendererGroupInstanceMultiHash);
 	}
@@ -1315,7 +1315,7 @@ internal class InstanceDataSystem : IDisposable
 		}
 	}
 
-	public JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<int> rendererGroupIDs, NativeArray<InstanceHandle> instances)
+	public JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<EntityId> rendererGroupIDs, NativeArray<InstanceHandle> instances)
 	{
 		if (rendererGroupIDs.Length == 0)
 		{
@@ -1329,7 +1329,7 @@ internal class InstanceDataSystem : IDisposable
 		}.ScheduleBatch(rendererGroupIDs.Length, 128);
 	}
 
-	public JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<int> rendererGroupIDs, NativeList<InstanceHandle> instances)
+	public JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<EntityId> rendererGroupIDs, NativeList<InstanceHandle> instances)
 	{
 		if (rendererGroupIDs.Length == 0)
 		{
@@ -1343,7 +1343,7 @@ internal class InstanceDataSystem : IDisposable
 		return jobHandle;
 	}
 
-	public JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<int> rendererGroupIDs, NativeArray<int> instancesOffset, NativeArray<int> instancesCount, NativeList<InstanceHandle> instances)
+	public JobHandle ScheduleQueryRendererGroupInstancesJob(NativeArray<EntityId> rendererGroupIDs, NativeArray<int> instancesOffset, NativeArray<int> instancesCount, NativeList<InstanceHandle> instances)
 	{
 		if (rendererGroupIDs.Length == 0)
 		{
@@ -1373,7 +1373,7 @@ internal class InstanceDataSystem : IDisposable
 		}.ScheduleBatch(rendererGroupIDs.Length, 128, dependsOn2);
 	}
 
-	public JobHandle ScheduleQuerySortedMeshInstancesJob(NativeArray<int> sortedMeshIDs, NativeList<InstanceHandle> instances)
+	public JobHandle ScheduleQuerySortedMeshInstancesJob(NativeArray<EntityId> sortedMeshIDs, NativeList<InstanceHandle> instances)
 	{
 		if (sortedMeshIDs.Length == 0)
 		{
@@ -1498,12 +1498,12 @@ internal class InstanceDataSystem : IDisposable
 		}.ScheduleBatch(m_InstanceData.instancesLength, 64).Complete();
 	}
 
-	public void DeallocatePerCameraInstanceData(NativeArray<int> cameraIDs)
+	public void DeallocatePerCameraInstanceData(NativeArray<EntityId> cameraIDs)
 	{
 		m_PerCameraInstanceData.DeallocateCameras(cameraIDs);
 	}
 
-	public void AllocatePerCameraInstanceData(NativeArray<int> cameraIDs)
+	public void AllocatePerCameraInstanceData(NativeArray<EntityId> cameraIDs)
 	{
 		m_PerCameraInstanceData.AllocateCameras(cameraIDs);
 	}

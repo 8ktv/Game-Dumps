@@ -97,9 +97,9 @@ internal struct CPUPerCameraInstanceData : IDisposable
 		instancesLength = 0;
 	}
 
-	public void DeallocateCameras(NativeArray<int> cameraIDs)
+	public void DeallocateCameras(NativeArray<EntityId> cameraIDs)
 	{
-		foreach (int item2 in cameraIDs)
+		foreach (EntityId item2 in cameraIDs)
 		{
 			if (perCameraData.TryGetValue(item2, out var item))
 			{
@@ -109,9 +109,9 @@ internal struct CPUPerCameraInstanceData : IDisposable
 		}
 	}
 
-	public void AllocateCameras(NativeArray<int> cameraIDs)
+	public void AllocateCameras(NativeArray<EntityId> cameraIDs)
 	{
-		foreach (int item2 in cameraIDs)
+		foreach (EntityId item2 in cameraIDs)
 		{
 			if (!perCameraData.TryGetValue(item2, out var item))
 			{

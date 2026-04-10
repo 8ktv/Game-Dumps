@@ -1,5 +1,6 @@
 public enum RadialMenuMode
 {
 	None,
-	Emote
+	Emote,
+	SpectatorEmote
 }

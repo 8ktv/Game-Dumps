@@ -43,6 +43,11 @@ public struct NativeParallelMultiHashMap<TKey, TValue> : INativeDisposable, IDis
 		{
 			m_Writer.Add(key, item);
 		}
+
+		public void Add(TKey key, TValue item, int threadIndexOverride)
+		{
+			m_Writer.Add(key, item, threadIndexOverride);
+		}
 	}
 
 	public struct Enumerator : IEnumerator<TValue>, IEnumerator, IDisposable

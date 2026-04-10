@@ -151,20 +151,20 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>, ILateBUpdate
 					break;
 				case TutorialPrompt.ChargeSwing:
 				{
-					bool flag2 = GameManager.LocalPlayerAsGolfer != null && GameManager.LocalPlayerAsGolfer.IsChargingSwing && GameManager.LocalPlayerAsGolfer.SwingNormalizedPower <= 1f;
-					SetPromptNormalizedProgress(flag2 ? (GameManager.LocalPlayerAsGolfer.SwingNormalizedPower / settings.ChargeSwingMinimumSwingNormalizedPower) : 0f);
+					bool flag2 = GameManager.LocalPlayerAsGolfer != null && GameManager.LocalPlayerAsGolfer.IsChargingSwing && GameManager.LocalPlayerAsGolfer.SwingNormalizedCharge <= 1f;
+					SetPromptNormalizedProgress(flag2 ? (GameManager.LocalPlayerAsGolfer.SwingNormalizedCharge / settings.ChargeSwingMinimumSwingNormalizedPower) : 0f);
 					break;
 				}
 				case TutorialPrompt.HomingShot:
 				{
 					bool flag2 = GameManager.LocalPlayerAsGolfer != null && GameManager.LocalPlayerAsGolfer.IsChargingSwing;
-					SetPromptNormalizedProgress(flag2 ? GameManager.LocalPlayerAsGolfer.SwingNormalizedPower : 0f);
+					SetPromptNormalizedProgress(flag2 ? GameManager.LocalPlayerAsGolfer.SwingNormalizedCharge : 0f);
 					break;
 				}
 				case TutorialPrompt.Putt:
 				{
 					bool flag = GameManager.LocalPlayerAsGolfer != null && GameManager.LocalPlayerAsGolfer.IsChargingSwing && GameManager.LocalPlayerAsGolfer.SwingPitch <= 0f;
-					SetPromptNormalizedProgress(flag ? (GameManager.LocalPlayerAsGolfer.SwingNormalizedPower / settings.PuttMinimumSwingNormalizedPower) : 0f);
+					SetPromptNormalizedProgress(flag ? (GameManager.LocalPlayerAsGolfer.SwingNormalizedCharge / settings.PuttMinimumSwingNormalizedPower) : 0f);
 					break;
 				}
 				case TutorialPrompt.ViewScore:

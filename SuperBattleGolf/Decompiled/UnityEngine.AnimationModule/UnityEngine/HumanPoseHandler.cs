@@ -7,8 +7,8 @@ using UnityEngine.Bindings;
 
 namespace UnityEngine;
 
-[NativeHeader("Modules/Animation/HumanPoseHandler.h")]
 [NativeHeader("Modules/Animation/ScriptBindings/Animation.bindings.h")]
+[NativeHeader("Modules/Animation/HumanPoseHandler.h")]
 public class HumanPoseHandler : IDisposable
 {
 	internal static class BindingsMarshaller

@@ -14,32 +14,32 @@ public class EnumField : BaseField<Enum>
 	[ExcludeFromDocs]
 	public new class UxmlSerializedData : BaseField<Enum>.UxmlSerializedData
 	{
-		[UxmlTypeReference(typeof(Enum))]
-		[SerializeField]
 		[UxmlAttribute("type")]
+		[SerializeField]
+		[UxmlTypeReference(typeof(Enum))]
 		private string typeAsString;
 
-		[EnumFieldValueDecorator]
 		[UxmlAttribute("value")]
 		[SerializeField]
+		[EnumFieldValueDecorator]
 		private string valueAsString;
 
 		[SerializeField]
 		private bool includeObsoleteValues;
 
-		[HideInInspector]
-		[SerializeField]
 		[UxmlIgnore]
+		[SerializeField]
+		[HideInInspector]
 		private UxmlAttributeFlags typeAsString_UxmlAttributeFlags;
 
 		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
 		private UxmlAttributeFlags valueAsString_UxmlAttributeFlags;
 
-		[SerializeField]
 		[HideInInspector]
 		[UxmlIgnore]
+		[SerializeField]
 		private UxmlAttributeFlags includeObsoleteValues_UxmlAttributeFlags;
 
 		[Conditional("UNITY_EDITOR")]
@@ -135,7 +135,7 @@ public class EnumField : BaseField<Enum>
 
 	private EnumData m_EnumData;
 
-	internal Func<IGenericMenu> createMenuCallback;
+	internal Func<AbstractGenericMenu> createMenuCallback;
 
 	public new static readonly string ussClassName = "unity-enum-field";
 
@@ -364,17 +364,17 @@ public class EnumField : BaseField<Enum>
 		{
 			return;
 		}
-		IGenericMenu genericMenu = ((createMenuCallback != null) ? createMenuCallback() : base.elementPanel.CreateMenu());
+		AbstractGenericMenu abstractGenericMenu = ((createMenuCallback != null) ? createMenuCallback() : base.elementPanel.CreateMenu());
 		int num = Array.IndexOf(m_EnumData.values, value);
 		for (int i = 0; i < m_EnumData.values.Length; i++)
 		{
 			bool isChecked = num == i;
-			genericMenu.AddItem(m_EnumData.displayNames[i], isChecked, delegate(object contentView)
+			abstractGenericMenu.AddItem(m_EnumData.displayNames[i], isChecked, delegate(object contentView)
 			{
 				ChangeValueFromMenu(contentView);
 			}, m_EnumData.values[i]);
 		}
-		genericMenu.DropDown(base.visualInput.worldBound, this, anchored: true);
+		abstractGenericMenu.DropDown(base.visualInput.worldBound, this, DropdownMenuSizeMode.Fixed);
 	}
 
 	private void ChangeValueFromMenu(object menuItem)

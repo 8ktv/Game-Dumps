@@ -27,13 +27,13 @@ public static class TerrainExtensions
 		UpdateGIMaterialsForTerrain(terrain.GetInstanceID(), new Rect((float)x / num, (float)y / num2, (float)width / num, (float)height / num2));
 	}
 
-	[NativeConditional("INCLUDE_DYNAMIC_GI && ENABLE_RUNTIME_GI")]
 	[FreeFunction]
-	internal static void UpdateGIMaterialsForTerrain(int terrainInstanceID, Rect uvBounds)
+	[NativeConditional("INCLUDE_DYNAMIC_GI && ENABLE_RUNTIME_GI")]
+	internal static void UpdateGIMaterialsForTerrain(EntityId terrainInstanceID, Rect uvBounds)
 	{
-		UpdateGIMaterialsForTerrain_Injected(terrainInstanceID, ref uvBounds);
+		UpdateGIMaterialsForTerrain_Injected(ref terrainInstanceID, ref uvBounds);
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
-	private static extern void UpdateGIMaterialsForTerrain_Injected(int terrainInstanceID, [In] ref Rect uvBounds);
+	private static extern void UpdateGIMaterialsForTerrain_Injected([In] ref EntityId terrainInstanceID, [In] ref Rect uvBounds);
 }

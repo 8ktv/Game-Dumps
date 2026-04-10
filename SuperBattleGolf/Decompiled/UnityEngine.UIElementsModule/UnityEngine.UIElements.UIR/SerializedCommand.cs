@@ -16,11 +16,13 @@ internal struct SerializedCommand
 
 	public int textureName;
 
-	public Texture texture;
+	public IntPtr texturePtr;
 
 	public int gpuDataOffset;
 
 	public Vector4 gpuData0;
 
 	public Vector4 gpuData1;
+
+	public MaterialPropertyBlock userProps;
 }

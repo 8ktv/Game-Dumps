@@ -8,5 +8,6 @@ internal enum HorizontalAlignment
 	Left,
 	Center,
 	Right,
-	Justified
+	Justified,
+	Flush
 }

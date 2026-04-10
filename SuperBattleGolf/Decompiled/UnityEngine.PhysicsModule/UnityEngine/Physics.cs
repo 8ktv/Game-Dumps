@@ -10,9 +10,9 @@ using UnityEngine.Scripting;
 
 namespace UnityEngine;
 
-[NativeHeader("Modules/Physics/PhysicsQuery.h")]
-[NativeHeader("Modules/Physics/PhysicsManager.h")]
 [StaticAccessor("GetPhysicsManager()", StaticAccessorType.Dot)]
+[NativeHeader("Modules/Physics/PhysicsManager.h")]
+[NativeHeader("Modules/Physics/PhysicsQuery.h")]
 public class Physics
 {
 	public delegate void ContactEventDelegate(PhysicsScene scene, NativeArray<ContactPairHeader>.ReadOnly headerArray);
@@ -139,14 +139,6 @@ public class Physics
 
 	public static PhysicsScene defaultPhysicsScene => PhysicsScene.GetDefaultScene();
 
-	public static extern bool autoSyncTransforms
-	{
-		[MethodImpl(MethodImplOptions.InternalCall)]
-		get;
-		[MethodImpl(MethodImplOptions.InternalCall)]
-		set;
-	}
-
 	public static extern bool reuseCollisionCallbacks
 	{
 		[MethodImpl(MethodImplOptions.InternalCall)]
@@ -204,6 +196,7 @@ public class Physics
 
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("Physics.autoSimulation has been replaced by Physics.simulationMode", false)]
+	[ExcludeFromDocs]
 	public static bool autoSimulation
 	{
 		get
@@ -214,6 +207,17 @@ public class Physics
 		{
 			simulationMode = ((!value) ? SimulationMode.Script : SimulationMode.FixedUpdate);
 		}
+	}
+
+	[Obsolete("Physics.autoSyncTransforms has been deprecated please use Physics.SyncTransforms instead to manually sync physics transforms when required.", false)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	[ExcludeFromDocs]
+	public static extern bool autoSyncTransforms
+	{
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		get;
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		set;
 	}
 
 	public static event Action<PhysicsScene, NativeArray<ModifiableContactPair>> ContactModifyEvent;
@@ -247,6 +251,7 @@ public class Physics
 	private static extern void GetIntegrationInfos(out IntPtr integrations, out ulong integrationCount);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	[ThreadSafe]
 	private static extern void GetCurrentIntegrationInfo(out IntPtr integration);
 
 	internal unsafe static ReadOnlySpan<IntegrationInfo> GetIntegrationInfos()
@@ -683,8 +688,8 @@ public class Physics
 		return RaycastAll(ray.origin, ray.direction, maxDistance, layerMask, queryTriggerInteraction);
 	}
 
-	[RequiredByNativeCode]
 	[ExcludeFromDocs]
+	[RequiredByNativeCode]
 	public static RaycastHit[] RaycastAll(Ray ray, float maxDistance, int layerMask)
 	{
 		return RaycastAll(ray.origin, ray.direction, maxDistance, layerMask, QueryTriggerInteraction.UseGlobal);
@@ -707,8 +712,8 @@ public class Physics
 		return defaultPhysicsScene.Raycast(ray.origin, ray.direction, results, maxDistance, layerMask, queryTriggerInteraction);
 	}
 
-	[RequiredByNativeCode]
 	[ExcludeFromDocs]
+	[RequiredByNativeCode]
 	public static int RaycastNonAlloc(Ray ray, RaycastHit[] results, float maxDistance, int layerMask)
 	{
 		return defaultPhysicsScene.Raycast(ray.origin, ray.direction, results, maxDistance, layerMask);
@@ -1309,14 +1314,34 @@ public class Physics
 		return OverlapCapsuleNonAlloc(point0, point1, radius, results, -1, QueryTriggerInteraction.UseGlobal);
 	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
+	[StaticAccessor("GetPhysicsManager()")]
+	public static void RebuildBroadphaseRegions(Bounds worldBounds, int subdivisions)
+	{
+		RebuildBroadphaseRegions_Injected(ref worldBounds, subdivisions);
+	}
+
 	[StaticAccessor("GetPhysicsManager()")]
 	[ThreadSafe]
-	public static extern void BakeMesh(int meshID, bool convex, MeshColliderCookingOptions cookingOptions);
+	public static void BakeMesh(EntityId meshEntityId, bool convex, MeshColliderCookingOptions cookingOptions)
+	{
+		BakeMesh_Injected(ref meshEntityId, convex, cookingOptions);
+	}
 
+	[Obsolete("BakeMesh(int, bool, MeshColliderCookingOptions) is obsolete. Use BakeMesh(EntityId, bool, MeshColliderCookingOptions) instead.")]
+	public static void BakeMesh(int meshID, bool convex, MeshColliderCookingOptions cookingOptions)
+	{
+		BakeMesh((EntityId)meshID, convex, cookingOptions);
+	}
+
+	[Obsolete("BakeMesh(int, bool) is obsolete. Use BakeMesh(EntityId, bool) instead.")]
 	public static void BakeMesh(int meshID, bool convex)
 	{
-		BakeMesh(meshID, convex, MeshColliderCookingOptions.CookForFasterSimulation | MeshColliderCookingOptions.EnableMeshCleaning | MeshColliderCookingOptions.WeldColocatedVertices | MeshColliderCookingOptions.UseFastMidphase);
+		BakeMesh((EntityId)meshID, convex, MeshColliderCookingOptions.CookForFasterSimulation | MeshColliderCookingOptions.EnableMeshCleaning | MeshColliderCookingOptions.WeldColocatedVertices | MeshColliderCookingOptions.UseFastMidphase);
+	}
+
+	public static void BakeMesh(EntityId meshEntityId, bool convex)
+	{
+		BakeMesh(meshEntityId, convex, MeshColliderCookingOptions.CookForFasterSimulation | MeshColliderCookingOptions.EnableMeshCleaning | MeshColliderCookingOptions.WeldColocatedVertices | MeshColliderCookingOptions.UseFastMidphase);
 	}
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
@@ -1339,10 +1364,12 @@ public class Physics
 		return Unmarshal.UnmarshalUnityObject<Component>(GetBodyByInstanceID_Injected(ref entityId));
 	}
 
-	[MethodImpl(MethodImplOptions.InternalCall)]
 	[ThreadSafe]
 	[StaticAccessor("PhysicsManager", StaticAccessorType.DoubleColon)]
-	internal static extern uint TranslateTriangleIndexFromID(int instanceID, uint faceIndex);
+	internal static uint TranslateTriangleIndexFromID(EntityId instanceID, uint faceIndex)
+	{
+		return TranslateTriangleIndexFromID_Injected(ref instanceID, faceIndex);
+	}
 
 	[StaticAccessor("PhysicsManager", StaticAccessorType.DoubleColon)]
 	private static void SendOnCollisionEnter(Component component, Collision collision)
@@ -1360,11 +1387,6 @@ public class Physics
 	private static void SendOnCollisionExit(Component component, Collision collision)
 	{
 		SendOnCollisionExit_Injected(Object.MarshalledUnityObject.Marshal(component), collision);
-	}
-
-	[Obsolete("Physics.RebuildBroadphaseRegions has been deprecated alongside Multi Box Pruning. Use Automatic Box Pruning instead.", false)]
-	public static void RebuildBroadphaseRegions(Bounds worldBounds, int subdivisions)
-	{
 	}
 
 	[RequiredByNativeCode]
@@ -1516,10 +1538,19 @@ public class Physics
 	private static extern void Internal_BoxCastAll_Injected([In] ref PhysicsScene physicsScene, [In] ref Vector3 center, [In] ref Vector3 halfExtents, [In] ref Vector3 direction, [In] ref Quaternion orientation, float maxDistance, int layerMask, QueryTriggerInteraction queryTriggerInteraction, out BlittableArrayWrapper ret);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void RebuildBroadphaseRegions_Injected([In] ref Bounds worldBounds, int subdivisions);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern void BakeMesh_Injected([In] ref EntityId meshEntityId, bool convex, MeshColliderCookingOptions cookingOptions);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern IntPtr GetColliderByInstanceID_Injected([In] ref EntityId entityId);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern IntPtr GetBodyByInstanceID_Injected([In] ref EntityId entityId);
+
+	[MethodImpl(MethodImplOptions.InternalCall)]
+	private static extern uint TranslateTriangleIndexFromID_Injected([In] ref EntityId instanceID, uint faceIndex);
 
 	[MethodImpl(MethodImplOptions.InternalCall)]
 	private static extern void SendOnCollisionEnter_Injected(IntPtr component, Collision collision);

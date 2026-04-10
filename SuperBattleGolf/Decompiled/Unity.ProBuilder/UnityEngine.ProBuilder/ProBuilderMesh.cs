@@ -589,7 +589,7 @@ public sealed class ProBuilderMesh : MonoBehaviour
 	}
 
 	[Obsolete("InstanceID is not used to track mesh references as of 2023/04/12")]
-	internal int id => base.gameObject.GetInstanceID();
+	internal int id => base.gameObject.GetObjectId();
 
 	public MeshSyncState meshSyncState
 	{
@@ -1310,7 +1310,7 @@ public sealed class ProBuilderMesh : MonoBehaviour
 		{
 			mesh = new Mesh
 			{
-				name = $"pb_Mesh{GetInstanceID()}"
+				name = $"pb_Mesh{this.GetObjectId()}"
 			};
 		}
 		else if (mesh.vertexCount != vertexCount)
@@ -1429,7 +1429,7 @@ public sealed class ProBuilderMesh : MonoBehaviour
 	{
 		mesh = ((mesh != null) ? Object.Instantiate(mesh) : new Mesh
 		{
-			name = $"pb_Mesh{GetInstanceID()}"
+			name = $"pb_Mesh{this.GetObjectId()}"
 		});
 		if (meshSyncState == MeshSyncState.InSync)
 		{

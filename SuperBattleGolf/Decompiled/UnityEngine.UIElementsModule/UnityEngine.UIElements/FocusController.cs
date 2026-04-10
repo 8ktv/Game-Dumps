@@ -279,43 +279,47 @@ public class FocusController
 		{
 			return;
 		}
-		if (!(newFocusedElement is VisualElement visualElement) || !newFocusedElement.canGrabFocus || visualElement.panel == null)
+		if (newFocusedElement is VisualElement visualElement && newFocusedElement.canGrabFocus)
 		{
-			if (focusable is VisualElement visualElement2)
+			IPanel panel = visualElement.panel;
+			if (panel != null)
 			{
-				m_LastPendingFocusedElement = null;
+				Focusable willGiveFocusTo = visualElement?.RetargetElement(focusable as VisualElement) ?? newFocusedElement;
+				Focusable willTakeFocusFrom = (focusable as VisualElement)?.RetargetElement(visualElement) ?? focusable;
+				m_LastPendingFocusedElement = newFocusedElement;
 				m_PendingFocusCount++;
-				using (new EventDispatcherGate(visualElement2.panel.dispatcher))
+				using (new EventDispatcherGate(panel.dispatcher))
 				{
-					AboutToReleaseFocus(focusable, null, direction, dispatchMode);
-					ReleaseFocus(focusable, null, direction, dispatchMode);
+					if (focusable != null)
+					{
+						AboutToReleaseFocus(focusable, willGiveFocusTo, direction, dispatchMode);
+					}
+					AboutToGrabFocus(newFocusedElement, willTakeFocusFrom, direction, dispatchMode);
+					if (focusable != null)
+					{
+						ReleaseFocus(focusable, willGiveFocusTo, direction, dispatchMode);
+					}
+					GrabFocus(newFocusedElement, willTakeFocusFrom, direction, bIsFocusDelegated, dispatchMode);
+					return;
 				}
 			}
 		}
-		else
+		if (!(focusable is VisualElement { elementPanel: var elementPanel }))
 		{
-			if (newFocusedElement == focusable)
+			return;
+		}
+		if (elementPanel != null)
+		{
+			m_LastPendingFocusedElement = null;
+			m_PendingFocusCount++;
+			using (new EventDispatcherGate(elementPanel.dispatcher))
 			{
+				AboutToReleaseFocus(focusable, null, direction, dispatchMode);
+				ReleaseFocus(focusable, null, direction, dispatchMode);
 				return;
 			}
-			Focusable willGiveFocusTo = (newFocusedElement as VisualElement)?.RetargetElement(focusable as VisualElement) ?? newFocusedElement;
-			Focusable willTakeFocusFrom = (focusable as VisualElement)?.RetargetElement(newFocusedElement as VisualElement) ?? focusable;
-			m_LastPendingFocusedElement = newFocusedElement;
-			m_PendingFocusCount++;
-			using (new EventDispatcherGate(visualElement.panel.dispatcher))
-			{
-				if (focusable != null)
-				{
-					AboutToReleaseFocus(focusable, willGiveFocusTo, direction, dispatchMode);
-				}
-				AboutToGrabFocus(newFocusedElement, willTakeFocusFrom, direction, dispatchMode);
-				if (focusable != null)
-				{
-					ReleaseFocus(focusable, willGiveFocusTo, direction, dispatchMode);
-				}
-				GrabFocus(newFocusedElement, willTakeFocusFrom, direction, bIsFocusDelegated, dispatchMode);
-			}
 		}
+		ProcessPendingFocusChange(null);
 	}
 
 	internal void SwitchFocusOnEvent(Focusable currentFocusable, EventBase e)

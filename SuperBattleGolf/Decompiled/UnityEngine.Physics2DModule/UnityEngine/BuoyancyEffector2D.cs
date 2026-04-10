@@ -162,8 +162,8 @@ public class BuoyancyEffector2D : Effector2D
 		}
 	}
 
-	[EditorBrowsable(EditorBrowsableState.Never)]
 	[Obsolete("BuoyancyEffector2D.drag has been obsolete. Use BuoyancyEffector2D.linearDamping instead (UnityUpgradable) -> linearDamping", true)]
+	[EditorBrowsable(EditorBrowsableState.Never)]
 	public float drag
 	{
 		get

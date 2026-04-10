@@ -39,13 +39,19 @@ internal class PhysicsDocumentPicker
 		if (capturingElement is VisualElement { elementPanel: { isFlat: false } } visualElement)
 		{
 			capturingDocument = UIDocument.FindRootUIDocument(visualElement);
-			return true;
+			if (capturingDocument != null)
+			{
+				return true;
+			}
 		}
 		RuntimePanel playerPanelWithSoftPointerCapture = PointerDeviceState.GetPlayerPanelWithSoftPointerCapture(pointerId);
 		if (playerPanelWithSoftPointerCapture != null && !playerPanelWithSoftPointerCapture.isFlat)
 		{
 			capturingDocument = PointerDeviceState.GetWorldSpaceDocumentWithSoftPointerCapture(pointerId);
-			return true;
+			if (capturingDocument != null)
+			{
+				return true;
+			}
 		}
 		capturingDocument = null;
 		return false;

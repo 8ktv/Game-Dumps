@@ -17,23 +17,23 @@ public class TwoPaneSplitView : VisualElement
 		private int fixedPaneIndex;
 
 		[HideInInspector]
-		[UxmlIgnore]
 		[SerializeField]
+		[UxmlIgnore]
 		private UxmlAttributeFlags fixedPaneIndex_UxmlAttributeFlags;
 
 		[SerializeField]
 		private float fixedPaneInitialDimension;
 
-		[UxmlIgnore]
 		[HideInInspector]
 		[SerializeField]
+		[UxmlIgnore]
 		private UxmlAttributeFlags fixedPaneInitialDimension_UxmlAttributeFlags;
 
 		[SerializeField]
 		private TwoPaneSplitViewOrientation orientation;
 
-		[HideInInspector]
 		[SerializeField]
+		[HideInInspector]
 		[UxmlIgnore]
 		private UxmlAttributeFlags orientation_UxmlAttributeFlags;
 
@@ -304,6 +304,7 @@ public class TwoPaneSplitView : VisualElement
 			m_RightPane.style.display = DisplayStyle.None;
 		}
 		m_CollapseMode = true;
+		AdjustPanesBasedOnAnchor();
 	}
 
 	public void UnCollapse()
@@ -331,6 +332,7 @@ public class TwoPaneSplitView : VisualElement
 				m_PendingCollapseToExecute = false;
 				m_CollapsedChildIndex = -1;
 				Init(m_FixedPaneIndex, m_FixedPaneInitialDimension, m_Orientation);
+				AdjustPanesBasedOnAnchor();
 				visualElement.RegisterCallback<GeometryChangedEvent>(OnUncollapsedPaneResized);
 			}
 		}
@@ -338,7 +340,7 @@ public class TwoPaneSplitView : VisualElement
 
 	private void OnUncollapsedPaneResized(GeometryChangedEvent evt)
 	{
-		UpdateDragLineAnchorOffset();
+		UpdateLayout(updateFixedPane: true, updateDragLine: true);
 		evt.elementTarget.UnregisterCallback<GeometryChangedEvent>(OnUncollapsedPaneResized);
 	}
 
@@ -407,18 +409,33 @@ public class TwoPaneSplitView : VisualElement
 			m_PendingCollapseToExecute = false;
 		}
 		UnregisterCallback<GeometryChangedEvent>(OnPostDisplaySetup);
-		ReplacePanesBasedOnAnchor();
+		AdjustPanesBasedOnAnchor();
 	}
 
-	private void ReplacePanesBasedOnAnchor()
+	private void AdjustPanesBasedOnAnchor()
 	{
-		if (m_Orientation == TwoPaneSplitViewOrientation.Horizontal)
+		if (m_LeftPane.style.display == DisplayStyle.None || m_RightPane.style.display == DisplayStyle.None)
 		{
-			m_RightPane.style.left = m_DragLineAnchor.worldBound.width;
+			if (m_Orientation == TwoPaneSplitViewOrientation.Horizontal)
+			{
+				m_RightPane.style.left = 0f;
+				m_Content.style.paddingRight = 0f;
+			}
+			else
+			{
+				m_RightPane.style.top = 0f;
+				m_Content.style.paddingBottom = 0f;
+			}
+		}
+		else if (m_Orientation == TwoPaneSplitViewOrientation.Horizontal)
+		{
+			m_RightPane.style.left = m_DragLineAnchor.layout.width;
+			m_Content.style.paddingRight = m_DragLineAnchor.layout.width;
 		}
 		else
 		{
-			m_RightPane.style.top = m_DragLineAnchor.worldBound.height;
+			m_RightPane.style.top = m_DragLineAnchor.layout.height;
+			m_Content.style.paddingBottom = m_DragLineAnchor.layout.height;
 		}
 	}
 
@@ -560,18 +577,20 @@ public class TwoPaneSplitView : VisualElement
 		else if (num >= value + num3 + value2 + num4)
 		{
 			float num5 = num - value2 - num4 - num3;
-			float num6 = 0f;
-			num6 = ((m_Orientation == TwoPaneSplitViewOrientation.Horizontal) ? Math.Abs(m_DragLineAnchor.worldBound.width - (m_DragLine.resolvedStyle.width - Math.Abs(m_DragLine.resolvedStyle.left))) : Math.Abs(m_DragLineAnchor.worldBound.height - (m_DragLine.resolvedStyle.height - Math.Abs(m_DragLine.resolvedStyle.top))));
+			float num6 = ((m_Orientation == TwoPaneSplitViewOrientation.Horizontal) ? m_DragLineAnchor.layout.width : m_DragLineAnchor.layout.height);
 			num5 -= num6;
 			bool flag = num5 < value;
 			bool flag2 = num2 > value;
-			if (updateFixedPane && !flag)
+			if (updateFixedPane)
 			{
-				SetFixedPaneDimension(num5);
-			}
-			else if (updateFixedPane && flag && flag2)
-			{
-				SetFixedPaneDimension(value);
+				if (!flag)
+				{
+					SetFixedPaneDimension(num5);
+				}
+				else if (flag2)
+				{
+					SetFixedPaneDimension(value);
+				}
 			}
 			if (updateDragLine)
 			{
@@ -581,7 +600,7 @@ public class TwoPaneSplitView : VisualElement
 				}
 				else
 				{
-					SetDragLineOffset((m_FixedPaneIndex == 0) ? (num5 + num3 + num6) : (value2 + num4));
+					SetDragLineOffset((m_FixedPaneIndex == 0) ? (num5 + num3) : (value2 + num4));
 				}
 			}
 		}

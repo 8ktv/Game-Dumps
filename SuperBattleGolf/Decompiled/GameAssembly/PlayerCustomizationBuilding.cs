@@ -1,3 +1,4 @@
+using FMODUnity;
 using Mirror;
 using Mirror.RemoteCalls;
 using UnityEngine;
@@ -17,7 +18,7 @@ public class PlayerCustomizationBuilding : SingletonNetworkBehaviour<PlayerCusto
 
 	public override void OnStartServer()
 	{
-		serverDoorOpenCommandRateLimiter = new AntiCheatPerPlayerRateChecker("Door open", vfx.OpenDoorsCooldown * 0.5f, 5, 10, vfx.OpenDoorsCooldown * 2f);
+		serverDoorOpenCommandRateLimiter = new AntiCheatPerPlayerRateChecker("Door open", 0.025f, 30, 60, 0.2f, 5);
 	}
 
 	public static void InformLocalPlayerEntered()
@@ -63,7 +64,7 @@ public class PlayerCustomizationBuilding : SingletonNetworkBehaviour<PlayerCusto
 		CmdOpenDoorsForAllClients();
 	}
 
-	[Command]
+	[Command(requiresAuthority = false)]
 	private void CmdOpenDoorsForAllClients(NetworkConnectionToClient sender = null)
 	{
 		if (base.isServer && base.isClient)
@@ -72,7 +73,7 @@ public class PlayerCustomizationBuilding : SingletonNetworkBehaviour<PlayerCusto
 			return;
 		}
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
-		SendCommandInternal("System.Void PlayerCustomizationBuilding::CmdOpenDoorsForAllClients(Mirror.NetworkConnectionToClient)", -312061665, writer, 0);
+		SendCommandInternal("System.Void PlayerCustomizationBuilding::CmdOpenDoorsForAllClients(Mirror.NetworkConnectionToClient)", -312061665, writer, 0, requiresAuthority: false);
 		NetworkWriterPool.Return(writer);
 	}
 
@@ -86,7 +87,10 @@ public class PlayerCustomizationBuilding : SingletonNetworkBehaviour<PlayerCusto
 
 	private void OpenDoorsInternal()
 	{
-		vfx.OpenDoors();
+		if (vfx.TryOpenDoors())
+		{
+			RuntimeManager.PlayOneShot(GameManager.AudioSettings.CosmeticsOpen, exitPosition.position);
+		}
 	}
 
 	public override bool Weaved()
@@ -144,7 +148,7 @@ public class PlayerCustomizationBuilding : SingletonNetworkBehaviour<PlayerCusto
 
 	static PlayerCustomizationBuilding()
 	{
-		RemoteProcedureCalls.RegisterCommand(typeof(PlayerCustomizationBuilding), "System.Void PlayerCustomizationBuilding::CmdOpenDoorsForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdOpenDoorsForAllClients__NetworkConnectionToClient, requiresAuthority: true);
+		RemoteProcedureCalls.RegisterCommand(typeof(PlayerCustomizationBuilding), "System.Void PlayerCustomizationBuilding::CmdOpenDoorsForAllClients(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdOpenDoorsForAllClients__NetworkConnectionToClient, requiresAuthority: false);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerCustomizationBuilding), "System.Void PlayerCustomizationBuilding::RpcOpenDoors(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcOpenDoors__NetworkConnectionToClient);
 	}
 }

@@ -10,6 +10,7 @@ using FMOD.Studio;
 using FMODUnity;
 using Mirror;
 using Mirror.RemoteCalls;
+using Steamworks;
 using UnityEngine;
 using UnityEngine.Localization;
 using UnityEngine.Pool;
@@ -21,8 +22,6 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		public ulong playerGuid;
 
 		public int joinIndex;
-
-		public string name;
 
 		public bool isConnected;
 
@@ -54,6 +53,8 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 		public int courseKnockouts;
 
+		public int matchKnockoutStreak;
+
 		public int courseKnockedOut;
 
 		public int matchKnockedOut;
@@ -63,6 +64,8 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		public int finishes;
 
 		public int multiplayerFinishes;
+
+		public int multiplayerFirstPlaceStreak;
 
 		public int losses;
 
@@ -76,11 +79,14 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 		public int itemPickups;
 
-		public PlayerState(ulong playerGuid, int joinIndex, string name, bool isConnected, bool isHost, bool isSpectator)
+		public double joinTimestamp;
+
+		public string name => GetPlayerName(this);
+
+		public PlayerState(ulong playerGuid, int joinIndex, bool isConnected, bool isHost, bool isSpectator)
 		{
 			this.playerGuid = playerGuid;
 			this.joinIndex = joinIndex;
-			this.name = name;
 			this.isConnected = isConnected;
 			this.isHost = isHost;
 			this.isSpectator = isSpectator;
@@ -96,22 +102,25 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			eliminations = 0;
 			matchKnockouts = 0;
 			courseKnockouts = 0;
+			matchKnockoutStreak = 0;
 			wins = 0;
 			losses = 0;
 			dominatingCount = 0;
 			finishes = 0;
 			multiplayerFinishes = 0;
+			multiplayerFirstPlaceStreak = 0;
 			bestHoleScore = StrokesUnderParType.None;
 			avgFinishTime = 0f;
 			longestChipIn = float.MinValue;
 			itemPickups = 0;
 			courseKnockedOut = 0;
 			matchKnockedOut = 0;
+			joinTimestamp = NetworkTime.time;
 		}
 
 		public static PlayerState GetClearedState(PlayerState state)
 		{
-			return new PlayerState(state.playerGuid, state.joinIndex, state.name, state.isConnected, state.isHost, state.isSpectator);
+			return new PlayerState(state.playerGuid, state.joinIndex, state.isConnected, state.isHost, state.isSpectator);
 		}
 
 		public static PlayerState GetNewMatchState(PlayerState state)
@@ -120,6 +129,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			state.matchResolution = PlayerMatchResolution.None;
 			state.matchScore = 0;
 			state.matchKnockouts = 0;
+			state.matchKnockoutStreak = 0;
 			state.matchStrokes = 0;
 			state.matchKnockedOut = 0;
 			return state;
@@ -204,7 +214,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	[StructLayout(LayoutKind.Auto)]
 	[CompilerGenerated]
-	private struct _003CEndCourseInternal_003Ed__140 : IAsyncStateMachine
+	private struct _003CEndCourseInternal_003Ed__147 : IAsyncStateMachine
 	{
 		public int _003C_003E1__state;
 
@@ -227,6 +237,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 					ServerPersistentCourseData.WritePlayerStates();
 					ServerPersistentCourseData.ClearPlayerInventories();
 					ServerPersistentCourseData.ResetNextHoleIndex();
+					ServerPersistentCourseData.RestorePlayerJoinTimestamps();
 				}
 				try
 				{
@@ -299,7 +310,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	[StructLayout(LayoutKind.Auto)]
 	[CompilerGenerated]
-	private struct _003CRpcInformEndingCourse_003Ed__141 : IAsyncStateMachine
+	private struct _003CRpcInformEndingCourse_003Ed__148 : IAsyncStateMachine
 	{
 		public int _003C_003E1__state;
 
@@ -386,7 +397,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	[StructLayout(LayoutKind.Auto)]
 	[CompilerGenerated]
-	private struct _003CRpcInformStartingCourse_003Ed__139 : IAsyncStateMachine
+	private struct _003CRpcInformStartingCourse_003Ed__146 : IAsyncStateMachine
 	{
 		public int _003C_003E1__state;
 
@@ -482,7 +493,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	[StructLayout(LayoutKind.Auto)]
 	[CompilerGenerated]
-	private struct _003CRpcInformStartingNextMatch_003Ed__143 : IAsyncStateMachine
+	private struct _003CRpcInformStartingNextMatch_003Ed__150 : IAsyncStateMachine
 	{
 		public int _003C_003E1__state;
 
@@ -569,7 +580,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	[StructLayout(LayoutKind.Auto)]
 	[CompilerGenerated]
-	private struct _003CServerStartNextMatch_003Ed__142 : IAsyncStateMachine
+	private struct _003CServerStartNextMatch_003Ed__149 : IAsyncStateMachine
 	{
 		public int _003C_003E1__state;
 
@@ -683,7 +694,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	[StructLayout(LayoutKind.Auto)]
 	[CompilerGenerated]
-	private struct _003CStartCourseInternal_003Ed__138 : IAsyncStateMachine
+	private struct _003CStartCourseInternal_003Ed__145 : IAsyncStateMachine
 	{
 		public int _003C_003E1__state;
 
@@ -781,7 +792,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	private readonly SyncList<PlayerState> playerStates = new SyncList<PlayerState>();
 
-	public readonly Dictionary<PlayerPair, int> playerKnockoutStreaks = new Dictionary<PlayerPair, int>();
+	public readonly SyncDictionary<PlayerPair, int> playerKnockoutStreaks = new SyncDictionary<PlayerPair, int>();
 
 	private readonly SyncDictionary<ulong, float> playerPingPerGuid = new SyncDictionary<ulong, float>();
 
@@ -816,7 +827,11 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	private readonly Dictionary<PlayerInfo, ItemUseId> latestValidKnockouts = new Dictionary<PlayerInfo, ItemUseId>();
 
+	private readonly Dictionary<PlayerInfo, List<double>> recentScoredKnockoutTimestamps = new Dictionary<PlayerInfo, List<double>>();
+
 	private readonly List<PlayerState> sortedPlayerStatesBuffer = new List<PlayerState>();
+
+	private static readonly Dictionary<ulong, string> clientPlayerNames;
 
 	[SyncVar(hook = "OnCurrentHoleCourseIndexChanged")]
 	private int currentHoleCourseIndex = -1;
@@ -835,6 +850,8 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	[SyncVar(hook = "OnMarkedFirstPlacePlayerChanged")]
 	private PlayerInfo markedFirstPlacePlayer;
+
+	private PlayerState currentHoleFirstPlaceState;
 
 	private Coroutine holeOverviewAndTeeOffCountdownRoutine;
 
@@ -869,6 +886,8 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 	[CVar("simulateClientsJoiningHoleSlowly", "", "", false, true)]
 	private static bool simulateClientsJoiningHoleSlowly;
 
+	private bool localPlayerRewardedCourseBonus;
+
 	protected NetworkBehaviourSyncVar ___markedFirstPlacePlayerNetId;
 
 	public Action<int, int> _Mirror_SyncVarHookDelegate_currentHoleCourseIndex;
@@ -895,7 +914,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		}
 	}
 
-	public static Dictionary<PlayerPair, int> PlayerKnockoutStreaks
+	public static SyncDictionary<PlayerPair, int> PlayerKnockoutStreaks
 	{
 		get
 		{
@@ -1132,6 +1151,8 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	public static event Action<SyncSet<PlayerPair>.Operation, PlayerPair> PlayerDominationsChanged;
 
+	public static event Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int> PlayerKnockoutStreaksChanged;
+
 	public static event Action<SyncList<GolfBall>.Operation, int, GolfBall> OvertimeActiveBallsChanged;
 
 	[CCommand("skipHole", "", false, false, serverOnly = true)]
@@ -1190,6 +1211,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 				playerStates.Add(PlayerState.GetNewMatchState(playerState));
 			}
 		}
+		ServerPersistentCourseData.RestorePlayerJoinTimestamps();
 		foreach (var (playerPair2, num2) in ServerPersistentCourseData.playerKnockoutStreaks)
 		{
 			playerKnockoutStreaks.Add(playerPair2, num2);
@@ -1221,17 +1243,19 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			syncList.OnChange = (Action<SyncList<PlayerState>.Operation, int, PlayerState>)Delegate.Combine(syncList.OnChange, new Action<SyncList<PlayerState>.Operation, int, PlayerState>(OnPlayerStatesChanged));
 			SyncDictionary<ulong, float> syncDictionary = playerPingPerGuid;
 			syncDictionary.OnChange = (Action<SyncIDictionary<ulong, float>.Operation, ulong, float>)Delegate.Combine(syncDictionary.OnChange, new Action<SyncIDictionary<ulong, float>.Operation, ulong, float>(OnPlayerPingsChanged));
+			SyncDictionary<PlayerPair, int> syncDictionary2 = PlayerKnockoutStreaks;
+			syncDictionary2.OnChange = (Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>)Delegate.Combine(syncDictionary2.OnChange, new Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>(OnPlayerKnockoutStreaksChanged));
 			SyncHashSet<PlayerPair> syncHashSet = playerDominations;
 			syncHashSet.OnChange = (Action<SyncSet<PlayerPair>.Operation, PlayerPair>)Delegate.Combine(syncHashSet.OnChange, new Action<SyncSet<PlayerPair>.Operation, PlayerPair>(OnPlayerDominationsChanged));
 			SyncList<GolfBall> syncList2 = overtimeActiveBalls;
 			syncList2.OnChange = (Action<SyncList<GolfBall>.Operation, int, GolfBall>)Delegate.Combine(syncList2.OnChange, new Action<SyncList<GolfBall>.Operation, int, GolfBall>(OnOvertimeActiveBallsChanged));
 		}
-		PlayerId.AnyPlayerNameChanged += OnServerAnyPlayerNameChanged;
 		PlayerId.AnyPlayerGuidChanged += OnServerAnyPlayerGuidChanged;
 		PlayerMovement.AnyPlayerIsRespawningChanged += OnServerAnyPlayerIsRespawningChanged;
 		PlayerGolfer.PlayerHitOwnBall += OnServerPlayerHitOwnBall;
 		PlayerGolfer.AnyPlayerMatchResolutionChanged += OnServerAnyPlayerMatchResolutionChanged;
 		BNetworkManager.singleton.ServerUpdateCourseProgress();
+		WindManager.Initialize();
 		bool IsConnectionInitialMatchParticipant(int connectionId)
 		{
 			if (SingletonBehaviour<DrivingRangeManager>.HasInstance)
@@ -1263,12 +1287,13 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			syncList.OnChange = (Action<SyncList<PlayerState>.Operation, int, PlayerState>)Delegate.Remove(syncList.OnChange, new Action<SyncList<PlayerState>.Operation, int, PlayerState>(OnPlayerStatesChanged));
 			SyncDictionary<ulong, float> syncDictionary = playerPingPerGuid;
 			syncDictionary.OnChange = (Action<SyncIDictionary<ulong, float>.Operation, ulong, float>)Delegate.Remove(syncDictionary.OnChange, new Action<SyncIDictionary<ulong, float>.Operation, ulong, float>(OnPlayerPingsChanged));
+			SyncDictionary<PlayerPair, int> syncDictionary2 = PlayerKnockoutStreaks;
+			syncDictionary2.OnChange = (Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>)Delegate.Remove(syncDictionary2.OnChange, new Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>(OnPlayerKnockoutStreaksChanged));
 			SyncHashSet<PlayerPair> syncHashSet = playerDominations;
 			syncHashSet.OnChange = (Action<SyncSet<PlayerPair>.Operation, PlayerPair>)Delegate.Remove(syncHashSet.OnChange, new Action<SyncSet<PlayerPair>.Operation, PlayerPair>(OnPlayerDominationsChanged));
 			SyncList<GolfBall> syncList2 = overtimeActiveBalls;
 			syncList2.OnChange = (Action<SyncList<GolfBall>.Operation, int, GolfBall>)Delegate.Remove(syncList2.OnChange, new Action<SyncList<GolfBall>.Operation, int, GolfBall>(OnOvertimeActiveBallsChanged));
 		}
-		PlayerId.AnyPlayerNameChanged -= OnServerAnyPlayerNameChanged;
 		PlayerId.AnyPlayerGuidChanged -= OnServerAnyPlayerGuidChanged;
 		PlayerMovement.AnyPlayerIsRespawningChanged -= OnServerAnyPlayerIsRespawningChanged;
 		PlayerGolfer.PlayerHitOwnBall -= OnServerPlayerHitOwnBall;
@@ -1286,6 +1311,8 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		syncList.OnChange = (Action<SyncList<PlayerState>.Operation, int, PlayerState>)Delegate.Combine(syncList.OnChange, new Action<SyncList<PlayerState>.Operation, int, PlayerState>(OnPlayerStatesChanged));
 		SyncDictionary<ulong, float> syncDictionary = playerPingPerGuid;
 		syncDictionary.OnChange = (Action<SyncIDictionary<ulong, float>.Operation, ulong, float>)Delegate.Combine(syncDictionary.OnChange, new Action<SyncIDictionary<ulong, float>.Operation, ulong, float>(OnPlayerPingsChanged));
+		SyncDictionary<PlayerPair, int> syncDictionary2 = PlayerKnockoutStreaks;
+		syncDictionary2.OnChange = (Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>)Delegate.Combine(syncDictionary2.OnChange, new Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>(OnPlayerKnockoutStreaksChanged));
 		SyncHashSet<PlayerPair> syncHashSet = playerDominations;
 		syncHashSet.OnChange = (Action<SyncSet<PlayerPair>.Operation, PlayerPair>)Delegate.Combine(syncHashSet.OnChange, new Action<SyncSet<PlayerPair>.Operation, PlayerPair>(OnPlayerDominationsChanged));
 		SyncList<GolfBall> syncList2 = overtimeActiveBalls;
@@ -1300,7 +1327,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			{
 				if (!BNetworkManager.TryGetPlayerInLobby(playerState.playerGuid, out var player))
 				{
-					UnityEngine.Debug.LogWarning($"Player \"{playerState.name}\" ({playerState.playerGuid}) is not present in lobby, host is suspicious!");
+					UnityEngine.Debug.LogWarning($"Player \"{GetPlayerName(playerState)}\" ({playerState.playerGuid}) is not present in lobby, host is suspicious!");
 				}
 				else
 				{
@@ -1316,6 +1343,8 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		syncList.OnChange = (Action<SyncList<PlayerState>.Operation, int, PlayerState>)Delegate.Remove(syncList.OnChange, new Action<SyncList<PlayerState>.Operation, int, PlayerState>(OnPlayerStatesChanged));
 		SyncDictionary<ulong, float> syncDictionary = playerPingPerGuid;
 		syncDictionary.OnChange = (Action<SyncIDictionary<ulong, float>.Operation, ulong, float>)Delegate.Remove(syncDictionary.OnChange, new Action<SyncIDictionary<ulong, float>.Operation, ulong, float>(OnPlayerPingsChanged));
+		SyncDictionary<PlayerPair, int> syncDictionary2 = PlayerKnockoutStreaks;
+		syncDictionary2.OnChange = (Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>)Delegate.Remove(syncDictionary2.OnChange, new Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>(OnPlayerKnockoutStreaksChanged));
 		SyncHashSet<PlayerPair> syncHashSet = playerDominations;
 		syncHashSet.OnChange = (Action<SyncSet<PlayerPair>.Operation, PlayerPair>)Delegate.Remove(syncHashSet.OnChange, new Action<SyncSet<PlayerPair>.Operation, PlayerPair>(OnPlayerDominationsChanged));
 		SyncList<GolfBall> syncList2 = overtimeActiveBalls;
@@ -1736,7 +1765,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		}
 	}
 
-	[AsyncStateMachine(typeof(_003CStartCourseInternal_003Ed__138))]
+	[AsyncStateMachine(typeof(_003CStartCourseInternal_003Ed__145))]
 	[Server]
 	private void StartCourseInternal()
 	{
@@ -1745,14 +1774,14 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			UnityEngine.Debug.LogWarning("[Server] function 'System.Void CourseManager::StartCourseInternal()' called when server was not active");
 			return;
 		}
-		_003CStartCourseInternal_003Ed__138 stateMachine = default(_003CStartCourseInternal_003Ed__138);
+		_003CStartCourseInternal_003Ed__145 stateMachine = default(_003CStartCourseInternal_003Ed__145);
 		stateMachine._003C_003Et__builder = AsyncVoidMethodBuilder.Create();
 		stateMachine._003C_003E4__this = this;
 		stateMachine._003C_003E1__state = -1;
 		stateMachine._003C_003Et__builder.Start(ref stateMachine);
 	}
 
-	[AsyncStateMachine(typeof(_003CRpcInformStartingCourse_003Ed__139))]
+	[AsyncStateMachine(typeof(_003CRpcInformStartingCourse_003Ed__146))]
 	[ClientRpc]
 	private void RpcInformStartingCourse()
 	{
@@ -1761,7 +1790,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		NetworkWriterPool.Return(writer);
 	}
 
-	[AsyncStateMachine(typeof(_003CEndCourseInternal_003Ed__140))]
+	[AsyncStateMachine(typeof(_003CEndCourseInternal_003Ed__147))]
 	[Server]
 	private void EndCourseInternal()
 	{
@@ -1770,14 +1799,14 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			UnityEngine.Debug.LogWarning("[Server] function 'System.Void CourseManager::EndCourseInternal()' called when server was not active");
 			return;
 		}
-		_003CEndCourseInternal_003Ed__140 stateMachine = default(_003CEndCourseInternal_003Ed__140);
+		_003CEndCourseInternal_003Ed__147 stateMachine = default(_003CEndCourseInternal_003Ed__147);
 		stateMachine._003C_003Et__builder = AsyncVoidMethodBuilder.Create();
 		stateMachine._003C_003E4__this = this;
 		stateMachine._003C_003E1__state = -1;
 		stateMachine._003C_003Et__builder.Start(ref stateMachine);
 	}
 
-	[AsyncStateMachine(typeof(_003CRpcInformEndingCourse_003Ed__141))]
+	[AsyncStateMachine(typeof(_003CRpcInformEndingCourse_003Ed__148))]
 	[ClientRpc]
 	private void RpcInformEndingCourse()
 	{
@@ -1786,7 +1815,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		NetworkWriterPool.Return(writer);
 	}
 
-	[AsyncStateMachine(typeof(_003CServerStartNextMatch_003Ed__142))]
+	[AsyncStateMachine(typeof(_003CServerStartNextMatch_003Ed__149))]
 	[Server]
 	private void ServerStartNextMatch(bool skipPersistentInventories)
 	{
@@ -1795,7 +1824,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			UnityEngine.Debug.LogWarning("[Server] function 'System.Void CourseManager::ServerStartNextMatch(System.Boolean)' called when server was not active");
 			return;
 		}
-		_003CServerStartNextMatch_003Ed__142 stateMachine = default(_003CServerStartNextMatch_003Ed__142);
+		_003CServerStartNextMatch_003Ed__149 stateMachine = default(_003CServerStartNextMatch_003Ed__149);
 		stateMachine._003C_003Et__builder = AsyncVoidMethodBuilder.Create();
 		stateMachine._003C_003E4__this = this;
 		stateMachine.skipPersistentInventories = skipPersistentInventories;
@@ -1803,7 +1832,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		stateMachine._003C_003Et__builder.Start(ref stateMachine);
 	}
 
-	[AsyncStateMachine(typeof(_003CRpcInformStartingNextMatch_003Ed__143))]
+	[AsyncStateMachine(typeof(_003CRpcInformStartingNextMatch_003Ed__150))]
 	[ClientRpc]
 	private void RpcInformStartingNextMatch()
 	{
@@ -1834,59 +1863,68 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			PlayerState value2 = playerStates[value];
 			value2.isConnected = true;
 			value2.isSpectator = false;
+			value2.joinTimestamp = NetworkTime.time;
 			playerStates[value] = value2;
+			ServerPersistentCourseData.RegisterPlayerJoinTimestamp(playerGuid, NetworkTime.time);
 		}
 		else
 		{
 			int count = playerStates.Count;
-			ulong playerGuid2 = playerGuid;
-			string empty = string.Empty;
-			PlayerState item = new PlayerState(playerGuid2, count, empty, isConnected: true, connection == NetworkServer.localConnection, isSpectator: false);
+			PlayerState item = new PlayerState(playerGuid, count, isConnected: true, connection == NetworkServer.localConnection, isSpectator: false);
 			playerStateIndicesPerPlayerGuid.Add(playerGuid, count);
 			playerStates.Add(item);
 			playerPingPerGuid[playerGuid] = (float)(connection.rtt * 1000.0);
+			ServerPersistentCourseData.RegisterPlayerJoinTimestamp(playerGuid, NetworkTime.time);
 		}
 	}
 
 	[Server]
 	private void DeregisterPlayerInternal(NetworkConnectionToClient connection)
 	{
-		ulong playerGuid;
 		if (!NetworkServer.active)
 		{
 			UnityEngine.Debug.LogWarning("[Server] function 'System.Void CourseManager::DeregisterPlayerInternal(Mirror.NetworkConnectionToClient)' called when server was not active");
 		}
-		else if (!BNetworkManager.singleton.ServerTryGetPlayerGuidFromConnection(connection, out playerGuid))
-		{
-			UnityEngine.Debug.LogError($"Failed to get player GUID for connecion {connection.connectionId} while deregistering them", base.gameObject);
-		}
 		else
 		{
-			if (!playerStateIndicesPerPlayerGuid.TryGetValue(playerGuid, out var value))
+			if (BNetworkManager.IsShuttingDown)
 			{
 				return;
 			}
-			PlayerState value2 = playerStates[value];
-			value2.isConnected = false;
-			playerStates[value] = value2;
-			List<PlayerPair> value3;
-			using (CollectionPool<List<PlayerPair>, PlayerPair>.Get(out value3))
+			if (!BNetworkManager.singleton.ServerTryGetPlayerGuidFromConnection(connection, out var playerGuid))
 			{
-				value3.AddRange(playerDominations);
-				foreach (PlayerPair item in value3)
+				UnityEngine.Debug.LogError($"Failed to get player GUID for connecion {connection.connectionId} while deregistering them", base.gameObject);
+			}
+			else
+			{
+				if (!playerStateIndicesPerPlayerGuid.TryGetValue(playerGuid, out var value))
 				{
-					if (item.playerAGuid == playerGuid || item.playerBGuid == playerGuid)
-					{
-						playerDominations.Remove(item);
-					}
+					return;
 				}
-				value3.Clear();
-				value3.AddRange(playerKnockoutStreaks.Keys);
-				foreach (PlayerPair item2 in value3)
+				PlayerState value2 = playerStates[value];
+				value2.isConnected = false;
+				playerStates[value] = value2;
+				clientPlayerNames.Remove(value2.playerGuid);
+				ServerPersistentCourseData.DeregisterPlayerJoinTimestamp(value2.playerGuid);
+				List<PlayerPair> value3;
+				using (CollectionPool<List<PlayerPair>, PlayerPair>.Get(out value3))
 				{
-					if (item2.playerAGuid == playerGuid || item2.playerBGuid == playerGuid)
+					value3.AddRange(playerDominations);
+					foreach (PlayerPair item in value3)
 					{
-						playerKnockoutStreaks.Remove(item2);
+						if (item.playerAGuid == playerGuid || item.playerBGuid == playerGuid)
+						{
+							playerDominations.Remove(item);
+						}
+					}
+					value3.Clear();
+					value3.AddRange(playerKnockoutStreaks.Keys);
+					foreach (PlayerPair item2 in value3)
+					{
+						if (item2.playerAGuid == playerGuid || item2.playerBGuid == playerGuid)
+						{
+							playerKnockoutStreaks.Remove(item2);
+						}
 					}
 				}
 			}
@@ -2217,7 +2255,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 					_ => (PlayerTextPopupType.None, 0), 
 				};
 			}
-			if (MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.OnOrBelowParBonus) && strokesUnderParType != StrokesUnderParType.None)
+			if (MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.OnOrBelowPar) && strokesUnderParType != StrokesUnderParType.None)
 			{
 				value.courseScore += num;
 				value.matchScore += num;
@@ -2249,13 +2287,29 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			float timeSince = BMath.GetTimeSince((isInDrivingRange && playerAsGolfer.OwnBall != null) ? playerAsGolfer.OwnBall.LastRespawnTimestamp : matchStartTimestamp);
 			float speedrunTimeForPar = GameManager.MatchSettings.GetSpeedrunTimeForPar(currentHoleParInternal);
 			isSpeedrun = timeSince < speedrunTimeForPar;
-			if (MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.SpeedrunBonus) && isSpeedrun)
+			if (MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.Speedrun) && isSpeedrun)
 			{
 				int speedrunScore = GameManager.MatchSettings.SpeedrunScore;
 				value.courseScore += speedrunScore;
 				value.matchScore += speedrunScore;
 				playerAsGolfer.PlayerInfo.RpcPopUp(PlayerTextPopupType.Speedrun, speedrunScore);
 				InfoFeed.ShowSpeedrunMessage(playerAsGolfer.PlayerInfo, timeSince);
+			}
+			bool flag = currentHoleFirstPlaceState.playerGuid != value.playerGuid;
+			if (MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.Comeback) && flag)
+			{
+				int num2 = currentHoleFirstPlaceState.courseScore - currentHoleFirstPlaceState.matchScore;
+				int num3 = value.courseScore - value.matchScore;
+				int num4 = num2 - num3;
+				if (num4 >= GameManager.MatchSettings.LowerComebackBonus.MinPointsGap)
+				{
+					MatchSettings.ComebackBonus comebackBonus = ((num4 >= GameManager.MatchSettings.UpperComebackBonus.MinPointsGap) ? GameManager.MatchSettings.UpperComebackBonus : GameManager.MatchSettings.LowerComebackBonus);
+					int num5 = (int)BMath.CeilToMultipleOf((float)value.matchScore * comebackBonus.BonusMultiplier, 5f);
+					value.courseScore += num5;
+					value.matchScore += num5;
+					InfoFeed.ShowComebackMessage(playerAsGolfer.PlayerInfo, num5);
+					playerAsGolfer.PlayerInfo.RpcPopUp(PlayerTextPopupType.Comeback, num5);
+				}
 			}
 			if (float.IsFinite(timeSince))
 			{
@@ -2275,7 +2329,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		}
 		bool CanBeChipIn()
 		{
-			if (!MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.ChipInBonus))
+			if (!MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.ChipIn))
 			{
 				return false;
 			}
@@ -2349,7 +2403,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			return;
 		}
 		knockoutCounted = false;
-		if (knockedOutPlayer == null || !DoesKnockoutOnPlayerCount(knockedOutPlayer))
+		if (knockedOutPlayer == null || !DoesKnockoutOnPlayerCount(knockedOutPlayer.PlayerInfo))
 		{
 			return;
 		}
@@ -2363,8 +2417,9 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		if (!flag && TryGetPlayerStateIndex(responsiblePlayer.connectionToClient, out var index))
 		{
 			knockoutCounted = true;
-			int num = (MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.KnockoutsBonus) ? GameManager.MatchSettings.KnockoutScore : 0);
-			responsiblePlayer.Movement.RpcInformKnockedOutOtherPlayer();
+			int num = (MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.Knockouts) ? GameManager.MatchSettings.KnockoutScore : 0);
+			PlayerPair playerPair = new PlayerPair(responsiblePlayer.PlayerId.Guid, knockedOutPlayer.PlayerInfo.PlayerId.Guid);
+			responsiblePlayer.Movement.RpcInformKnockedOutOtherPlayer(knockedOutPlayer.PlayerInfo, !playerDominations.Contains(playerPair));
 			if (num != 0)
 			{
 				responsiblePlayer.RpcPopUp(PlayerTextPopupType.Knockout, num);
@@ -2372,10 +2427,11 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			PlayerState value = playerStates[index];
 			value.matchKnockouts++;
 			value.courseKnockouts++;
+			value.matchKnockoutStreak++;
 			value.courseScore += num;
 			value.matchScore += num;
 			playerStates[index] = value;
-			PlayerPair playerPair = new PlayerPair(responsiblePlayer.PlayerId.Guid, knockedOutPlayer.PlayerInfo.PlayerId.Guid);
+			IncrementRecentKnockouts();
 			if (!playerKnockoutStreaks.TryGetValue(playerPair, out var value2))
 			{
 				value2 = 0;
@@ -2406,7 +2462,28 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 				PlayerState value4 = playerStates[index2];
 				value4.matchKnockedOut++;
 				value4.courseKnockedOut++;
+				value4.matchKnockoutStreak = 0;
 				playerStates[index2] = value4;
+			}
+		}
+		void IncrementRecentKnockouts()
+		{
+			if (!recentScoredKnockoutTimestamps.TryGetValue(responsiblePlayer, out var value5))
+			{
+				value5 = new List<double>();
+				recentScoredKnockoutTimestamps.Add(responsiblePlayer, value5);
+			}
+			for (int num3 = value5.Count - 1; num3 >= 0; num3--)
+			{
+				if (BMath.GetTimeSince(value5[num3]) > (float)GameManager.Achievements.TargetRichEnvironmentKnockoutTimeWindow)
+				{
+					value5.RemoveAtSwapBack(num3);
+				}
+			}
+			value5.Add(Time.timeAsDouble);
+			if (value5.Count >= GameManager.Achievements.TargetRichEnvironmentKnockoutCount)
+			{
+				responsiblePlayer.RpcInformQualifiedTargetRichEnvironmentAchievement();
 			}
 		}
 	}
@@ -2476,13 +2553,16 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 	[Server]
 	private void InformPlayerEliminatedInternal(PlayerGolfer eliminatedPlayer, PlayerGolfer responsiblePlayer, EliminationReason reason, EliminationReason immediateEliminationReason)
 	{
-		int index;
 		if (!NetworkServer.active)
 		{
 			UnityEngine.Debug.LogWarning("[Server] function 'System.Void CourseManager::InformPlayerEliminatedInternal(PlayerGolfer,PlayerGolfer,EliminationReason,EliminationReason)' called when server was not active");
 		}
-		else if (TryGetPlayerStateIndex(eliminatedPlayer.connectionToClient, out index))
+		else
 		{
+			if (!TryGetPlayerStateIndex(eliminatedPlayer.connectionToClient, out var index))
+			{
+				return;
+			}
 			int index2 = -1;
 			bool num = responsiblePlayer == null || responsiblePlayer == eliminatedPlayer || !TryGetPlayerStateIndex(responsiblePlayer.connectionToClient, out index2);
 			PlayerState value = playerStates[index];
@@ -2502,9 +2582,17 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			{
 				InfoFeed.ShowEliminationMessage(responsiblePlayer.PlayerInfo, eliminatedPlayer.PlayerInfo, reason);
 			}
-			if (!num && immediateEliminationReason == EliminationReason.FellIntoWater && responsiblePlayer != null)
+			if (!num && responsiblePlayer != null)
 			{
-				responsiblePlayer.PlayerInfo.RpcInformEliminatedOtherPlayerInWater();
+				responsiblePlayer.PlayerInfo.RpcInformEliminatedOtherPlayer(reason, immediateEliminationReason);
+			}
+			if (eliminatedPlayer != null)
+			{
+				Hittable asHittable = eliminatedPlayer.PlayerInfo.AsHittable;
+				if (asHittable.IsFrozen && asHittable.FreezerPlayerGuid != 0L && PlayerInfo.playerInfoPerPlayerGuid.TryGetValue(asHittable.FreezerPlayerGuid, out var value3))
+				{
+					value3.RpcInformOtherPlayerEliminatedWhileFrozenBySelf();
+				}
 			}
 		}
 	}
@@ -2890,7 +2978,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		component.AsEntity.Rigidbody.angularVelocity = angularVelocity;
 		if (item == ItemType.Landmine && spawner != null && component.TryGetComponent<Landmine>(out var component2))
 		{
-			component2.Initialize(LandmineArmType.None, spawner, itemUseId);
+			component2.ServerInitialize(LandmineArmType.None, spawner, itemUseId);
 		}
 		if (networkSpawn)
 		{
@@ -2914,7 +3002,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 				UnityEngine.Debug.LogError("Dropped landmine does not have a Landmine component", base.gameObject);
 				UnityEngine.Object.Destroy(physicalItem.gameObject);
 			}
-			component.Initialize(armType, owner, itemUseId);
+			component.ServerInitialize(armType, owner, itemUseId);
 			NetworkServer.Spawn(component.gameObject);
 		}
 	}
@@ -3171,33 +3259,38 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		{
 			ServerUpdateMarkedFirstPlacePlayer();
 		}
+		PlayerState playerState = playerStates[itemIndex];
 		if ((uint)operation == 1u)
 		{
-			if (changedItem.isSpectator != playerStates[itemIndex].isSpectator)
+			string playerName = GetPlayerName(playerState);
+			if (changedItem.isSpectator != playerState.isSpectator)
 			{
-				if (playerStates[itemIndex].isSpectator)
+				if (playerState.isSpectator)
 				{
-					TextChatUi.ShowMessage(string.Format(Localization.UI.TEXTCHAT_Info_PlayerJoinedSpectators, GameManager.UiSettings.ApplyColorTag(GameManager.RichTextNoParse(playerStates[itemIndex].name), TextHighlight.Regular)));
+					TextChatUi.ShowMessage(string.Format(Localization.UI.TEXTCHAT_Info_PlayerJoinedSpectators, GameManager.UiSettings.ApplyColorTag(GameManager.RichTextNoParse(playerName), TextHighlight.Regular)));
 				}
 				else
 				{
-					TextChatUi.ShowMessage(string.Format(Localization.UI.TEXTCHAT_Info_PlayerJoinedGame, GameManager.UiSettings.ApplyColorTag(GameManager.RichTextNoParse(playerStates[itemIndex].name), TextHighlight.Regular)));
+					TextChatUi.ShowMessage(string.Format(Localization.UI.TEXTCHAT_Info_PlayerJoinedGame, GameManager.UiSettings.ApplyColorTag(GameManager.RichTextNoParse(playerName), TextHighlight.Regular)));
 				}
 			}
-			if (!BNetworkManager.IsChangingSceneOrShuttingDown && changedItem.isConnected && !playerStates[itemIndex].isConnected)
+			if (!BNetworkManager.IsChangingSceneOrShuttingDown && changedItem.isConnected && !playerState.isConnected)
 			{
-				TextChatUi.ShowMessage(string.Format(Localization.UI.TEXTCHAT_Info_PlayerDisconnected, GameManager.UiSettings.ApplyColorTag(GameManager.RichTextNoParse(playerStates[itemIndex].name), TextHighlight.Regular)));
+				TextChatUi.ShowMessage(string.Format(Localization.UI.TEXTCHAT_Info_PlayerDisconnected, GameManager.UiSettings.ApplyColorTag(GameManager.RichTextNoParse(playerName), TextHighlight.Regular)));
 			}
 			if (PlayerInfo.playerInfoPerPlayerGuid.TryGetValue(changedItem.playerGuid, out var value))
 			{
-				value.InformCourseStateChanged(changedItem, playerStates[itemIndex]);
+				value.InformCourseStateChanged(changedItem, playerState);
 			}
+		}
+		if (GameManager.LocalPlayerId != null && (uint)operation == 1u && playerState.playerGuid == GameManager.LocalPlayerId.Guid && !SingletonBehaviour<DrivingRangeManager>.HasInstance && changedItem.matchKnockoutStreak < GameManager.Achievements.BerserkerKnockoutStreak && playerState.matchKnockoutStreak >= GameManager.Achievements.BerserkerKnockoutStreak)
+		{
+			GameManager.AchievementsManager.Unlock(AchievementId.Berserker);
 		}
 		if (!SteamEnabler.IsSteamEnabled)
 		{
 			return;
 		}
-		PlayerState playerState = playerStates[itemIndex];
 		if (BNetworkManager.TryGetPlayerInLobby(playerState.playerGuid, out var player))
 		{
 			switch (operation)
@@ -3231,6 +3324,11 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		CourseManager.PlayerPingsChanged?.Invoke(operation, playerGuid, ping);
 	}
 
+	private void OnPlayerKnockoutStreaksChanged(SyncIDictionary<PlayerPair, int>.Operation operation, PlayerPair playerPair, int streak)
+	{
+		CourseManager.PlayerKnockoutStreaksChanged?.Invoke(operation, playerPair, streak);
+	}
+
 	private void OnPlayerDominationsChanged(SyncSet<PlayerPair>.Operation operation, PlayerPair value)
 	{
 		CourseManager.PlayerDominationsChanged?.Invoke(operation, value);
@@ -3260,16 +3358,6 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 	private void OnOvertimeActiveBallsChanged(SyncList<GolfBall>.Operation operation, int ballIndex, GolfBall changedBall)
 	{
 		CourseManager.OvertimeActiveBallsChanged?.Invoke(operation, ballIndex, changedBall);
-	}
-
-	private void OnServerAnyPlayerNameChanged(PlayerId player)
-	{
-		if (TryGetPlayerStateIndex(player.connectionToClient, out var index))
-		{
-			PlayerState value = playerStates[index];
-			value.name = player.name;
-			playerStates[index] = value;
-		}
 	}
 
 	private void OnServerAnyPlayerGuidChanged(PlayerId player)
@@ -3352,6 +3440,10 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			{
 				ServerInitiateMatchFinish();
 			}
+			if (currentState == MatchState.HoleOverview)
+			{
+				currentHoleFirstPlaceState = GetFirstPlaceState();
+			}
 		}
 		if (currentState >= MatchState.TeeOff)
 		{
@@ -3388,7 +3480,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			}
 		}
 		CourseManager.MatchStateChanged?.Invoke(previousState, currentState);
-		async void AwardMatchBonus()
+		async void AwardCourseBonus()
 		{
 			await UniTask.WaitForSeconds(1f);
 			if (!(this == null))
@@ -3404,8 +3496,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 							PlayerState playerState = sortedPlayerStatesInternal[i];
 							if (playerState.isConnected && !playerState.isSpectator && BNetworkManager.singleton.ServerTryGetConnectionFromPlayerGuid(playerState.playerGuid, out var connection))
 							{
-								float num2 = ((i == 0) ? 1f : ((i >= sortedPlayerStatesInternal.Count / 2) ? 0.5f : 0.75f));
-								RpcAwardMatchBonus(connection, BMath.RoundToInt((float)playerState.matchScore * num2));
+								RpcAwardCourseBonus(awardMultiplier: (i == 0) ? 1f : ((i >= sortedPlayerStatesInternal.Count / 2) ? 0.5f : 0.75f), target: connection);
 							}
 						}
 					}
@@ -3416,23 +3507,49 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		{
 			if (!MatchSetupRules.IsCheatsEnabled() && isCourseFinished)
 			{
-				AwardMatchBonus();
+				AwardCourseBonus();
 			}
 			NextMatchCountdown.Show();
 			NextMatchCountdown.SetIsCourseFinished(isCourseFinished);
 			float delayDuration = (isCourseFinished ? GameManager.MatchSettings.FinishCourseDelay : GameManager.MatchSettings.StartNextMatchDelay);
-			bool didInformPlayersOfCourseEndState = false;
+			bool didEndPlayerStateCheck = false;
 			for (float time = 0f; time < delayDuration; time += Time.deltaTime)
 			{
-				if (!didInformPlayersOfCourseEndState && isCourseFinished && time >= 1f)
+				if (!didEndPlayerStateCheck && time >= 1f)
 				{
-					didInformPlayersOfCourseEndState = true;
-					foreach (PlayerState playerState2 in playerStates)
+					didEndPlayerStateCheck = true;
+					int num2 = CountActivePlayersInternal();
+					int num3 = 0;
+					PlayerState playerState = default(PlayerState);
+					PlayerState firstPlaceStateInternal = GetFirstPlaceStateInternal();
+					for (int i = 0; i < playerStates.Count; i++)
 					{
-						if (PlayerInfo.playerInfoPerPlayerGuid.TryGetValue(playerState2.playerGuid, out var value))
+						PlayerState playerState2 = playerStates[i];
+						if (isCourseFinished && PlayerInfo.playerInfoPerPlayerGuid.TryGetValue(playerState2.playerGuid, out var value))
 						{
 							value.RpcInformOfCourseEndState(playerState2);
 						}
+						if (playerState2.matchResolution == PlayerMatchResolution.Scored && ++num3 == 1)
+						{
+							playerState = playerState2;
+						}
+						if (playerState2.isConnected && num2 > 1 && playerState2.playerGuid == firstPlaceStateInternal.playerGuid)
+						{
+							playerState2.multiplayerFirstPlaceStreak++;
+							if (playerState2.multiplayerFirstPlaceStreak > GameManager.Achievements.OneTrueKingFirstPlaceStreak && PlayerInfo.playerInfoPerPlayerGuid.TryGetValue(playerState2.playerGuid, out var value2))
+							{
+								value2.RpcInformQualifiedForOneTrueKingAchievement();
+							}
+						}
+						else
+						{
+							playerState2.multiplayerFirstPlaceStreak = 0;
+						}
+						playerStates[i] = playerState2;
+					}
+					if (num3 == 1 && num2 >= GameManager.Achievements.ThereCanBeOnlyOneMinTotalPlayerCount && PlayerInfo.playerInfoPerPlayerGuid.TryGetValue(playerState.playerGuid, out var value3))
+					{
+						value3.RpcInformQualifiedForThereCanBeOnlyOneAchievement();
 					}
 				}
 				if (!forceDisplayScoreboard && time >= GameManager.MatchSettings.MatchEndScoreboardDisplayDelay)
@@ -3480,11 +3597,11 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 	}
 
 	[TargetRpc]
-	private void RpcAwardMatchBonus(NetworkConnectionToClient target, int credits)
+	private void RpcAwardCourseBonus(NetworkConnectionToClient target, float awardMultiplier)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
-		writer.WriteVarInt(credits);
-		SendTargetRPCInternal(target, "System.Void CourseManager::RpcAwardMatchBonus(Mirror.NetworkConnectionToClient,System.Int32)", 1515697303, writer, 0);
+		writer.WriteFloat(awardMultiplier);
+		SendTargetRPCInternal(target, "System.Void CourseManager::RpcAwardCourseBonus(Mirror.NetworkConnectionToClient,System.Single)", 1118622923, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
@@ -3541,13 +3658,13 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		}
 	}
 
-	public static bool DoesKnockoutOnPlayerCount(PlayerMovement knockedOutPlayer)
+	public static bool DoesKnockoutOnPlayerCount(PlayerInfo knockedOutPlayer)
 	{
-		if (knockedOutPlayer.PlayerInfo.AsGolfer.IsMatchResolved)
+		if (knockedOutPlayer.AsGolfer.IsMatchResolved)
 		{
 			return false;
 		}
-		if (knockedOutPlayer.PlayerInfo.AsSpectator.IsSpectating)
+		if (knockedOutPlayer.AsSpectator.IsSpectating)
 		{
 			return false;
 		}
@@ -3588,9 +3705,66 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		return ServerPersistentCourseData.nextHoleIndex >= GameManager.CurrentCourse.Holes.Length;
 	}
 
+	public static string GetPlayerName(PlayerId playerId)
+	{
+		return GetPlayerName(playerId.Guid);
+	}
+
+	public static string GetPlayerName(PlayerState playerState)
+	{
+		return GetPlayerName(playerState.playerGuid);
+	}
+
+	public static string GetPlayerName(ulong guid)
+	{
+		if (guid == 0L)
+		{
+			return string.Empty;
+		}
+		if (clientPlayerNames.TryGetValue(guid, out var value))
+		{
+			return value;
+		}
+		if (GetName(out var text))
+		{
+			clientPlayerNames[guid] = text;
+		}
+		return text;
+		bool GetName(out string name)
+		{
+			if (SteamEnabler.IsSteamEnabled && guid != 0L)
+			{
+				if (BNetworkManager.IsSteamLobbyValid())
+				{
+					if (BNetworkManager.TryGetPlayerInLobby(guid, out var player))
+					{
+						name = player.Name;
+						return true;
+					}
+					UnityEngine.Debug.LogWarning($"Failed to retrieve player {guid} in lobby, using fallback!");
+				}
+				try
+				{
+					name = new Friend(guid).Name;
+					return true;
+				}
+				catch (Exception exception)
+				{
+					UnityEngine.Debug.LogError("Encountered exception when retrieving steam friend name");
+					UnityEngine.Debug.LogException(exception);
+					name = guid.ToString();
+					return false;
+				}
+			}
+			name = "Player " + guid;
+			return true;
+		}
+	}
+
 	public CourseManager()
 	{
 		InitSyncObject(playerStates);
+		InitSyncObject(playerKnockoutStreaks);
 		InitSyncObject(playerPingPerGuid);
 		InitSyncObject(playerStateIndicesPerPlayerGuid);
 		InitSyncObject(playerDominations);
@@ -3601,6 +3775,19 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		_Mirror_SyncVarHookDelegate_isHoleOverviewFinished = OnIsHoleOverviewFinishedChanged;
 		_Mirror_SyncVarHookDelegate_forceDisplayScoreboard = OnForceDisplayScoreboardChanged;
 		_Mirror_SyncVarHookDelegate_markedFirstPlacePlayer = OnMarkedFirstPlacePlayerChanged;
+	}
+
+	static CourseManager()
+	{
+		clientPlayerNames = new Dictionary<ulong, string>();
+		RemoteProcedureCalls.RegisterCommand(typeof(CourseManager), "System.Void CourseManager::CmdSpawnGolfCartForLocalPlayerInternal(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdSpawnGolfCartForLocalPlayerInternal__NetworkConnectionToClient, requiresAuthority: false);
+		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcInformStartingCourse()", InvokeUserCode_RpcInformStartingCourse);
+		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcInformEndingCourse()", InvokeUserCode_RpcInformEndingCourse);
+		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcInformStartingNextMatch()", InvokeUserCode_RpcInformStartingNextMatch);
+		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcPlayAnnouncerLine(AnnouncerLine)", InvokeUserCode_RpcPlayAnnouncerLine__AnnouncerLine);
+		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcSlowDownOverviewCamera(System.Single)", InvokeUserCode_RpcSlowDownOverviewCamera__Single);
+		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcPlayAnnouncerLines(Mirror.NetworkConnectionToClient,System.Collections.Generic.List`1<AnnouncerLine>)", InvokeUserCode_RpcPlayAnnouncerLines__NetworkConnectionToClient__List_00601);
+		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcAwardCourseBonus(Mirror.NetworkConnectionToClient,System.Single)", InvokeUserCode_RpcAwardCourseBonus__NetworkConnectionToClient__Single);
 	}
 
 	public override bool Weaved()
@@ -3812,33 +3999,25 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		}
 	}
 
-	protected void UserCode_RpcAwardMatchBonus__NetworkConnectionToClient__Int32(NetworkConnectionToClient target, int credits)
+	protected void UserCode_RpcAwardCourseBonus__NetworkConnectionToClient__Single(NetworkConnectionToClient target, float awardMultiplier)
 	{
-		CosmeticsUnlocksManager.RewardCredits(credits);
+		if (!localPlayerRewardedCourseBonus && !(GameManager.LocalPlayerInfo == null) && TryGetPlayerState(GameManager.LocalPlayerInfo, out var state))
+		{
+			awardMultiplier = BMath.Clamp(awardMultiplier, 0.5f, 1f);
+			CosmeticsUnlocksManager.RewardCredits(BMath.RoundToInt((float)state.matchScore * awardMultiplier));
+		}
 	}
 
-	protected static void InvokeUserCode_RpcAwardMatchBonus__NetworkConnectionToClient__Int32(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcAwardCourseBonus__NetworkConnectionToClient__Single(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
-			UnityEngine.Debug.LogError("TargetRPC RpcAwardMatchBonus called on server.");
+			UnityEngine.Debug.LogError("TargetRPC RpcAwardCourseBonus called on server.");
 		}
 		else
 		{
-			((CourseManager)obj).UserCode_RpcAwardMatchBonus__NetworkConnectionToClient__Int32(null, reader.ReadVarInt());
+			((CourseManager)obj).UserCode_RpcAwardCourseBonus__NetworkConnectionToClient__Single(null, reader.ReadFloat());
 		}
-	}
-
-	static CourseManager()
-	{
-		RemoteProcedureCalls.RegisterCommand(typeof(CourseManager), "System.Void CourseManager::CmdSpawnGolfCartForLocalPlayerInternal(Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdSpawnGolfCartForLocalPlayerInternal__NetworkConnectionToClient, requiresAuthority: false);
-		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcInformStartingCourse()", InvokeUserCode_RpcInformStartingCourse);
-		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcInformEndingCourse()", InvokeUserCode_RpcInformEndingCourse);
-		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcInformStartingNextMatch()", InvokeUserCode_RpcInformStartingNextMatch);
-		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcPlayAnnouncerLine(AnnouncerLine)", InvokeUserCode_RpcPlayAnnouncerLine__AnnouncerLine);
-		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcSlowDownOverviewCamera(System.Single)", InvokeUserCode_RpcSlowDownOverviewCamera__Single);
-		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcPlayAnnouncerLines(Mirror.NetworkConnectionToClient,System.Collections.Generic.List`1<AnnouncerLine>)", InvokeUserCode_RpcPlayAnnouncerLines__NetworkConnectionToClient__List_00601);
-		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcAwardMatchBonus(Mirror.NetworkConnectionToClient,System.Int32)", InvokeUserCode_RpcAwardMatchBonus__NetworkConnectionToClient__Int32);
 	}
 
 	public override void SerializeSyncVars(NetworkWriter writer, bool forceAll)

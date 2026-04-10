@@ -12,6 +12,14 @@ namespace UnityEngine.UIElements.UIR;
 
 internal class UIRenderDevice : IDisposable
 {
+	public static class Testing
+	{
+		public static CommandListManager GetCommandListManager(UIRenderDevice device)
+		{
+			return device.m_CommandListManager;
+		}
+	}
+
 	internal struct AllocToUpdate
 	{
 		public uint id;
@@ -44,7 +52,7 @@ internal class UIRenderDevice : IDisposable
 
 		public Page page;
 
-		public List<CommandList>[] commandLists;
+		public CommandListManager commandListManager;
 
 		public void Dispose()
 		{
@@ -54,26 +62,31 @@ internal class UIRenderDevice : IDisposable
 				this.page = this.page.next;
 				page.Dispose();
 			}
-			if (commandLists == null)
-			{
-				return;
-			}
-			for (int i = 0; i < commandLists.Length; i++)
-			{
-				foreach (CommandList item in commandLists[i])
-				{
-					item.Dispose();
-				}
-				commandLists[i] = null;
-			}
+			commandListManager.Dispose();
 		}
 	}
 
-	private struct DisableForceGammaMaterial
+	[Flags]
+	private enum EvaluationFlags
 	{
-		public Material material;
-
-		public int count;
+		None = 0,
+		MustApplyMaterial = 1,
+		MustApplyBatchProps = 2,
+		MustApplyStencil = 4,
+		ForceRenderTypeBitOffset = 3,
+		ForceRenderTypeSolid = 8,
+		ForceRenderTypeTextured = 0x10,
+		ForceRenderTypeText = 0x18,
+		ForceRenderTypeSvgGradient = 0x20,
+		ForceRenderTypeBits = 0x38,
+		TextureSlotCountBitOffset = 6,
+		TextureSlotCount1 = 0x40,
+		TextureSlotCount2 = 0x80,
+		TextureSlotCount4 = 0xC0,
+		TextureSlotCount8 = 0x100,
+		TextureSlotCountBits = 0x1C0,
+		IsSerializing = 0x200,
+		IsRenderingNestedTreeRT = 0x400
 	}
 
 	private struct EvaluationState
@@ -84,17 +97,17 @@ internal class UIRenderDevice : IDisposable
 
 		public MaterialPropertyBlock batchProps;
 
-		public Material defaultMat;
+		public MaterialPropertyBlock userProps;
 
-		public State curState;
+		public Material material;
+
+		public int stencilRef;
 
 		public Page curPage;
 
-		public bool mustApplyMaterial;
+		public EvaluationFlags flags;
 
-		public bool mustApplyBatchProps;
-
-		public bool mustApplyStencil;
+		public VisualElement commandListOwner;
 	}
 
 	internal struct AllocationStatistics
@@ -156,7 +169,9 @@ internal class UIRenderDevice : IDisposable
 
 	private List<List<AllocToUpdate>> m_Updates;
 
-	private List<CommandList>[] m_CommandLists;
+	private List<MeshHandle> m_MeshesPendingFree;
+
+	private CommandListManager m_CommandListManager;
 
 	private uint[] m_Fences;
 
@@ -170,6 +185,8 @@ internal class UIRenderDevice : IDisposable
 
 	private DrawStatistics m_DrawStats;
 
+	private bool m_RenderingInProgress;
+
 	private readonly LinkedPool<MeshHandle> m_MeshHandles = new LinkedPool<MeshHandle>(() => new MeshHandle(), delegate
 	{
 	});
@@ -177,6 +194,8 @@ internal class UIRenderDevice : IDisposable
 	private readonly DrawParams m_DrawParams = new DrawParams();
 
 	private readonly TextureSlotManager m_TextureSlotManager = new TextureSlotManager();
+
+	private HashSet<Material> m_ScreenSpaceAlteredMaterials = new HashSet<Material>();
 
 	private static LinkedList<DeviceToFree> m_DeviceFreeQueue;
 
@@ -200,15 +219,9 @@ internal class UIRenderDevice : IDisposable
 
 	private static ProfilerMarker s_MarkerBeforeDraw;
 
-	internal int currentFrameCommandListCount = 0;
+	private static readonly int[] s_EvaluationFlagsToTextureSlotCount;
 
-	private CommandList m_DefaultCommandList = new CommandList(null, IntPtr.Zero, IntPtr.Zero, null);
-
-	private Dictionary<Material, DisableForceGammaMaterial> m_DisableForceGammaMaterialTable;
-
-	private List<Material> m_MaterialToRemove;
-
-	private List<Material> m_Materialkeys;
+	private static readonly int[] s_TextureSlotCountToEvaluationFlags;
 
 	internal static uint maxVerticesPerPage => 65535u;
 
@@ -219,10 +232,6 @@ internal class UIRenderDevice : IDisposable
 	internal bool forceGammaRendering { get; }
 
 	internal uint frameIndex => m_FrameIndex;
-
-	internal List<CommandList>[] commandLists => m_CommandLists;
-
-	internal List<CommandList> currentFrameCommandLists => m_CommandLists[(int)(m_FrameIndex % m_CommandLists.Length)];
 
 	protected bool disposed { get; private set; }
 
@@ -237,6 +246,8 @@ internal class UIRenderDevice : IDisposable
 		s_MarkerAdvanceFrame = new ProfilerMarker("UIR.AdvanceFrame");
 		s_MarkerFence = new ProfilerMarker("UIR.WaitOnFence");
 		s_MarkerBeforeDraw = new ProfilerMarker("UIR.BeforeDraw");
+		s_EvaluationFlagsToTextureSlotCount = new int[8] { -1, 1, 2, 4, 8, -1, -1, -1 };
+		s_TextureSlotCountToEvaluationFlags = new int[9] { -1, 1, 2, -1, 3, -1, -1, -1, 4 };
 		Utility.EngineUpdate += OnEngineUpdateGlobal;
 		Utility.FlushPendingResources += OnFlushPendingResources;
 	}
@@ -258,6 +269,7 @@ internal class UIRenderDevice : IDisposable
 		m_IndexToVertexCountRatio = Mathf.Max(m_IndexToVertexCountRatio, 2f);
 		m_DeferredFrees = new List<List<AllocToFree>>(4);
 		m_Updates = new List<List<AllocToUpdate>>(4);
+		m_MeshesPendingFree = new List<MeshHandle>();
 		for (int num = 0; (long)num < 4L; num++)
 		{
 			m_DeferredFrees.Add(new List<AllocToFree>());
@@ -281,14 +293,7 @@ internal class UIRenderDevice : IDisposable
 			failOperationBack = StencilOp.Keep,
 			zFailOperationBack = StencilOp.DecrementSaturate
 		});
-		m_CommandLists = new List<CommandList>[4];
-		for (int num2 = 0; (long)num2 < 4L; num2++)
-		{
-			m_CommandLists[num2] = new List<CommandList>();
-		}
-		m_DisableForceGammaMaterialTable = new Dictionary<Material, DisableForceGammaMaterial>();
-		m_MaterialToRemove = new List<Material>();
-		m_Materialkeys = new List<Material>();
+		m_CommandListManager = new CommandListManager(m_VertexDecl, m_DefaultStencilState);
 	}
 
 	private void InitVertexDeclaration()
@@ -297,7 +302,7 @@ internal class UIRenderDevice : IDisposable
 		{
 			new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, 0),
 			new VertexAttributeDescriptor(VertexAttribute.Color, VertexAttributeFormat.UNorm8, 4),
-			new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2),
+			new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 4),
 			new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.UNorm8, 4),
 			new VertexAttributeDescriptor(VertexAttribute.TexCoord2, VertexAttributeFormat.UNorm8, 4),
 			new VertexAttributeDescriptor(VertexAttribute.TexCoord3, VertexAttributeFormat.UNorm8, 4),
@@ -332,11 +337,12 @@ internal class UIRenderDevice : IDisposable
 		m_ActiveDeviceCount--;
 		if (disposing)
 		{
+			m_CommandListManager.ResetUIRendererDrawCallData();
 			DeviceToFree value = new DeviceToFree
 			{
 				handle = Utility.InsertCPUFence(),
 				page = m_FirstPage,
-				commandLists = m_CommandLists
+				commandListManager = m_CommandListManager
 			};
 			if (value.handle == 0)
 			{
@@ -350,14 +356,13 @@ internal class UIRenderDevice : IDisposable
 					ProcessDeviceFreeQueue();
 				}
 			}
-			m_DefaultCommandList.Dispose();
-			m_DefaultCommandList = null;
 		}
 		disposed = true;
 	}
 
 	public MeshHandle Allocate(uint vertexCount, uint indexCount, out NativeSlice<Vertex> vertexData, out NativeSlice<ushort> indexData, out ushort indexOffset)
 	{
+		Debug.Assert(!m_RenderingInProgress);
 		MeshHandle meshHandle = m_MeshHandles.Get();
 		meshHandle.triangleCount = indexCount / 3;
 		Allocate(meshHandle, vertexCount, indexCount, out vertexData, out indexData, shortLived: false);
@@ -367,6 +372,7 @@ internal class UIRenderDevice : IDisposable
 
 	public void Update(MeshHandle mesh, uint vertexCount, out NativeSlice<Vertex> vertexData)
 	{
+		Debug.Assert(!m_RenderingInProgress);
 		Debug.Assert(mesh.allocVerts.size >= vertexCount);
 		if (mesh.allocTime == m_FrameIndex)
 		{
@@ -386,6 +392,7 @@ internal class UIRenderDevice : IDisposable
 
 	public void Update(MeshHandle mesh, uint vertexCount, uint indexCount, out NativeSlice<Vertex> vertexData, out NativeSlice<ushort> indexData, out ushort indexOffset)
 	{
+		Debug.Assert(!m_RenderingInProgress);
 		Debug.Assert(mesh.allocVerts.size >= vertexCount);
 		Debug.Assert(mesh.allocIndices.size >= indexCount);
 		if (mesh.allocTime == m_FrameIndex)
@@ -436,6 +443,7 @@ internal class UIRenderDevice : IDisposable
 
 	private void Allocate(MeshHandle meshHandle, uint vertexCount, uint indexCount, out NativeSlice<Vertex> vertexData, out NativeSlice<ushort> indexData, bool shortLived)
 	{
+		Debug.Assert(!m_RenderingInProgress);
 		Page page = null;
 		Alloc va = default(Alloc);
 		Alloc ia = default(Alloc);
@@ -587,6 +595,11 @@ internal class UIRenderDevice : IDisposable
 
 	public void Free(MeshHandle mesh)
 	{
+		if (m_RenderingInProgress)
+		{
+			m_MeshesPendingFree.Add(mesh);
+			return;
+		}
 		if (mesh.updateAllocID != 0)
 		{
 			int index = (int)(mesh.updateAllocID - 1);
@@ -651,6 +664,7 @@ internal class UIRenderDevice : IDisposable
 
 	public void OnFrameRenderingBegin()
 	{
+		m_RenderingInProgress = true;
 		m_DrawStats = default(DrawStatistics);
 		m_DrawStats.currentFrameIndex = (int)m_FrameIndex;
 		for (Page page = m_FirstPage; page != null; page = page.next)
@@ -667,67 +681,172 @@ internal class UIRenderDevice : IDisposable
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private void ApplyDrawCommandState(RenderChainCommand cmd, int textureSlot, Material newMat, bool newMatDiffers, ref EvaluationState st)
+	private static int FlagsToTextureSlotCount(EvaluationFlags flags)
+	{
+		int num = (int)(flags & EvaluationFlags.TextureSlotCountBits) >> 6;
+		return s_EvaluationFlagsToTextureSlotCount[num];
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static EvaluationFlags TextureSlotCountToFlags(TextureSlotCount count)
+	{
+		return (EvaluationFlags)(s_TextureSlotCountToEvaluationFlags[(int)count] << 6);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private void ApplyDrawCommandState(RenderChainCommand cmd, int textureSlot, Material newMat, bool newMatDiffers, MaterialPropertyBlock userProps, EvaluationFlags defaultTextureSlotCountFlags, bool kickRanges, Texture gradientSettings, Texture shaderInfo, ref EvaluationState st)
 	{
 		if (newMatDiffers)
 		{
-			st.curState.material = newMat;
-			st.mustApplyMaterial = true;
+			st.material = newMat;
+			st.userProps = userProps;
+			st.flags |= EvaluationFlags.MustApplyMaterial;
+			st.flags &= ~EvaluationFlags.TextureSlotCountBits;
+			if ((cmd.flags & CommandFlags.ForceSingleTextureSlot) != CommandFlags.None)
+			{
+				st.flags |= EvaluationFlags.TextureSlotCount1;
+			}
+			else
+			{
+				st.flags |= defaultTextureSlotCountFlags;
+			}
+			st.flags &= ~EvaluationFlags.ForceRenderTypeBits;
+			if ((cmd.flags & CommandFlags.ForceRenderTypeBits) != CommandFlags.None)
+			{
+				uint num = (uint)(cmd.flags & CommandFlags.ForceRenderTypeBits) >> 1;
+				st.flags |= (EvaluationFlags)(num << 3);
+			}
+			if ((st.flags & EvaluationFlags.IsSerializing) != EvaluationFlags.None)
+			{
+				SetupCommandList(ref st, gradientSettings, shaderInfo, cmd.flags);
+			}
+		}
+		if (kickRanges)
+		{
+			m_TextureSlotManager.StartNewBatch(FlagsToTextureSlotCount(st.flags));
 		}
 		st.curPage = cmd.mesh.allocPage;
-		if (cmd.state.texture != TextureId.invalid)
+		if (cmd.texture != TextureId.invalid)
 		{
 			if (textureSlot < 0)
 			{
 				textureSlot = m_TextureSlotManager.FindOldestSlot();
-				m_TextureSlotManager.Bind(cmd.state.texture, cmd.state.sdfScale, cmd.state.sharpness, cmd.state.isPremultiplied, textureSlot, st.batchProps, st.activeCommandList);
-				st.mustApplyBatchProps = true;
+				m_TextureSlotManager.Bind(cmd.texture, cmd.sdfScale, cmd.sharpness, (cmd.flags & CommandFlags.IsPremultiplied) != 0, textureSlot, st.batchProps, st.activeCommandList);
+				st.flags |= EvaluationFlags.MustApplyBatchProps;
 			}
 			else
 			{
 				m_TextureSlotManager.MarkUsed(textureSlot);
 			}
 		}
-		if (cmd.state.stencilRef != st.curState.stencilRef)
+		if (cmd.stencilRef != st.stencilRef)
 		{
-			st.curState.stencilRef = cmd.state.stencilRef;
-			st.mustApplyStencil = true;
+			st.stencilRef = cmd.stencilRef;
+			st.flags |= EvaluationFlags.MustApplyStencil;
 		}
 	}
 
-	private void ApplyBatchState(ref EvaluationState st, Texture gradientSettings, Texture shaderInfo)
+	private void ApplyBatchState(ref EvaluationState st)
 	{
-		if (st.mustApplyMaterial)
+		if ((st.flags & EvaluationFlags.MustApplyMaterial) != EvaluationFlags.None)
 		{
+			m_DrawStats.materialSetCount++;
 			if (st.activeCommandList == null)
 			{
-				m_DrawStats.materialSetCount++;
-				if (st.curState.material != Shaders.runtimeMaterial)
+				Debug.Assert(isFlat || (st.flags & EvaluationFlags.IsRenderingNestedTreeRT) == EvaluationFlags.IsRenderingNestedTreeRT);
+				bool flag = false;
+				if (forceGammaRendering)
 				{
-					if (forceGammaRendering)
-					{
-						st.curState.material.EnableKeyword(Shaders.k_ForceGammaKeyword);
-					}
-					else
-					{
-						st.curState.material.DisableKeyword(Shaders.k_ForceGammaKeyword);
-					}
+					st.material.EnableKeyword(Shaders.k_ForceGammaKeyword);
+					flag = true;
 				}
-				st.curState.material.SetPass(0);
-				if (st.constantProps != null)
+				else
 				{
-					Utility.SetPropertyBlock(st.constantProps);
+					st.material.DisableKeyword(Shaders.k_ForceGammaKeyword);
 				}
-				st.mustApplyBatchProps = true;
-				st.mustApplyStencil = true;
+				switch (st.flags & EvaluationFlags.TextureSlotCountBits)
+				{
+				case EvaluationFlags.TextureSlotCount8:
+					st.material.DisableKeyword(Shaders.k_TextureSlotCount1);
+					st.material.DisableKeyword(Shaders.k_TextureSlotCount2);
+					st.material.DisableKeyword(Shaders.k_TextureSlotCount4);
+					break;
+				case EvaluationFlags.TextureSlotCount4:
+					st.material.DisableKeyword(Shaders.k_TextureSlotCount1);
+					st.material.DisableKeyword(Shaders.k_TextureSlotCount2);
+					st.material.EnableKeyword(Shaders.k_TextureSlotCount4);
+					flag = true;
+					break;
+				case EvaluationFlags.TextureSlotCount2:
+					st.material.DisableKeyword(Shaders.k_TextureSlotCount1);
+					st.material.EnableKeyword(Shaders.k_TextureSlotCount2);
+					st.material.DisableKeyword(Shaders.k_TextureSlotCount4);
+					flag = true;
+					break;
+				case EvaluationFlags.TextureSlotCount1:
+					st.material.EnableKeyword(Shaders.k_TextureSlotCount1);
+					st.material.DisableKeyword(Shaders.k_TextureSlotCount2);
+					st.material.DisableKeyword(Shaders.k_TextureSlotCount4);
+					flag = true;
+					break;
+				default:
+					throw new ArgumentException("Unsupported texture slot count.");
+				}
+				switch (st.flags & EvaluationFlags.ForceRenderTypeBits)
+				{
+				case EvaluationFlags.ForceRenderTypeSolid:
+					st.material.EnableKeyword(Shaders.k_ForceRenderTypeSolid);
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeTextured);
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeText);
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeSvgGradient);
+					flag = true;
+					break;
+				case EvaluationFlags.ForceRenderTypeTextured:
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeSolid);
+					st.material.EnableKeyword(Shaders.k_ForceRenderTypeTextured);
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeText);
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeSvgGradient);
+					flag = true;
+					break;
+				case EvaluationFlags.ForceRenderTypeText:
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeSolid);
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeTextured);
+					st.material.EnableKeyword(Shaders.k_ForceRenderTypeText);
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeSvgGradient);
+					flag = true;
+					break;
+				case EvaluationFlags.ForceRenderTypeSvgGradient:
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeSolid);
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeTextured);
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeText);
+					st.material.EnableKeyword(Shaders.k_ForceRenderTypeSvgGradient);
+					flag = true;
+					break;
+				default:
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeSolid);
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeTextured);
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeText);
+					st.material.DisableKeyword(Shaders.k_ForceRenderTypeSvgGradient);
+					break;
+				}
+				if (flag)
+				{
+					m_ScreenSpaceAlteredMaterials.Add(st.material);
+				}
+				st.material.SetPass(0);
+				Utility.SetPropertyBlock(st.constantProps);
+				if (st.userProps != null)
+				{
+					Utility.SetPropertyBlock(st.userProps);
+				}
+				st.flags |= EvaluationFlags.TextureSlotCountBitOffset;
 			}
-			else
+			else if (st.userProps != null)
 			{
-				Material orCreateMaterial = GetOrCreateMaterial(st.curState.material);
-				CommandList orCreateCommandList = GetOrCreateCommandList(ref st, st.activeCommandList.m_Owner, orCreateMaterial, gradientSettings, shaderInfo);
+				st.activeCommandList.ApplyUserProps(st.userProps);
 			}
 		}
-		if (st.mustApplyBatchProps)
+		if ((st.flags & EvaluationFlags.MustApplyBatchProps) != EvaluationFlags.None)
 		{
 			if (st.activeCommandList == null)
 			{
@@ -738,39 +857,18 @@ internal class UIRenderDevice : IDisposable
 				st.activeCommandList.ApplyBatchProps();
 			}
 		}
-		if (st.mustApplyStencil)
+		if ((st.flags & EvaluationFlags.MustApplyStencil) != EvaluationFlags.None)
 		{
 			m_DrawStats.stencilRefChanges++;
 			if (st.activeCommandList == null)
 			{
-				Utility.SetStencilState(m_DefaultStencilState, st.curState.stencilRef);
+				Utility.SetStencilState(m_DefaultStencilState, st.stencilRef);
 			}
 		}
-		st.mustApplyMaterial = false;
-		st.mustApplyBatchProps = false;
-		st.mustApplyStencil = false;
-		m_TextureSlotManager.StartNewBatch();
+		st.flags &= ~(EvaluationFlags.ForceRenderTypeBitOffset | EvaluationFlags.MustApplyStencil);
 	}
 
-	private Material GetOrCreateMaterial(Material material)
-	{
-		Debug.Assert(!forceGammaRendering);
-		if (material == Shaders.runtimeWorldMaterial)
-		{
-			return material;
-		}
-		if (!m_DisableForceGammaMaterialTable.TryGetValue(material, out var value))
-		{
-			value.material = new Material(material);
-			value.material.DisableKeyword(Shaders.k_ForceGammaKeyword);
-			m_DisableForceGammaMaterialTable.Add(material, value);
-		}
-		value.count = 2;
-		m_DisableForceGammaMaterialTable[material] = value;
-		return value.material;
-	}
-
-	public unsafe void EvaluateChain(RenderChainCommand head, Material initialMat, Material defaultMat, Texture gradientSettings, Texture shaderInfo, Rect? scissor, float pixelsPerPoint, bool isSerializing, ref Exception immediateException)
+	public unsafe void EvaluateChain(RenderChainCommand head, Material defaultMat, Texture gradientSettings, Texture shaderInfo, Rect? scissor, float pixelsPerPoint, bool isSerializing, TextureSlotCount defaultTextureSlotCount, bool isRenderingNestedTreeRT, ref Exception immediateException)
 	{
 		Utility.ProfileDrawChainBegin();
 		bool flag = breakBatches;
@@ -782,34 +880,31 @@ internal class UIRenderDevice : IDisposable
 		DrawBufferRange drawBufferRange = default(DrawBufferRange);
 		int num3 = -1;
 		int num4 = 0;
-		currentFrameCommandListCount = 0;
+		EvaluationFlags evaluationFlags = TextureSlotCountToFlags(defaultTextureSlotCount);
+		EvaluationFlags evaluationFlags2 = (isRenderingNestedTreeRT ? EvaluationFlags.IsRenderingNestedTreeRT : EvaluationFlags.None);
 		EvaluationState st = new EvaluationState
 		{
-			constantProps = m_ConstantProps,
-			batchProps = m_BatchProps,
-			defaultMat = defaultMat,
-			curState = new State
-			{
-				material = initialMat
-			},
-			mustApplyBatchProps = true,
-			mustApplyStencil = true
+			flags = (EvaluationFlags.TextureSlotCountBitOffset | evaluationFlags | evaluationFlags2)
 		};
 		if (isSerializing)
 		{
-			m_DefaultCommandList.Reset(null, null);
-			st.activeCommandList = m_DefaultCommandList;
+			m_CommandListManager.BeginSerialize(defaultTextureSlotCount);
+			st.activeCommandList = m_CommandListManager.defaultCommandList;
+			st.flags |= EvaluationFlags.IsSerializing;
+		}
+		else
+		{
+			st.constantProps = m_ConstantProps;
+			InitializeConstantProperties(st.constantProps, gradientSettings, shaderInfo);
+			st.batchProps = m_BatchProps;
+			st.batchProps.Clear();
 		}
 		DrawParams drawParams = m_DrawParams;
 		drawParams.Reset();
 		RenderChainCommand.PushScissor(drawParams, scissor ?? DrawParams.k_UnlimitedRect, pixelsPerPoint);
 		m_TextureSlotManager.Reset();
-		st.batchProps.Clear();
-		InitializeConstantProperties(st.constantProps, gradientSettings, shaderInfo);
-		if (!isSerializing)
-		{
-			Utility.SetPropertyBlock(st.constantProps);
-		}
+		m_TextureSlotManager.StartNewBatch((int)defaultTextureSlotCount);
+		MaterialPropertyBlock materialPropertyBlock = null;
 		while (head != null)
 		{
 			if (head.type == CommandType.BeginDisable)
@@ -842,47 +937,64 @@ internal class UIRenderDevice : IDisposable
 			bool newMatDiffers = false;
 			if (head.type == CommandType.Draw)
 			{
-				material = ((head.state.material != null) ? head.state.material : defaultMat);
-				if (material != st.curState.material)
+				uint num6 = (uint)(st.flags & EvaluationFlags.ForceRenderTypeBits) >> 3;
+				uint num7 = (uint)(head.flags & CommandFlags.ForceRenderTypeBits) >> 1;
+				bool flag6 = (head.flags & CommandFlags.ForceSingleTextureSlot) != 0;
+				EvaluationFlags evaluationFlags3 = st.flags & EvaluationFlags.TextureSlotCountBits;
+				EvaluationFlags evaluationFlags4 = (flag6 ? EvaluationFlags.TextureSlotCount1 : evaluationFlags);
+				material = ((head.material != null) ? head.material : defaultMat);
+				if (num6 != num7 || evaluationFlags3 != evaluationFlags4 || material != st.material)
 				{
 					flag5 = true;
 					newMatDiffers = true;
 					flag3 = true;
 					flag4 = true;
 				}
-				if (head.mesh.allocPage != st.curPage)
+				else
 				{
-					flag5 = true;
-					flag3 = true;
-					flag4 = true;
-				}
-				else if (num3 != head.mesh.allocIndices.start + head.indexOffset)
-				{
-					flag3 = true;
-				}
-				if (head.state.texture != TextureId.invalid)
-				{
-					flag5 = true;
-					num5 = m_TextureSlotManager.IndexOf(head.state.texture);
-					if (num5 < 0 && m_TextureSlotManager.FreeSlots < 1)
+					if (head.mesh.allocPage != st.curPage)
 					{
+						flag5 = true;
 						flag3 = true;
 						flag4 = true;
 					}
-				}
-				if (head.state.stencilRef != st.curState.stencilRef)
-				{
-					flag5 = true;
-					flag3 = true;
-					flag4 = true;
-				}
-				if (flag3 && flag2)
-				{
-					flag4 = true;
+					else if (num3 != head.mesh.allocIndices.start + head.indexOffset)
+					{
+						flag3 = true;
+					}
+					if (head.texture != TextureId.invalid)
+					{
+						flag5 = true;
+						num5 = m_TextureSlotManager.IndexOf(head.texture);
+						if (num5 < 0 && m_TextureSlotManager.FreeSlots < 1)
+						{
+							flag3 = true;
+							flag4 = true;
+						}
+					}
+					if (head.stencilRef != st.stencilRef)
+					{
+						flag5 = true;
+						flag3 = true;
+						flag4 = true;
+					}
+					if (flag3 && flag2)
+					{
+						flag4 = true;
+					}
 				}
 			}
 			else
 			{
+				if (head.type == CommandType.PopDefaultMaterial)
+				{
+					RenderChainCommand next = head.next;
+					if (next != null && next.type == CommandType.PushDefaultMaterial && defaultMat == head.next?.material && materialPropertyBlock == head.next?.userProps)
+					{
+						head = head.next.next;
+						continue;
+					}
+				}
 				flag3 = true;
 				flag4 = true;
 			}
@@ -895,8 +1007,8 @@ internal class UIRenderDevice : IDisposable
 			{
 				if (drawBufferRange.indexCount > 0)
 				{
-					int num6 = (rangesStart + rangesReady++) & num2;
-					ptr[num6] = drawBufferRange;
+					int num8 = (rangesStart + rangesReady++) & num2;
+					ptr[num8] = drawBufferRange;
 					Debug.Assert(rangesReady < num || flag4);
 					drawBufferRange = default(DrawBufferRange);
 					m_DrawStats.drawRangeCount++;
@@ -914,38 +1026,46 @@ internal class UIRenderDevice : IDisposable
 				{
 					if (rangesReady > 0)
 					{
-						ApplyBatchState(ref st, gradientSettings, shaderInfo);
+						ApplyBatchState(ref st);
 						KickRanges(ptr, ref rangesReady, ref rangesStart, num, st.curPage, st.activeCommandList);
 					}
 					if (head.type != CommandType.Draw)
 					{
 						if (head.type == CommandType.CutRenderChain)
 						{
-							CommandList orCreateCommandList = GetOrCreateCommandList(ref st, head.owner.owner, defaultMat, gradientSettings, shaderInfo);
+							st.material = null;
+							st.commandListOwner = head.owner.owner;
+						}
+						if (head.type == CommandType.Immediate || head.type == CommandType.ImmediateCull)
+						{
+							ResetScreenSpaceMaterials();
 						}
 						head.ExecuteNonDrawMesh(drawParams, pixelsPerPoint, ref immediateException);
 						if (head.type == CommandType.Immediate || head.type == CommandType.ImmediateCull || head.type == CommandType.PopDefaultMaterial || head.type == CommandType.PushDefaultMaterial)
 						{
-							st.curState.material = null;
-							st.mustApplyMaterial = false;
+							st.material = null;
+							st.flags &= ~EvaluationFlags.MustApplyMaterial;
 							m_DrawStats.immediateDraws++;
 							if (head.type == CommandType.PopDefaultMaterial)
 							{
 								int index = drawParams.defaultMaterial.Count - 1;
 								defaultMat = drawParams.defaultMaterial[index];
+								materialPropertyBlock = drawParams.props[index];
 								drawParams.defaultMaterial.RemoveAt(index);
 							}
 							if (head.type == CommandType.PushDefaultMaterial)
 							{
 								drawParams.defaultMaterial.Add(defaultMat);
-								defaultMat = head.state.material;
+								drawParams.props.Add(head.userProps);
+								defaultMat = head.material;
+								materialPropertyBlock = head.userProps;
 							}
 						}
 					}
 				}
 				if (head.type == CommandType.Draw && flag5)
 				{
-					ApplyDrawCommandState(head, num5, material, newMatDiffers, ref st);
+					ApplyDrawCommandState(head, num5, material, newMatDiffers, materialPropertyBlock, evaluationFlags, flag4, gradientSettings, shaderInfo, ref st);
 				}
 				head = head.next;
 			}
@@ -966,25 +1086,49 @@ internal class UIRenderDevice : IDisposable
 				m_DrawStats.totalIndices += (uint)head.indexCount;
 				if (flag5)
 				{
-					ApplyDrawCommandState(head, num5, material, newMatDiffers, ref st);
+					ApplyDrawCommandState(head, num5, material, newMatDiffers, materialPropertyBlock, evaluationFlags, flag4, gradientSettings, shaderInfo, ref st);
 				}
 				head = head.next;
 			}
 		}
 		if (drawBufferRange.indexCount > 0)
 		{
-			int num7 = (rangesStart + rangesReady++) & num2;
-			ptr[num7] = drawBufferRange;
+			int num9 = (rangesStart + rangesReady++) & num2;
+			ptr[num9] = drawBufferRange;
 		}
 		if (rangesReady > 0)
 		{
-			ApplyBatchState(ref st, gradientSettings, shaderInfo);
+			ApplyBatchState(ref st);
 			KickRanges(ptr, ref rangesReady, ref rangesStart, num, st.curPage, st.activeCommandList);
 		}
 		Debug.Assert(num4 == 0, "Rendering disabled counter is not 0, indicating a mismatch of commands");
 		RenderChainCommand.PopScissor(drawParams, pixelsPerPoint);
 		UpdateFenceValue();
 		Utility.ProfileDrawChainEnd();
+		if ((st.flags & EvaluationFlags.IsSerializing) != EvaluationFlags.None)
+		{
+			m_CommandListManager.EndSerialize();
+		}
+		ResetScreenSpaceMaterials();
+	}
+
+	private void ResetScreenSpaceMaterials()
+	{
+		foreach (Material screenSpaceAlteredMaterial in m_ScreenSpaceAlteredMaterials)
+		{
+			if (!(screenSpaceAlteredMaterial == null))
+			{
+				screenSpaceAlteredMaterial.DisableKeyword(Shaders.k_ForceGammaKeyword);
+				screenSpaceAlteredMaterial.DisableKeyword(Shaders.k_TextureSlotCount1);
+				screenSpaceAlteredMaterial.DisableKeyword(Shaders.k_TextureSlotCount2);
+				screenSpaceAlteredMaterial.DisableKeyword(Shaders.k_TextureSlotCount4);
+				screenSpaceAlteredMaterial.DisableKeyword(Shaders.k_ForceRenderTypeSolid);
+				screenSpaceAlteredMaterial.DisableKeyword(Shaders.k_ForceRenderTypeTextured);
+				screenSpaceAlteredMaterial.DisableKeyword(Shaders.k_ForceRenderTypeText);
+				screenSpaceAlteredMaterial.DisableKeyword(Shaders.k_ForceRenderTypeSvgGradient);
+			}
+		}
+		m_ScreenSpaceAlteredMaterials.Clear();
 	}
 
 	private void InitializeConstantProperties(MaterialPropertyBlock constantProps, Texture gradientSettings, Texture shaderInfo)
@@ -999,28 +1143,18 @@ internal class UIRenderDevice : IDisposable
 		}
 	}
 
-	private CommandList GetOrCreateCommandList(ref EvaluationState st, VisualElement owner, Material material, Texture gradientSettings, Texture shaderInfo)
+	private void SetupCommandList(ref EvaluationState st, Texture gradientSettings, Texture shaderInfo, CommandFlags commandFlags)
 	{
-		CommandList commandList = null;
-		if (currentFrameCommandListCount < currentFrameCommandLists.Count)
+		if (st.commandListOwner != null)
 		{
-			commandList = currentFrameCommandLists[currentFrameCommandListCount];
-			commandList.Reset(owner, material);
+			CommandList orCreateCommandList = m_CommandListManager.GetOrCreateCommandList(st.commandListOwner, st.material, commandFlags);
+			InitializeConstantProperties(orCreateCommandList.constantProps, gradientSettings, shaderInfo);
+			st.activeCommandList = orCreateCommandList;
+			st.constantProps = null;
+			st.batchProps = null;
+			st.flags |= EvaluationFlags.TextureSlotCountBitOffset;
+			m_TextureSlotManager.Reset();
 		}
-		else
-		{
-			commandList = new CommandList(owner, m_VertexDecl, m_DefaultStencilState, material);
-			currentFrameCommandLists.Add(commandList);
-		}
-		st.activeCommandList = commandList;
-		InitializeConstantProperties(commandList.constantProps, gradientSettings, shaderInfo);
-		st.constantProps = null;
-		st.batchProps = null;
-		st.mustApplyBatchProps = true;
-		st.mustApplyStencil = true;
-		m_TextureSlotManager.Reset();
-		currentFrameCommandListCount++;
-		return commandList;
 	}
 
 	private unsafe void UpdateFenceValue()
@@ -1093,12 +1227,14 @@ internal class UIRenderDevice : IDisposable
 
 	public void AdvanceFrame()
 	{
+		m_RenderingInProgress = false;
 		m_FrameIndex++;
 		m_DrawStats.currentFrameIndex = (int)m_FrameIndex;
 		int num = (int)(m_FrameIndex % m_Fences.Length);
 		uint fence = m_Fences[num];
 		WaitOnCpuFence(fence);
 		m_Fences[num] = 0u;
+		m_CommandListManager.AdvanceFrame();
 		m_NextUpdateID = 1u;
 		List<AllocToFree> list = m_DeferredFrees[(int)(m_FrameIndex % (uint)m_DeferredFrees.Count)];
 		foreach (AllocToFree item in list)
@@ -1153,6 +1289,11 @@ internal class UIRenderDevice : IDisposable
 			item2.meshHandle.updateAllocID = 0u;
 		}
 		list2.Clear();
+		foreach (MeshHandle item3 in m_MeshesPendingFree)
+		{
+			Free(item3);
+		}
+		m_MeshesPendingFree.Clear();
 		PruneUnusedPages();
 	}
 
@@ -1210,37 +1351,6 @@ internal class UIRenderDevice : IDisposable
 			page5.Dispose();
 			page5 = next2;
 		}
-	}
-
-	public void SynchronizeMaterials()
-	{
-		foreach (Material key in m_DisableForceGammaMaterialTable.Keys)
-		{
-			m_Materialkeys.Add(key);
-		}
-		foreach (Material materialkey in m_Materialkeys)
-		{
-			DisableForceGammaMaterial value = m_DisableForceGammaMaterialTable[materialkey];
-			if (value.count == 0 || materialkey == null)
-			{
-				m_MaterialToRemove.Add(materialkey);
-				continue;
-			}
-			value.count--;
-			m_DisableForceGammaMaterialTable[materialkey] = value;
-			if (value.material.shader != materialkey.shader)
-			{
-				value.material.shader = materialkey.shader;
-			}
-			value.material.CopyPropertiesFromMaterial(materialkey);
-			value.material.DisableKeyword(Shaders.k_ForceGammaKeyword);
-		}
-		foreach (Material item in m_MaterialToRemove)
-		{
-			m_DisableForceGammaMaterialTable.Remove(item);
-		}
-		m_Materialkeys.Clear();
-		m_MaterialToRemove.Clear();
 	}
 
 	internal static void PrepareForGfxDeviceRecreate()
