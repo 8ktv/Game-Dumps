@@ -179,9 +179,7 @@ public class PlayerMovement : NetworkBehaviour
 
 	private PoolableParticleSystem knockoutImmunityVfx;
 
-	private double longKnockoutImmunityIncrementTimestamp;
-
-	private int recentKnockoutImmunityCount;
+	private readonly List<double> recentKnockoutImmunityTimestamps = new List<double>();
 
 	private double lastHitByDaveTimestamp = double.MinValue;
 
@@ -656,13 +654,18 @@ public class PlayerMovement : NetworkBehaviour
 		GetComponentsInChildren(includeInactive: false, renderers);
 		ApplyVisibility();
 		UpdateEnabledColliders();
+		UpdateKnockoutImmunityVfx();
+		GameManager.LocalPlayerRegistered += OnLocalPlayerRegistered;
+		PlayerId.LocalPlayerGuidChanged += OnLocalPlayerGuidChanged;
+		MatchSetupRules.RulesChanged += OnMatchRulesChanged;
+		CourseManager.PlayerKnockoutStreaksChanged += OnPlayerKnockoutStreakChanged;
 	}
 
 	private void Start()
 	{
+		PlayerInfo.PlayerId.GuidChanged += OnGuidChanged;
 		PlayerInfo.LevelBoundsTracker.LocalBoundsStateChanged += OnLocalBoundsStateChanged;
 		PlayerInfo.AnimatorIo.Footstep += OnFootstep;
-		CourseManager.PlayerDominationsChanged += OnPlayerDominationsChanged;
 	}
 
 	public void OnWillBeDestroyed()
@@ -674,9 +677,13 @@ public class PlayerMovement : NetworkBehaviour
 		}
 		UpdateKnockoutImmunityVfx();
 		UpdateRocketDriverSwingMissTrailEffects();
-		CourseManager.PlayerDominationsChanged -= OnPlayerDominationsChanged;
+		GameManager.LocalPlayerRegistered -= OnLocalPlayerRegistered;
+		PlayerId.LocalPlayerGuidChanged -= OnLocalPlayerGuidChanged;
+		MatchSetupRules.RulesChanged -= OnMatchRulesChanged;
+		CourseManager.PlayerKnockoutStreaksChanged -= OnPlayerKnockoutStreakChanged;
 		if (!BNetworkManager.IsChangingSceneOrShuttingDown)
 		{
+			PlayerInfo.PlayerId.GuidChanged -= OnGuidChanged;
 			PlayerInfo.LevelBoundsTracker.LocalBoundsStateChanged -= OnLocalBoundsStateChanged;
 			PlayerInfo.AnimatorIo.Footstep -= OnFootstep;
 		}
@@ -1985,9 +1992,9 @@ public class PlayerMovement : NetworkBehaviour
 		TryDiveInternal(DiveType.RocketDriverSwingMiss, forcedVector);
 	}
 
-	public void InformFrozeGolfCart(int otherPassengerCount)
+	public void InformFrozeGolfCart(int otherPassengerCount, int otherSpeedBoostGrantingPassengerCount)
 	{
-		AddSpeedBoost(GameManager.PlayerMovementSettings.KnockOutSpeedBoostDuration * (float)otherPassengerCount);
+		AddSpeedBoost(GameManager.PlayerMovementSettings.KnockOutSpeedBoostDuration * (float)otherSpeedBoostGrantingPassengerCount);
 	}
 
 	private void ProcessMovementInput()
@@ -3229,6 +3236,18 @@ public class PlayerMovement : NetworkBehaviour
 			StopCoroutine(knockoutImmunityRoutine);
 		}
 		knockoutImmunityRoutine = StartCoroutine(KnockoutImmunityRoutine());
+		void IncrementRecentPlayerAggressionKnockoutImmunities(out bool shouldGetLongImmunity)
+		{
+			for (int num = recentKnockoutImmunityTimestamps.Count - 1; num >= 0; num--)
+			{
+				if (BMath.GetTimeSince(recentKnockoutImmunityTimestamps[num]) > GameManager.PlayerMovementSettings.KnockoutImmunityLongDurationKnockoutTimeWindow)
+				{
+					recentKnockoutImmunityTimestamps.RemoveAtSwapBack(num);
+				}
+			}
+			recentKnockoutImmunityTimestamps.Add(Time.timeAsDouble);
+			shouldGetLongImmunity = MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.RepeatRecoveryProtection) && recentKnockoutImmunityTimestamps.Count >= GameManager.PlayerMovementSettings.MinRecentKnockoutCountForLongImmunityDuration;
+		}
 		bool IsStillInPlayerAgressionImmunity(float duration)
 		{
 			if (knockoutState == KnockoutState.Recovering)
@@ -3253,15 +3272,9 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			if (fromPlayerAggression)
 			{
-				if (BMath.GetTimeSince(longKnockoutImmunityIncrementTimestamp) > GameManager.PlayerMovementSettings.KnockoutImmunityLongDurationCooldown)
-				{
-					recentKnockoutImmunityCount = 0;
-				}
-				recentKnockoutImmunityCount++;
-				longKnockoutImmunityIncrementTimestamp = Time.timeAsDouble;
-				bool flag = recentKnockoutImmunityCount < GameManager.PlayerMovementSettings.MinKnockoutImmunityCountBeforeLongDuration;
-				float duration = (flag ? GameManager.PlayerMovementSettings.PostKnockoutImmunityDuration : GameManager.PlayerMovementSettings.PostKnockoutImmunityLongDuration);
-				NetworkknockoutImmunityStatus = KnockOutImmunity.Get((!flag) ? KnockOutVfxColor.Orange : KnockOutVfxColor.Blue);
+				IncrementRecentPlayerAggressionKnockoutImmunities(out var shouldGetLongImmunity);
+				float duration = (shouldGetLongImmunity ? GameManager.PlayerMovementSettings.PostKnockoutImmunityLongDuration : GameManager.PlayerMovementSettings.PostKnockoutImmunityDuration);
+				NetworkknockoutImmunityStatus = KnockOutImmunity.Get(shouldGetLongImmunity ? KnockOutVfxColor.Orange : KnockOutVfxColor.Blue);
 				while (IsStillInPlayerAgressionImmunity(duration))
 				{
 					yield return null;
@@ -3838,6 +3851,10 @@ public class PlayerMovement : NetworkBehaviour
 
 	public bool IsKnockoutProtectedFromPlayer(PlayerInfo otherPlayer)
 	{
+		if (!MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.DominationProtection))
+		{
+			return false;
+		}
 		if (otherPlayer == null || otherPlayer == PlayerInfo)
 		{
 			return false;
@@ -3846,7 +3863,7 @@ public class PlayerMovement : NetworkBehaviour
 		{
 			return false;
 		}
-		if (value < 6)
+		if (value.redShieldStreak < GameManager.MatchSettings.RedShieldKnockoutStreak)
 		{
 			return false;
 		}
@@ -4028,6 +4045,11 @@ public class PlayerMovement : NetworkBehaviour
 			}
 			return true;
 		}
+	}
+
+	private void OnGuidChanged()
+	{
+		UpdateKnockoutImmunityVfx();
 	}
 
 	private void OnLocalBoundsStateChanged(BoundsState previousState, BoundsState currentState)
@@ -4401,9 +4423,30 @@ public class PlayerMovement : NetworkBehaviour
 		PlayerMovement.AnyPlayerIsRespawningChanged?.Invoke(this);
 	}
 
-	private void OnPlayerDominationsChanged(SyncSet<CourseManager.PlayerPair>.Operation operation, CourseManager.PlayerPair pair)
+	private void OnLocalPlayerRegistered()
 	{
-		if (!(GameManager.LocalPlayerId == null) && pair.playerAGuid == GameManager.LocalPlayerId.Guid && pair.playerBGuid == PlayerInfo.PlayerId.Guid)
+		if (GameManager.LocalPlayerMovement != this)
+		{
+			UpdateKnockoutImmunityVfx();
+		}
+	}
+
+	private void OnLocalPlayerGuidChanged()
+	{
+		if (!base.isLocalPlayer)
+		{
+			UpdateKnockoutImmunityVfx();
+		}
+	}
+
+	private void OnMatchRulesChanged()
+	{
+		UpdateKnockoutImmunityVfx();
+	}
+
+	private void OnPlayerKnockoutStreakChanged(SyncIDictionary<CourseManager.PlayerPair, CourseManager.KnockoutStreak>.Operation operation, CourseManager.PlayerPair playerPair, CourseManager.KnockoutStreak streak)
+	{
+		if (!(GameManager.LocalPlayerId == null) && playerPair.playerAGuid == GameManager.LocalPlayerId.Guid && playerPair.playerBGuid == PlayerInfo.PlayerId.Guid)
 		{
 			UpdateKnockoutImmunityVfx();
 		}

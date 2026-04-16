@@ -131,7 +131,7 @@ public class PauseMenu : SingletonBehaviour<PauseMenu>
 		CourseManager.PlayerStatesChanged += OnPlayerStatesChanged;
 		BNetworkManager.SteamPlayerRelationshipChanged += SteamPlayerRelationshipChanged;
 		menuNavigation.OnExitEvent += Unpause;
-		allRules = new GameObject[5];
+		allRules = new GameObject[6];
 		for (int i = 0; i < allRules.Length; i++)
 		{
 			allRules[i] = UnityEngine.Object.Instantiate(rulesTemplate, rulesTemplate.transform.parent);
@@ -242,7 +242,7 @@ public class PauseMenu : SingletonBehaviour<PauseMenu>
 	{
 		string[] array = new string[allRules.Length];
 		int num = 0;
-		for (int i = 0; i < 18; i++)
+		for (int i = 0; i < 21; i++)
 		{
 			MatchSetupRules.RuleCategory ruleCategory = MatchSetupRules.RuleCategoryLookup[i];
 			if (ruleCategory != MatchSetupRules.RuleCategory.Cheats)
@@ -554,6 +554,10 @@ public class PauseMenu : SingletonBehaviour<PauseMenu>
 					PauseMenuPlayerEntry pauseMenuPlayerEntry = UnityEngine.Object.Instantiate(playerEntryPrefab);
 					pauseMenuPlayerEntry.transform.SetParent(playerEntryContainer);
 					pauseMenuPlayerEntry.transform.localScale = Vector3.one;
+					if (!value[i].isHost)
+					{
+						pauseMenuPlayerEntry.NewPlayerIndicatorDisabled += UpdatePlayerEntries;
+					}
 					playerEntries.Add(pauseMenuPlayerEntry);
 				}
 				ulong selectedVolumePlayerGuid = 0uL;

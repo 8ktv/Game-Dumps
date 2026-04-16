@@ -319,6 +319,8 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		}
 	}
 
+	public static event Action LobbyModeChanged;
+
 	protected override void OnDestroy()
 	{
 		if (isEnabled)
@@ -1473,10 +1475,13 @@ public class MatchSetupMenu : SingletonNetworkBehaviour<MatchSetupMenu>
 		if (!base.isServer)
 		{
 			lobbyModeDropdown.value = (int)curr;
-			return;
 		}
-		serverValues.lobbyMode = curr;
-		BNetworkManager.SetLobbyMode(curr);
+		else
+		{
+			serverValues.lobbyMode = curr;
+			BNetworkManager.SetLobbyMode(curr);
+		}
+		MatchSetupMenu.LobbyModeChanged?.Invoke();
 	}
 
 	private void OnHasPasswordChange(bool prev, bool curr)

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -17,6 +18,21 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		No
 	}
 
+	private enum HostVeto
+	{
+		None,
+		ForceNo,
+		ForceYes
+	}
+
+	private enum VoteKickResult
+	{
+		Success,
+		Failed,
+		NotEnoughVotes,
+		HostVeto
+	}
+
 	public struct VoteResults
 	{
 		public byte yesVotes;
@@ -29,13 +45,15 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 	[SyncVar]
 	private VoteResults voteResults;
 
-	private readonly SyncDictionary<ulong, Vote> voters = new SyncDictionary<ulong, Vote>();
+	private SyncDictionary<ulong, Vote> voters = new SyncDictionary<ulong, Vote>();
 
-	private Dictionary<ulong, double> voteInitCooldown = new Dictionary<ulong, double>();
+	private readonly Dictionary<ulong, double> voteInitCooldown = new Dictionary<ulong, double>();
 
 	private ulong votekickTargetGuid;
 
 	private ulong votekickRequesterGuid;
+
+	private bool votekickTargetWasNewInLobbyWhenVoteStarted;
 
 	private bool voteActive;
 
@@ -53,48 +71,8 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 	[CVar("votekickCooldown", "", "", false, true, resetOnSceneChangeOrCheatsDisabled = false)]
 	private static int votekickFailCooldown;
 
-	[CVar("votekickPlayerMinActiveTime", "", "", false, true, resetOnSceneChangeOrCheatsDisabled = false)]
-	private static int votekickPlayerMinActiveTime;
-
-	public static bool CanVotekick
-	{
-		get
-		{
-			if (CourseManager.CountActivePlayers() > 2)
-			{
-				return !CanKick;
-			}
-			return false;
-		}
-	}
-
-	public static bool CanKickOrVotekick
-	{
-		get
-		{
-			if (!CanVotekick)
-			{
-				return NetworkServer.active;
-			}
-			return true;
-		}
-	}
-
-	public static bool CanKick
-	{
-		get
-		{
-			if (NetworkServer.active)
-			{
-				if (SingletonNetworkBehaviour<MatchSetupMenu>.Instance.lobbyMode == LobbyMode.Public && CourseManager.CountActivePlayers() > 2)
-				{
-					return SingletonBehaviour<DrivingRangeManager>.HasInstance;
-				}
-				return true;
-			}
-			return false;
-		}
-	}
+	[SyncVar]
+	private int votekickPlayerMinActiveTime = 900;
 
 	public static float NormalizedProgress
 	{
@@ -144,6 +122,18 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		}
 	}
 
+	public static int VoteKickPlayerMinActiveTime
+	{
+		get
+		{
+			if (!SingletonNetworkBehaviour<VoteKickManager>.HasInstance)
+			{
+				return -1;
+			}
+			return SingletonNetworkBehaviour<VoteKickManager>.Instance.votekickPlayerMinActiveTime;
+		}
+	}
+
 	public VoteResults NetworkvoteResults
 	{
 		get
@@ -157,11 +147,122 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		}
 	}
 
-	public static void BeginKick(PlayerInfo playerInfo)
+	public int NetworkvotekickPlayerMinActiveTime
+	{
+		get
+		{
+			return votekickPlayerMinActiveTime;
+		}
+		[param: In]
+		set
+		{
+			GeneratedSyncVarSetter(value, ref votekickPlayerMinActiveTime, 2uL, null);
+		}
+	}
+
+	[CCommand("setVotekickPlayerMinActiveTime", "", false, false)]
+	private static void SetVotekickMinActiveTime(int time)
 	{
 		if (SingletonNetworkBehaviour<VoteKickManager>.HasInstance)
 		{
-			SingletonNetworkBehaviour<VoteKickManager>.Instance.BeginKickInternal(playerInfo);
+			SingletonNetworkBehaviour<VoteKickManager>.Instance.NetworkvotekickPlayerMinActiveTime = time;
+		}
+	}
+
+	public static bool CanKickFreely()
+	{
+		if (!NetworkServer.active)
+		{
+			return false;
+		}
+		if (SingletonBehaviour<DrivingRangeManager>.HasInstance)
+		{
+			return true;
+		}
+		if (SingletonNetworkBehaviour<MatchSetupMenu>.Instance.lobbyMode != LobbyMode.Public)
+		{
+			return true;
+		}
+		if (CourseManager.CountActivePlayers() <= 2)
+		{
+			return true;
+		}
+		return false;
+	}
+
+	public static bool CanInitiateVotekickAtAll()
+	{
+		if (CanKickFreely())
+		{
+			return false;
+		}
+		if (CourseManager.CountActivePlayers() <= 2)
+		{
+			return false;
+		}
+		return true;
+	}
+
+	public static bool CanPlayerInitiateVotekick(ulong playerGuid, out bool dueToMinActiveTime)
+	{
+		if (!CourseManager.TryGetPlayerState(playerGuid, out var state))
+		{
+			dueToMinActiveTime = false;
+			return false;
+		}
+		return CanPlayerInitiateVotekick(state, out dueToMinActiveTime);
+	}
+
+	public static bool CanPlayerInitiateVotekick(CourseManager.PlayerState playerState, out bool dueToMinActiveTime)
+	{
+		dueToMinActiveTime = false;
+		if (!CanInitiateVotekickAtAll())
+		{
+			return false;
+		}
+		if (!CanParticipateInVote(playerState, out var remainingTime))
+		{
+			dueToMinActiveTime = remainingTime > 0f;
+			return false;
+		}
+		return true;
+	}
+
+	public static bool CanKickPlayerImmediately(ulong playerToKickGuid)
+	{
+		if (!CourseManager.TryGetPlayerState(playerToKickGuid, out var state))
+		{
+			return false;
+		}
+		return CanKickPlayerImmediately(state);
+	}
+
+	public static bool CanKickPlayerImmediately(CourseManager.PlayerState playerToKickState)
+	{
+		if (!NetworkServer.active)
+		{
+			return false;
+		}
+		if (playerToKickState.playerGuid == GameManager.LocalPlayerId.Guid)
+		{
+			return false;
+		}
+		if (CanKickFreely())
+		{
+			return true;
+		}
+		if (CanParticipateInVote(playerToKickState, out var _))
+		{
+			return false;
+		}
+		return true;
+	}
+
+	public static void BeginKick(PlayerInfo playerToKick)
+	{
+		if (SingletonNetworkBehaviour<VoteKickManager>.HasInstance)
+		{
+			SingletonNetworkBehaviour<VoteKickManager>.Instance.BeginKickInternal(playerToKick);
 		}
 	}
 
@@ -180,6 +281,8 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		SetInputMode(enabled: false);
 		InputManager.Controls.Vote.Yes.started += VoteYes;
 		InputManager.Controls.Vote.No.started += VoteNo;
+		SyncDictionary<ulong, Vote> syncDictionary = voters;
+		syncDictionary.OnChange = (Action<SyncIDictionary<ulong, Vote>.Operation, ulong, Vote>)Delegate.Combine(syncDictionary.OnChange, new Action<SyncIDictionary<ulong, Vote>.Operation, ulong, Vote>(OnVotersChanged));
 	}
 
 	protected override void OnDestroy()
@@ -196,31 +299,59 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		VoteKickUi.UpdateValues();
 	}
 
-	private void BeginKickInternal(PlayerInfo playerInfo)
+	private void BeginKickInternal(PlayerInfo playerToKick)
 	{
-		if (CanKick)
+		if (!CourseManager.TryGetPlayerState(playerToKick, out var state))
 		{
-			FullScreenMessage.Show(string.Format(Localization.UI.MATCHSETUP_KickPlayer, playerInfo.PlayerId.PlayerNameNoRichText), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Yes, delegate
+			return;
+		}
+		if (state.isHost)
+		{
+			Debug.LogError("Attempted to kick server host");
+		}
+		else if (CanKickPlayerImmediately(state))
+		{
+			FullScreenMessage.Show(string.Format(Localization.UI.MATCHSETUP_KickPlayer, playerToKick.PlayerId.PlayerNameNoRichText), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Yes, delegate
 			{
 				FullScreenMessage.Hide();
-				BNetworkManager.singleton.ServerKickConnection(playerInfo.connectionToClient);
+				BNetworkManager.singleton.ServerKickConnection(playerToKick.connectionToClient);
 			}), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Cancel, FullScreenMessage.Hide));
 		}
 		else
 		{
-			if (!CanVotekick)
+			if (!CanInitiateVotekickAtAll())
 			{
 				return;
 			}
-			FullScreenMessage.Show(string.Format(Localization.UI.MATCHSETUP_Votekick, playerInfo.PlayerId.PlayerNameNoRichText), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Yes, delegate
+			FullScreenMessage.Show(string.Format(Localization.UI.MATCHSETUP_Votekick, playerToKick.PlayerId.PlayerNameNoRichText), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Yes, delegate
 			{
 				FullScreenMessage.Hide();
-				if (playerInfo != null)
+				if (playerToKick != null)
 				{
-					CmdRequestVoteKick(playerInfo);
+					CmdRequestVoteKick(playerToKick);
 				}
 			}), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Cancel, FullScreenMessage.Hide));
 		}
+	}
+
+	private static bool CanParticipateInVote(CourseManager.PlayerState playerState, out float remainingTime)
+	{
+		remainingTime = 0f;
+		if (playerState.isHost)
+		{
+			return true;
+		}
+		if (SingletonNetworkBehaviour<MatchSetupMenu>.Instance.lobbyMode != LobbyMode.Public)
+		{
+			return true;
+		}
+		float num = (float)(NetworkTime.time - playerState.joinTimestamp);
+		remainingTime = (float)VoteKickPlayerMinActiveTime - num;
+		if (remainingTime <= 0f)
+		{
+			return true;
+		}
+		return false;
 	}
 
 	[Command(requiresAuthority = false)]
@@ -251,6 +382,24 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		NetworkWriterPool.Return(writer);
 	}
 
+	private int CountValidVoters()
+	{
+		int num = 0;
+		List<CourseManager.PlayerState> value;
+		using (CollectionPool<List<CourseManager.PlayerState>, CourseManager.PlayerState>.Get(out value))
+		{
+			CourseManager.GetConnectedPlayerStates(value);
+			foreach (CourseManager.PlayerState item in value)
+			{
+				if (voters.ContainsKey(item.playerGuid))
+				{
+					num++;
+				}
+			}
+			return num;
+		}
+	}
+
 	[ClientRpc]
 	private void RpcBeginVotekick(ulong targetGuid, ulong requesterGuid)
 	{
@@ -262,26 +411,30 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 	}
 
 	[ClientRpc]
-	private void RpcEndVotekick(bool success)
+	private void RpcEndVotekick(VoteKickResult result)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
-		writer.WriteBool(success);
-		SendRPCInternal("System.Void VoteKickManager::RpcEndVotekick(System.Boolean)", 1979572269, writer, 0, includeOwner: true);
+		GeneratedNetworkCode._Write_VoteKickManager_002FVoteKickResult(writer, result);
+		SendRPCInternal("System.Void VoteKickManager::RpcEndVotekick(VoteKickManager/VoteKickResult)", -2104078525, writer, 0, includeOwner: true);
 		NetworkWriterPool.Return(writer);
 	}
 
 	[TargetRpc]
-	private void RpcInformCooldown(NetworkConnectionToClient connection, float timeRemaining)
+	private void RpcInformCooldown(NetworkConnectionToClient connection, bool dueToNewPlayer, float secondsRemaining)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
-		writer.WriteFloat(timeRemaining);
-		SendTargetRPCInternal(connection, "System.Void VoteKickManager::RpcInformCooldown(Mirror.NetworkConnectionToClient,System.Single)", -1886835601, writer, 0);
+		writer.WriteBool(dueToNewPlayer);
+		writer.WriteFloat(secondsRemaining);
+		SendTargetRPCInternal(connection, "System.Void VoteKickManager::RpcInformCooldown(Mirror.NetworkConnectionToClient,System.Boolean,System.Single)", 1459178440, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
-	private void ShowCooldownMessage(float timeRemaining)
+	private void ShowCooldownMessage(bool dueToNewPlayer, float secondsRemaining)
 	{
-		FullScreenMessage.Show(string.Format(Localization.UI.VOTEKICK_Cooldown, timeRemaining.ToString("0.0")), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Ok, FullScreenMessage.Hide));
+		string format = (dueToNewPlayer ? Localization.UI.VOTEKICK_Cooldown_NewPlayer : Localization.UI.VOTEKICK_Cooldown);
+		TimeSpan timeSpan = TimeSpan.FromSeconds(secondsRemaining);
+		string arg = $"{timeSpan.Minutes:00}:{timeSpan.Seconds:00}";
+		FullScreenMessage.Show(string.Format(format, arg), new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Ok, FullScreenMessage.Hide));
 	}
 
 	[TargetRpc]
@@ -297,7 +450,58 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		FullScreenMessage.Show(Localization.UI.VOTEKICK_Ongoing, new FullScreenMessage.ButtonEntry(Localization.UI.MISC_Ok, FullScreenMessage.Hide));
 	}
 
-	private void FinalizeVote()
+	private void UpdateIsUiShown()
+	{
+		bool flag = VoteKickUi.IsShown && VoteKickUi.TargetGuid == votekickTargetGuid && VoteKickUi.RequesterGuid == votekickRequesterGuid;
+		bool flag2 = ShouldBeShown();
+		if (flag2 != flag)
+		{
+			PlayerInfo playerInfo2;
+			if (!GameManager.TryFindPlayerByGuid(votekickTargetGuid, out var playerInfo))
+			{
+				Debug.LogError("Could not find votekick target");
+			}
+			else if (!GameManager.TryFindPlayerByGuid(votekickRequesterGuid, out playerInfo2))
+			{
+				Debug.LogError("Could not find votekick requester");
+			}
+			else if (flag2)
+			{
+				VoteKickUi.Show(playerInfo, playerInfo2);
+			}
+			else
+			{
+				VoteKickUi.Hide();
+			}
+		}
+		bool ShouldBeShown()
+		{
+			if (!voteActive)
+			{
+				return false;
+			}
+			if (GameManager.LocalPlayerId == null)
+			{
+				return false;
+			}
+			ulong guid = GameManager.LocalPlayerId.Guid;
+			if (guid == votekickTargetGuid)
+			{
+				return true;
+			}
+			if (guid == votekickRequesterGuid)
+			{
+				return true;
+			}
+			if (voters.ContainsKey(guid))
+			{
+				return true;
+			}
+			return false;
+		}
+	}
+
+	private void FinalizeVote(HostVeto hostVeto)
 	{
 		if (!voteActive)
 		{
@@ -309,13 +513,16 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		}
 		if (votekickTargetGuid == 0L)
 		{
-			RpcEndVotekick(success: false);
+			RpcEndVotekick(VoteKickResult.Failed);
 			return;
 		}
-		if (voteResults.yesVotes > voteResults.noVotes)
+		int num = BMath.CeilToInt((float)CountValidVoters() / 3f);
+		bool flag = voteResults.yesVotes > voteResults.noVotes;
+		bool flag2 = voteResults.yesVotes >= num;
+		if (hostVeto == HostVeto.ForceYes || (hostVeto == HostVeto.None && flag && flag2))
 		{
-			Debug.Log($"Vote successful! Kicking player with guid {votekickTargetGuid}");
-			RpcEndVotekick(success: true);
+			Debug.Log($"Votekick against player with GUID {votekickTargetGuid} succeeded");
+			RpcEndVotekick(VoteKickResult.Success);
 			if (GameManager.TryFindPlayerByGuid(votekickTargetGuid, out var playerInfo))
 			{
 				BNetworkManager.singleton.ServerKickConnection(playerInfo.connectionToClient);
@@ -327,27 +534,39 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		}
 		else
 		{
-			Debug.Log($"Vote failed! Don't kick player with guid {votekickTargetGuid}");
-			RpcEndVotekick(success: false);
+			Debug.Log($"Votekick against player with GUID {votekickTargetGuid} failed");
+			VoteKickResult result = ((hostVeto == HostVeto.ForceNo) ? VoteKickResult.HostVeto : ((!flag || flag2) ? VoteKickResult.Failed : VoteKickResult.NotEnoughVotes));
+			RpcEndVotekick(result);
 			if (votekickRequesterGuid != 0L)
 			{
 				voteInitCooldown[votekickRequesterGuid] = Time.timeAsDouble;
 			}
 		}
+		voteActive = false;
 		voters.Clear();
+		UpdateIsUiShown();
 		votekickRequesterGuid = 0uL;
 		votekickTargetGuid = 0uL;
-		voteActive = false;
 	}
 
 	private void VoteYes(InputAction.CallbackContext context)
 	{
+		if (!voters.ContainsKey(GameManager.LocalPlayerId.Guid))
+		{
+			Debug.Log("Not allowed to vote!");
+			return;
+		}
 		CmdVote(Vote.Yes);
 		SetInputMode(enabled: false);
 	}
 
 	private void VoteNo(InputAction.CallbackContext context)
 	{
+		if (!voters.ContainsKey(GameManager.LocalPlayerId.Guid))
+		{
+			Debug.Log("Not allowed to vote!");
+			return;
+		}
 		CmdVote(Vote.No);
 		SetInputMode(enabled: false);
 	}
@@ -385,6 +604,33 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		}
 	}
 
+	private void OnVotersChanged(SyncIDictionary<ulong, Vote>.Operation operation, ulong voteGuid, Vote vote)
+	{
+		switch (operation)
+		{
+		case SyncIDictionary<ulong, Vote>.Operation.OP_CLEAR:
+			SetInputMode(enabled: false);
+			UpdateIsUiShown();
+			break;
+		case SyncIDictionary<ulong, Vote>.Operation.OP_ADD:
+			if (GameManager.LocalPlayerId != null && voteGuid == GameManager.LocalPlayerId.Guid)
+			{
+				SetInputMode(enabled: true);
+				UpdateIsUiShown();
+			}
+			break;
+		case SyncIDictionary<ulong, Vote>.Operation.OP_REMOVE:
+			if (GameManager.LocalPlayerId != null && voteGuid == GameManager.LocalPlayerId.Guid)
+			{
+				SetInputMode(enabled: false);
+				UpdateIsUiShown();
+			}
+			break;
+		case SyncIDictionary<ulong, Vote>.Operation.OP_SET:
+			break;
+		}
+	}
+
 	public VoteKickManager()
 	{
 		InitSyncObject(voters);
@@ -394,12 +640,11 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 	{
 		voteDuration = 20f;
 		votekickFailCooldown = 120;
-		votekickPlayerMinActiveTime = 300;
 		RemoteProcedureCalls.RegisterCommand(typeof(VoteKickManager), "System.Void VoteKickManager::CmdRequestVoteKick(PlayerInfo,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdRequestVoteKick__PlayerInfo__NetworkConnectionToClient, requiresAuthority: false);
 		RemoteProcedureCalls.RegisterCommand(typeof(VoteKickManager), "System.Void VoteKickManager::CmdVote(VoteKickManager/Vote,Mirror.NetworkConnectionToClient)", InvokeUserCode_CmdVote__Vote__NetworkConnectionToClient, requiresAuthority: false);
 		RemoteProcedureCalls.RegisterRpc(typeof(VoteKickManager), "System.Void VoteKickManager::RpcBeginVotekick(System.UInt64,System.UInt64)", InvokeUserCode_RpcBeginVotekick__UInt64__UInt64);
-		RemoteProcedureCalls.RegisterRpc(typeof(VoteKickManager), "System.Void VoteKickManager::RpcEndVotekick(System.Boolean)", InvokeUserCode_RpcEndVotekick__Boolean);
-		RemoteProcedureCalls.RegisterRpc(typeof(VoteKickManager), "System.Void VoteKickManager::RpcInformCooldown(Mirror.NetworkConnectionToClient,System.Single)", InvokeUserCode_RpcInformCooldown__NetworkConnectionToClient__Single);
+		RemoteProcedureCalls.RegisterRpc(typeof(VoteKickManager), "System.Void VoteKickManager::RpcEndVotekick(VoteKickManager/VoteKickResult)", InvokeUserCode_RpcEndVotekick__VoteKickResult);
+		RemoteProcedureCalls.RegisterRpc(typeof(VoteKickManager), "System.Void VoteKickManager::RpcInformCooldown(Mirror.NetworkConnectionToClient,System.Boolean,System.Single)", InvokeUserCode_RpcInformCooldown__NetworkConnectionToClient__Boolean__Single);
 		RemoteProcedureCalls.RegisterRpc(typeof(VoteKickManager), "System.Void VoteKickManager::RpcInformAlreadyOngoing(Mirror.NetworkConnectionToClient)", InvokeUserCode_RpcInformAlreadyOngoing__NetworkConnectionToClient);
 	}
 
@@ -425,20 +670,26 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		}
 		else
 		{
-			if (playerInfo == null || playerInfo.PlayerId.Guid == votekickTargetGuid || !ServerTryGetGuidFromConnection(sender, out requesterGuid) || !GameManager.TryFindPlayerByGuid(requesterGuid, out requester))
+			if (playerInfo == null || playerInfo.PlayerId.Guid == votekickTargetGuid || !ServerTryGetGuidFromConnection(sender, out requesterGuid) || !GameManager.TryFindPlayerByGuid(requesterGuid, out requester) || !CourseManager.TryGetPlayerState(requester, out var state))
 			{
 				return;
 			}
-			if (IsOnCooldown(out var remaining))
+			if (!CanParticipateInVote(state, out var remainingTime))
 			{
-				Debug.Log($"{requester.PlayerId.name} is on votekick cooldown! ({remaining}s)");
+				Debug.Log($"{requester.PlayerId.name} attempted to initiate a votekick, but is new to the lobby ({remainingTime:0.0} seconds remaining)");
+				RpcInformCooldown(sender, dueToNewPlayer: true, remainingTime);
+				return;
+			}
+			if (IsOnCooldown(out remainingTime))
+			{
+				Debug.Log($"{requester.PlayerId.name} attempted to initiate a votekick, but is on cooldown ({remainingTime:0.0} seconds remaining)");
 				if (sender == null)
 				{
-					ShowCooldownMessage(remaining);
+					ShowCooldownMessage(dueToNewPlayer: false, remainingTime);
 				}
 				else
 				{
-					RpcInformCooldown(sender, remaining);
+					RpcInformCooldown(sender, dueToNewPlayer: false, remainingTime);
 				}
 				return;
 			}
@@ -447,19 +698,37 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 			voters.Clear();
 			foreach (CourseManager.PlayerState playerState in CourseManager.PlayerStates)
 			{
-				if (playerState.isConnected)
+				if (!playerState.isConnected)
 				{
-					Vote value = ((playerState.playerGuid == requesterGuid) ? Vote.Yes : ((playerState.playerGuid == playerInfo.PlayerId.Guid) ? Vote.No : Vote.NotVoted));
-					voters[playerState.playerGuid] = value;
+					continue;
 				}
+				Vote value;
+				if (playerState.playerGuid == requesterGuid)
+				{
+					value = Vote.Yes;
+				}
+				else if (playerState.playerGuid == playerInfo.PlayerId.Guid)
+				{
+					value = Vote.No;
+					votekickTargetWasNewInLobbyWhenVoteStarted = !CanParticipateInVote(playerState, out var remainingTime2) && remainingTime2 > 0f;
+				}
+				else
+				{
+					if (!CanParticipateInVote(playerState, out var _))
+					{
+						continue;
+					}
+					value = Vote.NotVoted;
+				}
+				voters[playerState.playerGuid] = value;
 			}
 			NetworkvoteResults = new VoteResults
 			{
 				yesVotes = 1,
 				noVotes = 1
 			};
-			voteStartTime = Time.timeAsDouble;
 			voteActive = true;
+			voteStartTime = Time.timeAsDouble;
 			RpcBeginVotekick(votekickTargetGuid, requester.PlayerId.Guid);
 			if (votekickRoutine != null)
 			{
@@ -474,9 +743,9 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 			{
 				reference = BMath.Max((float)votekickFailCooldown - BMath.GetTimeSince(value2), reference);
 			}
-			if (!requester.isLocalPlayer && CourseManager.TryGetPlayerState(requester, out var state) && NetworkTime.time - state.joinTimestamp < (double)votekickPlayerMinActiveTime)
+			if (SingletonNetworkBehaviour<MatchSetupMenu>.Instance.lobbyMode == LobbyMode.Public && !requester.isLocalPlayer && CourseManager.TryGetPlayerState(requester, out var state2) && NetworkTime.time - state2.joinTimestamp < (double)votekickPlayerMinActiveTime)
 			{
-				reference = BMath.Max((float)votekickPlayerMinActiveTime - (float)(NetworkTime.time - state.joinTimestamp), reference);
+				reference = BMath.Max((float)votekickPlayerMinActiveTime - (float)(NetworkTime.time - state2.joinTimestamp), reference);
 			}
 			return reference > 0f;
 		}
@@ -486,7 +755,7 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 			{
 				yield return null;
 			}
-			FinalizeVote();
+			FinalizeVote(HostVeto.None);
 		}
 	}
 
@@ -525,23 +794,11 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 			break;
 		}
 		NetworkvoteResults = networkvoteResults;
-		int num = 0;
-		List<CourseManager.PlayerState> value2;
-		using (CollectionPool<List<CourseManager.PlayerState>, CourseManager.PlayerState>.Get(out value2))
+		int num = CountValidVoters() / 2;
+		HostVeto hostVeto = ((castVote == Vote.No && sender == null) ? HostVeto.ForceNo : ((castVote == Vote.Yes && sender == null && votekickTargetWasNewInLobbyWhenVoteStarted) ? HostVeto.ForceYes : HostVeto.None));
+		if ((sender == null || (voters.TryGetValue(GameManager.LocalPlayerId.Guid, out var value2) && value2 != Vote.NotVoted)) && (hostVeto != HostVeto.None || voteResults.noVotes >= num || voteResults.yesVotes > num))
 		{
-			CourseManager.GetConnectedPlayerStates(value2);
-			foreach (CourseManager.PlayerState item in value2)
-			{
-				if (voters.ContainsKey(item.playerGuid))
-				{
-					num++;
-				}
-			}
-			int num2 = num / 2;
-			if (voteResults.noVotes >= num2 || voteResults.yesVotes > num2)
-			{
-				FinalizeVote();
-			}
+			FinalizeVote(hostVeto);
 		}
 	}
 
@@ -561,19 +818,21 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 	{
 		if (!GameManager.TryFindPlayerByGuid(targetGuid, out var playerInfo))
 		{
-			Debug.LogError("Could not find votekick target!");
+			Debug.LogError("Could not find votekick target");
 			return;
 		}
-		if (!GameManager.TryFindPlayerByGuid(requesterGuid, out var playerInfo2))
+		if (!GameManager.TryFindPlayerByGuid(requesterGuid, out var _))
 		{
-			Debug.LogError("Could not find votekick requester!");
+			Debug.LogError("Could not find votekick requester");
 			return;
 		}
-		VoteKickUi.Show(playerInfo, playerInfo2);
-		SetInputMode(enabled: true);
+		voteActive = true;
+		votekickRequesterGuid = requesterGuid;
+		votekickTargetGuid = targetGuid;
 		BUpdate.RegisterCallback(this);
 		voteStartTime = Time.timeAsDouble;
 		votePlayerName = playerInfo.PlayerId.PlayerNameNoRichText;
+		UpdateIsUiShown();
 	}
 
 	protected static void InvokeUserCode_RpcBeginVotekick__UInt64__UInt64(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
@@ -588,23 +847,33 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		}
 	}
 
-	protected void UserCode_RpcEndVotekick__Boolean(bool success)
+	protected void UserCode_RpcEndVotekick__VoteKickResult(VoteKickResult result)
 	{
-		VoteKickUi.Hide();
 		SetInputMode(enabled: false);
 		BUpdate.DeregisterCallback(this);
-		if (success)
+		switch (result)
 		{
+		case VoteKickResult.Success:
 			TextChatUi.ShowMessage(string.Format(Localization.UI.VOTEKICK_Successful, GameManager.UiSettings.ApplyColorTag(votePlayerName, TextHighlight.Red)));
-		}
-		else
-		{
+			break;
+		case VoteKickResult.NotEnoughVotes:
+			TextChatUi.ShowMessage(Localization.UI.VOTEKICK_Failed_NotEnoughVotes);
+			break;
+		case VoteKickResult.HostVeto:
+			TextChatUi.ShowMessage(Localization.UI.VOTEKICK_Failed_HostVeto);
+			break;
+		default:
 			TextChatUi.ShowMessage(Localization.UI.VOTEKICK_Failed);
+			break;
 		}
+		voteActive = false;
+		UpdateIsUiShown();
 		votePlayerName = string.Empty;
+		votekickRequesterGuid = 0uL;
+		votekickTargetGuid = 0uL;
 	}
 
-	protected static void InvokeUserCode_RpcEndVotekick__Boolean(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcEndVotekick__VoteKickResult(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -612,16 +881,16 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		}
 		else
 		{
-			((VoteKickManager)obj).UserCode_RpcEndVotekick__Boolean(reader.ReadBool());
+			((VoteKickManager)obj).UserCode_RpcEndVotekick__VoteKickResult(GeneratedNetworkCode._Read_VoteKickManager_002FVoteKickResult(reader));
 		}
 	}
 
-	protected void UserCode_RpcInformCooldown__NetworkConnectionToClient__Single(NetworkConnectionToClient connection, float timeRemaining)
+	protected void UserCode_RpcInformCooldown__NetworkConnectionToClient__Boolean__Single(NetworkConnectionToClient connection, bool dueToNewPlayer, float secondsRemaining)
 	{
-		ShowCooldownMessage(timeRemaining);
+		ShowCooldownMessage(dueToNewPlayer, secondsRemaining);
 	}
 
-	protected static void InvokeUserCode_RpcInformCooldown__NetworkConnectionToClient__Single(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcInformCooldown__NetworkConnectionToClient__Boolean__Single(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -629,7 +898,7 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		}
 		else
 		{
-			((VoteKickManager)obj).UserCode_RpcInformCooldown__NetworkConnectionToClient__Single(null, reader.ReadFloat());
+			((VoteKickManager)obj).UserCode_RpcInformCooldown__NetworkConnectionToClient__Boolean__Single(null, reader.ReadBool(), reader.ReadFloat());
 		}
 	}
 
@@ -656,12 +925,17 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		if (forceAll)
 		{
 			GeneratedNetworkCode._Write_VoteKickManager_002FVoteResults(writer, voteResults);
+			writer.WriteVarInt(votekickPlayerMinActiveTime);
 			return;
 		}
 		writer.WriteVarULong(syncVarDirtyBits);
 		if ((syncVarDirtyBits & 1L) != 0L)
 		{
 			GeneratedNetworkCode._Write_VoteKickManager_002FVoteResults(writer, voteResults);
+		}
+		if ((syncVarDirtyBits & 2L) != 0L)
+		{
+			writer.WriteVarInt(votekickPlayerMinActiveTime);
 		}
 	}
 
@@ -671,12 +945,17 @@ public class VoteKickManager : SingletonNetworkBehaviour<VoteKickManager>, IBUpd
 		if (initialState)
 		{
 			GeneratedSyncVarDeserialize(ref voteResults, null, GeneratedNetworkCode._Read_VoteKickManager_002FVoteResults(reader));
+			GeneratedSyncVarDeserialize(ref votekickPlayerMinActiveTime, null, reader.ReadVarInt());
 			return;
 		}
 		long num = (long)reader.ReadVarULong();
 		if ((num & 1L) != 0L)
 		{
 			GeneratedSyncVarDeserialize(ref voteResults, null, GeneratedNetworkCode._Read_VoteKickManager_002FVoteResults(reader));
+		}
+		if ((num & 2L) != 0L)
+		{
+			GeneratedSyncVarDeserialize(ref votekickPlayerMinActiveTime, null, reader.ReadVarInt());
 		}
 	}
 }

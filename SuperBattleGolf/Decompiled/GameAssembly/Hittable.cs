@@ -1235,14 +1235,19 @@ public class Hittable : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 				if (itemUser != null && AsEntity.IsGolfCart)
 				{
 					int num4 = 0;
+					int num5 = 0;
 					foreach (PlayerInfo passenger in AsEntity.AsGolfCart.passengers)
 					{
-						if (passenger != null && passenger != itemUser.PlayerInfo)
+						if (!(passenger == null) && !(passenger == itemUser.PlayerInfo))
 						{
 							num4++;
+							if (!MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.WhiteFlag) || !CourseManager.PlayerDominations.Contains(new CourseManager.PlayerPair(itemUser.PlayerInfo.PlayerId.Guid, passenger.PlayerId.Guid)))
+							{
+								num5++;
+							}
 						}
 					}
-					itemUser.PlayerInfo.RpcInformFrozeGolfCart(num4);
+					itemUser.PlayerInfo.RpcInformFrozeGolfCart(num4, num5);
 				}
 				if (!isFrozen)
 				{

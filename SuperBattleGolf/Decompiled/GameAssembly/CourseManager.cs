@@ -212,9 +212,16 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		}
 	}
 
+	public struct KnockoutStreak
+	{
+		public int persistentStreak;
+
+		public int redShieldStreak;
+	}
+
 	[StructLayout(LayoutKind.Auto)]
 	[CompilerGenerated]
-	private struct _003CEndCourseInternal_003Ed__147 : IAsyncStateMachine
+	private struct _003CEndCourseInternal_003Ed__149 : IAsyncStateMachine
 	{
 		public int _003C_003E1__state;
 
@@ -310,7 +317,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	[StructLayout(LayoutKind.Auto)]
 	[CompilerGenerated]
-	private struct _003CRpcInformEndingCourse_003Ed__148 : IAsyncStateMachine
+	private struct _003CRpcInformEndingCourse_003Ed__150 : IAsyncStateMachine
 	{
 		public int _003C_003E1__state;
 
@@ -397,7 +404,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	[StructLayout(LayoutKind.Auto)]
 	[CompilerGenerated]
-	private struct _003CRpcInformStartingCourse_003Ed__146 : IAsyncStateMachine
+	private struct _003CRpcInformStartingCourse_003Ed__148 : IAsyncStateMachine
 	{
 		public int _003C_003E1__state;
 
@@ -493,7 +500,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	[StructLayout(LayoutKind.Auto)]
 	[CompilerGenerated]
-	private struct _003CRpcInformStartingNextMatch_003Ed__150 : IAsyncStateMachine
+	private struct _003CRpcInformStartingNextMatch_003Ed__152 : IAsyncStateMachine
 	{
 		public int _003C_003E1__state;
 
@@ -580,7 +587,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	[StructLayout(LayoutKind.Auto)]
 	[CompilerGenerated]
-	private struct _003CServerStartNextMatch_003Ed__149 : IAsyncStateMachine
+	private struct _003CServerStartNextMatch_003Ed__151 : IAsyncStateMachine
 	{
 		public int _003C_003E1__state;
 
@@ -602,9 +609,10 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			{
 				if (num == 0)
 				{
-					goto IL_0072;
+					goto IL_0078;
 				}
 				courseManager.RpcInformStartingNextMatch();
+				courseManager._003CServerStartNextMatch_003Eg__ResetRedShieldKnockoutStreaks_007C151_1();
 				ServerPersistentCourseData.WritePlayerStates();
 				if (!skipPersistentInventories)
 				{
@@ -614,12 +622,12 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 				{
 					_003CnextHole_003E5__2 = GameManager.CurrentCourse.Holes[ServerPersistentCourseData.nextHoleIndex].Scene.Name;
 					ServerPersistentCourseData.SetNextHoleIndex(ServerPersistentCourseData.nextHoleIndex + 1);
-					goto IL_0072;
+					goto IL_0078;
 				}
 				UnityEngine.Debug.LogError("Attempted to start next match but there are no more matches remaining in the course. Ending course instead");
 				courseManager.EndCourseInternal();
 				goto end_IL_000e;
-				IL_0072:
+				IL_0078:
 				try
 				{
 					UniTask.Awaiter awaiter;
@@ -694,7 +702,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	[StructLayout(LayoutKind.Auto)]
 	[CompilerGenerated]
-	private struct _003CStartCourseInternal_003Ed__145 : IAsyncStateMachine
+	private struct _003CStartCourseInternal_003Ed__147 : IAsyncStateMachine
 	{
 		public int _003C_003E1__state;
 
@@ -792,7 +800,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	private readonly SyncList<PlayerState> playerStates = new SyncList<PlayerState>();
 
-	public readonly SyncDictionary<PlayerPair, int> playerKnockoutStreaks = new SyncDictionary<PlayerPair, int>();
+	public readonly SyncDictionary<PlayerPair, KnockoutStreak> playerKnockoutStreaks = new SyncDictionary<PlayerPair, KnockoutStreak>();
 
 	private readonly SyncDictionary<ulong, float> playerPingPerGuid = new SyncDictionary<ulong, float>();
 
@@ -914,7 +922,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		}
 	}
 
-	public static SyncDictionary<PlayerPair, int> PlayerKnockoutStreaks
+	public static SyncDictionary<PlayerPair, KnockoutStreak> PlayerKnockoutStreaks
 	{
 		get
 		{
@@ -1151,7 +1159,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 
 	public static event Action<SyncSet<PlayerPair>.Operation, PlayerPair> PlayerDominationsChanged;
 
-	public static event Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int> PlayerKnockoutStreaksChanged;
+	public static event Action<SyncIDictionary<PlayerPair, KnockoutStreak>.Operation, PlayerPair, KnockoutStreak> PlayerKnockoutStreaksChanged;
 
 	public static event Action<SyncList<GolfBall>.Operation, int, GolfBall> OvertimeActiveBallsChanged;
 
@@ -1212,10 +1220,10 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			}
 		}
 		ServerPersistentCourseData.RestorePlayerJoinTimestamps();
-		foreach (var (playerPair2, num2) in ServerPersistentCourseData.playerKnockoutStreaks)
+		foreach (var (playerPair2, value) in ServerPersistentCourseData.playerKnockoutStreaks)
 		{
-			playerKnockoutStreaks.Add(playerPair2, num2);
-			if (num2 >= GameManager.MatchSettings.DominationKnockoutStreak)
+			playerKnockoutStreaks.Add(playerPair2, value);
+			if (value.persistentStreak >= GameManager.MatchSettings.DominationKnockoutStreak)
 			{
 				playerDominations.Add(playerPair2);
 			}
@@ -1243,8 +1251,8 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			syncList.OnChange = (Action<SyncList<PlayerState>.Operation, int, PlayerState>)Delegate.Combine(syncList.OnChange, new Action<SyncList<PlayerState>.Operation, int, PlayerState>(OnPlayerStatesChanged));
 			SyncDictionary<ulong, float> syncDictionary = playerPingPerGuid;
 			syncDictionary.OnChange = (Action<SyncIDictionary<ulong, float>.Operation, ulong, float>)Delegate.Combine(syncDictionary.OnChange, new Action<SyncIDictionary<ulong, float>.Operation, ulong, float>(OnPlayerPingsChanged));
-			SyncDictionary<PlayerPair, int> syncDictionary2 = PlayerKnockoutStreaks;
-			syncDictionary2.OnChange = (Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>)Delegate.Combine(syncDictionary2.OnChange, new Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>(OnPlayerKnockoutStreaksChanged));
+			SyncDictionary<PlayerPair, KnockoutStreak> syncDictionary2 = PlayerKnockoutStreaks;
+			syncDictionary2.OnChange = (Action<SyncIDictionary<PlayerPair, KnockoutStreak>.Operation, PlayerPair, KnockoutStreak>)Delegate.Combine(syncDictionary2.OnChange, new Action<SyncIDictionary<PlayerPair, KnockoutStreak>.Operation, PlayerPair, KnockoutStreak>(OnPlayerKnockoutStreaksChanged));
 			SyncHashSet<PlayerPair> syncHashSet = playerDominations;
 			syncHashSet.OnChange = (Action<SyncSet<PlayerPair>.Operation, PlayerPair>)Delegate.Combine(syncHashSet.OnChange, new Action<SyncSet<PlayerPair>.Operation, PlayerPair>(OnPlayerDominationsChanged));
 			SyncList<GolfBall> syncList2 = overtimeActiveBalls;
@@ -1262,15 +1270,15 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			{
 				return true;
 			}
-			if (!BNetworkManager.singleton.playerGuidPerConnectionId.TryGetValue(connectionId, out var value))
+			if (!BNetworkManager.singleton.playerGuidPerConnectionId.TryGetValue(connectionId, out var value2))
 			{
 				return false;
 			}
-			if (!playerStateIndicesPerPlayerGuid.TryGetValue(value, out var value2))
+			if (!playerStateIndicesPerPlayerGuid.TryGetValue(value2, out var value3))
 			{
 				return false;
 			}
-			return !playerStates[value2].isSpectator;
+			return !playerStates[value3].isSpectator;
 		}
 	}
 
@@ -1287,8 +1295,8 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			syncList.OnChange = (Action<SyncList<PlayerState>.Operation, int, PlayerState>)Delegate.Remove(syncList.OnChange, new Action<SyncList<PlayerState>.Operation, int, PlayerState>(OnPlayerStatesChanged));
 			SyncDictionary<ulong, float> syncDictionary = playerPingPerGuid;
 			syncDictionary.OnChange = (Action<SyncIDictionary<ulong, float>.Operation, ulong, float>)Delegate.Remove(syncDictionary.OnChange, new Action<SyncIDictionary<ulong, float>.Operation, ulong, float>(OnPlayerPingsChanged));
-			SyncDictionary<PlayerPair, int> syncDictionary2 = PlayerKnockoutStreaks;
-			syncDictionary2.OnChange = (Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>)Delegate.Remove(syncDictionary2.OnChange, new Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>(OnPlayerKnockoutStreaksChanged));
+			SyncDictionary<PlayerPair, KnockoutStreak> syncDictionary2 = PlayerKnockoutStreaks;
+			syncDictionary2.OnChange = (Action<SyncIDictionary<PlayerPair, KnockoutStreak>.Operation, PlayerPair, KnockoutStreak>)Delegate.Remove(syncDictionary2.OnChange, new Action<SyncIDictionary<PlayerPair, KnockoutStreak>.Operation, PlayerPair, KnockoutStreak>(OnPlayerKnockoutStreaksChanged));
 			SyncHashSet<PlayerPair> syncHashSet = playerDominations;
 			syncHashSet.OnChange = (Action<SyncSet<PlayerPair>.Operation, PlayerPair>)Delegate.Remove(syncHashSet.OnChange, new Action<SyncSet<PlayerPair>.Operation, PlayerPair>(OnPlayerDominationsChanged));
 			SyncList<GolfBall> syncList2 = overtimeActiveBalls;
@@ -1311,8 +1319,8 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		syncList.OnChange = (Action<SyncList<PlayerState>.Operation, int, PlayerState>)Delegate.Combine(syncList.OnChange, new Action<SyncList<PlayerState>.Operation, int, PlayerState>(OnPlayerStatesChanged));
 		SyncDictionary<ulong, float> syncDictionary = playerPingPerGuid;
 		syncDictionary.OnChange = (Action<SyncIDictionary<ulong, float>.Operation, ulong, float>)Delegate.Combine(syncDictionary.OnChange, new Action<SyncIDictionary<ulong, float>.Operation, ulong, float>(OnPlayerPingsChanged));
-		SyncDictionary<PlayerPair, int> syncDictionary2 = PlayerKnockoutStreaks;
-		syncDictionary2.OnChange = (Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>)Delegate.Combine(syncDictionary2.OnChange, new Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>(OnPlayerKnockoutStreaksChanged));
+		SyncDictionary<PlayerPair, KnockoutStreak> syncDictionary2 = PlayerKnockoutStreaks;
+		syncDictionary2.OnChange = (Action<SyncIDictionary<PlayerPair, KnockoutStreak>.Operation, PlayerPair, KnockoutStreak>)Delegate.Combine(syncDictionary2.OnChange, new Action<SyncIDictionary<PlayerPair, KnockoutStreak>.Operation, PlayerPair, KnockoutStreak>(OnPlayerKnockoutStreaksChanged));
 		SyncHashSet<PlayerPair> syncHashSet = playerDominations;
 		syncHashSet.OnChange = (Action<SyncSet<PlayerPair>.Operation, PlayerPair>)Delegate.Combine(syncHashSet.OnChange, new Action<SyncSet<PlayerPair>.Operation, PlayerPair>(OnPlayerDominationsChanged));
 		SyncList<GolfBall> syncList2 = overtimeActiveBalls;
@@ -1343,8 +1351,8 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		syncList.OnChange = (Action<SyncList<PlayerState>.Operation, int, PlayerState>)Delegate.Remove(syncList.OnChange, new Action<SyncList<PlayerState>.Operation, int, PlayerState>(OnPlayerStatesChanged));
 		SyncDictionary<ulong, float> syncDictionary = playerPingPerGuid;
 		syncDictionary.OnChange = (Action<SyncIDictionary<ulong, float>.Operation, ulong, float>)Delegate.Remove(syncDictionary.OnChange, new Action<SyncIDictionary<ulong, float>.Operation, ulong, float>(OnPlayerPingsChanged));
-		SyncDictionary<PlayerPair, int> syncDictionary2 = PlayerKnockoutStreaks;
-		syncDictionary2.OnChange = (Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>)Delegate.Remove(syncDictionary2.OnChange, new Action<SyncIDictionary<PlayerPair, int>.Operation, PlayerPair, int>(OnPlayerKnockoutStreaksChanged));
+		SyncDictionary<PlayerPair, KnockoutStreak> syncDictionary2 = PlayerKnockoutStreaks;
+		syncDictionary2.OnChange = (Action<SyncIDictionary<PlayerPair, KnockoutStreak>.Operation, PlayerPair, KnockoutStreak>)Delegate.Remove(syncDictionary2.OnChange, new Action<SyncIDictionary<PlayerPair, KnockoutStreak>.Operation, PlayerPair, KnockoutStreak>(OnPlayerKnockoutStreaksChanged));
 		SyncHashSet<PlayerPair> syncHashSet = playerDominations;
 		syncHashSet.OnChange = (Action<SyncSet<PlayerPair>.Operation, PlayerPair>)Delegate.Remove(syncHashSet.OnChange, new Action<SyncSet<PlayerPair>.Operation, PlayerPair>(OnPlayerDominationsChanged));
 		SyncList<GolfBall> syncList2 = overtimeActiveBalls;
@@ -1586,6 +1594,16 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		return SingletonNetworkBehaviour<CourseManager>.Instance.GetSortedPlayerStatesInternal();
 	}
 
+	public static bool TryGetPlayerState(ulong playerGuid, out PlayerState state)
+	{
+		if (!SingletonNetworkBehaviour<CourseManager>.HasInstance)
+		{
+			state = default(PlayerState);
+			return false;
+		}
+		return SingletonNetworkBehaviour<CourseManager>.Instance.TryGetPlayerStateInternal(playerGuid, out state);
+	}
+
 	public static bool TryGetPlayerState(PlayerInfo player, out PlayerState state)
 	{
 		if (!SingletonNetworkBehaviour<CourseManager>.HasInstance)
@@ -1765,7 +1783,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		}
 	}
 
-	[AsyncStateMachine(typeof(_003CStartCourseInternal_003Ed__145))]
+	[AsyncStateMachine(typeof(_003CStartCourseInternal_003Ed__147))]
 	[Server]
 	private void StartCourseInternal()
 	{
@@ -1774,14 +1792,14 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			UnityEngine.Debug.LogWarning("[Server] function 'System.Void CourseManager::StartCourseInternal()' called when server was not active");
 			return;
 		}
-		_003CStartCourseInternal_003Ed__145 stateMachine = default(_003CStartCourseInternal_003Ed__145);
+		_003CStartCourseInternal_003Ed__147 stateMachine = default(_003CStartCourseInternal_003Ed__147);
 		stateMachine._003C_003Et__builder = AsyncVoidMethodBuilder.Create();
 		stateMachine._003C_003E4__this = this;
 		stateMachine._003C_003E1__state = -1;
 		stateMachine._003C_003Et__builder.Start(ref stateMachine);
 	}
 
-	[AsyncStateMachine(typeof(_003CRpcInformStartingCourse_003Ed__146))]
+	[AsyncStateMachine(typeof(_003CRpcInformStartingCourse_003Ed__148))]
 	[ClientRpc]
 	private void RpcInformStartingCourse()
 	{
@@ -1790,7 +1808,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		NetworkWriterPool.Return(writer);
 	}
 
-	[AsyncStateMachine(typeof(_003CEndCourseInternal_003Ed__147))]
+	[AsyncStateMachine(typeof(_003CEndCourseInternal_003Ed__149))]
 	[Server]
 	private void EndCourseInternal()
 	{
@@ -1799,14 +1817,14 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			UnityEngine.Debug.LogWarning("[Server] function 'System.Void CourseManager::EndCourseInternal()' called when server was not active");
 			return;
 		}
-		_003CEndCourseInternal_003Ed__147 stateMachine = default(_003CEndCourseInternal_003Ed__147);
+		_003CEndCourseInternal_003Ed__149 stateMachine = default(_003CEndCourseInternal_003Ed__149);
 		stateMachine._003C_003Et__builder = AsyncVoidMethodBuilder.Create();
 		stateMachine._003C_003E4__this = this;
 		stateMachine._003C_003E1__state = -1;
 		stateMachine._003C_003Et__builder.Start(ref stateMachine);
 	}
 
-	[AsyncStateMachine(typeof(_003CRpcInformEndingCourse_003Ed__148))]
+	[AsyncStateMachine(typeof(_003CRpcInformEndingCourse_003Ed__150))]
 	[ClientRpc]
 	private void RpcInformEndingCourse()
 	{
@@ -1815,7 +1833,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		NetworkWriterPool.Return(writer);
 	}
 
-	[AsyncStateMachine(typeof(_003CServerStartNextMatch_003Ed__149))]
+	[AsyncStateMachine(typeof(_003CServerStartNextMatch_003Ed__151))]
 	[Server]
 	private void ServerStartNextMatch(bool skipPersistentInventories)
 	{
@@ -1824,7 +1842,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			UnityEngine.Debug.LogWarning("[Server] function 'System.Void CourseManager::ServerStartNextMatch(System.Boolean)' called when server was not active");
 			return;
 		}
-		_003CServerStartNextMatch_003Ed__149 stateMachine = default(_003CServerStartNextMatch_003Ed__149);
+		_003CServerStartNextMatch_003Ed__151 stateMachine = default(_003CServerStartNextMatch_003Ed__151);
 		stateMachine._003C_003Et__builder = AsyncVoidMethodBuilder.Create();
 		stateMachine._003C_003E4__this = this;
 		stateMachine.skipPersistentInventories = skipPersistentInventories;
@@ -1832,7 +1850,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		stateMachine._003C_003Et__builder.Start(ref stateMachine);
 	}
 
-	[AsyncStateMachine(typeof(_003CRpcInformStartingNextMatch_003Ed__150))]
+	[AsyncStateMachine(typeof(_003CRpcInformStartingNextMatch_003Ed__152))]
 	[ClientRpc]
 	private void RpcInformStartingNextMatch()
 	{
@@ -2419,7 +2437,8 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			knockoutCounted = true;
 			int num = (MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.Knockouts) ? GameManager.MatchSettings.KnockoutScore : 0);
 			PlayerPair playerPair = new PlayerPair(responsiblePlayer.PlayerId.Guid, knockedOutPlayer.PlayerInfo.PlayerId.Guid);
-			responsiblePlayer.Movement.RpcInformKnockedOutOtherPlayer(knockedOutPlayer.PlayerInfo, !playerDominations.Contains(playerPair));
+			bool flag2 = MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.WhiteFlag) && playerDominations.Contains(playerPair);
+			responsiblePlayer.Movement.RpcInformKnockedOutOtherPlayer(knockedOutPlayer.PlayerInfo, !flag2);
 			if (num != 0)
 			{
 				responsiblePlayer.RpcPopUp(PlayerTextPopupType.Knockout, num);
@@ -2434,24 +2453,25 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 			IncrementRecentKnockouts();
 			if (!playerKnockoutStreaks.TryGetValue(playerPair, out var value2))
 			{
-				value2 = 0;
+				value2 = default(KnockoutStreak);
 			}
-			value2++;
+			value2.persistentStreak++;
+			value2.redShieldStreak++;
 			playerKnockoutStreaks[playerPair] = value2;
-			bool num2 = value2 == GameManager.MatchSettings.DominationKnockoutStreak;
-			bool flag2 = false;
+			bool num2 = value2.persistentStreak == GameManager.MatchSettings.DominationKnockoutStreak;
+			bool flag3 = false;
 			PlayerPair playerPair2 = playerPair.Inverse();
 			if (playerKnockoutStreaks.TryGetValue(playerPair2, out var value3))
 			{
 				playerKnockoutStreaks.Remove(playerPair2);
-				flag2 = value3 >= GameManager.MatchSettings.DominationKnockoutStreak;
+				flag3 = value3.persistentStreak >= GameManager.MatchSettings.DominationKnockoutStreak;
 			}
 			if (num2)
 			{
 				playerDominations.Add(playerPair);
 				InfoFeed.ShowDominationMessage(responsiblePlayer, knockedOutPlayer.PlayerInfo);
 			}
-			if (flag2)
+			if (flag3)
 			{
 				playerDominations.Remove(playerPair2);
 				responsiblePlayer.RpcInformScoredRevengeKnockout();
@@ -2862,6 +2882,17 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		}
 		sortedPlayerStatesBuffer.Sort();
 		return sortedPlayerStatesBuffer;
+	}
+
+	private bool TryGetPlayerStateInternal(ulong playerGuid, out PlayerState state)
+	{
+		state = default(PlayerState);
+		if (!playerStateIndicesPerPlayerGuid.TryGetValue(playerGuid, out var value))
+		{
+			return false;
+		}
+		state = playerStates[value];
+		return true;
 	}
 
 	private bool TryGetPlayerStateInternal(PlayerInfo player, out PlayerState state)
@@ -3324,7 +3355,7 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		CourseManager.PlayerPingsChanged?.Invoke(operation, playerGuid, ping);
 	}
 
-	private void OnPlayerKnockoutStreaksChanged(SyncIDictionary<PlayerPair, int>.Operation operation, PlayerPair playerPair, int streak)
+	private void OnPlayerKnockoutStreaksChanged(SyncIDictionary<PlayerPair, KnockoutStreak>.Operation operation, PlayerPair playerPair, KnockoutStreak streak)
 	{
 		CourseManager.PlayerKnockoutStreaksChanged?.Invoke(operation, playerPair, streak);
 	}
@@ -3788,6 +3819,24 @@ public class CourseManager : SingletonNetworkBehaviour<CourseManager>, IBUpdateC
 		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcSlowDownOverviewCamera(System.Single)", InvokeUserCode_RpcSlowDownOverviewCamera__Single);
 		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcPlayAnnouncerLines(Mirror.NetworkConnectionToClient,System.Collections.Generic.List`1<AnnouncerLine>)", InvokeUserCode_RpcPlayAnnouncerLines__NetworkConnectionToClient__List_00601);
 		RemoteProcedureCalls.RegisterRpc(typeof(CourseManager), "System.Void CourseManager::RpcAwardCourseBonus(Mirror.NetworkConnectionToClient,System.Single)", InvokeUserCode_RpcAwardCourseBonus__NetworkConnectionToClient__Single);
+	}
+
+	[CompilerGenerated]
+	private void _003CServerStartNextMatch_003Eg__ResetRedShieldKnockoutStreaks_007C151_1()
+	{
+		List<PlayerPair> value;
+		using (CollectionPool<List<PlayerPair>, PlayerPair>.Get(out value))
+		{
+			value.AddRange(playerKnockoutStreaks.Keys);
+			foreach (PlayerPair item in value)
+			{
+				if (playerKnockoutStreaks.TryGetValue(item, out var value2) && value2.redShieldStreak < GameManager.MatchSettings.RedShieldKnockoutStreak)
+				{
+					value2.redShieldStreak = 0;
+					playerKnockoutStreaks[item] = value2;
+				}
+			}
+		}
 	}
 
 	public override bool Weaved()

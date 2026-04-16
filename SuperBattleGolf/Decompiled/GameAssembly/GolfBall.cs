@@ -247,14 +247,10 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 				puttingTrailVfx.Initialize(this);
 			}
 		}
-		UpdateCanPassThrough(GameManager.LocalPlayerInfo);
-		foreach (PlayerInfo remotePlayer in GameManager.RemotePlayers)
-		{
-			UpdateCanPassThrough(remotePlayer);
-		}
 		GameManager.LocalPlayerRegistered += OnLocalPlayerRegistered;
 		GameManager.RemotePlayerRegistered += OnRemotePlayerRegistered;
 		CourseManager.PlayerKnockoutStreaksChanged += OnPlayerKnockoutStreakChanged;
+		PlayerId.AnyPlayerGuidChanged += OnAnyPlayerGuidChanged;
 		PlayerSpectator.LocalPlayerIsSpectatingChanged += OnLocalPlayerIsSpectatingChanged;
 		PlayerSpectator.LocalPlayerSetSpectatingTarget += OnLocalPlayerSetSpectatingTarget;
 		PlayerSpectator.LocalPlayerStoppedSpectating += OnLocalPlayerStoppedSpectating;
@@ -331,6 +327,7 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		RemoveWorldspaceIcon();
 		GameManager.LocalPlayerRegistered -= OnLocalPlayerRegistered;
 		GameManager.RemotePlayerRegistered -= OnRemotePlayerRegistered;
+		PlayerId.AnyPlayerGuidChanged -= OnAnyPlayerGuidChanged;
 		CourseManager.PlayerKnockoutStreaksChanged -= OnPlayerKnockoutStreakChanged;
 		PlayerSpectator.LocalPlayerIsSpectatingChanged -= OnLocalPlayerIsSpectatingChanged;
 		PlayerSpectator.LocalPlayerSetSpectatingTarget -= OnLocalPlayerSetSpectatingTarget;
@@ -1445,7 +1442,12 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 		UpdateCanPassThrough(remotePlayer);
 	}
 
-	private void OnPlayerKnockoutStreakChanged(SyncIDictionary<CourseManager.PlayerPair, int>.Operation operation, CourseManager.PlayerPair playerPair, int streak)
+	private void OnAnyPlayerGuidChanged(PlayerId playerId)
+	{
+		UpdateCanPassThrough(playerId.PlayerInfo);
+	}
+
+	private void OnPlayerKnockoutStreakChanged(SyncIDictionary<CourseManager.PlayerPair, CourseManager.KnockoutStreak>.Operation operation, CourseManager.PlayerPair playerPair, CourseManager.KnockoutStreak streak)
 	{
 		if (GameManager.TryFindPlayerByGuid(playerPair.playerAGuid, out var playerInfo) && !(playerInfo == null) && !(playerInfo.AsGolfer != Networkowner) && GameManager.TryFindPlayerByGuid(playerPair.playerBGuid, out var playerInfo2) && !(playerInfo2 == null))
 		{
@@ -1597,6 +1599,11 @@ public class GolfBall : NetworkBehaviour, IFixedBUpdateCallback, IAnyBUpdateCall
 			currentOwner.PlayerInfo.PlayerId.NameChanged += OnOwnerNameChanged;
 			currentOwner.PlayerInfo.Movement.IsVisibleChanged += OnOwnerIsVisibleChanged;
 			currentOwner.PlayerInfo.AsGolfer.MatchResolutionChanged += OnOwnerMatchResolutionChanged;
+		}
+		UpdateCanPassThrough(GameManager.LocalPlayerInfo);
+		foreach (PlayerInfo remotePlayer in GameManager.RemotePlayers)
+		{
+			UpdateCanPassThrough(remotePlayer);
 		}
 		UpdateNameTagEnabled();
 		UpdateNameTag();

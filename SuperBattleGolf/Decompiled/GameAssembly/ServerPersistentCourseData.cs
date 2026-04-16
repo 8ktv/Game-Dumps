@@ -6,7 +6,7 @@ public static class ServerPersistentCourseData
 
 	public static readonly Dictionary<ulong, InventorySlot[]> playerInventories = new Dictionary<ulong, InventorySlot[]>();
 
-	public static readonly Dictionary<CourseManager.PlayerPair, int> playerKnockoutStreaks = new Dictionary<CourseManager.PlayerPair, int>();
+	public static readonly Dictionary<CourseManager.PlayerPair, CourseManager.KnockoutStreak> playerKnockoutStreaks = new Dictionary<CourseManager.PlayerPair, CourseManager.KnockoutStreak>();
 
 	public static readonly Dictionary<ulong, double> playerJoinTimestamps = new Dictionary<ulong, double>();
 

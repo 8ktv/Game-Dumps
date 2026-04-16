@@ -85,6 +85,9 @@ public class MatchSettings : ScriptableObject
 	public int DominationKnockoutStreak { get; private set; }
 
 	[field: SerializeField]
+	public int RedShieldKnockoutStreak { get; private set; }
+
+	[field: SerializeField]
 	[field: ElementName("Position")]
 	public int[] Scores { get; private set; }
 

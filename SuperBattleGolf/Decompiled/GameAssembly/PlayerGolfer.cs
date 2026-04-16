@@ -2325,7 +2325,8 @@ public class PlayerGolfer : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCallb
 			ServerEliminate(eliminationReason);
 			if (itemUser != null)
 			{
-				itemUser.PlayerInfo.Movement.RpcInformKnockedOutOtherPlayer(PlayerInfo, !CourseManager.PlayerDominations.Contains(new CourseManager.PlayerPair(itemUser.PlayerInfo.PlayerId.Guid, PlayerInfo.PlayerId.Guid)));
+				bool flag = MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.WhiteFlag) && CourseManager.PlayerDominations.Contains(new CourseManager.PlayerPair(itemUser.PlayerInfo.PlayerId.Guid, PlayerInfo.PlayerId.Guid));
+				itemUser.PlayerInfo.Movement.RpcInformKnockedOutOtherPlayer(PlayerInfo, !flag);
 			}
 			CourseManager.MarkLatestValidKnockout(PlayerInfo, itemUseId);
 		}

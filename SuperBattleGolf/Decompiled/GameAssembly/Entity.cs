@@ -345,7 +345,15 @@ public class Entity : MonoBehaviour
 
 	public async void TemporarilyIgnoreCollisionsWith(Entity entity, float duration, bool includeOwnTriggers = false)
 	{
-		IEnumerable<Collider> otherColliders = ((!entity.HasRigidbody) ? ((IEnumerable<Collider>)entity.GetComponentsInChildren<Collider>(includeInactive: true)) : ((IEnumerable<Collider>)entity.Rigidbody.GetAttachedColliders()));
+		IEnumerable<Collider> otherColliders;
+		if (entity.HasRigidbody)
+		{
+			otherColliders = entity.Rigidbody.GetAttachedColliders();
+		}
+		else
+		{
+			otherColliders = entity.GetComponentsInChildren<Collider>(includeInactive: true);
+		}
 		List<Collider> ownColliders;
 		if (HasRigidbody)
 		{
@@ -368,6 +376,7 @@ public class Entity : MonoBehaviour
 			TemporarilyIgnoredEntities = new HashSet<Entity>();
 		}
 		TemporarilyIgnoredEntities.Add(entity);
+		entity.WillBeDestroyed += OnIgnoredEntityWillBeDestroyed;
 		foreach (Collider item in ownColliders)
 		{
 			foreach (Collider item2 in otherColliders)
@@ -376,25 +385,36 @@ public class Entity : MonoBehaviour
 			}
 		}
 		await UniTask.WaitForSeconds(duration);
-		if (this == null)
+		if (!(this == null))
 		{
-			return;
+			FinishIgnoringEntity();
 		}
-		TemporarilyIgnoredEntities.Remove(entity);
-		foreach (Collider item3 in ownColliders)
+		void FinishIgnoringEntity()
 		{
-			foreach (Collider item4 in otherColliders)
+			TemporarilyIgnoredEntities.Remove(entity);
+			entity.WillBeDestroyed -= OnIgnoredEntityWillBeDestroyed;
+			if (!(entity == null))
 			{
-				if (item3 != null && item4 != null)
+				if (!entity.IsDestroyed)
 				{
-					Physics.IgnoreCollision(item3, item4, ignore: false);
+					foreach (Collider item3 in ownColliders)
+					{
+						foreach (Collider item4 in otherColliders)
+						{
+							if (item3 != null && item4 != null)
+							{
+								Physics.IgnoreCollision(item3, item4, ignore: false);
+							}
+						}
+					}
 				}
+				this.FinishedTemporarilyIgnoringCollisionsWith?.Invoke(entity);
+				entity.FinishedTemporarilyIgnoringCollisionsWith?.Invoke(this);
 			}
 		}
-		if (entity != null)
+		void OnIgnoredEntityWillBeDestroyed()
 		{
-			this.FinishedTemporarilyIgnoringCollisionsWith?.Invoke(entity);
-			entity.FinishedTemporarilyIgnoringCollisionsWith?.Invoke(this);
+			FinishIgnoringEntity();
 		}
 	}
 

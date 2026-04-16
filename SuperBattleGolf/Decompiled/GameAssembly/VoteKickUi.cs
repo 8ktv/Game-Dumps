@@ -32,15 +32,55 @@ public class VoteKickUi : SingletonBehaviour<VoteKickUi>
 
 	public int keyboardIconSize = 48;
 
-	private bool active;
+	private bool isShown;
 
-	private bool hasVoted;
+	private ulong requesterGuid;
+
+	private ulong targetGuid;
 
 	private string requesterName = string.Empty;
 
 	private string targetName = string.Empty;
 
 	private float voteFillWidth;
+
+	private VoteKickManager.Vote lastVote;
+
+	public static bool IsShown
+	{
+		get
+		{
+			if (SingletonBehaviour<VoteKickUi>.HasInstance)
+			{
+				return SingletonBehaviour<VoteKickUi>.Instance.isShown;
+			}
+			return false;
+		}
+	}
+
+	public static ulong RequesterGuid
+	{
+		get
+		{
+			if (!SingletonBehaviour<VoteKickUi>.HasInstance)
+			{
+				return 0uL;
+			}
+			return SingletonBehaviour<VoteKickUi>.Instance.requesterGuid;
+		}
+	}
+
+	public static ulong TargetGuid
+	{
+		get
+		{
+			if (!SingletonBehaviour<VoteKickUi>.HasInstance)
+			{
+				return 0uL;
+			}
+			return SingletonBehaviour<VoteKickUi>.Instance.targetGuid;
+		}
+	}
 
 	private void Start()
 	{
@@ -85,10 +125,12 @@ public class VoteKickUi : SingletonBehaviour<VoteKickUi>
 	{
 		if (!(target == null) && !(requester == null))
 		{
+			targetGuid = target.PlayerId.Guid;
+			requesterGuid = requester.PlayerId.Guid;
 			targetName = target.PlayerId.PlayerNameNoRichText;
 			requesterName = requester.PlayerId.PlayerNameNoRichText;
-			active = true;
-			hasVoted = false;
+			isShown = true;
+			lastVote = VoteKickManager.Vote.NotVoted;
 			window.SetActive(value: true);
 			yesSelect.SetActive(value: false);
 			noSelect.SetActive(value: false);
@@ -99,15 +141,17 @@ public class VoteKickUi : SingletonBehaviour<VoteKickUi>
 
 	private void HideInternal()
 	{
+		targetGuid = 0uL;
+		requesterGuid = 0uL;
 		targetName = string.Empty;
 		requesterName = string.Empty;
-		active = false;
+		isShown = false;
 		window.SetActive(value: false);
 	}
 
 	private void UpdateValuesInternal()
 	{
-		if (active)
+		if (isShown)
 		{
 			int yesVotes = VoteKickManager.YesVotes;
 			int noVotes = VoteKickManager.NoVotes;
@@ -117,14 +161,13 @@ public class VoteKickUi : SingletonBehaviour<VoteKickUi>
 			SetFill(yesFill, (float)yesVotes / (float)totalVoterCount);
 			SetFill(noFill, (float)noVotes / (float)totalVoterCount);
 			timerFill.fillAmount = VoteKickManager.NormalizedProgress;
-			bool flag = hasVoted;
 			VoteKickManager.Vote vote = VoteKickManager.GetVote(GameManager.LocalPlayerInfo);
-			hasVoted = vote > VoteKickManager.Vote.NotVoted;
-			if (hasVoted != flag)
+			if (lastVote != vote)
 			{
-				UpdateLocalizedLabels();
 				yesSelect.SetActive(vote == VoteKickManager.Vote.Yes);
 				noSelect.SetActive(vote == VoteKickManager.Vote.No);
+				lastVote = vote;
+				UpdateLocalizedLabels();
 			}
 		}
 		void SetFill(RectTransform rect, float factor)
@@ -141,7 +184,7 @@ public class VoteKickUi : SingletonBehaviour<VoteKickUi>
 		{
 			requesterLabel.text = string.Format(Localization.UI.VOTEKICK_StartedBy, requesterName);
 			kickLabel.text = "<pos=28px>" + string.Format(Localization.UI.VOTEKICK_Label, "<nobr>" + GameManager.UiSettings.ApplyColorTag(targetName, TextHighlight.Regular) + "</nobr>");
-			if (hasVoted)
+			if (lastVote != VoteKickManager.Vote.NotVoted)
 			{
 				yesLabel.text = "<voffset=-9px><allcaps>" + Localization.UI.MISC_Yes + "</allcaps></voffset>";
 				noLabel.text = "<voffset=-9px><allcaps>" + Localization.UI.MISC_No + "</allcaps></voffset>";

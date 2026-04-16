@@ -2086,7 +2086,7 @@ public class PlayerInventory : NetworkBehaviour, IBUpdateCallback, IAnyBUpdateCa
 			Vector3 vector = Vector3.Cross(freezeBombAimDirection, Vector3.up).RandomlyRotatedDeg(GameManager.ItemSettings.FreezeBombShotRotationAxisMaxRotation);
 			Vector3 angularVelocity = GameManager.ItemSettings.FreezeBombShotAngularSpeed * vector;
 			OnShotFreezeBomb();
-			CmdInformShotFreezeBomb(freezeBombBombPosition, bombRotation, velocity, angularVelocity, IncrementAndGetCurrentItemUseId(ItemType.RocketLauncher));
+			CmdInformShotFreezeBomb(freezeBombBombPosition, bombRotation, velocity, angularVelocity, IncrementAndGetCurrentItemUseId(ItemType.FreezeBomb));
 		}
 	}
 

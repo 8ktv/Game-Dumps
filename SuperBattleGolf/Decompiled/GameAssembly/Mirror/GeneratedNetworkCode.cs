@@ -714,6 +714,21 @@ public static class GeneratedNetworkCode
 		writer.WriteVarULong(value.playerBGuid);
 	}
 
+	public static CourseManager.KnockoutStreak _Read_CourseManager_002FKnockoutStreak(NetworkReader reader)
+	{
+		return new CourseManager.KnockoutStreak
+		{
+			persistentStreak = reader.ReadVarInt(),
+			redShieldStreak = reader.ReadVarInt()
+		};
+	}
+
+	public static void _Write_CourseManager_002FKnockoutStreak(NetworkWriter writer, CourseManager.KnockoutStreak value)
+	{
+		writer.WriteVarInt(value.persistentStreak);
+		writer.WriteVarInt(value.redShieldStreak);
+	}
+
 	public static void _Write_AnnouncerLine(NetworkWriter writer, AnnouncerLine value)
 	{
 		writer.WriteVarInt((int)value);
@@ -1290,6 +1305,16 @@ public static class GeneratedNetworkCode
 		writer.WriteVarInt((int)value);
 	}
 
+	public static void _Write_VoteKickManager_002FVoteKickResult(NetworkWriter writer, VoteKickManager.VoteKickResult value)
+	{
+		writer.WriteVarInt((int)value);
+	}
+
+	public static VoteKickManager.VoteKickResult _Read_VoteKickManager_002FVoteKickResult(NetworkReader reader)
+	{
+		return (VoteKickManager.VoteKickResult)reader.ReadVarInt();
+	}
+
 	public static void _Write_VoteKickManager_002FVoteResults(NetworkWriter writer, VoteKickManager.VoteResults value)
 	{
 		NetworkWriterExtensions.WriteByte(writer, value.yesVotes);
@@ -1462,6 +1487,7 @@ public static class GeneratedNetworkCode
 		Writer<PlayerMatchResolution>.write = _Write_PlayerMatchResolution;
 		Writer<StrokesUnderParType>.write = _Write_StrokesUnderParType;
 		Writer<CourseManager.PlayerPair>.write = _Write_CourseManager_002FPlayerPair;
+		Writer<CourseManager.KnockoutStreak>.write = _Write_CourseManager_002FKnockoutStreak;
 		Writer<AnnouncerLine>.write = _Write_AnnouncerLine;
 		Writer<List<AnnouncerLine>>.write = _Write_System_002ECollections_002EGeneric_002EList_00601_003CAnnouncerLine_003E;
 		Writer<MatchState>.write = _Write_MatchState;
@@ -1515,6 +1541,7 @@ public static class GeneratedNetworkCode
 		Writer<MatchSetupRules.Preset>.write = _Write_MatchSetupRules_002FPreset;
 		Writer<AchievementId>.write = _Write_AchievementId;
 		Writer<VoteKickManager.Vote>.write = _Write_VoteKickManager_002FVote;
+		Writer<VoteKickManager.VoteKickResult>.write = _Write_VoteKickManager_002FVoteKickResult;
 		Writer<VoteKickManager.VoteResults>.write = _Write_VoteKickManager_002FVoteResults;
 		Writer<VfxType>.write = _Write_VfxType;
 		Writer<VfxManager.GunShotHitVfxData>.write = _Write_VfxManager_002FGunShotHitVfxData;
@@ -1644,6 +1671,7 @@ public static class GeneratedNetworkCode
 		Reader<PlayerMatchResolution>.read = _Read_PlayerMatchResolution;
 		Reader<StrokesUnderParType>.read = _Read_StrokesUnderParType;
 		Reader<CourseManager.PlayerPair>.read = _Read_CourseManager_002FPlayerPair;
+		Reader<CourseManager.KnockoutStreak>.read = _Read_CourseManager_002FKnockoutStreak;
 		Reader<AnnouncerLine>.read = _Read_AnnouncerLine;
 		Reader<List<AnnouncerLine>>.read = _Read_System_002ECollections_002EGeneric_002EList_00601_003CAnnouncerLine_003E;
 		Reader<MatchState>.read = _Read_MatchState;
@@ -1697,6 +1725,7 @@ public static class GeneratedNetworkCode
 		Reader<MatchSetupRules.Preset>.read = _Read_MatchSetupRules_002FPreset;
 		Reader<AchievementId>.read = _Read_AchievementId;
 		Reader<VoteKickManager.Vote>.read = _Read_VoteKickManager_002FVote;
+		Reader<VoteKickManager.VoteKickResult>.read = _Read_VoteKickManager_002FVoteKickResult;
 		Reader<VoteKickManager.VoteResults>.read = _Read_VoteKickManager_002FVoteResults;
 		Reader<VfxType>.read = _Read_VfxType;
 		Reader<VfxManager.GunShotHitVfxData>.read = _Read_VfxManager_002FGunShotHitVfxData;

@@ -131,10 +131,10 @@ public class PlayerMovementSettings : ScriptableObject
 	public float PostKnockoutImmunityLongDuration { get; private set; }
 
 	[field: SerializeField]
-	public float KnockoutImmunityLongDurationCooldown { get; private set; }
+	public float KnockoutImmunityLongDurationKnockoutTimeWindow { get; private set; }
 
 	[field: SerializeField]
-	public int MinKnockoutImmunityCountBeforeLongDuration { get; private set; }
+	public int MinRecentKnockoutCountForLongImmunityDuration { get; private set; }
 
 	[field: SerializeField]
 	public float KnockOutGravityFactor { get; private set; }

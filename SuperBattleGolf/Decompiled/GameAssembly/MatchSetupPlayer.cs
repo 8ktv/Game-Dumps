@@ -40,9 +40,25 @@ public class MatchSetupPlayer : MonoBehaviour, IPointerEnterHandler, IEventSyste
 
 	private bool shouldUpdateActiveTime;
 
+	private bool wasNewInLobby;
+
 	public ulong Guid => currentPlayerGuid;
 
-	private bool isLocalPlayer => currentPlayerGuid == BNetworkManager.LocalPlayerGuidOnServer;
+	private bool IsLocalPlayer => currentPlayerGuid == BNetworkManager.LocalPlayerGuidOnServer;
+
+	private float TimeSinceJoined => (float)(NetworkTime.time - playerState.joinTimestamp);
+
+	private bool IsNewInLobby
+	{
+		get
+		{
+			if (!playerState.isHost)
+			{
+				return TimeSinceJoined <= (float)VoteKickManager.VoteKickPlayerMinActiveTime;
+			}
+			return false;
+		}
+	}
 
 	private void Awake()
 	{
@@ -56,16 +72,22 @@ public class MatchSetupPlayer : MonoBehaviour, IPointerEnterHandler, IEventSyste
 			SetButtonsHidden(hidden: true);
 		};
 		selectable.Submitted += OnControllerSubmit;
+		kickButton.onClick.AddListener(KickPlayer);
 	}
 
 	private void OnEnable()
 	{
 		SingletonNetworkBehaviour<MatchSetupMenu>.Instance.activeTimeTooltip.HoverChanged += OnHoverChanged;
+		PlayerId.LocalPlayerGuidChanged += OnLocalPlayerGuidChanged;
+		MatchSetupMenu.LobbyModeChanged += OnLobbyModeChanged;
+		UpdateKickTooltip();
 	}
 
 	private void OnDisable()
 	{
 		SingletonNetworkBehaviour<MatchSetupMenu>.Instance.activeTimeTooltip.HoverChanged -= OnHoverChanged;
+		PlayerId.LocalPlayerGuidChanged -= OnLocalPlayerGuidChanged;
+		MatchSetupMenu.LobbyModeChanged -= OnLobbyModeChanged;
 	}
 
 	private void OnControllerSubmit()
@@ -87,6 +109,11 @@ public class MatchSetupPlayer : MonoBehaviour, IPointerEnterHandler, IEventSyste
 			{
 				muteToggle.isOn = !muteToggle.isOn;
 			}
+		}
+		if (wasNewInLobby && !IsNewInLobby)
+		{
+			UpdateKickTooltip();
+			wasNewInLobby = false;
 		}
 	}
 
@@ -155,23 +182,23 @@ public class MatchSetupPlayer : MonoBehaviour, IPointerEnterHandler, IEventSyste
 
 	public void AssignPlayer(CourseManager.PlayerState playerState)
 	{
-		RefreshMutedToggle();
-		UpdateKickTooltip();
-		UpdateMuteTooltip();
-		UpdateHostTooltip();
-		UpdateActiveTimeTooltip();
-		if (currentPlayerGuid != playerState.playerGuid)
+		if (currentPlayerGuid == playerState.playerGuid)
 		{
-			currentPlayerGuid = playerState.playerGuid;
-			this.playerState = playerState;
-			kickButton.interactable = !isLocalPlayer && !playerState.isHost && VoteKickManager.CanKickOrVotekick;
-			leaderIcon.SetActive(playerState.isHost);
-			playerNickname.text = string.Empty;
-			playerNickname.text = GameManager.RichTextNoParse(playerState.name);
-			GetComponent<ReorderableListElement>().Button.interactable = isLocalPlayer;
-			SetButtonsHidden(hidden: true);
-			playerIcon.sprite = PlayerIconManager.GetPlayerIcon(playerState.playerGuid, PlayerIconManager.IconSize.Medium);
+			RefreshMutedToggle();
+			UpdateTooltips();
+			return;
 		}
+		currentPlayerGuid = playerState.playerGuid;
+		this.playerState = playerState;
+		wasNewInLobby = IsNewInLobby;
+		leaderIcon.SetActive(playerState.isHost);
+		playerNickname.text = string.Empty;
+		playerNickname.text = GameManager.RichTextNoParse(playerState.name);
+		GetComponent<ReorderableListElement>().Button.interactable = IsLocalPlayer;
+		SetButtonsHidden(hidden: true);
+		playerIcon.sprite = PlayerIconManager.GetPlayerIcon(playerState.playerGuid, PlayerIconManager.IconSize.Medium);
+		RefreshMutedToggle();
+		UpdateTooltips();
 		void RefreshMutedToggle()
 		{
 			muteToggle.onValueChanged.RemoveAllListeners();
@@ -200,40 +227,60 @@ public class MatchSetupPlayer : MonoBehaviour, IPointerEnterHandler, IEventSyste
 				}
 			}
 		}
-		void UpdateKickTooltip()
-		{
-			SingletonNetworkBehaviour<MatchSetupMenu>.Instance.warningTooltip.DeregisterTooltip(kickButton.image.rectTransform);
-			string text = (isLocalPlayer ? Localization.UI.MATCHSETUP_Tooltip_CantKickSelf : (playerState.isHost ? Localization.UI.MATCHSETUP_Tooltip_CantKickHost : (VoteKickManager.CanVotekick ? Localization.UI.MATCHSETUP_Tooltip_Votekick : ((!VoteKickManager.CanKick) ? string.Empty : Localization.UI.MATCHSETUP_Tooltip_Kick))));
-			if (!string.IsNullOrEmpty(text))
-			{
-				SingletonNetworkBehaviour<MatchSetupMenu>.Instance.warningTooltip.RegisterTooltip(kickButton.image.rectTransform, text);
-			}
-			kickButton.onClick.RemoveAllListeners();
-			if (VoteKickManager.CanKickOrVotekick)
-			{
-				kickButton.onClick.AddListener(KickPlayer);
-			}
-		}
 		void UpdateMuteTooltip()
 		{
 			SingletonNetworkBehaviour<MatchSetupMenu>.Instance.warningTooltip.DeregisterTooltip(muteToggle.GetComponent<RectTransform>());
-			string text = ((!isLocalPlayer) ? Localization.UI.PAUSE_Tooltip_Mute : Localization.UI.PAUSE_Tooltip_MuteSelf);
+			string text = ((!IsLocalPlayer) ? Localization.UI.PAUSE_Tooltip_Mute : Localization.UI.PAUSE_Tooltip_MuteSelf);
 			if (!string.IsNullOrEmpty(text))
 			{
 				SingletonNetworkBehaviour<MatchSetupMenu>.Instance.warningTooltip.RegisterTooltip(muteToggle.GetComponent<RectTransform>(), text);
 			}
 		}
+		void UpdateTooltips()
+		{
+			UpdateKickTooltip();
+			UpdateMuteTooltip();
+			UpdateHostTooltip();
+			UpdateActiveTimeTooltip();
+		}
+	}
+
+	private void UpdateKickTooltip()
+	{
+		SingletonNetworkBehaviour<MatchSetupMenu>.Instance.warningTooltip.DeregisterTooltip(kickButton.image.rectTransform);
+		string text = (IsLocalPlayer ? Localization.UI.MATCHSETUP_Tooltip_CantKickSelf : (playerState.isHost ? Localization.UI.MATCHSETUP_Tooltip_CantKickHost : (VoteKickManager.CanKickPlayerImmediately(currentPlayerGuid) ? Localization.UI.MATCHSETUP_Tooltip_Kick : ((!ShouldShowVotekickTooltip()) ? string.Empty : Localization.UI.MATCHSETUP_Tooltip_Votekick))));
+		if (!string.IsNullOrEmpty(text))
+		{
+			SingletonNetworkBehaviour<MatchSetupMenu>.Instance.warningTooltip.RegisterTooltip(kickButton.image.rectTransform, text);
+		}
+		static bool ShouldShowVotekickTooltip()
+		{
+			if (GameManager.LocalPlayerId == null)
+			{
+				return false;
+			}
+			if (VoteKickManager.CanPlayerInitiateVotekick(GameManager.LocalPlayerId.Guid, out var dueToMinActiveTime))
+			{
+				return true;
+			}
+			if (dueToMinActiveTime)
+			{
+				return true;
+			}
+			return false;
+		}
 	}
 
 	private void KickPlayer()
 	{
-		if (NetworkServer.active && !isLocalPlayer)
+		if (!IsLocalPlayer && (VoteKickManager.CanKickFreely() || VoteKickManager.CanInitiateVotekickAtAll()))
 		{
+			CourseManager.PlayerState state;
 			if (!GameManager.TryFindPlayerByGuid(currentPlayerGuid, out var playerInfo))
 			{
-				Debug.LogError("Invalid player guid on player entry!");
+				Debug.LogError("Invalid player guid on pause menu player entry");
 			}
-			else
+			else if (CourseManager.TryGetPlayerState(currentPlayerGuid, out state) && !state.isHost)
 			{
 				VoteKickManager.BeginKick(playerInfo);
 			}
@@ -244,5 +291,15 @@ public class MatchSetupPlayer : MonoBehaviour, IPointerEnterHandler, IEventSyste
 	{
 		shouldUpdateActiveTime = isHovering;
 		UpdateActiveTime(force: true);
+	}
+
+	private void OnLocalPlayerGuidChanged()
+	{
+		UpdateKickTooltip();
+	}
+
+	private void OnLobbyModeChanged()
+	{
+		UpdateKickTooltip();
 	}
 }

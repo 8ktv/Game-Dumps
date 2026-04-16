@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using Mirror;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Localization;
 using UnityEngine.Localization.Components;
 using UnityEngine.Pool;
 using UnityEngine.UI;
@@ -47,6 +48,9 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		ChipIn,
 		Knockouts,
 		Comeback,
+		RepeatRecoveryProtection,
+		DominationProtection,
+		WhiteFlag,
 		Wind,
 		Count
 	}
@@ -57,6 +61,7 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		Time,
 		Player,
 		Battle,
+		Protections,
 		Wind,
 		Cheats,
 		Count
@@ -70,7 +75,15 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		Custom
 	}
 
-	public static readonly RuleCategory[] RuleCategoryLookup = new RuleCategory[18]
+	[Serializable]
+	private struct PresetButton
+	{
+		public Button button;
+
+		public Preset preset;
+	}
+
+	public static readonly RuleCategory[] RuleCategoryLookup = new RuleCategory[21]
 	{
 		RuleCategory.Time,
 		RuleCategory.Time,
@@ -89,6 +102,9 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		RuleCategory.BonusScore,
 		RuleCategory.BonusScore,
 		RuleCategory.BonusScore,
+		RuleCategory.Protections,
+		RuleCategory.Protections,
+		RuleCategory.Protections,
 		RuleCategory.Wind
 	};
 
@@ -134,6 +150,13 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 
 	public DropdownOption hitOtherPlayersBalls;
 
+	[Header("Protections")]
+	public DropdownOption repeatRecoveryProtection;
+
+	public DropdownOption dominationProtection;
+
+	public DropdownOption whiteFlag;
+
 	[Header("Wind")]
 	public DropdownOption wind;
 
@@ -157,7 +180,9 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 
 	public GameObject itemPrefab;
 
-	public Button[] presetCategories;
+	[SerializeField]
+	[DynamicElementName("preset")]
+	private PresetButton[] presetButtons;
 
 	public ItemType[] itemOrder;
 
@@ -170,6 +195,8 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 
 	[Header("Tooltip")]
 	public UiTooltip tooltip;
+
+	private readonly Dictionary<Preset, Button> buttonsPerPreset = new Dictionary<Preset, Button>();
 
 	[SyncVar(hook = "OnPresetChanged")]
 	private Preset currentPreset;
@@ -198,7 +225,9 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 
 	private List<Button> itemTabs = new List<Button>();
 
-	private bool supressPreset;
+	private bool isInitialized;
+
+	private bool isPresetSuppressed;
 
 	public static bool CheatsWarningShowed;
 
@@ -226,6 +255,8 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 
 	public static event Action RulesPopulated;
 
+	public static event Action RulesChanged;
+
 	public static bool IsCheatsEnabled()
 	{
 		if (!SingletonNetworkBehaviour<MatchSetupRules>.HasInstance)
@@ -248,6 +279,17 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 	protected override void Awake()
 	{
 		base.Awake();
+		PresetButton[] array = presetButtons;
+		for (int i = 0; i < array.Length; i++)
+		{
+			PresetButton presetButton = array[i];
+			buttonsPerPreset.Add(presetButton.preset, presetButton.button);
+			presetButton.button.onClick.RemoveAllListeners();
+			presetButton.button.onClick.AddListener(delegate
+			{
+				SetPreset(presetButton.preset);
+			});
+		}
 		itemLayoutInformer.SetLayoutHorizontalCalled += OnItemLayoutSet;
 	}
 
@@ -270,7 +312,8 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 			IsRulesPopulated = true;
 			MatchSetupRules.RulesPopulated?.Invoke();
 		}
-		supressPreset = true;
+		bool flag = isPresetSuppressed;
+		isPresetSuppressed = true;
 		InitDropdownOnOff(onOrBelowPar, Rule.OnOrBelowPar);
 		InitDropdownOnOff(speedrun, Rule.Speedrun);
 		InitDropdownOnOff(chipIn, Rule.ChipIn);
@@ -287,6 +330,9 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		InitDropdownOnOff(hitOtherPlayers, Rule.HitOtherPlayers);
 		InitDropdownOnOff(hitOtherPlayersBalls, Rule.HitOtherPlayersBalls);
 		InitDropdownOnOff(comeback, Rule.Comeback);
+		InitDropdownOnOff(repeatRecoveryProtection, Rule.RepeatRecoveryProtection);
+		InitDropdownOnOff(dominationProtection, Rule.DominationProtection);
+		InitDropdownOnOff(whiteFlag, Rule.WhiteFlag);
 		InitDropdown(wind, Rule.Wind);
 		InitDropdownOnOff(consoleCommands, Rule.ConsoleCommands);
 		UpdateRule(Rule.ConsoleCommands);
@@ -338,15 +384,16 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 				itemData.LocalizedName.GetLocalizedString();
 			}
 		}
+		isInitialized = true;
 		SyncDictionary<Rule, float> syncDictionary = rules;
-		syncDictionary.OnChange = (Action<SyncIDictionary<Rule, float>.Operation, Rule, float>)Delegate.Combine(syncDictionary.OnChange, new Action<SyncIDictionary<Rule, float>.Operation, Rule, float>(RuleUpdated));
+		syncDictionary.OnChange = (Action<SyncIDictionary<Rule, float>.Operation, Rule, float>)Delegate.Combine(syncDictionary.OnChange, new Action<SyncIDictionary<Rule, float>.Operation, Rule, float>(OnRulesChanged));
 		SyncDictionary<ItemPoolId, float> syncDictionary2 = spawnChanceWeights;
 		syncDictionary2.OnSet = (Action<ItemPoolId, float>)Delegate.Combine(syncDictionary2.OnSet, new Action<ItemPoolId, float>(SpawnChanceUpdated));
 		SyncDictionary<ItemPoolId, float> syncDictionary3 = spawnChanceWeights;
 		syncDictionary3.OnAdd = (Action<ItemPoolId>)Delegate.Combine(syncDictionary3.OnAdd, new Action<ItemPoolId>(SpawnChanceUpdated));
 		LocalizationManager.LanguageChanged += OnLanguageChanged;
-		supressPreset = false;
-		OnPresetChanged(currentPreset, currentPreset);
+		isPresetSuppressed = flag;
+		OnPresetChanged(Preset.Invalid, currentPreset);
 		UpdateCurrentItemPool(currentItemPoolIndex);
 		CheckAndShowCheatsWarning();
 		rulesTab.SetActive(activeSelf);
@@ -432,6 +479,9 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		tooltip.DeregisterTooltip(hitOtherPlayers.GetComponent<RectTransform>());
 		tooltip.DeregisterTooltip(hitOtherPlayersBalls.GetComponent<RectTransform>());
 		tooltip.DeregisterTooltip(comeback.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(repeatRecoveryProtection.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(dominationProtection.GetComponent<RectTransform>());
+		tooltip.DeregisterTooltip(whiteFlag.GetComponent<RectTransform>());
 		tooltip.DeregisterTooltip(wind.GetComponent<RectTransform>());
 		tooltip.DeregisterTooltip(consoleCommands.GetComponent<RectTransform>());
 		tooltip.RegisterTooltip(onOrBelowPar.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_OnOrBelowPar);
@@ -447,22 +497,25 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		tooltip.RegisterTooltip(hitOtherPlayers.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_HitOtherPlayers);
 		tooltip.RegisterTooltip(hitOtherPlayersBalls.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_HitOtherPlayersBalls);
 		tooltip.RegisterTooltip(comeback.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Comeback);
+		tooltip.RegisterTooltip(repeatRecoveryProtection.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_RepeatRecoveryProtection);
+		tooltip.RegisterTooltip(dominationProtection.GetComponent<RectTransform>(), string.Format(Localization.UI.MATCHSETUP_Tooltip_DominationProtection, GameManager.MatchSettings.RedShieldKnockoutStreak));
+		tooltip.RegisterTooltip(whiteFlag.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_WhiteFlag);
 		tooltip.RegisterTooltip(wind.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Wind);
 		tooltip.RegisterTooltip(consoleCommands.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_ConsoleCommands);
-		if (presetCategories.Length != 0 && presetCategories[0] != null)
+		if (buttonsPerPreset.TryGetValue(Preset.Classic, out var value))
 		{
-			tooltip.DeregisterTooltip(presetCategories[0].GetComponent<RectTransform>());
-			tooltip.RegisterTooltip(presetCategories[0].GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Preset_Classic);
+			tooltip.DeregisterTooltip(value.GetComponent<RectTransform>());
+			tooltip.RegisterTooltip(value.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Preset_Classic);
 		}
-		if (presetCategories.Length > 1 && presetCategories[1] != null)
+		if (buttonsPerPreset.TryGetValue(Preset.ProGolf, out var value2))
 		{
-			tooltip.DeregisterTooltip(presetCategories[1].GetComponent<RectTransform>());
-			tooltip.RegisterTooltip(presetCategories[1].GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Preset_ProGolf);
+			tooltip.DeregisterTooltip(value2.GetComponent<RectTransform>());
+			tooltip.RegisterTooltip(value2.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Preset_ProGolf);
 		}
-		if (presetCategories.Length > 2 && presetCategories[2] != null)
+		if (buttonsPerPreset.TryGetValue(Preset.Custom, out var value3))
 		{
-			tooltip.DeregisterTooltip(presetCategories[2].GetComponent<RectTransform>());
-			tooltip.RegisterTooltip(presetCategories[2].GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Preset_Custom);
+			tooltip.DeregisterTooltip(value3.GetComponent<RectTransform>());
+			tooltip.RegisterTooltip(value3.GetComponent<RectTransform>(), Localization.UI.MATCHSETUP_Tooltip_Preset_Custom);
 		}
 		for (int i = 0; i < itemTabs.Count; i++)
 		{
@@ -512,7 +565,8 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		currentItemPoolIndex = newIndex;
 		button.transform.GetChild(0).gameObject.SetActive(value: false);
 		button2.transform.GetChild(0).gameObject.SetActive(value: true);
-		supressPreset = true;
+		bool flag = isPresetSuppressed;
+		isPresetSuppressed = true;
 		try
 		{
 			ItemPool itemPool = GetItemPool(newIndex);
@@ -541,7 +595,7 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		}
 		finally
 		{
-			supressPreset = false;
+			isPresetSuppressed = flag;
 			currentItemPoolDirty = true;
 		}
 	}
@@ -661,43 +715,41 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		}
 	}
 
-	public void SetPreset(int preset)
-	{
-		SetPreset((Preset)preset);
-	}
-
 	public void SetPreset(Preset preset)
 	{
-		if (!supressPreset)
+		if (!isPresetSuppressed)
 		{
 			NetworkcurrentPreset = preset;
 		}
 	}
 
-	private void OnPresetChanged(Preset prev, Preset curr)
+	private void OnPresetChanged(Preset previousPreset, Preset currentPreset)
 	{
-		for (int i = 0; i < presetCategories.Length; i++)
+		foreach (var (preset2, button2) in buttonsPerPreset)
 		{
-			presetCategories[i].transform.GetChild(0).gameObject.SetActive(i == (int)curr);
+			button2.transform.GetChild(0).gameObject.SetActive(preset2 == currentPreset);
 		}
-		rulesLabelLobby.StringReference = presetCategories[BMath.Clamp((int)curr, 0, presetCategories.Length - 1)].GetComponentInChildren<LocalizeStringEvent>().StringReference;
+		Button value;
+		LocalizedString stringReference = (buttonsPerPreset.TryGetValue(currentPreset, out value) ? value.GetComponentInChildren<LocalizeStringEvent>().StringReference : ((currentPreset >= Preset.Classic) ? buttonsPerPreset[Preset.Custom].GetComponentInChildren<LocalizeStringEvent>().StringReference : buttonsPerPreset[Preset.Classic].GetComponentInChildren<LocalizeStringEvent>().StringReference));
+		rulesLabelLobby.StringReference = stringReference;
 		rulesLabelLobby.RefreshString();
-		if (base.isServer && curr != Preset.Custom)
+		if (base.isServer && currentPreset != Preset.Custom)
 		{
-			supressPreset = true;
+			bool flag = isPresetSuppressed;
+			isPresetSuppressed = true;
 			try
 			{
-				ResetRules(curr == Preset.Classic);
-				if (curr == Preset.ProGolf)
+				ResetRules(isInitialized && currentPreset != Preset.ProGolf);
+				if (currentPreset == Preset.ProGolf)
 				{
 					TrySetDropdownOnOff(Rule.HomingShots, value: false);
 					TrySetDropdownOnOff(Rule.MaxTimeBasedOnPar, value: true);
 					TrySetDropdownOnOff(Rule.HitOtherPlayers, value: true);
-					List<ItemPoolId> value;
-					using (CollectionPool<List<ItemPoolId>, ItemPoolId>.Get(out value))
+					List<ItemPoolId> value2;
+					using (CollectionPool<List<ItemPoolId>, ItemPoolId>.Get(out value2))
 					{
-						value.AddRange(spawnChanceWeights.Keys);
-						foreach (ItemPoolId item in value)
+						value2.AddRange(spawnChanceWeights.Keys);
+						foreach (ItemPoolId item in value2)
 						{
 							SetSpawnChance(item.itemPoolIndex, item.itemType, (item.itemType == ItemType.SpringBoots || item.itemType == ItemType.Coffee) ? 100 : 0);
 						}
@@ -706,23 +758,23 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 			}
 			finally
 			{
-				supressPreset = false;
+				isPresetSuppressed = flag;
 			}
 		}
 		if (base.isServer)
 		{
 			BNetworkManager.singleton.ServerUpdateRules();
 		}
-		resetItemSpawnChancesButton.interactable = curr == Preset.Custom && base.isServer;
+		resetItemSpawnChancesButton.interactable = currentPreset == Preset.Custom && base.isServer;
 		if (PauseMenu.IsPaused)
 		{
 			SingletonBehaviour<PauseMenu>.Instance.UpdateGameInfoLabels();
 		}
-		void TrySetDropdownOnOff(Rule rule, bool flag)
+		void TrySetDropdownOnOff(Rule rule, bool flag2)
 		{
-			if (onOffDropdownLookup.TryGetValue(rule, out var value2))
+			if (onOffDropdownLookup.TryGetValue(rule, out var value3))
 			{
-				value2.SetValue((!flag) ? 1 : 0);
+				value3.SetValue((!flag2) ? 1 : 0);
 			}
 		}
 	}
@@ -993,7 +1045,7 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		componentInChildren.color = color;
 	}
 
-	private void RuleUpdated(SyncIDictionary<Rule, float>.Operation operation, Rule rule, float value)
+	private void OnRulesChanged(SyncIDictionary<Rule, float>.Operation operation, Rule rule, float value)
 	{
 		if ((uint)operation == 0u || (uint)operation == 1u)
 		{
@@ -1028,6 +1080,7 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		{
 			SingletonBehaviour<PauseMenu>.Instance.UpdateRules();
 		}
+		MatchSetupRules.RulesChanged?.Invoke();
 	}
 
 	private void CheckAndShowCheatsWarning()
@@ -1090,7 +1143,7 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 		sliderLookup[rule] = sliderOption;
 	}
 
-	private void InitDropdownOnOff(DropdownOption dropdownOption, Rule rule)
+	private void InitDropdownOnOff(DropdownOption dropdownOption, Rule rule, Action AfterChanged = null)
 	{
 		dropdownOption.Initialize(delegate
 		{
@@ -1100,11 +1153,12 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 				SetPreset(Preset.Custom);
 			}
 			UpdateDropdownGreyedOut(dropdownOption);
+			AfterChanged?.Invoke();
 		}, (!GetValueAsBoolInternal(rule)) ? 1 : 0);
 		onOffDropdownLookup[rule] = dropdownOption;
 	}
 
-	private void InitDropdown(DropdownOption dropdownOption, Rule rule)
+	private void InitDropdown(DropdownOption dropdownOption, Rule rule, Action AfterChanged = null)
 	{
 		dropdownOption.Initialize(delegate
 		{
@@ -1114,6 +1168,7 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 				SetPreset(Preset.Custom);
 			}
 			UpdateDropdownGreyedOut(dropdownOption, 0);
+			AfterChanged?.Invoke();
 		}, (int)GetValueInternal(rule));
 		dropdownLookup[rule] = dropdownOption;
 	}
@@ -1195,8 +1250,11 @@ public class MatchSetupRules : SingletonNetworkBehaviour<MatchSetupRules>
 			Rule.Speedrun => 1f, 
 			Rule.ChipIn => 1f, 
 			Rule.Knockouts => 0f, 
-			Rule.Wind => 1f, 
 			Rule.Comeback => 1f, 
+			Rule.RepeatRecoveryProtection => 1f, 
+			Rule.DominationProtection => 1f, 
+			Rule.WhiteFlag => 1f, 
+			Rule.Wind => 1f, 
 			_ => 0f, 
 		};
 	}

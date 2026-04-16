@@ -1,3 +1,4 @@
+using System;
 using DG.Tweening;
 using DG.Tweening.Core;
 using DG.Tweening.Plugins.Options;
@@ -53,6 +54,12 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 
 	public VoiceChatVfx voiceChatVfx;
 
+	public GameObject newPlayerIndicator;
+
+	public ControllerSelectable newPlayerIndicatorSelectable;
+
+	public Button newPlayerIndicatorButton;
+
 	private bool isAnySelectableSelected;
 
 	private bool isHoveredOverByPointer;
@@ -69,8 +76,6 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 
 	private CourseManager.PlayerState playerState;
 
-	private double activeTimeSeconds;
-
 	private float activeTimeUpdateTimer;
 
 	private bool shouldUpdateActiveTime;
@@ -79,6 +84,22 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 
 	private bool IsLocalPlayer => CurrentPlayerGuid == BNetworkManager.LocalPlayerGuidOnServer;
 
+	private float TimeSinceJoined => (float)(NetworkTime.time - playerState.joinTimestamp);
+
+	private bool IsNewInLobby
+	{
+		get
+		{
+			if (!playerState.isHost)
+			{
+				return TimeSinceJoined <= (float)VoteKickManager.VoteKickPlayerMinActiveTime;
+			}
+			return false;
+		}
+	}
+
+	public event Action NewPlayerIndicatorDisabled;
+
 	private void Awake()
 	{
 		defaultBackgroundColor = background.color;
@@ -86,21 +107,22 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 		maxSlideout2SlideAmount = GetSlideAmount(slideOut2);
 		SetSlideAmount(slideOut1, 0f);
 		SetSlideAmount(slideOut2, 0f);
-		Navigation navigation = volumeSlider.navigation;
+		Navigation navigation = newPlayerIndicatorButton.navigation;
+		navigation.mode = Navigation.Mode.Explicit;
 		navigation.selectOnLeft = PauseMenu.ResumeButton;
-		volumeSlider.navigation = navigation;
+		newPlayerIndicatorButton.navigation = navigation;
+		Navigation navigation2 = volumeSlider.navigation;
+		navigation2.selectOnLeft = newPlayerIndicatorButton;
+		volumeSlider.navigation = navigation2;
+		kickButton.onClick.AddListener(KickPlayer);
 		volumeSelectable.IsSelectedChanged += OnAnySelectableIsSelectedChanged;
 		muteSelectable.IsSelectedChanged += OnAnySelectableIsSelectedChanged;
 		kickSelectable.IsSelectedChanged += OnAnySelectableIsSelectedChanged;
+		newPlayerIndicatorSelectable.IsSelectedChanged += OnAnySelectableIsSelectedChanged;
+		LocalizationManager.LanguageChanged += OnLanguageChanged;
+		MatchSetupMenu.LobbyModeChanged += OnLobbyModeChanged;
 		InputManager.SwitchedInputDeviceType += OnSwitchedInputDeviceType;
 		SingletonBehaviour<PauseMenu>.Instance.playerActiveTimeTooltip.HoverChanged += OnHoverChanged;
-	}
-
-	private void OnDisable()
-	{
-		DOTween.Kill(this);
-		SetSlideAmount(slideOut1, 0f);
-		SetSlideAmount(slideOut2, 0f);
 	}
 
 	private void OnDestroy()
@@ -108,6 +130,9 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 		volumeSelectable.IsSelectedChanged -= OnAnySelectableIsSelectedChanged;
 		muteSelectable.IsSelectedChanged -= OnAnySelectableIsSelectedChanged;
 		kickSelectable.IsSelectedChanged -= OnAnySelectableIsSelectedChanged;
+		newPlayerIndicatorSelectable.IsSelectedChanged -= OnAnySelectableIsSelectedChanged;
+		LocalizationManager.LanguageChanged -= OnLanguageChanged;
+		MatchSetupMenu.LobbyModeChanged -= OnLobbyModeChanged;
 		if (wasAssignedLocalPlayer)
 		{
 			GameSettings.AudioSettings.MicInputVolumeChanged -= OnMicInputVolumeChanged;
@@ -119,12 +144,33 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 		}
 	}
 
+	private void OnEnable()
+	{
+		UpdateKickTooltip();
+		PlayerId.LocalPlayerGuidChanged += OnLocalPlayerGuidChanged;
+	}
+
+	private void OnDisable()
+	{
+		PlayerId.LocalPlayerGuidChanged -= OnLocalPlayerGuidChanged;
+		DOTween.Kill(this);
+		SetSlideAmount(slideOut1, 0f);
+		SetSlideAmount(slideOut2, 0f);
+		shouldUpdateActiveTime = false;
+	}
+
 	private void Update()
 	{
 		PlayerInfo playerInfo;
 		bool flag = GameManager.TryFindPlayerByGuid(CurrentPlayerGuid, out playerInfo) && playerInfo.VoiceChat.voiceNetworker.IsTalking;
 		voiceChatIndicator.SetActive(flag);
 		voiceChatVfx.SetPlaying(flag);
+		if (newPlayerIndicator.activeSelf && !IsNewInLobby)
+		{
+			HideNewPlayerIndicator();
+			OnAnySelectableIsSelectedChanged();
+			UpdateKickTooltip();
+		}
 	}
 
 	private void LateUpdate()
@@ -137,7 +183,6 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 
 	private void UpdateActiveTime(bool force)
 	{
-		activeTimeSeconds = NetworkTime.time - playerState.joinTimestamp;
 		activeTimeUpdateTimer += Time.deltaTime;
 		if (activeTimeUpdateTimer >= 1f || force)
 		{
@@ -158,9 +203,42 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 		muteHighlight.sprite = (muteToggle.isOn ? mutedHighlightSprite : unmuteHighlightSprite);
 	}
 
+	private void HideNewPlayerIndicator(bool suppressEvent = false)
+	{
+		newPlayerIndicator.SetActive(value: false);
+		UpdateNewPlayerTooltip();
+		Navigation navigation = volumeSlider.navigation;
+		navigation.selectOnLeft = PauseMenu.ResumeButton;
+		volumeSlider.navigation = navigation;
+		if (!suppressEvent)
+		{
+			this.NewPlayerIndicatorDisabled?.Invoke();
+		}
+	}
+
+	private void ShowNewPlayerIndicator()
+	{
+		if (IsNewInLobby)
+		{
+			newPlayerIndicator.SetActive(value: true);
+			UpdateNewPlayerTooltip();
+			Navigation navigation = volumeSlider.navigation;
+			navigation.selectOnLeft = newPlayerIndicatorButton;
+			volumeSlider.navigation = navigation;
+		}
+	}
+
 	public void AssignPlayer(CourseManager.PlayerState playerState)
 	{
 		this.playerState = playerState;
+		if (playerState.isHost)
+		{
+			HideNewPlayerIndicator(suppressEvent: true);
+		}
+		else
+		{
+			ShowNewPlayerIndicator();
+		}
 		if (CurrentPlayerGuid == playerState.playerGuid)
 		{
 			RefreshMutedToggle();
@@ -193,8 +271,6 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 			}, SliderOption.RemapValueSliderValueMiddleLinear(PlayerVoiceChat.GetPlayerStatus(CurrentPlayerGuid).volume, 0f, 3f, 1f));
 		}
 		RefreshMutedToggle();
-		kickButton.gameObject.SetActive(value: true);
-		kickButton.interactable = !IsLocalPlayer && !playerState.isHost && VoteKickManager.CanKickOrVotekick;
 		UpdateTooltips();
 		leaderIcon.SetActive(playerState.isHost);
 		void OnSetOwnVolume()
@@ -233,20 +309,6 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 				}
 			}
 		}
-		void UpdateKickTooltip()
-		{
-			SingletonBehaviour<PauseMenu>.Instance.warningTooltip.DeregisterTooltip(kickButton.image.rectTransform);
-			string text = (IsLocalPlayer ? Localization.UI.MATCHSETUP_Tooltip_CantKickSelf : (playerState.isHost ? Localization.UI.MATCHSETUP_Tooltip_CantKickHost : (VoteKickManager.CanVotekick ? Localization.UI.MATCHSETUP_Tooltip_Votekick : ((!VoteKickManager.CanKick) ? string.Empty : Localization.UI.MATCHSETUP_Tooltip_Kick))));
-			if (!string.IsNullOrEmpty(text))
-			{
-				SingletonBehaviour<PauseMenu>.Instance.warningTooltip.RegisterTooltip(kickButton.image.rectTransform, text);
-			}
-			kickButton.onClick.RemoveAllListeners();
-			if (VoteKickManager.CanKickOrVotekick)
-			{
-				kickButton.onClick.AddListener(KickPlayer);
-			}
-		}
 		void UpdateMuteTooltip()
 		{
 			SingletonBehaviour<PauseMenu>.Instance.warningTooltip.DeregisterTooltip(muteToggle.GetComponent<RectTransform>());
@@ -263,6 +325,7 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 			UpdateHostTooltip();
 			UpdateVoiceVolumeTooltip();
 			UpdateActiveTimeTooltip();
+			UpdateNewPlayerTooltip();
 		}
 		void UpdateVoiceVolumeTooltip()
 		{
@@ -285,10 +348,52 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 		}
 	}
 
+	private void UpdateNewPlayerTooltip()
+	{
+		SingletonBehaviour<PauseMenu>.Instance.warningTooltip.DeregisterTooltip(newPlayerIndicator.GetComponent<RectTransform>());
+		if (!newPlayerIndicator.activeSelf || SingletonNetworkBehaviour<MatchSetupMenu>.Instance.lobbyMode != LobbyMode.Public)
+		{
+			LayoutRebuilder.ForceRebuildLayoutImmediate(newPlayerIndicator.transform as RectTransform);
+			return;
+		}
+		string pAUSE_Tooltip_NewPlayer = Localization.UI.PAUSE_Tooltip_NewPlayer;
+		if (!string.IsNullOrEmpty(pAUSE_Tooltip_NewPlayer))
+		{
+			SingletonBehaviour<PauseMenu>.Instance.warningTooltip.RegisterTooltip(newPlayerIndicator.GetComponent<RectTransform>(), pAUSE_Tooltip_NewPlayer);
+		}
+		LayoutRebuilder.ForceRebuildLayoutImmediate(newPlayerIndicator.transform as RectTransform);
+	}
+
+	private void UpdateKickTooltip()
+	{
+		SingletonBehaviour<PauseMenu>.Instance.warningTooltip.DeregisterTooltip(kickButton.image.rectTransform);
+		string text = (IsLocalPlayer ? Localization.UI.MATCHSETUP_Tooltip_CantKickSelf : (playerState.isHost ? Localization.UI.MATCHSETUP_Tooltip_CantKickHost : (VoteKickManager.CanKickPlayerImmediately(CurrentPlayerGuid) ? Localization.UI.MATCHSETUP_Tooltip_Kick : ((!ShouldShowVotekickTooltip()) ? string.Empty : Localization.UI.MATCHSETUP_Tooltip_Votekick))));
+		if (!string.IsNullOrEmpty(text))
+		{
+			SingletonBehaviour<PauseMenu>.Instance.warningTooltip.RegisterTooltip(kickButton.image.rectTransform, text);
+		}
+		static bool ShouldShowVotekickTooltip()
+		{
+			if (GameManager.LocalPlayerId == null)
+			{
+				return false;
+			}
+			if (VoteKickManager.CanPlayerInitiateVotekick(GameManager.LocalPlayerId.Guid, out var dueToMinActiveTime))
+			{
+				return true;
+			}
+			if (dueToMinActiveTime)
+			{
+				return true;
+			}
+			return false;
+		}
+	}
+
 	private string GetActiveTimeTooltip()
 	{
-		string arg = Mathf.FloorToInt((float)(activeTimeSeconds / 60.0)).ToString("D2");
-		string arg2 = Mathf.FloorToInt((float)(activeTimeSeconds % 60.0)).ToString("D2");
+		string arg = Mathf.FloorToInt(TimeSinceJoined / 60f).ToString("D2");
+		string arg2 = Mathf.FloorToInt(TimeSinceJoined % 60f).ToString("D2");
 		return string.Format(Localization.UI.PAUSE_Tooltip_ActiveTime, arg, arg2);
 	}
 
@@ -327,6 +432,17 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 			navigation.selectOnDown = slider;
 		}
 		kickButton.navigation = navigation;
+		navigation = newPlayerIndicatorButton.navigation;
+		slider = (targetEntry.newPlayerIndicator.activeSelf ? ((Selectable)targetEntry.newPlayerIndicatorButton) : ((Selectable)targetEntry.volumeSlider.Slider));
+		if (isUp)
+		{
+			navigation.selectOnUp = slider;
+		}
+		else
+		{
+			navigation.selectOnDown = slider;
+		}
+		newPlayerIndicatorButton.navigation = navigation;
 	}
 
 	public void SetVerticalNavigationTarget(Selectable target, bool isUp)
@@ -365,13 +481,14 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 
 	private void KickPlayer()
 	{
-		if (VoteKickManager.CanKickOrVotekick && !IsLocalPlayer)
+		if (!IsLocalPlayer && (VoteKickManager.CanKickFreely() || VoteKickManager.CanInitiateVotekickAtAll()))
 		{
+			CourseManager.PlayerState state;
 			if (!GameManager.TryFindPlayerByGuid(CurrentPlayerGuid, out var playerInfo))
 			{
 				Debug.LogError("Invalid player guid on pause menu player entry");
 			}
-			else
+			else if (CourseManager.TryGetPlayerState(CurrentPlayerGuid, out state) && !state.isHost)
 			{
 				VoteKickManager.BeginKick(playerInfo);
 			}
@@ -430,7 +547,7 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 
 	private void OnAnySelectableIsSelectedChanged()
 	{
-		isAnySelectableSelected = volumeSelectable.IsSelected || muteSelectable.IsSelected || kickSelectable.IsSelected;
+		isAnySelectableSelected = volumeSelectable.IsSelected || muteSelectable.IsSelected || kickSelectable.IsSelected || (newPlayerIndicatorSelectable.IsSelected && newPlayerIndicator.activeSelf);
 		UpdateAreSlideoutsExtended();
 	}
 
@@ -452,6 +569,17 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 		UpdateActiveTime(force: true);
 	}
 
+	private void OnLanguageChanged()
+	{
+		UpdateNewPlayerTooltip();
+	}
+
+	private void OnLobbyModeChanged()
+	{
+		UpdateNewPlayerTooltip();
+		UpdateKickTooltip();
+	}
+
 	private float GetSlideAmount(RectTransform slideout)
 	{
 		return slideout.sizeDelta.x;
@@ -461,5 +589,10 @@ public class PauseMenuPlayerEntry : MonoBehaviour, IPointerEnterHandler, IEventS
 	{
 		slideout.anchoredPosition = new Vector2((0f - amount) / 2f, slideout.anchoredPosition.y);
 		slideout.sizeDelta = new Vector2(amount, 0f);
+	}
+
+	private void OnLocalPlayerGuidChanged()
+	{
+		UpdateKickTooltip();
 	}
 }

@@ -390,6 +390,7 @@ public class PlayerInfo : NetworkBehaviour
 		Movement.IsVisibleChanged += OnIsVisibleChanged;
 		AsHittable.IsFrozenChanged += OnIsFrozenChanged;
 		PlayerId.AnyPlayerGuidChanged += OnAnyPlayerGuidChanged;
+		MatchSetupRules.RulesChanged += OnMatchRulesChanged;
 		CourseManager.PlayerDominationsChanged += OnPlayerDominationsChanged;
 	}
 
@@ -430,6 +431,7 @@ public class PlayerInfo : NetworkBehaviour
 		Movement.IsVisibleChanged -= OnIsVisibleChanged;
 		AsHittable.IsFrozenChanged -= OnIsFrozenChanged;
 		PlayerId.AnyPlayerGuidChanged -= OnAnyPlayerGuidChanged;
+		MatchSetupRules.RulesChanged -= OnMatchRulesChanged;
 		CourseManager.PlayerDominationsChanged -= OnPlayerDominationsChanged;
 		if (activeGolfCartSeat.IsValid())
 		{
@@ -996,11 +998,12 @@ public class PlayerInfo : NetworkBehaviour
 	}
 
 	[TargetRpc]
-	public void RpcInformFrozeGolfCart(int otherPassengerCount)
+	public void RpcInformFrozeGolfCart(int otherPassengerCount, int otherSpeedBoostGrantingPassengerCount)
 	{
 		NetworkWriterPooled writer = NetworkWriterPool.Get();
 		writer.WriteVarInt(otherPassengerCount);
-		SendTargetRPCInternal(null, "System.Void PlayerInfo::RpcInformFrozeGolfCart(System.Int32)", 1644328919, writer, 0);
+		writer.WriteVarInt(otherSpeedBoostGrantingPassengerCount);
+		SendTargetRPCInternal(null, "System.Void PlayerInfo::RpcInformFrozeGolfCart(System.Int32,System.Int32)", 91707058, writer, 0);
 		NetworkWriterPool.Return(writer);
 	}
 
@@ -1148,7 +1151,7 @@ public class PlayerInfo : NetworkBehaviour
 		{
 			ClearMark();
 		}
-		else if (isDominated)
+		else if (isDominated && MatchSetupRules.GetValueAsBool(MatchSetupRules.Rule.WhiteFlag))
 		{
 			ApplyDominatingMark();
 		}
@@ -1666,6 +1669,11 @@ public class PlayerInfo : NetworkBehaviour
 		}
 	}
 
+	private void OnMatchRulesChanged()
+	{
+		UpdateOverheadMarkVfx();
+	}
+
 	private void OnPlayerDominationsChanged(SyncSet<CourseManager.PlayerPair>.Operation operation, CourseManager.PlayerPair value)
 	{
 		UpdateDominationState();
@@ -1883,7 +1891,7 @@ public class PlayerInfo : NetworkBehaviour
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcPopUp(PlayerTextPopupType,System.Int32)", InvokeUserCode_RpcPopUp__PlayerTextPopupType__Int32);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcAwaitSpawning()", InvokeUserCode_RpcAwaitSpawning);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformOfGolfCartEnterAttemptResult(GolfCartInfo,System.Boolean)", InvokeUserCode_RpcInformOfGolfCartEnterAttemptResult__GolfCartInfo__Boolean);
-		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformFrozeGolfCart(System.Int32)", InvokeUserCode_RpcInformFrozeGolfCart__Int32);
+		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformFrozeGolfCart(System.Int32,System.Int32)", InvokeUserCode_RpcInformFrozeGolfCart__Int32__Int32);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformPlayerFrozen(System.Boolean)", InvokeUserCode_RpcInformPlayerFrozen__Boolean);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformOfHoleFinishStrokesUnderPar(StrokesUnderParType)", InvokeUserCode_RpcInformOfHoleFinishStrokesUnderPar__StrokesUnderParType);
 		RemoteProcedureCalls.RegisterRpc(typeof(PlayerInfo), "System.Void PlayerInfo::RpcInformKnockedOutOtherPlayer(KnockoutType,UnityEngine.Vector3,System.Single,ItemType,System.Boolean,System.Boolean)", InvokeUserCode_RpcInformKnockedOutOtherPlayer__KnockoutType__Vector3__Single__ItemType__Boolean__Boolean);
@@ -2019,12 +2027,12 @@ public class PlayerInfo : NetworkBehaviour
 		}
 	}
 
-	protected void UserCode_RpcInformFrozeGolfCart__Int32(int otherPassengerCount)
+	protected void UserCode_RpcInformFrozeGolfCart__Int32__Int32(int otherPassengerCount, int otherSpeedBoostGrantingPassengerCount)
 	{
-		Movement.InformFrozeGolfCart(otherPassengerCount);
+		Movement.InformFrozeGolfCart(otherPassengerCount, otherSpeedBoostGrantingPassengerCount);
 	}
 
-	protected static void InvokeUserCode_RpcInformFrozeGolfCart__Int32(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
+	protected static void InvokeUserCode_RpcInformFrozeGolfCart__Int32__Int32(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection)
 	{
 		if (!NetworkClient.active)
 		{
@@ -2032,7 +2040,7 @@ public class PlayerInfo : NetworkBehaviour
 		}
 		else
 		{
-			((PlayerInfo)obj).UserCode_RpcInformFrozeGolfCart__Int32(reader.ReadVarInt());
+			((PlayerInfo)obj).UserCode_RpcInformFrozeGolfCart__Int32__Int32(reader.ReadVarInt(), reader.ReadVarInt());
 		}
 	}
 

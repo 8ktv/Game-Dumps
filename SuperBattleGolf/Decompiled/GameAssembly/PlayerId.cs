@@ -63,6 +63,8 @@ public class PlayerId : NetworkBehaviour
 
 	public event Action NameChanged;
 
+	public static event Action LocalPlayerGuidChanged;
+
 	public static event Action<PlayerId> AnyPlayerNameChanged;
 
 	public static event Action<PlayerId> AnyPlayerGuidChanged;
@@ -169,6 +171,10 @@ public class PlayerId : NetworkBehaviour
 		PlayerInfo.OnGuidChanged(previousGuid, currentGuid);
 		this.GuidChanged?.Invoke();
 		PlayerId.AnyPlayerGuidChanged?.Invoke(this);
+		if (base.isLocalPlayer)
+		{
+			PlayerId.LocalPlayerGuidChanged?.Invoke();
+		}
 		string text = playerNameLocal;
 		playerNameLocal = CourseManager.GetPlayerName(this);
 		if (text != playerNameLocal)

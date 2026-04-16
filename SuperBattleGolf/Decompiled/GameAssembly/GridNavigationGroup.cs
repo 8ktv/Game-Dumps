@@ -218,7 +218,7 @@ public class GridNavigationGroup : MonoBehaviour
 			for (int num5 = row3.elements.Count - 1; num5 >= 0; num5--)
 			{
 				Element element3 = row3.elements[num5];
-				if (!(element3.selectable == null) && !(element3.horizontalPosition >= horizontalPosition))
+				if (!(element3.selectable == null) && element3.selectable.enabled && element3.selectable.gameObject.activeInHierarchy && !(element3.horizontalPosition >= horizontalPosition))
 				{
 					reference = element3;
 					break;
@@ -232,7 +232,7 @@ public class GridNavigationGroup : MonoBehaviour
 			for (int m = 0; m < row3.elements.Count; m++)
 			{
 				Element element3 = row3.elements[m];
-				if (!(element3.selectable == null) && !(element3.horizontalPosition <= horizontalPosition))
+				if (!(element3.selectable == null) && element3.selectable.enabled && element3.selectable.gameObject.activeInHierarchy && !(element3.horizontalPosition <= horizontalPosition))
 				{
 					reference = element3;
 					break;
@@ -247,7 +247,7 @@ public class GridNavigationGroup : MonoBehaviour
 			for (int m = 0; m < row3.elements.Count; m++)
 			{
 				Element element3 = row3.elements[m];
-				if (element3 != null)
+				if (element3 != null && !(element3.selectable == null) && element3.selectable.enabled && element3.selectable.gameObject.activeInHierarchy)
 				{
 					float num6 = BMath.Abs(element3.horizontalPosition - horizontalPosition);
 					if (!(num6 >= num5 - 0.0001f))
